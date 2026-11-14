@@ -47,13 +47,26 @@ public enum PluginBuiltinRegistry {
         return true
     }
 
-    public static func runBuiltin(id: String, query: String = "") -> PluginResolvedOutput? {
+    public static func runBuiltin(id: String, query: String = "", arguments: [String] = []) -> PluginResolvedOutput? {
         guard let desc = descriptors().first(where: { $0.id == id }) else { return nil }
-        let payload = buildViewPayload(for: desc, query: query)
+        if let firstArg = arguments.first {
+            switch firstArg {
+            case "--toggle-enabled":
+                _ = setBuiltinEnabled(id: id, isEnabled: !desc.isEnabled)
+            case "--enable":
+                _ = setBuiltinEnabled(id: id, isEnabled: true)
+            case "--disable":
+                _ = setBuiltinEnabled(id: id, isEnabled: false)
+            default:
+                break
+            }
+        }
+        let refreshed = descriptors().first(where: { $0.id == id }) ?? desc
+        let payload = buildViewPayload(for: refreshed, query: query, arguments: arguments)
         let data = (try? JSONEncoder().encode(payload)) ?? Data()
         let json = String(data: data, encoding: .utf8) ?? "{}"
         let exec = PluginExecutionResult(exitCode: 0, stdout: json, stderr: "", durationMs: 1)
-        return PluginResolvedOutput(descriptor: desc, execution: exec)
+        return PluginResolvedOutput(descriptor: refreshed, execution: exec)
     }
 
     private static func makeMosDescriptor(config: MosConfig, tapActive: Bool, trusted: Bool) -> PluginDescriptor {
@@ -184,7 +197,7 @@ public enum PluginBuiltinRegistry {
         )
     }
 
-    private static func buildViewPayload(for desc: PluginDescriptor, query: String) -> PluginViewPayload {
+    private static func buildViewPayload(for desc: PluginDescriptor, query: String, arguments: [String] = []) -> PluginViewPayload {
         let meta = desc.builtinMetadata
         var metrics: [PluginKeyValue] = [
             PluginKeyValue(key: "运行状态", value: desc.isEnabled ? "已启用" : "已关闭（零开销）"),
@@ -195,6 +208,8 @@ public enum PluginBuiltinRegistry {
         }
         let target = meta?.settingsTarget ?? "plugins"
         let tccText = (meta?.requiredTCCPermissions ?? []).joined(separator: " · ")
+        let toggleAction = desc.isEnabled ? "--disable" : "--enable"
+        let toggleLabel = desc.isEnabled ? "停用内置服务" : "启用内置服务"
         return PluginViewPayload(
             title: desc.manifest.name,
             subtitle: meta?.statusSummary ?? desc.manifest.description,
@@ -203,11 +218,20 @@ public enum PluginBuiltinRegistry {
             metrics: metrics,
             items: [
                 PluginViewItem(
+                    explicitID: "\(desc.id)-open-settings",
                     title: "打开完整原生设置视图",
                     subtitle: "配置详细参数与宿主 TCC 授权状态",
                     icon: desc.manifest.icon ?? "slider.horizontal.3",
                     badge: "原生面板",
                     openURL: "lumakey://settings/\(target)"
+                ),
+                PluginViewItem(
+                    explicitID: "\(desc.id)-toggle",
+                    title: toggleLabel,
+                    subtitle: "通过统一命令路由原地切换开关（零常驻开销）",
+                    icon: desc.isEnabled ? "pause.circle" : "play.circle.fill",
+                    badge: desc.isEnabled ? "ON" : "OFF",
+                    commandArgs: [toggleAction]
                 )
             ]
         )

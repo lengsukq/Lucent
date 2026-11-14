@@ -34,7 +34,7 @@ final class MCPServer {
                 Lumakey is a lightweight macOS productivity hub (NOT a resident server, daemon runner, or cron gateway).
                 Follow these mandatory rules when creating or inspecting Lumakey plugins:
                 1. Before authoring any plugin, read `lumakey://specs/plugin-v3` and call `lumakey_list_plugins` (to check BUILTIN native plugins like Mos/LumaLink/SystemPulse so you do not duplicate them) and `lumakey_app_permissions` (to audit app-wide permission usage).
-                2. Every plugin MUST explicitly declare its required permissions via `capabilities` in `plugin.json` at registration time (pass `[]` if pure sandboxed needing no host capabilities, or list values such as `clipboard`, `ocr`, `everythingSearch`, `displayInfo`, `systemControl`, `lumaLinkStatus`).
+                2. Every plugin MUST explicitly declare its required permissions via `capabilities` (Host Bridge) AND `resourceScopes` (`network`, `filesystem`, `subprocess`, or `[]` if none) in `plugin.json` at registration time. Pass `[]` for both when authoring a pure sandboxed plugin.
                 3. Reuse host TCC permissions through declared `capabilities` and the ephemeral per-run UDS Host Bridge (`LUMAKEY_BRIDGE_SOCK` / `LUMAKEY_BRIDGE_TOKEN`). Never write `launchd` plists, resident HTTP servers, or infinite `while true` loops.
                 4. Prefer `mode: "view"` outputting `PluginViewPayload` JSON for native Liquid Glass cards.
                 5. Always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after scaffolding or editing a plugin.

@@ -81,11 +81,13 @@ private func verifyPluginV2LifecycleAndWatcher() throws {
             PluginConfigField(key: "verbose", label: "Verbose", type: .boolean, defaultValue: "true"),
             PluginConfigField(key: "region", label: "Region", type: .select, defaultValue: "cn", options: ["cn", "us"])
         ],
-        capabilities: []
+        capabilities: ["clipboard"],
+        resourceScopes: []
     )
     try JSONEncoder().encode(v2Manifest).write(to: v2Dir.appendingPathComponent("plugin.json"))
 
     try PluginSystem.updatePluginConfig(id: "custom-view", values: ["greeting": "HelloV2"], in: pluginsRoot)
+    try PluginSystem.setPluginCapabilityGranted(id: "custom-view", capability: .clipboard, granted: true, in: pluginsRoot)
     check(FileManager.default.fileExists(atPath: PluginSystem.stateFileURL(for: pluginsRoot).path), "plugin-state.json persisted in parent dir")
 
     let loadedV2 = PluginSystem.loadPlugin(at: v2Dir, in: pluginsRoot)

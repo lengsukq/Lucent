@@ -2,11 +2,19 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
+@MainActor
+private final class PluginCardDialogState: ObservableObject {
+    @Published var pendingConfirmAction: PluginViewAction?
+    @Published var pendingPromptAction: PluginViewAction?
+}
+
 struct PluginStructuredViewCard: View {
     let payload: PluginViewPayload
     var onCopyText: ((String) -> Void)? = nil
     var onOpenURL: ((URL) -> Void)? = nil
     var onRunCommandArgs: (([String]) -> Void)? = nil
+
+    @StateObject private var dialogState = PluginCardDialogState()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -74,6 +82,36 @@ struct PluginStructuredViewCard: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
+        .alert(
+            dialogState.pendingConfirmAction?.label ?? "确认操作",
+            isPresented: Binding(
+                get: { dialogState.pendingConfirmAction != nil },
+                set: { if !$0 { dialogState.pendingConfirmAction = nil } }
+            )
+        ) {
+            Button("取消", role: .cancel) { dialogState.pendingConfirmAction = nil }
+            Button("确认", role: dialogState.pendingConfirmAction?.style == .destructive ? .destructive : nil) {
+                guard let action = dialogState.pendingConfirmAction else { return }
+                dialogState.pendingConfirmAction = nil
+                if let fields = action.promptFields, !fields.isEmpty {
+                    dialogState.pendingPromptAction = action
+                } else {
+                    onRunCommandArgs?(action.commandArgs)
+                }
+            }
+        } message: {
+            Text(dialogState.pendingConfirmAction?.confirmMessage ?? "确认执行该插件操作？")
+        }
+        .sheet(item: $dialogState.pendingPromptAction) { action in
+            PluginActionPromptSheet(
+                action: action,
+                onCancel: { dialogState.pendingPromptAction = nil },
+                onSubmit: { finalArgs in
+                    dialogState.pendingPromptAction = nil
+                    onRunCommandArgs?(finalArgs)
+                }
+            )
+        }
     }
 
     private func itemRow(_ item: PluginViewItem) -> some View {
@@ -116,10 +154,19 @@ struct PluginStructuredViewCard: View {
                 }
                 .buttonStyle(GlassPillButtonStyle())
             }
-            if let args = item.commandArgs, !args.isEmpty, let onRunCommandArgs {
-                Button("执行") { onRunCommandArgs(args) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
-            }
+            PluginViewActionButtons(
+                item: item,
+                onRunCommandArgs: onRunCommandArgs,
+                onRequestAction: { action in
+                    if let msg = action.confirmMessage, !msg.isEmpty {
+                        dialogState.pendingConfirmAction = action
+                    } else if let fields = action.promptFields, !fields.isEmpty {
+                        dialogState.pendingPromptAction = action
+                    } else {
+                        onRunCommandArgs?(action.commandArgs)
+                    }
+                }
+            )
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -210,55 +257,5 @@ struct PluginStarterGalleryListView: View {
                 }
             }
         }
-    }
-}
-
-struct PluginConfigFormCard: View {
-    let plugin: PluginDescriptor
-    let fields: [PluginConfigField]
-    @ObservedObject var ctrl: PluginCenterController
-    let viewModel: AppViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("参数配置 (plugin-state.json)").font(.caption.weight(.bold))
-                Spacer()
-                Button("保存配置") { ctrl.saveConfig(for: plugin, viewModel: viewModel) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
-            }
-            ForEach(fields) { field in
-                VStack(alignment: .leading, spacing: 4) {
-                    if field.type != .boolean {
-                        Text(field.label).font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
-                    }
-                    switch field.type {
-                    case .text:
-                        GlassInputField(symbol: "slider.horizontal.3", placeholder: field.placeholder ?? field.key, text: ctrl.binding(for: field))
-                    case .secret:
-                        SecureField(field.placeholder ?? "输入密钥参数", text: ctrl.binding(for: field))
-                            .textFieldStyle(.plain).font(.caption)
-                            .padding(.horizontal, 11).padding(.vertical, 7)
-                            .background(LiquidColors.inputFieldSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
-                    case .boolean:
-                        HStack(spacing: 8) {
-                            Text(field.label).font(.caption.weight(.medium)).foregroundStyle(LiquidColors.textPrimary)
-                            Spacer()
-                            Toggle("", isOn: ctrl.boolBinding(for: field)).toggleStyle(.switch).labelsHidden().controlSize(.small)
-                        }
-                        .padding(.vertical, 2)
-                    case .select:
-                        HStack(spacing: 6) {
-                            ForEach(field.options ?? [], id: \.self) { opt in
-                                Button(opt) { ctrl.configDraft[field.key] = opt }
-                                    .buttonStyle(GlassPillButtonStyle(prominent: (ctrl.configDraft[field.key] ?? field.defaultValue) == opt))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .padding(10)
-        .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
     }
 }

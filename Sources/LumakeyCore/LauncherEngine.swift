@@ -49,6 +49,7 @@ public enum LauncherCandidateKind: Sendable, Hashable {
     case fileHit(EverythingSearchHit)
     case clipboard(ClipboardEntry)
     case plugin(PluginDescriptor)
+    case pluginItem(PluginSearchEntry)
     case command(CommandSuggestion)
 }
 
@@ -107,6 +108,7 @@ public enum LauncherEngine {
         filter: OmniFilter = .all,
         apps: [InstalledAppItem],
         plugins: [PluginDescriptor],
+        pluginSearchEntries: [PluginSearchEntry] = [],
         clipboardItems: [ClipboardEntry] = [],
         volumes: [VolumeSummary] = [],
         everythingIndex: EverythingIndex? = nil,
@@ -170,6 +172,12 @@ public enum LauncherEngine {
                 if filter == .plugins || kwHit || nameHit {
                     let score = kwHit ? 9_500 : (nameHit ? 7_800 : 6_200)
                     results.append(LauncherCandidate(id: "plugin:\(plugin.id)", score: score, kind: .plugin(plugin)))
+                }
+            }
+            if !needle.isEmpty {
+                let itemLimit = filter == .plugins ? 25 : 12
+                for hit in PluginSearchIndex.match(entries: pluginSearchEntries, query: trimmed, limit: itemLimit) {
+                    results.append(LauncherCandidate(id: "plugitem:\(hit.entry.id)", score: hit.score, kind: .pluginItem(hit.entry)))
                 }
             }
         }

@@ -44,7 +44,7 @@ struct PluginCenterView: View {
                 Spacer(minLength: 4)
                 Button("导入") { ctrl.importFromFinder(viewModel: viewModel) }.buttonStyle(GlassPillButtonStyle())
                 Button("目录") { ctrl.openPluginsDirectoryInFinder() }.buttonStyle(GlassPillButtonStyle())
-                Button("刷新") { viewModel.reloadAppsAndPlugins(); ctrl.syncSelection(from: viewModel.plugins) }
+                Button("刷新") { viewModel.reloadPluginsAndHotKeys(); ctrl.syncSelection(from: viewModel.plugins) }
                     .buttonStyle(GlassPillButtonStyle())
             }
 
@@ -109,7 +109,14 @@ struct PluginCenterView: View {
                                 .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                                 .padding(.horizontal, 6).padding(.vertical, 1.5)
                                 .background(LiquidColors.pillSurface, in: Capsule())
-                        } else if !plugin.isBuiltin && plugin.manifest.capabilities != nil {
+                        } else if !plugin.isBuiltin && !plugin.declaredResourceScopes.isEmpty {
+                            Text(plugin.declaredResourceScopes.map(\.shortLabel).joined(separator: " · "))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.purple)
+                                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                                .padding(.horizontal, 6).padding(.vertical, 1.5)
+                                .background(LiquidColors.pillSurface, in: Capsule())
+                        } else if !plugin.isBuiltin && plugin.manifest.capabilities != nil && plugin.manifest.resourceScopes != nil {
                             Text("纯沙盒 []")
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(LiquidColors.textSecondary)
@@ -186,7 +193,7 @@ struct PluginCenterView: View {
             case .permissions:
                 PluginPermissionsMatrixView(viewModel: viewModel, ctrl: ctrl)
             case .scaffold:
-                scaffoldTab
+                PluginScaffoldFormView(viewModel: viewModel, ctrl: ctrl)
             }
         }
     }
@@ -201,7 +208,7 @@ struct PluginCenterView: View {
                     } else if !plugin.declaredCapabilities.isEmpty {
                         PluginCapabilitiesCard(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
                     } else {
-                        PluginSandboxPermissionCard(hasDeclaredField: plugin.manifest.capabilities != nil)
+                        PluginSandboxPermissionCard(plugin: plugin)
                     }
                     if let fields = plugin.manifest.config, !fields.isEmpty {
                         PluginConfigFormCard(plugin: plugin, fields: fields, ctrl: ctrl, viewModel: viewModel)
@@ -245,50 +252,5 @@ struct PluginCenterView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
         }
-    }
-
-    private var scaffoldTab: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("脚手架创建自定义插件 (v3)").font(.callout.weight(.semibold))
-            VStack(alignment: .leading, spacing: 3) {
-                Text("插件唯一 ID").font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
-                GlassInputField(symbol: "number", placeholder: "小写字母 / 数字 / 连字符", text: $ctrl.newID)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                Text("插件显示名称").font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
-                GlassInputField(symbol: "tag", placeholder: "显示名称", text: $ctrl.newName)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                Text("触发关键词（逗号分隔）").font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
-                GlassInputField(symbol: "text.magnifyingglass", placeholder: "触发关键词", text: $ctrl.newKeywords)
-            }
-            HStack(spacing: 8) {
-                Text("输出协议:").font(.caption).foregroundStyle(LiquidColors.textSecondary)
-                ForEach(PluginMode.allCases, id: \.rawValue) { mode in
-                    Button(mode.rawValue.uppercased()) { ctrl.newMode = mode }
-                        .buttonStyle(GlassPillButtonStyle(prominent: ctrl.newMode == mode))
-                }
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("注册声明权限（必选字段，不选即声明 [] 纯沙盒）").font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 6)], spacing: 6) {
-                    ForEach(PluginCapability.allCases) { cap in
-                        let selected = ctrl.newCapabilities.contains(cap)
-                        Button(cap.title) {
-                            if selected { ctrl.newCapabilities.remove(cap) } else { ctrl.newCapabilities.insert(cap) }
-                        }
-                        .buttonStyle(GlassPillButtonStyle(prominent: selected))
-                    }
-                }
-            }
-            Button("生成并运行测试") { ctrl.scaffoldCustom(viewModel: viewModel) }
-                .buttonStyle(GlassPillButtonStyle(prominent: true))
-            Text("也可将 lumakey-mcp 接入 AI 客户端，读取 lumakey://specs/plugin-v3 自动生成。")
-                .font(.caption2).foregroundStyle(LiquidColors.textSecondary)
-            Spacer()
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
     }
 }

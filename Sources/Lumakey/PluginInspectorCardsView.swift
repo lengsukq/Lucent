@@ -151,22 +151,45 @@ struct PluginCapabilitiesCard: View {
 }
 
 struct PluginSandboxPermissionCard: View {
-    let hasDeclaredField: Bool
+    let plugin: PluginDescriptor
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: hasDeclaredField ? "checkmark.shield.fill" : "exclamationmark.triangle.fill")
-                .foregroundStyle(hasDeclaredField ? .mint : .orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(hasDeclaredField ? "注册权限声明：capabilities: []（纯沙盒）" : "未声明 capabilities 权限字段")
+        let hasCaps = plugin.manifest.capabilities != nil
+        let hasScopes = plugin.manifest.resourceScopes != nil
+        let fullyDeclared = hasCaps && hasScopes
+        let pure = plugin.isPureSandbox && fullyDeclared
+
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: pure ? "checkmark.shield.fill" : (fullyDeclared ? "network.badge.shield.half.filled" : "exclamationmark.triangle.fill"))
+                    .foregroundStyle(pure ? .mint : (fullyDeclared ? .purple : .orange))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(
+                        pure ? "注册权限声明：纯沙盒（capabilities: [] · resourceScopes: []）" :
+                        (fullyDeclared ? "已声明外部资源作用域（无 Host Bridge 能力）" : "未完整声明 capabilities / resourceScopes")
+                    )
                     .font(.caption.weight(.semibold))
-                Text(hasDeclaredField
-                     ? "该插件明确声明不需要宿主 TCC 或 Host Bridge 能力，仅读取 stdin 传入数据。"
-                     : "Plugin v3 要求每个插件在 plugin.json 中显式声明 capabilities（无需求请填 []）。")
+                    Text(
+                        pure
+                        ? "该插件明确声明不需要宿主 TCC、Host Bridge 或外部网络/文件写盘。"
+                        : (fullyDeclared ? "已显式披露下列外部资源访问作用域，并纳入权限审计矩阵。" : "Plugin v3.1 强校验要求在 plugin.json 显式声明 capabilities 与 resourceScopes。")
+                    )
                     .font(.caption2)
                     .foregroundStyle(LiquidColors.textSecondary)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            if !plugin.declaredResourceScopes.isEmpty {
+                HStack(spacing: 5) {
+                    ForEach(plugin.declaredResourceScopes) { scope in
+                        Label(scope.shortLabel, systemImage: scope.symbolName)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.purple)
+                            .padding(.horizontal, 7).padding(.vertical, 3)
+                            .background(LiquidColors.pillSurface, in: Capsule())
+                    }
+                }
+            }
         }
         .padding(10)
         .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)

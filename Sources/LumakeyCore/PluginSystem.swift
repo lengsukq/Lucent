@@ -22,19 +22,11 @@ public enum PluginSystem {
         return id.allSatisfy { ($0 >= "a" && $0 <= "z") || ($0 >= "0" && $0 <= "9") || $0 == "-" }
     }
 
-    public static func resolvedConfig(for manifest: PluginManifest, stored: [String: String]) -> [String: String] {
-        var merged: [String: String] = [:]
-        for field in manifest.config ?? [] {
-            if let def = field.defaultValue { merged[field.key] = def }
-        }
-        for (k, v) in stored { merged[k] = v }
-        return merged
-    }
-
     public static func listPlugins(
         in rootDir: URL = defaultPluginsDirectory(),
         includeDisabled: Bool = true,
-        includeBuiltin: Bool = false
+        includeBuiltin: Bool = false,
+        includeSecrets: Bool = true
     ) -> [PluginDescriptor] {
         var results: [PluginDescriptor] = []
         if includeBuiltin {
@@ -47,20 +39,39 @@ public enum PluginSystem {
 
         let snapshot = loadStateSnapshot(in: rootDir)
         let externals = folders.compactMap { folder -> PluginDescriptor? in
+            guard folder.lastPathComponent != "PluginData" else { return nil }
             let isDir = (try? folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             guard isDir else { return nil }
-            let desc = loadPlugin(at: folder, snapshot: snapshot)
+            let desc = loadPlugin(at: folder, snapshot: snapshot, in: rootDir, includeSecrets: includeSecrets)
             return (!includeDisabled && !desc.isEnabled) ? nil : desc
         }.sorted { $0.id < $1.id }
         return results + externals
     }
 
-    public static func loadPlugin(at directoryURL: URL, in rootDir: URL? = nil) -> PluginDescriptor {
+    public static func loadPlugin(
+        at directoryURL: URL,
+        in rootDir: URL? = nil,
+        includeSecrets: Bool = true,
+        allowKeychainInteraction: Bool = true
+    ) -> PluginDescriptor {
         let resolvedRoot = rootDir ?? directoryURL.deletingLastPathComponent()
-        return loadPlugin(at: directoryURL, snapshot: loadStateSnapshot(in: resolvedRoot))
+        return loadPlugin(
+            at: directoryURL,
+            snapshot: loadStateSnapshot(in: resolvedRoot),
+            in: resolvedRoot,
+            includeSecrets: includeSecrets,
+            allowKeychainInteraction: allowKeychainInteraction
+        )
     }
 
-    static func loadPlugin(at directoryURL: URL, snapshot: PluginStateSnapshot) -> PluginDescriptor {
+    static func loadPlugin(
+        at directoryURL: URL,
+        snapshot: PluginStateSnapshot,
+        in rootDir: URL? = nil,
+        includeSecrets: Bool = true,
+        allowKeychainInteraction: Bool = true
+    ) -> PluginDescriptor {
+        let resolvedRoot = rootDir ?? directoryURL.deletingLastPathComponent()
         let folderName = directoryURL.lastPathComponent
         let manifestURL = directoryURL.appendingPathComponent("plugin.json")
         guard let data = try? Data(contentsOf: manifestURL),
@@ -71,13 +82,73 @@ public enum PluginSystem {
         }
         let issues = validate(manifest: manifest, in: directoryURL)
         let inst = snapshot.plugins[manifest.id] ?? PluginInstanceState()
-        let config = resolvedConfig(for: manifest, stored: inst.configValues)
+        let config = resolvedConfig(
+            for: manifest,
+            stored: inst.configValues,
+            pluginsRoot: resolvedRoot,
+            includeSecrets: includeSecrets,
+            allowKeychainInteraction: allowKeychainInteraction
+        )
         let granted = Set(inst.grantedCapabilities.compactMap { PluginCapability(rawValue: $0) })
         return PluginDescriptor(
             id: manifest.id, directoryURL: directoryURL, manifest: manifest,
             validationIssues: issues, isEnabled: inst.isEnabled, userConfig: config,
             kind: .external, grantedCapabilities: granted
         )
+    }
+
+    public static func resolvedConfig(
+        for manifest: PluginManifest,
+        stored: [String: String],
+        pluginsRoot: URL? = nil,
+        includeSecrets: Bool = true,
+        allowKeychainInteraction: Bool = true
+    ) -> [String: String] {
+        var merged: [String: String] = [:]
+        let service = pluginsRoot.map { PluginDataPaths.keychainService(forPluginsRoot: $0) } ?? PluginKeychainStore.defaultService
+        var migratedLegacySecret = false
+        for field in manifest.config ?? [] {
+            if field.type == .secret {
+                guard includeSecrets else { continue }
+                if let kcValue = try? PluginKeychainStore.loadSecret(
+                    pluginID: manifest.id,
+                    fieldKey: field.key,
+                    service: service,
+                    allowInteraction: allowKeychainInteraction
+                ), !kcValue.isEmpty {
+                    merged[field.key] = kcValue
+                } else if let legacy = stored[field.key], !legacy.isEmpty {
+                    try? PluginKeychainStore.saveSecret(legacy, pluginID: manifest.id, fieldKey: field.key, service: service)
+                    merged[field.key] = legacy
+                    migratedLegacySecret = true
+                } else if let def = field.defaultValue {
+                    merged[field.key] = def
+                }
+            } else if let def = field.defaultValue {
+                merged[field.key] = def
+            }
+        }
+        let secretKeys = Set((manifest.config ?? []).filter { $0.type == .secret }.map(\.key))
+        for (k, v) in stored where !secretKeys.contains(k) {
+            merged[k] = v
+        }
+        if migratedLegacySecret, let pluginsRoot {
+            scrubLegacySecrets(pluginID: manifest.id, secretKeys: secretKeys, in: pluginsRoot)
+        }
+        return merged
+    }
+
+    private static func scrubLegacySecrets(pluginID: String, secretKeys: Set<String>, in rootDir: URL) {
+        guard !secretKeys.isEmpty else { return }
+        var snap = loadStateSnapshot(in: rootDir)
+        guard var inst = snap.plugins[pluginID] else { return }
+        var changed = false
+        for key in secretKeys where inst.configValues.removeValue(forKey: key) != nil {
+            changed = true
+        }
+        guard changed else { return }
+        snap.plugins[pluginID] = inst
+        try? saveStateSnapshot(snap, in: rootDir)
     }
 
     public static func validate(manifest: PluginManifest, in directoryURL: URL) -> [String] {
@@ -108,6 +179,12 @@ public enum PluginSystem {
         }
         for rawCap in manifest.capabilities ?? [] where PluginCapability(rawValue: rawCap) == nil {
             issues.append("未知 capability 声明：'\(rawCap)'")
+        }
+        if manifest.resourceScopes == nil {
+            issues.append("注册时必须显式声明 resourceScopes 资源作用域（无网络/写盘/子进程请写 []）")
+        }
+        for rawScope in manifest.resourceScopes ?? [] where PluginResourceScope(rawValue: rawScope) == nil {
+            issues.append("未知 resourceScope 声明：'\(rawScope)'")
         }
         return issues
     }

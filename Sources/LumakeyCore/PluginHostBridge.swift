@@ -10,9 +10,12 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
     private let grantedCapabilities: Set<PluginCapability>
     private let hostContext: PluginBridgeHostContext
     private let queue = DispatchQueue(label: "com.queensu.lumakey.plugin-bridge", qos: .userInitiated)
+    private let clientQueue = DispatchQueue(label: "com.queensu.lumakey.plugin-bridge.clients", qos: .userInitiated, attributes: .concurrent)
+    private let clientSemaphore = DispatchSemaphore(value: 8)
     private let lock = NSLock()
     private var listenFD: Int32 = -1
     private var acceptSource: DispatchSourceRead?
+    private var activeClientFDs: Set<Int32> = []
     private var stopped = false
 
     public init(
@@ -30,24 +33,28 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
             randomBytes = (0..<24).map { _ in UInt8.random(in: 0...255) }
         }
         self.token = randomBytes.map { String(format: "%02x", $0) }.joined()
-        self.socketPath = "/tmp/lk-\(self.token.prefix(12)).sock"
+        let sockDir = PluginDataPaths.runtimeSocketDirectory()
+        let pid = ProcessInfo.processInfo.processIdentifier
+        self.socketPath = sockDir.appendingPathComponent("b-\(pid)-\(self.token.prefix(10)).sock").path
         try startListening()
     }
 
     deinit { stop() }
 
     public func stop() {
-        let (fd, src, path) = lock.withLock { () -> (Int32, DispatchSourceRead?, String) in
-            guard !stopped else { return (-1, nil, socketPath) }
+        let (fd, src, path, clients) = lock.withLock { () -> (Int32, DispatchSourceRead?, String, [Int32]) in
+            guard !stopped else { return (-1, nil, socketPath, []) }
             stopped = true
             let s = acceptSource
             let f = listenFD
+            let c = Array(activeClientFDs)
             acceptSource = nil
             listenFD = -1
-            return (f, s, socketPath)
+            return (f, s, socketPath, c)
         }
         src?.cancel()
         if fd >= 0 { Darwin.close(fd) }
+        for cfd in clients { _ = Darwin.shutdown(cfd, SHUT_RDWR) }
         Darwin.unlink(path)
     }
 
@@ -102,12 +109,21 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
                 ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.accept(fd, $0, &len) }
             }
             if clientFD < 0 { break }
-            handleClient(clientFD)
+            _ = Darwin.fcntl(clientFD, F_SETFD, FD_CLOEXEC)
+            clientSemaphore.wait()
+            clientQueue.async { [weak self] in
+                defer { self?.clientSemaphore.signal() }
+                self?.handleClient(clientFD)
+            }
         }
     }
 
     private func handleClient(_ clientFD: Int32) {
-        defer { Darwin.close(clientFD) }
+        lock.withLock { _ = activeClientFDs.insert(clientFD) }
+        defer {
+            lock.withLock { _ = activeClientFDs.remove(clientFD) }
+            Darwin.close(clientFD)
+        }
         var tv = timeval(tv_sec: 3, tv_usec: 0)
         setsockopt(clientFD, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
 

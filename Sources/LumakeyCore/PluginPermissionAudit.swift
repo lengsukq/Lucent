@@ -4,12 +4,14 @@ public enum LumakeyPermissionCategory: String, Codable, Sendable, Hashable, Case
     case systemTCC
     case systemKernel
     case hostBridge
+    case resourceScope
 
     public var title: String {
         switch self {
         case .systemTCC: "系统 TCC"
         case .systemKernel: "内核采样"
         case .hostBridge: "宿主桥接"
+        case .resourceScope: "外部作用域"
         }
     }
 }
@@ -21,11 +23,16 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
     case microphoneAndAudio
     case telemetrySampling
     case clipboard
+    case selection
+    case audio
     case ocr
     case everythingSearch
     case displayInfo
     case systemControl
     case lumaLinkStatus
+    case networkAccess
+    case filesystemWrite
+    case subprocessExec
 
     public var id: String { rawValue }
 
@@ -35,8 +42,10 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
             .systemTCC
         case .telemetrySampling:
             .systemKernel
-        case .clipboard, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus:
+        case .clipboard, .selection, .audio, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus:
             .hostBridge
+        case .networkAccess, .filesystemWrite, .subprocessExec:
+            .resourceScope
         }
     }
 
@@ -44,9 +53,20 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
         PluginCapability(rawValue: rawValue)
     }
 
+    public var resourceScope: PluginResourceScope? {
+        switch self {
+        case .networkAccess: .network
+        case .filesystemWrite: .filesystem
+        case .subprocessExec: .subprocess
+        default: nil
+        }
+    }
+
     public init(capability: PluginCapability) {
         switch capability {
         case .clipboard: self = .clipboard
+        case .selection: self = .selection
+        case .audio: self = .audio
         case .ocr: self = .ocr
         case .everythingSearch: self = .everythingSearch
         case .displayInfo: self = .displayInfo
@@ -55,8 +75,17 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
         }
     }
 
+    public init(resourceScope: PluginResourceScope) {
+        switch resourceScope {
+        case .network: self = .networkAccess
+        case .filesystem: self = .filesystemWrite
+        case .subprocess: self = .subprocessExec
+        }
+    }
+
     public var title: String {
         if let cap = capability { return cap.title }
+        if let scope = resourceScope { return scope.title }
         switch self {
         case .accessibility: return "辅助功能 (Accessibility)"
         case .screenRecording: return "屏幕录制 (Screen Recording)"
@@ -69,6 +98,7 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
 
     public var summary: String {
         if let cap = capability { return cap.summary }
+        if let scope = resourceScope { return scope.summary }
         switch self {
         case .accessibility: return "用于全局鼠标/键盘事件捕获与远程控制键鼠输入注入"
         case .screenRecording: return "用于截图采集、远控桌面镜像捕获与光学文字识别输入"
@@ -81,6 +111,7 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
 
     public var symbolName: String {
         if let cap = capability { return cap.symbolName }
+        if let scope = resourceScope { return scope.symbolName }
         switch self {
         case .accessibility: return "hand.raised.fill"
         case .screenRecording: return "rectangle.dashed.badge.record"
@@ -154,6 +185,7 @@ public enum PluginPermissionAudit {
             return plugin.builtinMetadata?.requiredPermissions ?? []
         }
         return plugin.declaredCapabilities.map(LumakeyPermission.init(capability:))
+            + plugin.declaredResourceScopes.map(LumakeyPermission.init(resourceScope:))
     }
 
     public static func buildAudit(
@@ -175,6 +207,9 @@ public enum PluginPermissionAudit {
                 } else if let cap = permission.capability {
                     authorized = plugin.isCapabilityGranted(cap)
                     note = authorized ? "Host Bridge · 已授权" : "Host Bridge · 默认关闭（未授权）"
+                } else if permission.resourceScope != nil {
+                    authorized = true
+                    note = "注册声明作用域（审计可见）"
                 } else {
                     authorized = false
                     note = "声明权限"

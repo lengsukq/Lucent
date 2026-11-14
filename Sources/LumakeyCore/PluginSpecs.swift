@@ -17,21 +17,22 @@ extension PluginSystem {
     """
 
     public static let specV3Markdown: String = """
-    # Lumakey Plugin Specification (v3)
+    # Lumakey Plugin Specification (v3.1)
 
     Lumakey is a **lightweight macOS productivity hub** — NOT a background application server, gateway, or daemon runner.
 
     ## Strict Architecture Rules (MUST FOLLOW)
     1. **Zero Resident Daemons**: NEVER write `launchd` plists, infinite `while true` loops, background HTTP servers, or cron schedulers inside a plugin.
-    2. **On-Demand Execution Only**: Plugins are spawned when triggered, execute in milliseconds (default 8s timeout), emit stdout, and exit immediately.
-    3. **Mandatory Permission Declaration on Registration**: Every plugin MUST explicitly declare `"capabilities"` in `plugin.json` (use `[]` if pure sandboxed needing no host capabilities, or list required values from the enum below). Lumakey aggregates all declared plugin permissions into an app-wide permission audit matrix.
-    4. **Host Permission Reuse via Ephemeral Bridge**: NEVER prompt users for separate Accessibility/Screen Recording/FDA permissions or bundle external privileged helpers. Declare `capabilities` in `plugin.json` and call the ephemeral UDS Host Bridge.
-    5. **Prefer `view` Mode**: Output structured `PluginViewPayload` JSON so Lumakey renders native Liquid Glass cards.
+    2. **On-Demand Execution Only**: Plugins are spawned when triggered, emit stdout, and exit immediately. Swift Task cancellation terminates the entire child process group cleanly.
+    3. **Mandatory Permission & Resource Declaration on Registration**: Every plugin MUST explicitly declare BOTH `"capabilities"` (Host Bridge capabilities or `[]`) AND `"resourceScopes"` (`network`, `filesystem`, `subprocess`, or `[]`). Omitting either fails strict validation.
+    4. **Keychain Secrets & Gated Context**: `type: "secret"` fields are stored in macOS Keychain (never in `plugin-state.json`). `stdin.clipboard` is injected ONLY when `"clipboard"` is both declared and granted.
+    5. **Code/State Separation**: Put immutable code in `Plugins/<id>/` and write caches/`search-index.json` into `LUMAKEY_DATA_DIR` (`stdin.dataDir` -> `Application Support/Lumakey/PluginData/<id>/`).
 
-    ## Directory & `plugin.json` v3 Schema
+    ## Directory & `plugin.json` v3.1 Schema
     Path: `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json`
     ```json
     {
+      "schemaVersion": 3,
       "id": "my-tool",
       "name": "My Tool",
       "version": "1.0.0",
@@ -43,19 +44,22 @@ extension PluginSystem {
       "icon": "sparkles",
       "hotkey": "⌥⇧M",
       "capabilities": ["displayInfo", "systemControl"],
+      "resourceScopes": ["subprocess"],
       "config": [
         { "key": "limit", "label": "Max Items", "type": "text", "defaultValue": "10" }
       ]
     }
     ```
-    - `id` must match `[a-z0-9-]+` and MUST NOT start with `builtin-` (reserved for in-process native plugins such as `builtin-mos`, `builtin-lumalink`, `builtin-system-pulse`).
+    - `id` must match `[a-z0-9-]+` and MUST NOT start with `builtin-` (reserved for in-process native plugins).
     - `entry` must be an executable relative path inside the plugin directory (no `..` traversal).
+    - Optional `search-index.json` inside `PluginData/<id>/` (or plugin directory fallback) enables zero-subprocess prefix-free search in the main launcher.
+    - View items support multi-actions `actions: [{id, label, style: "primary|secondary|destructive", commandArgs, confirmMessage, promptFields}]` and top-level `effect: {toast, closeOverlay, reloadSearchIndex}`.
 
     ## Capabilities & Ephemeral Host Bridge Protocol
-    Declared capabilities default to **DENIED** (least privilege) until explicitly toggled ON by the user in Lumakey Plugin Center (`plugin-state.json` `grantedCapabilities`).
-    When `capabilities` is non-empty, Lumakey creates an ephemeral `0600` Unix Domain Socket for the single run and injects:
-    - Env vars: `LUMAKEY_BRIDGE_SOCK` and `LUMAKEY_BRIDGE_TOKEN`
-    - `stdin` JSON: `{"query":"...","mode":"...","config":{...},"clipboard":"...","bridge":{"socket":"...","token":"...","grantedCapabilities":[...]}}`
+    Declared capabilities default to **DENIED** until toggled ON in Lumakey Plugin Center (`plugin-state.json` `grantedCapabilities`).
+    When `capabilities` is non-empty, Lumakey creates an ephemeral `0600` Unix Domain Socket inside a `0700` user-private directory and injects:
+    - Env vars: `LUMAKEY_BRIDGE_SOCK`, `LUMAKEY_BRIDGE_TOKEN`, and `LUMAKEY_DATA_DIR`
+    - `stdin` JSON: `{"query":"...","mode":"...","config":{...},"clipboard":"...","dataDir":"...","bridge":{"socket":"...","token":"...","grantedCapabilities":[...]}}`
 
     Send one newline-terminated JSON request per UDS connection and read one JSON response line:
     Request: `{"token":"$LUMAKEY_BRIDGE_TOKEN","capability":"<cap>","action":"<act>","params":{...}}`
@@ -64,6 +68,8 @@ extension PluginSystem {
 
     ### Available Capabilities & Actions
     - `clipboard`: `read` (`params:{}`) -> `{text}`; `write` (`params:{"text":"..."}`) -> `{written,length}`
+    - `selection`: `read` (`params:{}`) -> `{text,sourceApp,bundleIdentifier}` (captures frontmost selection via host Accessibility before overlay steals focus)
+    - `audio`: `play` (`params:{"path":"/abs/file.mp3"}`) -> `{playing,mode,path,duration}`; `speak` (`params:{"text":"...","language":"en-US"}`) -> `{playing,mode,length}`; `stop` (`params:{}`) -> `{stopped}`
     - `ocr`: `recognize` (`params:{"imagePath":"/abs/path.png"}`) -> `{text,barcodes}`
     - `everythingSearch`: `search` (`params:{"query":"ext:md","limit":20}`) -> `{indexLoaded,count,hits:[{name,path,relativeParent,isDirectory,sizeBytes}]}`
     - `displayInfo`: `list` (`params:{}`) -> `{displays:[{displayID,name,isMain,currentModeKey,modes:[...]}]}`

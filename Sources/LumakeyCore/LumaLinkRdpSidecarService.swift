@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 public struct LumaLinkRdpStatus: Codable, Sendable, Hashable {
@@ -36,6 +37,9 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
 
     private let lock = NSLock()
     private var process: Process?
+    private var processPGID: Int32 = 0
+    private var activeErrHandle: FileHandle?
+    private var activeErrBuffer: BoundedPipeBuffer?
     private var bonjourService: NetService?
     private var _enabled = false
     private var _port: UInt16 = 3389
@@ -100,55 +104,6 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
         return base.appendingPathComponent("Lumakey/Remote", isDirectory: true)
     }
 
-    public static func ensureSelfSignedCertificate(in dir: URL = defaultCertDirectoryURL()) throws {
-        let fm = FileManager.default
-        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        let keyURL = dir.appendingPathComponent("server.key")
-        let crtURL = dir.appendingPathComponent("server.crt")
-        if fm.fileExists(atPath: keyURL.path), fm.fileExists(atPath: crtURL.path) {
-            return
-        }
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/openssl")
-        proc.arguments = [
-            "req", "-x509", "-newkey", "rsa:2048", "-nodes",
-            "-keyout", keyURL.path,
-            "-out", crtURL.path,
-            "-days", "3650",
-            "-subj", "/CN=LumaLinkRDP"
-        ]
-        let pipe = Pipe()
-        proc.standardError = pipe
-        proc.standardOutput = pipe
-        try proc.run()
-        proc.waitUntilExit()
-        if proc.terminationStatus != 0 {
-            let errText = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "openssl 失败"
-            throw NSError(domain: "LumaLinkRdpSidecar", code: Int(proc.terminationStatus), userInfo: [NSLocalizedDescriptionKey: errText])
-        }
-        try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: keyURL.path)
-    }
-
-    public static func queryDaemonPermissions(binaryPath: String) -> (screenRecording: Bool, accessibility: Bool) {
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: binaryPath)
-        proc.arguments = ["--check-permissions"]
-        let pipe = Pipe()
-        proc.standardOutput = pipe
-        proc.standardError = FileHandle.nullDevice
-        guard (try? proc.run()) != nil else { return (false, false) }
-        proc.waitUntilExit()
-        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        return parsePermissionOutput(output)
-    }
-
-    public static func parsePermissionOutput(_ output: String) -> (screenRecording: Bool, accessibility: Bool) {
-        let lines = output.split(whereSeparator: \.isNewline).map { String($0) }
-        let sr = lines.contains { $0.trimmingCharacters(in: .whitespaces) == "screen_recording=granted" }
-        let ax = lines.contains { $0.trimmingCharacters(in: .whitespaces) == "accessibility=granted" }
-        return (sr, ax)
-    }
-
     public func sync(enabled: Bool, port: UInt16, localAudioEnabled: Bool = true) {
         let resolvedPort = port == 0 ? 3389 : port
         if !enabled {
@@ -173,6 +128,8 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
         if alreadyRunning { return }
 
         stopChildOnly()
+        let certDir = Self.defaultCertDirectoryURL()
+        LumaLinkRdpProcessGuard.cleanupStaleProcesses(in: certDir)
         guard let bin = resolveBinaryPath() else {
             lock.withLock { _lastError = "未找到 macos-rdp-daemon 助手程序" }
             notifyStatusChanged()
@@ -186,7 +143,6 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
         }
 
         do {
-            let certDir = Self.defaultCertDirectoryURL()
             try Self.ensureSelfSignedCertificate(in: certDir)
 
             let child = Process()
@@ -200,30 +156,48 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
             child.environment = env
 
             let errPipe = Pipe()
+            let errHandle = errPipe.fileHandleForReading
+            let errBuffer = BoundedPipeBuffer(maxBytes: 8_192)
+            errBuffer.attach(to: errHandle)
             child.standardError = errPipe
             child.standardOutput = FileHandle.nullDevice
             child.terminationHandler = { [weak self] finished in
+                let msg = errBuffer.drainAndDetach(from: errHandle)
                 guard let self else { return }
                 let stillExpected = self.lock.withLock { () -> Bool in
                     let wasCurrent = (self.process === finished)
-                    if wasCurrent { self.process = nil }
+                    if wasCurrent {
+                        self.process = nil
+                        self.processPGID = 0
+                        self.activeErrHandle = nil
+                        self.activeErrBuffer = nil
+                        LumaLinkRdpProcessGuard.removePidRecord(in: certDir)
+                    }
                     return wasCurrent && self._enabled
                 }
                 if stillExpected && finished.terminationStatus != 0 {
-                    let msg = String(data: errPipe.fileHandleForReading.availableData, encoding: .utf8)?
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
                     self.lock.withLock {
-                        self._lastError = (msg?.isEmpty == false) ? msg : "RDP 引擎退出 (\(finished.terminationStatus))"
+                        self._lastError = msg.isEmpty ? "RDP 引擎退出 (\(finished.terminationStatus))" : msg
                     }
                 }
                 self.notifyStatusChanged()
             }
 
             try child.run()
+            let pid = child.processIdentifier
+            _ = Darwin.setpgid(pid, pid)
+            let pgid = LumaLinkRdpProcessGuard.processGroupID(for: pid)
             lock.withLock {
                 process = child
+                processPGID = pgid
+                activeErrHandle = errHandle
+                activeErrBuffer = errBuffer
                 _lastError = nil
             }
+            LumaLinkRdpProcessGuard.writePidRecord(
+                LumaLinkRdpPidRecord(pid: pid, pgid: pgid, port: resolvedPort, binaryPath: bin),
+                in: certDir
+            )
             publishBonjour(port: Int32(resolvedPort))
             notifyStatusChanged()
         } catch {
@@ -232,45 +206,57 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
         }
     }
 
+    public func cleanupOrphanedDaemonIfNeeded() {
+        let exclude = lock.withLock { process?.isRunning == true ? (process?.processIdentifier ?? 0) : 0 }
+        LumaLinkRdpProcessGuard.cleanupStaleProcesses(in: Self.defaultCertDirectoryURL(), excludePID: exclude)
+    }
+
     public func stop() {
         lock.withLock { _enabled = false }
         stopChildOnly()
+        cleanupOrphanedDaemonIfNeeded()
         notifyStatusChanged()
     }
 
     private func stopChildOnly() {
         unpublishBonjour()
-        let proc = lock.withLock { () -> Process? in
+        let (proc, pgid, errHandle) = lock.withLock { () -> (Process?, Int32, FileHandle?) in
             let p = process
+            let g = processPGID
+            let h = activeErrHandle
             process = nil
-            return p
+            processPGID = 0
+            activeErrHandle = nil
+            activeErrBuffer = nil
+            return (p, g, h)
         }
-        guard let proc, proc.isRunning else { return }
-        proc.terminate()
-        let deadline = Date().addingTimeInterval(0.45)
-        while proc.isRunning && Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.02)
+        if let errHandle {
+            errHandle.readabilityHandler = nil
+            try? errHandle.close()
         }
-        if proc.isRunning {
-            kill(proc.processIdentifier, SIGKILL)
+        if let proc, proc.isRunning {
+            LumaLinkRdpProcessGuard.terminateProcessAndGroup(pid: proc.processIdentifier, pgid: pgid)
         }
+        LumaLinkRdpProcessGuard.removePidRecord(in: Self.defaultCertDirectoryURL())
     }
 
     private func publishBonjour(port: Int32) {
-        DispatchQueue.main.async { [weak self] in
+        let work: @Sendable () -> Void = { [weak self] in
             guard let self else { return }
             self.bonjourService?.stop()
             let svc = NetService(domain: "local.", type: "_rdp._tcp.", name: Host.current().localizedName ?? "Mac", port: port)
             svc.publish()
             self.bonjourService = svc
         }
+        if Thread.isMainThread { work() } else { DispatchQueue.main.async(execute: work) }
     }
 
     private func unpublishBonjour() {
-        DispatchQueue.main.async { [weak self] in
+        let work: @Sendable () -> Void = { [weak self] in
             self?.bonjourService?.stop()
             self?.bonjourService = nil
         }
+        if Thread.isMainThread { work() } else { DispatchQueue.main.async(execute: work) }
     }
 
     private func notifyStatusChanged() {

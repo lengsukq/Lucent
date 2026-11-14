@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 3,
+  "id": "notion-bookmarks",
+  "name": "Notion 书签收藏",
+  "version": "1.1.0",
+  "description": "参考 nav-notion-lime 的 Notion 数据库模型，支持无前缀检索、剪贴板/表单新增、原生确认归档与置顶管理",
+  "mode": "view",
+  "keywords": ["bm", "bookmark", "notion", "nav"],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "bookmark.fill",
+  "capabilities": ["clipboard"],
+  "resourceScopes": ["network", "filesystem"],
+  "config": [
+    {
+      "key": "notionToken",
+      "label": "Notion Secret Token",
+      "type": "secret",
+      "placeholder": "ntn_... 或 secret_...",
+      "required": true
+    },
+    {
+      "key": "databaseId",
+      "label": "Notion Database ID / 数据库链接",
+      "type": "text",
+      "placeholder": "32位 ID 或完整 notion.so 数据库 URL",
+      "required": true
+    },
+    {
+      "key": "defaultTags",
+      "label": "新建默认标签 (逗号分隔)",
+      "type": "text",
+      "defaultValue": "书签",
+      "placeholder": "例如: 书签, 常用"
+    },
+    {
+      "key": "autoFetchMeta",
+      "label": "新增时自动抓取网页标题与简介",
+      "type": "boolean",
+      "defaultValue": "true"
+    },
+    {
+      "key": "cacheTtlSeconds",
+      "label": "本地缓存有效期 (秒，0 表示每次实时请求)",
+      "type": "text",
+      "defaultValue": "120",
+      "placeholder": "120"
+    },
+    {
+      "key": "maxItems",
+      "label": "卡片最多展示条数",
+      "type": "select",
+      "defaultValue": "15",
+      "options": ["10", "15", "25"]
+    }
+  ]
+}

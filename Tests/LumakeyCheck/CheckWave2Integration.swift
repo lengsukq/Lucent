@@ -27,6 +27,21 @@ func testV070Wave2Integration() throws {
     let plugHits = LauncherEngine.rankCandidates(query: "w2plug", filter: .all, apps: [], plugins: allPlugs)
     check(plugHits.count == 1 && plugHits.first?.id == "plugin:\(enabledDesc.id)", "Wave 2 LauncherEngine filters out disabled plugins")
 
+    // Verify plugin search-index.json loading & prefix-free LauncherEngine matching (title, pinyin, #tag, URL)
+    let idxPayload = """
+    {"version":1,"items":[{"id":"bm-1","title":"开源导航测试","subtitle":"github.com · #开发","url":"https://github.com/lengsukq/Lumakey","copyText":"https://github.com/lengsukq/Lumakey","icon":"bookmark.fill","badge":"开发","tags":["开发","Swift"],"pinned":true,"priority":10,"commandArgs":["--detail","bm-1"]}]}
+    """
+    try idxPayload.write(to: enabledDesc.directoryURL.appendingPathComponent(PluginSearchIndex.defaultIndexFileName), atomically: true, encoding: .utf8)
+    try idxPayload.write(to: tmpPlugDir.appendingPathComponent("w2-off").appendingPathComponent(PluginSearchIndex.defaultIndexFileName), atomically: true, encoding: .utf8)
+    let searchEntries = PluginSearchIndex.loadEntries(for: allPlugs)
+    check(searchEntries.count == 1 && searchEntries.first?.pluginID == "w2-on", "PluginSearchIndex loads enabled plugin search-index.json and skips disabled")
+    let bmByPinyin = LauncherEngine.rankCandidates(query: "kydh", filter: .all, apps: [], plugins: allPlugs, pluginSearchEntries: searchEntries)
+    let bmByTag = LauncherEngine.rankCandidates(query: "#swift", filter: .all, apps: [], plugins: allPlugs, pluginSearchEntries: searchEntries)
+    let bmByURL = LauncherEngine.rankCandidates(query: "lengsukq", filter: .plugins, apps: [], plugins: allPlugs, pluginSearchEntries: searchEntries)
+    check(bmByPinyin.contains(where: { if case .pluginItem(let e) = $0.kind { return e.itemID == "bm-1" }; return false }), "LauncherEngine matches pluginItem by pinyin initials without prefix")
+    check(bmByTag.contains(where: { if case .pluginItem(let e) = $0.kind { return e.itemID == "bm-1" }; return false }), "LauncherEngine matches pluginItem by #tag")
+    check(bmByURL.contains(where: { if case .pluginItem(let e) = $0.kind { return e.itemID == "bm-1" }; return false }), "LauncherEngine matches pluginItem by URL in .plugins filter")
+
     let devHits = LauncherEngine.rankCandidates(query: "uuid", filter: .all, apps: [], plugins: [])
     check(devHits.contains(where: { if case .devTool = $0.kind { return true }; return false }), "Wave 2 LauncherEngine surfaces .devTool candidates")
 

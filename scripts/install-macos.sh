@@ -21,8 +21,16 @@ hdiutil create -volname "Lumakey" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG
 rm -rf "$STAGE_DIR"
 
 echo "==> Stopping any running Lumakey instances"
-pkill -x Lumakey || true
-sleep 0.5
+if pgrep -x Lumakey >/dev/null 2>&1; then
+  pkill -TERM -x Lumakey || true
+  for _ in $(seq 1 20); do
+    if ! pgrep -x Lumakey >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.1
+  done
+  pkill -KILL -x Lumakey >/dev/null 2>&1 || true
+fi
 
 echo "==> Installing to $DEST_APP (in-place sync)"
 mkdir -p "$DEST_APP"

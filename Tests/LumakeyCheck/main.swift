@@ -163,7 +163,7 @@ func testPluginAndMCPSubprocess() throws {
         #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
         #"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#,
         #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v1"}}"#,
-        #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"demo-echo","name":"Demo Echo","keywords":["echo"],"mode":"script","capabilities":[]}}}"#,
+        #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"demo-echo","name":"Demo Echo","keywords":["echo"],"mode":"script","capabilities":[],"resourceScopes":[]}}}"#,
         #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_validate_plugin","arguments":{"id":"demo-echo"}}}"#,
         #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"demo-echo","query":"ping"}}}"#
     ]
@@ -797,6 +797,7 @@ do {
     try testV070BackupAndWebDAV()
     try testV070PluginsAndToolkit()
     try testV081PluginV3AndMCP()
+    try testV082PluginV31ArchitectureHardening()
     try testV070Wave2Integration()
     try testV071WorkspaceOperations()
     try testV080LumaLink()

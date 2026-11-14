@@ -67,6 +67,11 @@ final class AppViewModel: ObservableObject {
             if isOverlayVisible { refreshDisplayedCandidates() }
         }
     }
+    @Published var pluginSearchEntries: [PluginSearchEntry] = [] {
+        didSet {
+            if isOverlayVisible { refreshDisplayedCandidates() }
+        }
+    }
     @Published var pluginOutputText: String = ""
 
     @Published var displayedCandidates: [LauncherCandidate] = []
@@ -106,6 +111,7 @@ final class AppViewModel: ObservableObject {
     var locationRefreshTask: Task<Void, Never>?
     var snapshotSaveTask: Task<Void, Never>?
     var pluginRunTask: Task<Void, Never>?
+    var backgroundPluginTasks: [String: Task<Void, Never>] = [:]
     var fsEventWatcher: EverythingFSEventWatcher?
     var pluginWatcher: PluginDirectoryWatcher?
     var usageCancellable: AnyCancellable?
@@ -114,6 +120,7 @@ final class AppViewModel: ObservableObject {
     var volumeObservers: [NSObjectProtocol] = []
     var lastPasteboardChangeCount: Int = -1
     var hasLoadedWorkspace: Bool = false
+    var lastCapturedSelection: PluginSelectionSnapshot?
 
     var onRouteRequest: ((WindowRoute) -> Void)?
     var onHideOverlayRequest: (() -> Void)?
@@ -131,6 +138,7 @@ final class AppViewModel: ObservableObject {
     }
 
     func bootstrap() {
+        performStartupOrphanCleanup()
         refreshCachedVolumes()
         installVolumeObservers()
         configureLifecycleIntegrations()

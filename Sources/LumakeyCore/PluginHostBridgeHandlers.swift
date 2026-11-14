@@ -5,11 +5,15 @@ public struct PluginBridgeHostContext: Sendable {
     public let everythingIndex: EverythingIndex?
     public let clipboardReader: @Sendable () -> String
     public let clipboardWriter: @Sendable (String) -> Bool
+    public let selectionReader: @Sendable () -> PluginSelectionSnapshot
+    public let preCapturedSelection: PluginSelectionSnapshot?
 
     public init(
         everythingIndex: EverythingIndex? = nil,
         clipboardReader: (@Sendable () -> String)? = nil,
-        clipboardWriter: (@Sendable (String) -> Bool)? = nil
+        clipboardWriter: (@Sendable (String) -> Bool)? = nil,
+        selectionReader: (@Sendable () -> PluginSelectionSnapshot)? = nil,
+        preCapturedSelection: PluginSelectionSnapshot? = nil
     ) {
         self.everythingIndex = everythingIndex
         self.clipboardReader = clipboardReader ?? {
@@ -21,6 +25,10 @@ public struct PluginBridgeHostContext: Sendable {
                 return NSPasteboard.general.setString(text, forType: .string)
             }
         }
+        self.selectionReader = selectionReader ?? {
+            PluginSelectionReader.captureFrontmostSelection()
+        }
+        self.preCapturedSelection = preCapturedSelection
     }
 
     public static let `default` = PluginBridgeHostContext()
@@ -47,6 +55,44 @@ enum PluginHostBridgeHandlers {
                 return okJSON(capability, action, ["written": hostContext.clipboardWriter(text), "length": text.count])
             }
             return errorJSON("invalid_action", "clipboard 仅支持 read / write", capability: capability)
+
+        case .selection:
+            guard action == "read" else { return errorJSON("invalid_action", "selection 仅支持 read", capability: capability) }
+            let snapshot: PluginSelectionSnapshot
+            if let pre = hostContext.preCapturedSelection, !pre.text.isEmpty {
+                snapshot = pre
+            } else {
+                let live = hostContext.selectionReader()
+                snapshot = live.text.isEmpty ? (hostContext.preCapturedSelection ?? live) : live
+            }
+            return okJSON(capability, action, [
+                "text": snapshot.text,
+                "sourceApp": snapshot.sourceApp,
+                "bundleIdentifier": snapshot.bundleIdentifier
+            ])
+
+        case .audio:
+            switch action {
+            case "play":
+                guard let path = params["path"] as? String, !path.isEmpty else {
+                    return errorJSON("invalid_params", "缺少 path 参数", capability: capability)
+                }
+                do {
+                    return okJSON(capability, action, try PluginAudioBridgePlayer.shared.play(path: path))
+                } catch {
+                    return errorJSON("execution_failed", error.localizedDescription, capability: capability)
+                }
+            case "speak":
+                guard let text = params["text"] as? String, !text.isEmpty else {
+                    return errorJSON("invalid_params", "缺少 text 参数", capability: capability)
+                }
+                let language = params["language"] as? String
+                return okJSON(capability, action, PluginAudioBridgePlayer.shared.speak(text: text, language: language))
+            case "stop":
+                return okJSON(capability, action, PluginAudioBridgePlayer.shared.stop())
+            default:
+                return errorJSON("invalid_action", "audio 仅支持 play / speak / stop", capability: capability)
+            }
 
         case .ocr:
             guard action == "recognize" else { return errorJSON("invalid_action", "ocr 仅支持 recognize", capability: capability) }

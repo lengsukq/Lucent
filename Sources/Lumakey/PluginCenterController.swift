@@ -29,6 +29,7 @@ final class PluginCenterController: ObservableObject {
     @Published var newKeywords: String = "uuidcard"
     @Published var newMode: PluginMode = .view
     @Published var newCapabilities: Set<PluginCapability> = []
+    @Published var newResourceScopes: Set<PluginResourceScope> = []
 
     private var watcher: PluginDirectoryWatcher?
     private var runTask: Task<Void, Never>?
@@ -36,11 +37,15 @@ final class PluginCenterController: ObservableObject {
     func startWatching(syncing viewModel: AppViewModel) {
         viewModel.reloadPlugins()
         if watcher == nil {
-            watcher = PluginDirectoryWatcher(debounceInterval: 0.35) { [weak self, weak viewModel] in
+            watcher = PluginDirectoryWatcher(debounceInterval: 0.35) { [weak self, weak viewModel] changes in
                 Task { @MainActor in
                     guard let self, let viewModel else { return }
-                    viewModel.reloadAppsAndPlugins()
-                    self.syncSelection(from: viewModel.plugins)
+                    if changes.contains(.bundle) {
+                        viewModel.reloadPluginsAndHotKeys()
+                        self.syncSelection(from: viewModel.plugins)
+                    } else if changes.contains(.searchIndex) {
+                        viewModel.reloadPluginSearchIndex()
+                    }
                     let df = DateFormatter()
                     df.dateFormat = "HH:mm:ss"
                     self.statusNote = "已热重载 · \(df.string(from: Date()))"
@@ -123,7 +128,7 @@ final class PluginCenterController: ObservableObject {
     func saveConfig(for plugin: PluginDescriptor, viewModel: AppViewModel) {
         do {
             try PluginSystem.updatePluginConfig(id: plugin.id, values: configDraft)
-            viewModel.reloadAppsAndPlugins()
+            viewModel.reloadPluginsAndHotKeys()
             statusNote = "已保存 \(plugin.manifest.name) 配置"
             viewModel.serviceMessage = statusNote
         } catch {
@@ -161,7 +166,7 @@ final class PluginCenterController: ObservableObject {
     func installStarter(_ tpl: PluginStarterTemplate, viewModel: AppViewModel) {
         do {
             let installed = try PluginStarterGallery.install(templateID: tpl.id, overwrite: true)
-            viewModel.reloadAppsAndPlugins()
+            viewModel.reloadPluginsAndHotKeys()
             select(installed, switchTab: true)
             statusNote = tpl.capabilities.isEmpty
                 ? "已安装精选模板：\(installed.manifest.name)"
@@ -175,13 +180,14 @@ final class PluginCenterController: ObservableObject {
     func scaffoldCustom(viewModel: AppViewModel) {
         let kws = newKeywords.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         let caps = PluginCapability.allCases.filter { newCapabilities.contains($0) }
+        let scopes = PluginResourceScope.allCases.filter { newResourceScopes.contains($0) }
         do {
             let created = try PluginSystem.scaffoldPlugin(
                 id: newID, name: newName, keywords: kws,
                 description: "通过 Lumakey 插件中心创建", mode: newMode,
-                capabilities: caps
+                capabilities: caps, resourceScopes: scopes
             )
-            viewModel.reloadAppsAndPlugins()
+            viewModel.reloadPluginsAndHotKeys()
             select(created, switchTab: true)
             statusNote = "已创建插件：\(created.manifest.name)"
             runAsync(created, viewModel: viewModel)
@@ -201,7 +207,7 @@ final class PluginCenterController: ObservableObject {
         do {
             try PluginSystem.removePlugin(id: plugin.id)
             if latestOutput?.pluginID == plugin.id { latestOutput = nil }
-            viewModel.reloadAppsAndPlugins()
+            viewModel.reloadPluginsAndHotKeys()
             syncSelection(from: viewModel.plugins)
             statusNote = "已移除插件：\(plugin.manifest.name)"
         } catch {
@@ -218,7 +224,7 @@ final class PluginCenterController: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let imported = try PluginSystem.importPluginDirectory(from: url, overwrite: true)
-            viewModel.reloadAppsAndPlugins()
+            viewModel.reloadPluginsAndHotKeys()
             select(imported, switchTab: true)
             statusNote = "已导入插件：\(imported.manifest.name)"
         } catch {

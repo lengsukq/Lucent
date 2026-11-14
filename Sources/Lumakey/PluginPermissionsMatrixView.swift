@@ -56,6 +56,7 @@ struct PluginPermissionsMatrixView: View {
         case .systemTCC: .orange
         case .systemKernel: .mint
         case .hostBridge: .cyan
+        case .resourceScope: .purple
         }
 
         return VStack(alignment: .leading, spacing: 6) {
@@ -138,7 +139,7 @@ struct PluginPermissionsMatrixView: View {
 
     private var sandboxSummaryCard: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label("零特权沙盒插件 (\(sandboxPlugins.count) 个 · 已声明 capabilities: [])", systemImage: "checkmark.seal.fill")
+            Label("零特权纯沙盒插件 (\(sandboxPlugins.count) 个 · capabilities: [] 且 resourceScopes: [])", systemImage: "checkmark.seal.fill")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.mint)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 5)], spacing: 5) {

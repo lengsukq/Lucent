@@ -15,9 +15,14 @@ extension AppViewModel {
         }
 
         pluginWatcher?.stop()
-        pluginWatcher = PluginDirectoryWatcher { [weak self] in
+        pluginWatcher = PluginDirectoryWatcher { [weak self] changes in
             Task { @MainActor [weak self] in
-                self?.reloadPlugins()
+                guard let self else { return }
+                if changes.contains(.bundle) {
+                    self.reloadPluginsAndHotKeys()
+                } else if changes.contains(.searchIndex) {
+                    self.reloadPluginSearchIndex()
+                }
             }
         }
 
@@ -35,11 +40,37 @@ extension AppViewModel {
         }
     }
 
+    func performStartupOrphanCleanup() {
+        LumaLinkRdpSidecarService.shared.cleanupOrphanedDaemonIfNeeded()
+        PluginDataPaths.cleanupStaleSocketFiles()
+    }
+
+    func shutdownAllServicesAndTasks() {
+        stopClipboardMonitor()
+        stopPluginWatcher()
+        removeVolumeObservers()
+        stopIndexWatcher()
+        usageCancellable?.cancel()
+        usageCancellable = nil
+        searchTask?.cancel(); searchTask = nil
+        everythingIndexTask?.cancel(); everythingIndexTask = nil
+        previewTask?.cancel(); previewTask = nil
+        hashTask?.cancel(); hashTask = nil
+        indexUnloadTask?.cancel(); indexUnloadTask = nil
+        leftDirectoryTask?.cancel(); leftDirectoryTask = nil
+        rightDirectoryTask?.cancel(); rightDirectoryTask = nil
+        locationRefreshTask?.cancel(); locationRefreshTask = nil
+        snapshotSaveTask?.cancel(); snapshotSaveTask = nil
+        _ = PluginAudioBridgePlayer.shared.stop()
+    }
+
     func stopPluginWatcher() {
         pluginWatcher?.stop()
         pluginWatcher = nil
         pluginRunTask?.cancel()
         pluginRunTask = nil
+        for (_, task) in backgroundPluginTasks { task.cancel() }
+        backgroundPluginTasks.removeAll()
     }
 
     func captureAndPinScreenshot() {

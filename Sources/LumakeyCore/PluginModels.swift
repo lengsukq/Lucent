@@ -10,6 +10,8 @@ public enum PluginKind: String, Codable, Sendable, Hashable {
 
 public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
     case clipboard
+    case selection
+    case audio
     case ocr
     case everythingSearch
     case displayInfo
@@ -21,6 +23,8 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
     public var title: String {
         switch self {
         case .clipboard: "剪贴板读写"
+        case .selection: "跨应用选中文本读取"
+        case .audio: "宿主音频与语音朗读"
         case .ocr: "离线 Vision OCR"
         case .everythingSearch: "Everything 文件检索"
         case .displayInfo: "显示器与分辨率信息"
@@ -32,6 +36,8 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
     public var summary: String {
         switch self {
         case .clipboard: "通过宿主桥读取或写入系统剪贴板文本"
+        case .selection: "复用宿主辅助功能权限读取当前前台应用选中的文本"
+        case .audio: "复用宿主音频引擎播放本地音频文件或执行系统语音朗读"
         case .ocr: "复用宿主 VisionService 离线识别图片中英文字与条码"
         case .everythingSearch: "复用宿主内存索引按 DSL 极速检索全盘与外置盘文件"
         case .displayInfo: "读取活跃显示器列表、当前模式与支持的分辨率"
@@ -43,6 +49,8 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
     public var symbolName: String {
         switch self {
         case .clipboard: "doc.on.clipboard"
+        case .selection: "text.cursor"
+        case .audio: "speaker.wave.3.fill"
         case .ocr: "text.viewfinder"
         case .everythingSearch: "magnifyingglass"
         case .displayInfo: "display"
@@ -103,6 +111,7 @@ public struct PluginConfigField: Codable, Sendable, Hashable, Identifiable {
 }
 
 public struct PluginManifest: Codable, Sendable, Hashable {
+    public let schemaVersion: Int?
     public let id: String
     public let name: String
     public let version: String
@@ -115,6 +124,8 @@ public struct PluginManifest: Codable, Sendable, Hashable {
     public let hotkey: String?
     public let config: [PluginConfigField]?
     public let capabilities: [String]?
+    public let resourceScopes: [String]?
+    public let refreshIntervalSeconds: Int?
 
     public var declaredCapabilities: [PluginCapability] {
         var seen = Set<PluginCapability>()
@@ -127,17 +138,34 @@ public struct PluginManifest: Codable, Sendable, Hashable {
         return result
     }
 
+    public var declaredResourceScopes: [PluginResourceScope] {
+        var seen = Set<PluginResourceScope>()
+        var result: [PluginResourceScope] = []
+        for raw in resourceScopes ?? [] {
+            if let scope = PluginResourceScope(rawValue: raw), seen.insert(scope).inserted {
+                result.append(scope)
+            }
+        }
+        return result
+    }
+
     public init(
+        schemaVersion: Int? = nil,
         id: String, name: String, version: String, description: String,
         mode: PluginMode, keywords: [String], entry: String,
         author: String? = nil, icon: String? = nil,
         hotkey: String? = nil, config: [PluginConfigField]? = nil,
-        capabilities: [String]? = nil
+        capabilities: [String]? = nil,
+        resourceScopes: [String]? = nil,
+        refreshIntervalSeconds: Int? = nil
     ) {
+        self.schemaVersion = schemaVersion
         self.id = id; self.name = name; self.version = version; self.description = description
         self.mode = mode; self.keywords = keywords; self.entry = entry
         self.author = author; self.icon = icon; self.hotkey = hotkey
         self.config = config; self.capabilities = capabilities
+        self.resourceScopes = resourceScopes
+        self.refreshIntervalSeconds = refreshIntervalSeconds
     }
 }
 
@@ -188,7 +216,9 @@ public struct PluginDescriptor: Identifiable, Sendable, Hashable {
     public var isValid: Bool { validationIssues.isEmpty }
     public var isBuiltin: Bool { kind == .builtin }
     public var declaredCapabilities: [PluginCapability] { manifest.declaredCapabilities }
+    public var declaredResourceScopes: [PluginResourceScope] { manifest.declaredResourceScopes }
     public var declaredPermissions: [LumakeyPermission] { PluginPermissionAudit.declaredPermissions(for: self) }
+    public var isPureSandbox: Bool { declaredPermissions.isEmpty }
     public func isCapabilityGranted(_ capability: PluginCapability) -> Bool {
         declaredCapabilities.contains(capability) && grantedCapabilities.contains(capability)
     }

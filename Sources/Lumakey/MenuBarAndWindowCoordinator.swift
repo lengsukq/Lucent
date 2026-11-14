@@ -38,11 +38,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
 
     func shutdown() {
         hotKeyManager.unregisterAll()
-        viewModel.stopClipboardMonitor()
-        viewModel.stopPluginWatcher()
-        viewModel.removeVolumeObservers()
-        viewModel.stopIndexWatcher()
-        viewModel.searchTask?.cancel()
+        viewModel.shutdownAllServicesAndTasks()
         AppUsageTrackerController.shared.flushNow()
         AppUsageTrackerController.shared.stopMonitoring()
         if GifCaptureController.shared.isActive {
@@ -51,9 +47,9 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             GifCaptureController.shared.dismissCompletedHUD()
         }
         MosEngine.shared.stopTapAndReleaseAll()
-        LumaLinkServer.shared.stopAll()
+        LumaLinkServer.shared.stopAll(waitUntilFinished: true)
         SystemPulseWindowController.shared.shutdown()
-        ProcessSupervisor.shared.terminateAll()
+        ProcessSupervisor.shared.terminateAll(waitGracePeriodSeconds: 0.25)
         PinWindowController.shared.closeAll()
         VideoPlaybackCompat.cleanupTempDirectory()
         for (_, win) in windows {
@@ -133,7 +129,11 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
                 BackupCoordinator.triggerQuickBackup(viewModel: vm)
             }
         ]
-        _ = hotKeyManager.applyConfig(HotKeyBindingConfig.load(), handlers: handlers)
+        _ = hotKeyManager.applyConfig(
+            HotKeyBindingConfig.load(),
+            handlers: handlers,
+            externalBindings: viewModel.externalPluginHotKeyBindings()
+        )
     }
 
     private func installMemoryPressureMonitor() {

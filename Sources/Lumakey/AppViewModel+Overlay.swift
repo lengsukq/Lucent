@@ -6,6 +6,9 @@ extension AppViewModel {
     func prepareOverlay(filter: OmniFilter) {
         indexUnloadTask?.cancel()
         indexUnloadTask = nil
+        if !isOverlayVisible {
+            lastCapturedSelection = PluginSelectionReader.captureFrontmostSelection()
+        }
         isOverlayVisible = true
         omniFilter = filter
         overlaySelectedIndex = 0
@@ -44,6 +47,7 @@ extension AppViewModel {
         searchTask?.cancel(); previewTask?.cancel(); hashTask?.cancel(); pluginRunTask?.cancel()
         previewState = .empty; displayedCandidates = []
         inlinePluginViewPayload = nil; activeInlinePlugin = nil
+        lastCapturedSelection = nil
         ProcessSupervisor.shared.terminateAll()
 
         indexUnloadTask?.cancel()
@@ -101,6 +105,7 @@ extension AppViewModel {
 
         let appsSnapshot = installedApps
         let pluginsSnapshot = plugins
+        let pluginEntriesSnapshot = pluginSearchEntries
         let volumesSnapshot = cachedVolumes
         let indexSnapshot = everythingIndex
         let countsSnapshot = appLaunchCounts
@@ -117,6 +122,7 @@ extension AppViewModel {
                     filter: currentFilter,
                     apps: appsSnapshot,
                     plugins: pluginsSnapshot,
+                    pluginSearchEntries: pluginEntriesSnapshot,
                     clipboardItems: scopedClipboard,
                     volumes: volumesSnapshot,
                     everythingIndex: indexSnapshot,

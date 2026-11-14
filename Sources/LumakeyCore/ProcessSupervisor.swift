@@ -8,18 +8,28 @@ public struct ProcessRunResult: Sendable, Hashable {
     public let stderr: String
     public let durationMs: Int
     public let timedOut: Bool
+    public let wasCancelled: Bool
+
+    public init(exitCode: Int32, stdout: String, stderr: String, durationMs: Int, timedOut: Bool, wasCancelled: Bool = false) {
+        self.exitCode = exitCode
+        self.stdout = stdout
+        self.stderr = stderr
+        self.durationMs = durationMs
+        self.timedOut = timedOut
+        self.wasCancelled = wasCancelled
+    }
 }
 
 public final class ProcessSupervisor: @unchecked Sendable {
     public static let shared = ProcessSupervisor()
 
     private let lock = NSLock()
-    private var activePIDs = Set<Int32>()
+    private var activeGroups: [Int32: pid_t] = [:]
 
     private init() {}
 
     public var activeCount: Int {
-        lock.withLock { activePIDs.count }
+        lock.withLock { activeGroups.count }
     }
 
     public func run(
@@ -29,8 +39,12 @@ public final class ProcessSupervisor: @unchecked Sendable {
         environment: [String: String]? = nil,
         stdinData: Data? = nil,
         timeoutSeconds: Double = 8.0,
-        maxOutputBytes: Int = 65_536
+        maxOutputBytes: Int = 65_536,
+        cancellationHandle: ProcessCancellationHandle? = nil
     ) throws -> ProcessRunResult {
+        if cancellationHandle?.isCancelled == true {
+            return ProcessRunResult(exitCode: 15, stdout: "", stderr: "", durationMs: 0, timedOut: false, wasCancelled: true)
+        }
         let started = ContinuousClock.now
         let process = Process()
         process.executableURL = executableURL
@@ -51,12 +65,16 @@ public final class ProcessSupervisor: @unchecked Sendable {
 
         try process.run()
         let pid = process.processIdentifier
-        lock.withLock { _ = activePIDs.insert(pid) }
+        _ = setpgid(pid, pid)
+        let resolvedPGID = getpgid(pid)
+        let pgid = resolvedPGID > 1 ? resolvedPGID : pid
+        lock.withLock { activeGroups[pid] = pgid }
+        cancellationHandle?.bind(pid: pid, pgid: pgid)
 
         let timeoutFlag = LockedBox(false)
         let timerItem = DispatchWorkItem { [weak self] in
             timeoutFlag.withValue { $0 = true }
-            Self.terminateProcess(pid: pid)
+            ProcessCancellationHandle.terminateGroupOrPID(pid: pid, pgid: pgid)
             self?.removePID(pid)
         }
         DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeoutSeconds, execute: timerItem)
@@ -99,38 +117,42 @@ public final class ProcessSupervisor: @unchecked Sendable {
             stdout: String(data: outBox.snapshot(), encoding: .utf8) ?? "",
             stderr: String(data: errBox.snapshot(), encoding: .utf8) ?? "",
             durationMs: ms,
-            timedOut: timeoutFlag.snapshot()
+            timedOut: timeoutFlag.snapshot(),
+            wasCancelled: cancellationHandle?.isCancelled ?? false
         )
     }
 
-    public func terminateAll() {
+    public func terminateAll(waitGracePeriodSeconds: TimeInterval = 0) {
         let snapshot = lock.withLock {
-            let copy = activePIDs
-            activePIDs.removeAll()
+            let copy = activeGroups
+            activeGroups.removeAll()
             return copy
         }
-        for pid in snapshot where pid > 0 {
-            kill(pid, SIGTERM)
-        }
-        if !snapshot.isEmpty {
-            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.15) {
-                for pid in snapshot where pid > 0 {
-                    kill(pid, SIGKILL)
-                }
+        let entries = snapshot.filter { $0.key > 0 }
+        guard !entries.isEmpty else { return }
+        if waitGracePeriodSeconds <= 0 {
+            for (pid, pgid) in entries {
+                ProcessCancellationHandle.terminateGroupOrPID(pid: pid, pgid: pgid)
             }
+            return
+        }
+        let ownPGID = getpgrp()
+        for (pid, pgid) in entries {
+            if pgid > 1 && pgid != ownPGID { _ = kill(-pgid, SIGTERM) }
+            _ = kill(pid, SIGTERM)
+        }
+        let deadline = Date().addingTimeInterval(waitGracePeriodSeconds)
+        while Date() < deadline && entries.contains(where: { kill($0.key, 0) == 0 || errno == EPERM }) {
+            Thread.sleep(forTimeInterval: 0.015)
+        }
+        for (pid, pgid) in entries where kill(pid, 0) == 0 || errno == EPERM {
+            if pgid > 1 && pgid != ownPGID { _ = kill(-pgid, SIGKILL) }
+            _ = kill(pid, SIGKILL)
         }
     }
 
     private func removePID(_ pid: Int32) {
-        lock.withLock { _ = activePIDs.remove(pid) }
-    }
-
-    private static func terminateProcess(pid: Int32) {
-        guard pid > 0 else { return }
-        kill(pid, SIGTERM)
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.2) {
-            kill(pid, SIGKILL)
-        }
+        lock.withLock { _ = activeGroups.removeValue(forKey: pid) }
     }
 
     private static func readBounded(handle: FileHandle, maxBytes: Int) -> Data {

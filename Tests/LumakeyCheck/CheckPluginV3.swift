@@ -27,8 +27,10 @@ private func verifyBuiltinRegistryAndLifecycle() throws {
     let savedMos = MosConfig.load()
     let savedLL = LumaLinkConfig.load()
     defer {
-        MosEngine.shared.apply(config: savedMos, persist: true)
-        LumaLinkServer.shared.apply(config: savedLL, persist: true)
+        MosEngine.shared.stopTapAndReleaseAll()
+        LumaLinkServer.shared.stopAll(waitUntilFinished: true)
+        savedMos.save()
+        savedLL.save()
     }
     check(PluginBuiltinRegistry.setBuiltinEnabled(id: "builtin-mos", isEnabled: false), "disable builtin-mos")
     check(!MosEngine.shared.isTapActive, "disabling builtin-mos stops CGEventTap")
@@ -60,14 +62,16 @@ private func verifyPermissionDeclarationAndAuditMatrix() throws {
           "omitting capabilities fails validation")
     try? FileManager.default.removeItem(at: missingDir)
 
-    // 2. Unknown capability fails validation; reserved builtin- prefix blocked
+    // 2. Unknown capability fails validation; missing resourceScopes fails strict validation; reserved builtin- prefix blocked
     let badCapManifest = PluginManifest(
         id: "builtin-spoof", name: "Spoof", version: "1.0.0", description: "bad",
-        mode: .script, keywords: ["s"], entry: "run.sh", capabilities: ["unknownPerm"]
+        mode: .script, keywords: ["s"], entry: "run.sh", capabilities: ["unknownPerm"], resourceScopes: nil
     )
     let issues = PluginSystem.validate(manifest: badCapManifest, in: pluginsRoot)
-    check(issues.contains(where: { $0.contains("保留前缀") }) && issues.contains(where: { $0.contains("unknownPerm") }),
-          "reserved builtin- prefix and unknown capability rejected")
+    check(issues.contains(where: { $0.contains("保留前缀") })
+          && issues.contains(where: { $0.contains("unknownPerm") })
+          && issues.contains(where: { $0.contains("resourceScopes") }),
+          "reserved builtin- prefix, unknown capability, and missing resourceScopes rejected")
 
     // 3. Explicit sandbox plugin [] and Host Bridge plugin [clipboard, displayInfo]
     let sandboxDesc = try PluginSystem.scaffoldPlugin(
@@ -130,7 +134,8 @@ private func verifyHostBridgeSecurityAndRoundtrip() throws {
     let hostCtx = PluginBridgeHostContext(
         everythingIndex: everythingIndex,
         clipboardReader: { clipBox.get() },
-        clipboardWriter: { clipBox.set($0) }
+        clipboardWriter: { clipBox.set($0) },
+        preCapturedSelection: PluginSelectionSnapshot(text: "SELECTED_WORD", sourceApp: "Safari", bundleIdentifier: "com.apple.Safari")
     )
 
     // Create external script probing unauthorized, invalid token, and authorized capabilities + socket path check
@@ -146,6 +151,8 @@ private func verifyHostBridgeSecurityAndRoundtrip() throws {
     REQ_DENIED_SYS=$(printf '{"token":"%s","capability":"systemControl","action":"status"}\\n' "$TOK" | /usr/bin/nc -U "$SOCK")
     REQ_NOT_DECL=$(printf '{"token":"%s","capability":"lumaLinkStatus","action":"status"}\\n' "$TOK" | /usr/bin/nc -U "$SOCK")
     REQ_CLIP=$(printf '{"token":"%s","capability":"clipboard","action":"write","params":{"text":"NEW_CLIP"}}\\n' "$TOK" | /usr/bin/nc -U "$SOCK")
+    REQ_SEL=$(printf '{"token":"%s","capability":"selection","action":"read","params":{}}\\n' "$TOK" | /usr/bin/nc -U "$SOCK")
+    REQ_AUD=$(printf '{"token":"%s","capability":"audio","action":"stop","params":{}}\\n' "$TOK" | /usr/bin/nc -U "$SOCK")
     REQ_SEARCH=$(printf '{"token":"%s","capability":"everythingSearch","action":"search","params":{"query":"lumakey-v3-needle"}}\\n' "$TOK" | /usr/bin/nc -U "$SOCK")
     REQ_OCR=$(printf '{"token":"%s","capability":"ocr","action":"recognize","params":{"imagePath":"\(pngFile.path)"}}\\n' "$TOK" | /usr/bin/nc -U "$SOCK")
     echo "SOCK=$SOCK"
@@ -153,6 +160,8 @@ private func verifyHostBridgeSecurityAndRoundtrip() throws {
     echo "DENIED_SYS=$REQ_DENIED_SYS"
     echo "NOT_DECL=$REQ_NOT_DECL"
     echo "CLIP=$REQ_CLIP"
+    echo "SEL=$REQ_SEL"
+    echo "AUD=$REQ_AUD"
     echo "SEARCH=$REQ_SEARCH"
     echo "OCR=$REQ_OCR"
     """
@@ -163,12 +172,13 @@ private func verifyHostBridgeSecurityAndRoundtrip() throws {
     let manifest = PluginManifest(
         id: "bridge-probe", name: "Bridge Probe", version: "3.0.0", description: "probe",
         mode: .script, keywords: ["probe"], entry: "run.sh",
-        capabilities: ["clipboard", "everythingSearch", "ocr", "systemControl"]
+        capabilities: ["clipboard", "selection", "audio", "everythingSearch", "ocr", "systemControl"],
+        resourceScopes: ["subprocess"]
     )
     try JSONEncoder().encode(manifest).write(to: plugDir.appendingPathComponent("plugin.json"))
 
-    // Grant clipboard, everythingSearch, ocr; intentionally keep systemControl DENIED and lumaLinkStatus NOT DECLARED
-    try PluginSystem.setPluginCapabilities(id: "bridge-probe", capabilities: [.clipboard, .everythingSearch, .ocr], in: pluginsRoot)
+    // Grant clipboard, selection, audio, everythingSearch, ocr; intentionally keep systemControl DENIED and lumaLinkStatus NOT DECLARED
+    try PluginSystem.setPluginCapabilities(id: "bridge-probe", capabilities: [.clipboard, .selection, .audio, .everythingSearch, .ocr], in: pluginsRoot)
     let desc = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot)
     let res = try PluginSystem.runScriptPlugin(desc, query: "go", hostContext: hostCtx, in: pluginsRoot)
     check(res.exitCode == 0, "bridge-probe exited 0, stderr=\(res.stderr)")
@@ -178,6 +188,8 @@ private func verifyHostBridgeSecurityAndRoundtrip() throws {
     check(res.stdout.contains("\"capability_not_granted\""), "ungranted systemControl rejected")
     check(res.stdout.contains("\"capability_not_declared\""), "undeclared lumaLinkStatus rejected")
     check(clipBox.get() == "NEW_CLIP" && res.stdout.contains("\"written\":true"), "clipboard write roundtrip succeeded")
+    check(res.stdout.contains("SELECTED_WORD") && res.stdout.contains("com.apple.Safari"), "selection bridge returned pre-captured selection")
+    check(res.stdout.contains("\"stopped\":true"), "audio bridge stop action succeeded")
     check(res.stdout.contains("lumakey-v3-needle.txt"), "everythingSearch returned real indexed file")
     check(res.stdout.contains("BRIDGE99"), "OCR returned text from rendered PNG")
 
@@ -204,7 +216,7 @@ private func verifyMCPServerV3Subprocess() throws {
         #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
         #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v3"}}"#,
         #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"no-caps-fail","name":"Fail","keywords":["f"]}}}"#,
-        #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"v3-demo","name":"V3 Demo","keywords":["v3d"],"mode":"view","capabilities":["displayInfo"]}}}"#,
+        #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"v3-demo","name":"V3 Demo","keywords":["v3d"],"mode":"view","capabilities":["displayInfo"],"resourceScopes":["subprocess"]}}}"#,
         #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lumakey_list_plugins","arguments":{}}}"#,
         #"{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"lumakey_app_permissions","arguments":{}}}"#,
         #"{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"lumakey_validate_plugin","arguments":{"id":"v3-demo"}}}"#,

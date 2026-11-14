@@ -3,9 +3,16 @@ import Combine
 import Foundation
 import LumakeyCore
 
+struct ExternalHotKeyBinding {
+    let pluginID: String
+    let chord: HotKeyChord
+    let handler: () -> Void
+}
+
 @MainActor
 final class GlobalHotKeyManager: ObservableObject {
     nonisolated static let signature: OSType = 0x4C4D_4B59
+    private static let externalHotKeyBaseID = 10_000
     static weak var activeInstance: GlobalHotKeyManager?
 
     @Published private(set) var currentConfig: HotKeyBindingConfig = HotKeyBindingConfig.load()
@@ -16,6 +23,7 @@ final class GlobalHotKeyManager: ObservableObject {
     private var hotKeyRefs: [EventHotKeyRef] = []
     private var actions: [Int: () -> Void] = [:]
     private var storedHandlers: [HotKeyActionID: () -> Void] = [:]
+    private var storedExternalBindings: [ExternalHotKeyBinding] = []
 
     init() {
         Self.activeInstance = self
@@ -60,10 +68,12 @@ final class GlobalHotKeyManager: ObservableObject {
     @discardableResult
     func applyConfig(
         _ config: HotKeyBindingConfig,
-        handlers: [HotKeyActionID: () -> Void]
+        handlers: [HotKeyActionID: () -> Void],
+        externalBindings: [ExternalHotKeyBinding]? = nil
     ) -> [HotKeyActionID: Bool] {
         installCarbonEventHandlerIfNeeded()
         storedHandlers = handlers
+        if let externalBindings { storedExternalBindings = externalBindings }
         currentConfig = config
         unregisterHotKeysOnly()
 
@@ -92,6 +102,17 @@ final class GlobalHotKeyManager: ObservableObject {
             if ok { claimed.insert(chord) }
         }
 
+        for (idx, binding) in storedExternalBindings.enumerated() {
+            guard binding.chord.isValidGlobalShortcut, !claimed.contains(binding.chord) else { continue }
+            let ok = register(
+                id: Self.externalHotKeyBaseID + idx,
+                keyCode: binding.chord.keyCode,
+                modifiers: binding.chord.carbonModifiers,
+                action: binding.handler
+            )
+            if ok { claimed.insert(binding.chord) }
+        }
+
         registrationResults = results
         ownedChords = claimed
         return results
@@ -101,6 +122,11 @@ final class GlobalHotKeyManager: ObservableObject {
     func reapplyConfig(_ config: HotKeyBindingConfig, persist: Bool = true) -> [HotKeyActionID: Bool] {
         if persist { config.save() }
         return applyConfig(config, handlers: storedHandlers)
+    }
+
+    func updateExternalPluginHotKeys(_ bindings: [ExternalHotKeyBinding]) {
+        storedExternalBindings = bindings
+        _ = applyConfig(currentConfig, handlers: storedHandlers, externalBindings: bindings)
     }
 
     @discardableResult

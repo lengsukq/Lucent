@@ -28,35 +28,40 @@ extension MCPServer {
     func toolSchemas() -> [[String: Any]] {
         let starterIDs = PluginStarterGallery.templates.map(\.id)
         let capIDs = PluginCapability.allCases.map(\.rawValue)
+        let scopeIDs = PluginResourceScope.allCases.map(\.rawValue)
         return [
             schema("lumakey_list_plugins",
-                   "List installed external plugins and (by default) builtin native plugins (`BUILTIN`) with their declared permissions (`capabilities`/`declaredPermissions`), granted status, keywords, and enabled state. Always call this before creating a new plugin to avoid duplicating builtin features.",
+                   "List installed external plugins and (by default) builtin native plugins (`BUILTIN`) with their declared permissions (`capabilities`/`resourceScopes`/`declaredPermissions`), granted status, keywords, and enabled state. Always call this before creating a new plugin to avoid duplicating builtin features.",
                    ["includeBuiltin": ["type": "boolean", "description": "Include BUILTIN native plugins (default true)."]], []),
             schema("lumakey_app_permissions",
-                   "Return Lumakey's app-wide permission matrix: every system TCC / kernel / Host Bridge permission and the exact list of builtin & external plugins that declared or use each permission, plus pure sandbox (`[]`) plugins.",
+                   "Return Lumakey's app-wide permission matrix: every system TCC / kernel / Host Bridge / Resource Scope permission and the exact list of builtin & external plugins that declared or use each permission, plus pure sandbox (`[]`) plugins.",
                    ["onlyUsed": ["type": "boolean", "description": "If true, omit permissions with zero declaring plugins (default false)."]], []),
             schema("lumakey_scaffold_plugin",
-                   "Create a new on-demand plugin under the Lumakey Plugins directory. Mandatory registration rule: `capabilities` MUST be explicitly provided (pass `[]` for pure sandboxed plugins needing no host privileges, or choose from available Host Bridge capabilities). Never generate daemons or infinite loops.",
+                   "Create a new on-demand plugin under the Lumakey Plugins directory. Mandatory registration rule: BOTH `capabilities` AND `resourceScopes` MUST be explicitly provided (pass `[]` for pure sandboxed plugins). Never generate daemons or infinite loops.",
                    [
                        "id": ["type": "string", "description": "Lowercase alphanumeric + hyphen plugin ID (must NOT start with 'builtin-')."],
                        "name": ["type": "string", "description": "Display name shown in Launcher and Plugin Center."],
                        "keywords": ["type": "array", "items": ["type": "string"], "description": "Launcher trigger keywords."],
-                       "capabilities": ["type": "array", "items": ["type": "string", "enum": capIDs], "description": "REQUIRED permission declaration on registration. Pass [] if no host permission needed, or declare Host Bridge capabilities."],
+                       "capabilities": ["type": "array", "items": ["type": "string", "enum": capIDs], "description": "REQUIRED Host Bridge declaration on registration. Pass [] if no host permission needed."],
+                       "resourceScopes": ["type": "array", "items": ["type": "string", "enum": scopeIDs], "description": "REQUIRED external resource declaration on registration (`network`, `filesystem`, `subprocess`, or [])."],
                        "description": ["type": "string", "description": "Short functional description."],
                        "mode": ["type": "string", "enum": ["script", "view"], "description": "Prefer 'view' for rich structured cards."],
                        "author": ["type": "string"],
                        "icon": ["type": "string", "description": "SF Symbol name (e.g. 'sparkles')."],
                        "hotkey": ["type": "string", "description": "Optional shortcut hint (e.g. '⌥⇧K')."]
-                   ], ["id", "name", "keywords", "capabilities"]),
+                   ], ["id", "name", "keywords", "capabilities", "resourceScopes"]),
             schema("lumakey_validate_plugin",
-                   "Validate a plugin's plugin.json (including mandatory `capabilities` declaration and entry permissions) and return its declaredPermissions and issues.",
+                   "Validate a plugin's plugin.json (including mandatory `capabilities` and `resourceScopes` declarations and entry permissions) and return its declaredPermissions and issues.",
                    ["id": ["type": "string"]], ["id"]),
             schema("lumakey_run_plugin_test",
-                   "Execute a plugin (external with ephemeral Host Bridge context, or BUILTIN view payload) with test stdin query/clipboardText and inspect stdout, structured view validity, and exitCode.",
+                   "Execute a plugin (external with ephemeral Host Bridge + LUMAKEY_DATA_DIR, or BUILTIN view payload) with optional CLI arguments, configOverrides, stdin query/clipboardText, and inspect stdout, structured viewValidation diagnostics, and exitCode.",
                    [
                        "id": ["type": "string"],
                        "query": ["type": "string"],
-                       "clipboardText": ["type": "string", "description": "Optional mock clipboard text injected into stdin JSON."]
+                       "clipboardText": ["type": "string", "description": "Optional mock clipboard text (only injected if clipboard capability is granted)."],
+                       "arguments": ["type": "array", "items": ["type": "string"], "description": "Optional CLI arguments simulating card button actions."],
+                       "configOverrides": ["type": "object", "description": "Optional key-value config overrides for testing."],
+                       "autoGrantDeclaredCapabilities": ["type": "boolean", "description": "If true, grant all declared Host Bridge capabilities in state before test execution."]
                    ], ["id", "query"]),
             schema("lumakey_install_starter_plugin",
                    "Install a curated starter plugin template (v3 templates include Host Bridge examples).",
@@ -72,7 +77,7 @@ extension MCPServer {
 
     private func handleListPlugins(arguments: [String: Any]) -> [String: Any] {
         let includeBuiltin = arguments["includeBuiltin"] as? Bool ?? true
-        let plugins = PluginSystem.listPlugins(in: pluginsDirectory, includeDisabled: true, includeBuiltin: includeBuiltin)
+        let plugins = PluginSystem.listPlugins(in: pluginsDirectory, includeDisabled: true, includeBuiltin: includeBuiltin, includeSecrets: false)
             .map { desc -> [String: Any] in
                 var item: [String: Any] = [
                     "id": desc.id,
@@ -84,6 +89,7 @@ extension MCPServer {
                     "valid": desc.isValid,
                     "issues": desc.validationIssues,
                     "declaredCapabilities": desc.declaredCapabilities.map(\.rawValue),
+                    "declaredResourceScopes": desc.declaredResourceScopes.map(\.rawValue),
                     "grantedCapabilities": desc.grantedCapabilities.map(\.rawValue).sorted(),
                     "declaredPermissions": desc.declaredPermissions.map(\.rawValue)
                 ]
@@ -102,7 +108,7 @@ extension MCPServer {
 
     private func handleAppPermissions(arguments: [String: Any]) -> [String: Any] {
         let onlyUsed = arguments["onlyUsed"] as? Bool ?? false
-        let plugins = PluginSystem.listPlugins(in: pluginsDirectory, includeDisabled: true, includeBuiltin: true)
+        let plugins = PluginSystem.listPlugins(in: pluginsDirectory, includeDisabled: true, includeBuiltin: true, includeSecrets: false)
         let entries = PluginPermissionAudit.buildAudit(plugins: plugins)
             .filter { !onlyUsed || $0.declaredPluginCount > 0 }
             .map { entry -> [String: Any] in
@@ -135,6 +141,9 @@ extension MCPServer {
         guard let rawCaps = arguments["capabilities"] as? [String] else {
             return textResult("Missing required array argument 'capabilities' (declare required capabilities or [] for pure sandbox).", isError: true)
         }
+        guard let rawScopes = arguments["resourceScopes"] as? [String] else {
+            return textResult("Missing required array argument 'resourceScopes' (declare network/filesystem/subprocess or [] if none).", isError: true)
+        }
         var caps: [PluginCapability] = []
         for raw in rawCaps {
             guard let cap = PluginCapability(rawValue: raw) else {
@@ -142,6 +151,14 @@ extension MCPServer {
                 return textResult("Unknown capability '\(raw)'. Allowed: \(allowed)", isError: true)
             }
             if !caps.contains(cap) { caps.append(cap) }
+        }
+        var scopes: [PluginResourceScope] = []
+        for raw in rawScopes {
+            guard let scope = PluginResourceScope(rawValue: raw) else {
+                let allowed = PluginResourceScope.allCases.map(\.rawValue).joined(separator: ", ")
+                return textResult("Unknown resourceScope '\(raw)'. Allowed: \(allowed)", isError: true)
+            }
+            if !scopes.contains(scope) { scopes.append(scope) }
         }
         let id = arguments["id"] as? String ?? ""
         let displayName = arguments["name"] as? String ?? id
@@ -153,72 +170,18 @@ extension MCPServer {
                 id: id, name: displayName, keywords: keywords, description: description,
                 mode: mode, author: arguments["author"] as? String,
                 icon: arguments["icon"] as? String, hotkey: arguments["hotkey"] as? String,
-                capabilities: caps, in: pluginsDirectory
+                capabilities: caps, resourceScopes: scopes, in: pluginsDirectory
             )
             return textResult(prettyJSON([
                 "id": created.id,
                 "path": created.directoryURL.path,
                 "mode": created.manifest.mode.rawValue,
                 "capabilities": created.declaredCapabilities.map(\.rawValue),
+                "resourceScopes": created.declaredResourceScopes.map(\.rawValue),
                 "valid": created.isValid
             ]))
         } catch {
             return textResult("Error: \(error.localizedDescription)", isError: true)
-        }
-    }
-
-    private func handleValidatePlugin(arguments: [String: Any]) -> [String: Any] {
-        let id = arguments["id"] as? String ?? ""
-        if PluginBuiltinRegistry.isBuiltin(id: id) {
-            guard let builtin = PluginBuiltinRegistry.descriptors().first(where: { $0.id == id }) else {
-                return textResult("Unknown builtin plugin: \(id)", isError: true)
-            }
-            return textResult(prettyJSON([
-                "id": builtin.id, "kind": "builtin", "valid": true,
-                "issues": [], "declaredPermissions": builtin.declaredPermissions.map(\.rawValue)
-            ]))
-        }
-        guard PluginSystem.isSafePluginID(id) else {
-            return textResult("Invalid plugin id: \(id)", isError: true)
-        }
-        let dir = pluginsDirectory.appendingPathComponent(id, isDirectory: true)
-        let desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory)
-        return textResult(prettyJSON([
-            "id": desc.id, "kind": "external", "valid": desc.isValid, "issues": desc.validationIssues,
-            "hasCapabilitiesDeclaration": desc.manifest.capabilities != nil,
-            "declaredCapabilities": desc.declaredCapabilities.map(\.rawValue),
-            "grantedCapabilities": desc.grantedCapabilities.map(\.rawValue).sorted(),
-            "declaredPermissions": desc.declaredPermissions.map(\.rawValue)
-        ]))
-    }
-
-    private func handleRunPluginTest(arguments: [String: Any]) -> [String: Any] {
-        let id = arguments["id"] as? String ?? ""
-        let query = arguments["query"] as? String ?? ""
-        let clip = arguments["clipboardText"] as? String ?? ""
-        if PluginBuiltinRegistry.isBuiltin(id: id) {
-            guard let resolved = PluginBuiltinRegistry.runBuiltin(id: id, query: query) else {
-                return textResult("Unknown builtin plugin: \(id)", isError: true)
-            }
-            return textResult(prettyJSON([
-                "kind": "builtin", "exitCode": resolved.execution.exitCode,
-                "durationMs": resolved.execution.durationMs,
-                "isStructuredView": resolved.isStructuredView,
-                "stdout": resolved.execution.stdout
-            ]))
-        }
-        guard PluginSystem.isSafePluginID(id) else { return textResult("Invalid plugin id: \(id)", isError: true) }
-        let dir = pluginsDirectory.appendingPathComponent(id, isDirectory: true)
-        let desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory)
-        do {
-            let resolved = try PluginSystem.runPluginSync(desc, query: query, clipboardText: clip, in: pluginsDirectory)
-            return textResult(prettyJSON([
-                "kind": "external", "exitCode": resolved.execution.exitCode,
-                "durationMs": resolved.execution.durationMs, "isStructuredView": resolved.isStructuredView,
-                "stdout": resolved.execution.stdout, "stderr": resolved.execution.stderr
-            ]), isError: resolved.execution.exitCode != 0)
-        } catch {
-            return textResult("Execution error: \(error.localizedDescription)", isError: true)
         }
     }
 

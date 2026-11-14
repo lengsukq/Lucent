@@ -85,6 +85,8 @@ struct OverlayUnifiedRowsView: View {
                 bottomColor: plugin.isBuiltin ? .blue : .indigo,
                 size: 32
             )
+        case .pluginItem(let entry):
+            SquircleBadge(symbol: entry.icon ?? (entry.pinned ? "pin.fill" : "bookmark.fill"), topColor: entry.pinned ? .orange : .teal, bottomColor: .blue, size: 32)
         case .command(let cmd):
             SquircleBadge(symbol: cmd.symbol, topColor: .cyan, bottomColor: .blue, size: 32)
         }
@@ -141,6 +143,8 @@ struct OverlayUnifiedRowsView: View {
             rowLabels(title: entry.title, subtitle: entry.subtitle, boldTitle: false)
         case .plugin(let plugin):
             rowLabels(title: plugin.manifest.name, subtitle: plugin.manifest.description, boldTitle: true)
+        case .pluginItem(let entry):
+            rowLabels(title: entry.title, subtitle: entry.subtitle.isEmpty ? (entry.url ?? entry.pluginName) : entry.subtitle, boldTitle: true)
         case .command(let cmd):
             rowLabels(title: cmd.title, subtitle: cmd.subtitle, boldTitle: true)
         }
@@ -185,6 +189,7 @@ struct OverlayUnifiedRowsView: View {
         switch candidate.kind {
         case .app(let app): usageTracker.isPinned(app)
         case .clipboard(let entry): entry.isPinned
+        case .pluginItem(let entry): entry.pinned
         default: false
         }
     }
@@ -214,6 +219,19 @@ struct OverlayUnifiedRowsView: View {
             Button { viewModel.toggleClipboardPin(entry) } label: {
                 Label(entry.isPinned ? "取消收藏" : "永久收藏", systemImage: entry.isPinned ? "pin.slash" : "pin.fill")
             }
+        case .pluginItem(let entry):
+            Button { viewModel.executeCandidate(candidate) } label: {
+                Label(entry.url != nil ? "打开网页" : "执行", systemImage: entry.url != nil ? "safari" : "play.fill")
+            }
+            if let args = entry.commandArgs, !args.isEmpty,
+               let plugin = viewModel.plugins.first(where: { $0.id == entry.pluginID }) {
+                Button { viewModel.runPlugin(plugin, query: "", arguments: args, showInline: true) } label: {
+                    Label("在插件中管理", systemImage: "slider.horizontal.3")
+                }
+            }
+            Button {
+                NSPasteboard.general.clearContents(); NSPasteboard.general.setString(entry.copyText ?? entry.url ?? entry.title, forType: .string)
+            } label: { Label("复制链接", systemImage: "doc.on.doc") }
         default:
             Button { viewModel.executeCandidate(candidate) } label: { Label("执行", systemImage: "play.fill") }
         }
@@ -224,6 +242,7 @@ struct OverlayUnifiedRowsView: View {
         case .calculator, .clipboard, .snippet: "复制 ↩"
         case .devTool(let t): t.previewImageURL != nil ? "复制图片 ↩" : "复制 ↩"
         case .plugin, .command: "执行 ↩"
+        case .pluginItem(let e): e.url != nil ? "打开 ↩" : "执行 ↩"
         default: "打开 ↩"
         }
     }
@@ -237,6 +256,7 @@ struct OverlayUnifiedRowsView: View {
         case .fileHit(let hit): hit.mediaKind.badgeTitle
         case .clipboard(let entry): entry.payloadKind.badgeTitle
         case .plugin(let p): p.isBuiltin ? "BUILTIN" : (p.manifest.mode == .view ? "插件卡片" : "插件")
+        case .pluginItem(let e): e.badge ?? e.pluginName
         case .command(let cmd): cmd.badgeLabel
         }
     }

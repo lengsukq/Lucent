@@ -15,7 +15,7 @@ struct OverlaySideLensView: View {
                     onOpenURL: { url in viewModel.handlePluginOpenURL(url) },
                     onRunCommandArgs: { args in
                         guard let plugin = viewModel.activeInlinePlugin else { return }
-                        viewModel.runPlugin(plugin, query: viewModel.overlayQuery, arguments: args, showInline: true)
+                        viewModel.runPlugin(plugin, query: "", arguments: args, showInline: true)
                     },
                     onClose: {
                         viewModel.inlinePluginViewPayload = nil
@@ -104,6 +104,17 @@ struct OverlaySideLensView: View {
             )
         case .plugin(let plugin):
             pluginDetailCard(plugin: plugin, candidate: candidate)
+        case .pluginItem(let entry):
+            OverlayPluginItemLensCard(
+                entry: entry,
+                onOpenURL: { url in viewModel.handlePluginOpenURL(url) },
+                onRunManage: { args in
+                    if let plugin = viewModel.plugins.first(where: { $0.id == entry.pluginID }) {
+                        viewModel.runPlugin(plugin, query: "", arguments: args, showInline: true)
+                    }
+                },
+                onCopyText: { val, toast in copyString(val, toast: toast) }
+            )
         case .command(let cmd):
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {

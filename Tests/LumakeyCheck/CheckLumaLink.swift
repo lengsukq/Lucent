@@ -79,5 +79,70 @@ func testV080LumaLink() throws {
     var binAcc = LumaLinkFrameAccumulator()
     let binFrames = try binAcc.append(LumaLinkFraming.encodeFrame(micHeader))
     check(binFrames.count == 1 && binFrames[0].first != 0x7B, "Binary audio frame distinguishes from JSON payloads")
-    print("[ok] v0.8.0 LumaLink Protocol + Framing + Config + RDP Sidecar + Audio Bridge probe")
+
+    // 7. RDP process guard: BoundedPipeBuffer, PID record, owned path filter, and group termination
+    let pipeBuf = BoundedPipeBuffer(maxBytes: 256)
+    pipeBuf.append(Data(repeating: 0x41, count: 400))
+    pipeBuf.append(Data("TAIL-OK".utf8))
+    let snapStr = pipeBuf.snapshotString()
+    check(snapStr.count <= 256 && snapStr.hasSuffix("TAIL-OK"), "BoundedPipeBuffer caps size and preserves tail")
+
+    let pidDir = dir.appendingPathComponent("PidGuard", isDirectory: true)
+    let sampleRec = LumaLinkRdpPidRecord(pid: 12345, pgid: 12345, ownerPID: 99_999_999, port: 3389, binaryPath: "/Applications/Lumakey.app/Contents/Helpers/macos-rdp-daemon")
+    LumaLinkRdpProcessGuard.writePidRecord(sampleRec, in: pidDir)
+    check(LumaLinkRdpProcessGuard.readPidRecord(in: pidDir) == sampleRec, "RDP PID record round-trip")
+    LumaLinkRdpProcessGuard.cleanupStaleProcesses(in: pidDir)
+    check(LumaLinkRdpProcessGuard.readPidRecord(in: pidDir) == nil, "Stale RDP PID file cleaned up")
+
+    let liveOwnerRec = LumaLinkRdpPidRecord(pid: 99_999_998, pgid: 99_999_998, ownerPID: 1, port: 3389, binaryPath: "/Applications/Lumakey.app/Contents/Helpers/macos-rdp-daemon")
+    LumaLinkRdpProcessGuard.writePidRecord(liveOwnerRec, in: pidDir)
+    LumaLinkRdpProcessGuard.cleanupStaleProcesses(in: pidDir)
+    check(LumaLinkRdpProcessGuard.readPidRecord(in: pidDir) == nil, "PID record with ownerPID=1 cleaned up")
+
+    check(LumaLinkRdpProcessGuard.isLumakeyOwnedDaemonPath("/Applications/Lumakey.app/Contents/Helpers/macos-rdp-daemon"), "Recognizes Lumakey app helper path")
+    check(!LumaLinkRdpProcessGuard.isLumakeyOwnedDaemonPath("/Volumes/lightlsle/dependencies/build/mac-remote-host/MacRemoteRDPServer.app/Contents/MacOS/macos-rdp-daemon"), "Does not match external MacRemoteHost binary")
+
+    let sleeper = Process()
+    sleeper.executableURL = URL(fileURLWithPath: "/bin/sleep")
+    sleeper.arguments = ["30"]
+    try sleeper.run()
+    let sleepPID = sleeper.processIdentifier
+    _ = Darwin.setpgid(sleepPID, sleepPID)
+    check(LumaLinkRdpProcessGuard.isProcessAlive(sleepPID), "Test sleeper started")
+    LumaLinkRdpProcessGuard.terminateProcessAndGroup(pid: sleepPID, pgid: sleepPID, graceSeconds: 0.2)
+    sleeper.waitUntilExit()
+    check(!LumaLinkRdpProcessGuard.isProcessAlive(sleepPID), "terminateProcessAndGroup kills test process cleanly")
+
+    // 8. Stale Host Bridge UDS socket cleanup
+    let sockDir = dir.appendingPathComponent("SockDir", isDirectory: true)
+    try FileManager.default.createDirectory(at: sockDir, withIntermediateDirectories: true)
+    let deadSock = sockDir.appendingPathComponent("b-99999999-dead000001.sock")
+    let liveSock = sockDir.appendingPathComponent("b-\(ProcessInfo.processInfo.processIdentifier)-live000001.sock")
+    try Data().write(to: deadSock)
+    try Data().write(to: liveSock)
+    PluginDataPaths.cleanupStaleSocketFiles(in: sockDir)
+    check(!FileManager.default.fileExists(atPath: deadSock.path), "Dead PID UDS socket file cleaned up")
+    check(FileManager.default.fileExists(atPath: liveSock.path), "Live PID UDS socket file preserved")
+
+    // 9. ProcessSupervisor synchronous SIGKILL fallback on exit
+    let supDone = DispatchSemaphore(value: 0)
+    DispatchQueue.global(qos: .userInitiated).async {
+        _ = try? ProcessSupervisor.shared.run(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "trap '' TERM; sleep 30"],
+            timeoutSeconds: 15
+        )
+        supDone.signal()
+    }
+    let waitDeadline = Date().addingTimeInterval(1.5)
+    while ProcessSupervisor.shared.activeCount == 0 && Date() < waitDeadline {
+        Thread.sleep(forTimeInterval: 0.02)
+    }
+    check(ProcessSupervisor.shared.activeCount >= 1, "SIGTERM-ignoring subprocess registered in ProcessSupervisor")
+    ProcessSupervisor.shared.terminateAll(waitGracePeriodSeconds: 0.2)
+    check(supDone.wait(timeout: .now() + 1.5) == .success, "terminateAll synchronously force-kills SIGTERM-ignoring subprocess")
+    check(ProcessSupervisor.shared.activeCount == 0, "ProcessSupervisor activeCount returns to 0")
+
+    LumaLinkServer.shared.stopAll(waitUntilFinished: true)
+    print("[ok] v0.8.0 LumaLink Protocol + Framing + Config + RDP Sidecar + Process Guard + Audio Bridge probe")
 }

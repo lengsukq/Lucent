@@ -29,6 +29,8 @@ extension AppViewModel {
         case .plugin(let plugin):
             let queryArg = stripMatchedPluginKeyword(from: overlayQuery, plugin: plugin)
             runPlugin(plugin, query: queryArg, showInline: true)
+        case .pluginItem(let entry):
+            executePluginSearchEntry(entry)
         case .command(let cmd):
             executeSystemCommand(cmd.command)
         }
@@ -64,6 +66,9 @@ extension AppViewModel {
             copyPlainText(app.url.path, message: "已复制应用路径：\(app.name)")
         case .plugin(let plugin):
             copyPlainText(plugin.directoryURL.path, message: "已复制插件目录路径")
+        case .pluginItem(let entry):
+            let val = entry.copyText ?? entry.url ?? entry.title
+            copyPlainText(val, message: "已复制：\(entry.title)")
         case .command(let cmd):
             copyPlainText(cmd.title, message: "已复制命令标题")
         }
@@ -102,6 +107,13 @@ extension AppViewModel {
                 openBuiltinPluginSettings(plugin)
             } else {
                 openRoute(.settings(.plugins))
+            }
+        case .pluginItem(let entry):
+            if let args = entry.commandArgs, !args.isEmpty,
+               let plugin = plugins.first(where: { $0.id == entry.pluginID }) {
+                runPlugin(plugin, query: "", arguments: args, showInline: true)
+            } else {
+                executePluginSearchEntry(entry)
             }
         default:
             executeCandidate(selected)
@@ -161,6 +173,10 @@ extension AppViewModel {
             if let url = tool.previewImageURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         case .plugin(let plugin):
             NSWorkspace.shared.activateFileViewerSelecting([plugin.directoryURL])
+        case .pluginItem(let entry):
+            if let plugin = plugins.first(where: { $0.id == entry.pluginID }) {
+                NSWorkspace.shared.activateFileViewerSelecting([plugin.directoryURL])
+            }
         default: break
         }
     }
@@ -215,6 +231,19 @@ extension AppViewModel {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value, forType: .string)
         serviceMessage = message
+    }
+
+    func executePluginSearchEntry(_ entry: PluginSearchEntry) {
+        if let rawURL = entry.url, let url = URL(string: rawURL) {
+            handlePluginOpenURL(url)
+            serviceMessage = "已打开：\(entry.title)"
+            if !isOverlayPinned && url.scheme != "lumakey" { onHideOverlayRequest?() }
+        } else if let args = entry.commandArgs, !args.isEmpty,
+                  let plugin = plugins.first(where: { $0.id == entry.pluginID }) {
+            runPlugin(plugin, query: "", arguments: args, showInline: true)
+        } else {
+            copyPlainText(entry.copyText ?? entry.title, message: "已复制：\(entry.title)")
+        }
     }
 
     private func stripMatchedPluginKeyword(from raw: String, plugin: PluginDescriptor) -> String {

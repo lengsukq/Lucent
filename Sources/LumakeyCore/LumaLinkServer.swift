@@ -97,27 +97,31 @@ public final class LumaLinkServer: @unchecked Sendable {
         apply(config: next, persist: true)
     }
 
-    public func stopAll() {
+    public func stopAll(waitUntilFinished: Bool = false) {
         LumaLinkRdpSidecarService.shared.stop()
         LumaLinkAudioBridgeService.shared.stopVirtualMic()
         LumaLinkSpeakerTapService.shared.stopAll()
-        queue.async {
+        let finish: @Sendable () -> Void = {
+            if self.currentConfig().autoRestoreDisplayOnDisconnect { _ = LumaLinkDisplayService.shared.restoreAll() }
+            LumaLinkSystemControlService.shared.releaseAllGuards()
+        }
+        let teardown: @Sendable () -> Void = {
             self.stopClipboardWatcherOnQueue()
-            self.listener?.cancel()
-            self.listener = nil
+            self.listener?.cancel(); self.listener = nil
             let active = self.lock.withLock { () -> [LumaLinkClientSession] in
-                let list = Array(self.sessions.values)
-                self.sessions.removeAll()
-                self._isListening = false
-                self._listeningPort = 0
-                return list
+                let list = Array(self.sessions.values); self.sessions.removeAll()
+                self._isListening = false; self._listeningPort = 0; return list
             }
             for s in active { s.connection.cancel() }
-            if self.currentConfig().autoRestoreDisplayOnDisconnect {
-                _ = LumaLinkDisplayService.shared.restoreAll()
-            }
-            LumaLinkSystemControlService.shared.releaseAllGuards()
             self.notifyStatusChanged()
+        }
+        if waitUntilFinished {
+            let group = DispatchGroup(); group.enter()
+            queue.async { teardown(); group.leave() }
+            _ = group.wait(timeout: .now() + 0.8)
+            finish()
+        } else {
+            queue.async { teardown(); finish() }
         }
     }
 

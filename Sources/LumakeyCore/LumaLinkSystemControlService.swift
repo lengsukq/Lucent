@@ -220,8 +220,14 @@ public final class LumaLinkSystemControlService: @unchecked Sendable {
         if active && mute {
             setMute(command: "true")
         }
-        DispatchQueue.main.async {
-            LumaLinkCurtainOverlay.shared.setActive(active)
+        if Thread.isMainThread {
+            MainActor.assumeIsolated {
+                LumaLinkCurtainOverlay.shared.setActive(active)
+            }
+        } else {
+            DispatchQueue.main.async {
+                LumaLinkCurtainOverlay.shared.setActive(active)
+            }
         }
     }
 

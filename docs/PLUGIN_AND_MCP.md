@@ -12,14 +12,16 @@
      - `builtin-mos`（Mos 鼠标平滑与滚轮方向）：声明 `[accessibility]`
      - `builtin-lumalink`（流光随行 · LumaLink 远控伴侣）：声明 `[accessibility, screenRecording, localNetwork, microphoneAndAudio, displayInfo]`
      - `builtin-system-pulse`（系统脉搏桌面监控悬浮窗）：声明 `[telemetrySampling]`（IOKit/Mach 只读采样）
-2. **外部扩展插件 (`plugin.json` v3 契约 · `EXT`)**：
-   - 存放于 `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json`，启停状态、表单配置与能力授权持久化于同级 `plugin-state.json`（`FSEvents` `350ms` 防抖热重载）。
-   - **`capabilities` 必选声明**：注册时必须在 `plugin.json` 中显式写出 `"capabilities"` 数组；若为纯沙盒脚本（不访问任何宿主特权能力），必须写为 `"capabilities": []`。缺失 `"capabilities"` 或包含未知能力名将在加载与 `lumakey_validate_plugin` 时报错。
+2. **外部扩展插件 (`plugin.json` v3.1 契约 · `EXT`)**：
+   - 插件包目录 `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json` 保持代码与清单不可变；可写缓存与免前缀检索索引 `search-index.json` 写入隔离目录 `PluginData/<id>/`（通过 `LUMAKEY_DATA_DIR` 与 `stdin.dataDir` 注入）；普通配置与授权持久化于 `plugin-state.json`，`.secret` 密钥字段统一存入 macOS Keychain。
+   - **`capabilities` 与 `resourceScopes` 双必选强校验**：注册时必须在 `plugin.json` 同时显式写出 `"capabilities"` 与 `"resourceScopes"`（`network` / `filesystem` / `subprocess`）数组；无宿主桥接且无外部网络/写盘/子进程访问才可均声明为 `[]`（纯沙盒）。缺失任一字段或含未知枚举值将在加载、导入与 `lumakey_validate_plugin` 时阻断。
+   - **`stdin.clipboard` 最小权限门禁**：仅当插件声明并获用户授权 `"clipboard"` 后，`stdin.clipboard` 才会注入真实剪贴板内容（否则固定为 `""`）。
 
 ### 完整示例如下（v1/v2 `author`、`icon`、`hotkey`、`config` 保持兼容）
 
 ```json
 {
+  "schemaVersion": 3,
   "id": "host-snapshot",
   "name": "宿主显示与音频速览",
   "version": "1.0.0",
@@ -30,6 +32,7 @@
   "author": "Lumakey Official",
   "icon": "display.and.arrow.down",
   "capabilities": ["displayInfo", "systemControl"],
+  "resourceScopes": ["subprocess"],
   "config": []
 }
 ```
@@ -37,7 +40,7 @@
 ## 二、可控复用宿主能力（Host Bridge 协议）
 
 - **默认最小权限**：外部插件声明的 `capabilities` 在 `plugin-state.json` (`grantedCapabilities`) 中默认全部为**关闭**，需由用户在设置 → 插件中心「配置预览 → 宿主能力授权」或对照「权限清单」显式授权开启。
-- **一过性 UDS Socket（即用即毁）**：当 `capabilities` 非空且被按需触发时，宿主仅在本次执行周期创建一个权限 `0600` 的临时 Unix Domain Socket（`/tmp/lk-<rand>.sock`）及一次性随机 Token（`48` 位十六进制），通过环境变量 `LUMAKEY_BRIDGE_SOCK` / `LUMAKEY_BRIDGE_TOKEN` 与 `stdin` JSON 的 `bridge` 字段注入脚本；脚本退出或超时后 `defer` 立即取消监听并 `unlink` 销毁套接字文件。
+- **一过性 UDS Socket（即用即毁）**：当 `capabilities` 非空且被按需触发时，宿主仅在本次执行周期在用户私密 `0700` 临时目录下创建权限 `0600` 的 Unix Domain Socket 及一次性随机 Token（`48` 位十六进制），通过环境变量 `LUMAKEY_BRIDGE_SOCK` / `LUMAKEY_BRIDGE_TOKEN` 与 `stdin` JSON 的 `bridge` 字段注入脚本；脚本退出、被取消（进程组回收）或超时后 `defer` 立即取消监听并 `unlink` 销毁套接字文件。
 - **三重校验**：每次连接服务端严格校验 `token`、是否在 `plugin.json` 声明 (`declaredCapabilities`) 以及是否获用户授权 (`grantedCapabilities`)，越权请求返回 `{"ok":false,"error":"invalid_token|capability_not_declared|capability_not_granted",...}`。
 
 ### 可声明的宿主能力 (`PluginCapability`)
@@ -45,6 +48,8 @@
 | Capability | 典型 Action & Params | 返回 / 说明 |
 | --- | --- | --- |
 | `clipboard` | `read` (`{}`)、`write` (`{"text":"..."}`) | 读写系统剪贴板文本（脱敏保护） |
+| `selection` | `read` (`{}`) | 复用宿主 Accessibility 读取当前前台应用选区文本 |
+| `audio` | `play` (`{"path":"..."}`)、`speak` (`{"text":"..."}`)、`stop` | 复用宿主音频引擎播放在线缓存音频或系统语音朗读 |
 | `ocr` | `recognize` (`{"imagePath":"/abs/path.png"}`) | 复用 `VisionService` 离线识别中英文字与条码 |
 | `everythingSearch` | `search` (`{"query":"...","limit":20}`) | 复用 `EverythingIndex` 内存树按 DSL 检索文件 |
 | `displayInfo` | `list` (`{}`) | 返回活跃显示器 `displayID`、当前模式与可用分辨率 |
@@ -73,9 +78,9 @@
 | --- | --- | --- |
 | `lumakey_list_plugins` | `includeBuiltin`（可选，默认 `true`） | 一并返回 `BUILTIN` 原生插件与外部扩展插件的启用、声明权限及授权状态，防止重复造轮子 |
 | `lumakey_app_permissions` | `onlyUsed`（可选） | 返回全 App 权限审计矩阵：每项权限由哪些插件声明与使用，以及纯沙盒 (`[]`) 插件列表 |
-| `lumakey_scaffold_plugin` | `id`, `name`, `keywords`, `capabilities`（必选） | 安全生成 `plugin.json` 与可执行 `run.sh`（声明能力时自动生成 Host Bridge `nc -U` 示例模板） |
+| `lumakey_scaffold_plugin` | `id`, `name`, `keywords`, `capabilities`, `resourceScopes`（必选） | 安全生成 `plugin.json` 与可执行 `run.sh`（声明能力时自动生成 Host Bridge `nc -U` 示例模板） |
 | `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装官方脚手架模板（`sys-ip-dns`、`quick-hash-uuid`、`port-killer`、`shell-note`、`host-snapshot`） |
-| `lumakey_validate_plugin` | `id` | 校验 `capabilities` 必选声明、未知权限名、`builtin-` 保留前缀、脚本权限与防路径逃逸 |
-| `lumakey_run_plugin_test` | `id`, `query`, `clipboardText`（可选） | 执行内置或外部插件测试（自动拉起临时 Host Bridge），返回 `exitCode`、`isStructuredView`、`stdout`、`stderr` |
+| `lumakey_validate_plugin` | `id` | 校验 `capabilities` 与 `resourceScopes` 必选声明、未知权限名、`builtin-` 保留前缀、脚本权限与防路径逃逸 |
+| `lumakey_run_plugin_test` | `id`, `query`, `arguments`, `clipboardText`（可选） | 执行内置或外部插件测试（自动拉起临时 Host Bridge 与 `LUMAKEY_DATA_DIR`），返回 `exitCode`、`viewValidation`、`stdout`、`stderr` |
 | `lumakey_set_plugin_enabled` | `id`, `enabled` | 启停外部或 `BUILTIN` 插件（停用 `BUILTIN` 即刻回收监听器与事件回调） |
 | `lumakey_remove_plugin` | `id` | 移除外部扩展插件目录与状态（禁止删除 `builtin-*` 原生插件） |
