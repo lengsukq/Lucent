@@ -17,7 +17,7 @@ extension AppViewModel {
         pluginWatcher?.stop()
         pluginWatcher = PluginDirectoryWatcher { [weak self] in
             Task { @MainActor [weak self] in
-                self?.plugins = PluginSystem.listPlugins()
+                self?.reloadPlugins()
             }
         }
 
@@ -40,66 +40,6 @@ extension AppViewModel {
         pluginWatcher = nil
         pluginRunTask?.cancel()
         pluginRunTask = nil
-    }
-
-    var externalPluginHotKeys: [ExternalPluginHotKey] {
-        plugins.compactMap { plugin in
-            guard plugin.isValid, plugin.isEnabled,
-                  let raw = plugin.manifest.hotkey,
-                  let chord = HotKeyChord.parse(raw) else { return nil }
-            return ExternalPluginHotKey(pluginID: plugin.id, pluginName: plugin.manifest.name, chord: chord)
-        }
-    }
-
-    func reloadAppsAndPlugins() {
-        plugins = PluginSystem.listPlugins()
-        _ = (hotKeyManager ?? GlobalHotKeyManager.activeInstance)?.reapplyConfig(HotKeyBindingConfig.load(), persist: false)
-        Task {
-            let apps = await Task.detached(priority: .userInitiated) { LauncherEngine.discoverInstalledApps() }.value
-            self.installedApps = apps
-            AppUsageTrackerController.shared.ensureSystemProbe(for: apps)
-            if self.isOverlayVisible {
-                IconCache.shared.prewarmDockIcons(self.cachedDockApps)
-            }
-        }
-    }
-
-    func runPlugin(_ plugin: PluginDescriptor, query: String, arguments: [String] = [], showInline: Bool = false) {
-        pluginRunTask?.cancel()
-        let clipText = clipboardItems.first(where: { $0.textValue != nil })?.textValue
-            ?? NSPasteboard.general.string(forType: .string)
-            ?? ""
-        serviceMessage = "正在运行插件：\(plugin.manifest.name)…"
-        pluginRunTask = Task { [weak self] in
-            do {
-                let resolved = try await PluginSystem.runPluginAsync(
-                    plugin,
-                    query: query,
-                    clipboardText: clipText,
-                    arguments: arguments
-                )
-                guard !Task.isCancelled, let self else { return }
-                self.pluginOutputText = resolved.plainText
-                if showInline {
-                    if let payload = resolved.viewPayload {
-                        self.activeInlinePlugin = plugin
-                        self.inlinePluginViewPayload = payload
-                        self.inlineResultBody = nil
-                    } else {
-                        self.inlinePluginViewPayload = nil
-                        self.inlineResultTitle = "插件：\(plugin.manifest.name)"
-                        self.inlineResultBody = resolved.plainText.isEmpty ? "(无输出)" : resolved.plainText
-                    }
-                }
-                self.serviceMessage = resolved.execution.exitCode == 0
-                    ? "插件 \(plugin.manifest.name) 完成 (\(resolved.execution.durationMs) ms)"
-                    : "插件返回退出码 \(resolved.execution.exitCode)"
-            } catch {
-                guard !Task.isCancelled, let self else { return }
-                self.pluginOutputText = error.localizedDescription
-                self.serviceMessage = error.localizedDescription
-            }
-        }
     }
 
     func captureAndPinScreenshot() {
@@ -186,16 +126,45 @@ extension AppViewModel {
         mosConfig = next
         MosEngine.shared.apply(config: next, persist: true)
         refreshMosStatus()
+        reloadPlugins()
     }
 
     func requestMosAccessibilityPermission() {
         _ = MosEngine.shared.requestAccessibilityPermission()
         refreshMosStatus()
+        reloadPlugins()
     }
 
     func refreshMosStatus() {
         mosAccessibilityTrusted = MosEngine.shared.isAccessibilityTrusted
         mosTapActive = MosEngine.shared.isTapActive
+    }
+
+    func applyLumaLinkConfig(_ next: LumaLinkConfig) {
+        lumaLinkConfig = next
+        LumaLinkRdpSidecarService.shared.onStatusChanged = { [weak self] in
+            self?.refreshLumaLinkStatus(refreshPermissions: false)
+        }
+        LumaLinkServer.shared.apply(config: next, persist: true)
+        refreshLumaLinkStatus(refreshPermissions: next.rdpEnabled)
+        reloadPlugins()
+    }
+
+    func regenerateLumaLinkPin() {
+        _ = LumaLinkServer.shared.regeneratePin()
+        refreshLumaLinkStatus(refreshPermissions: false)
+    }
+
+    func revokeLumaLinkDevice(id: String) {
+        LumaLinkServer.shared.revokePairedDevice(id: id)
+        refreshLumaLinkStatus(refreshPermissions: false)
+    }
+
+    func refreshLumaLinkStatus(refreshPermissions: Bool = true) {
+        lumaLinkConfig = LumaLinkServer.shared.currentConfig()
+        lumaLinkStatus = LumaLinkServer.shared.currentSnapshot()
+        lumaLinkRdpStatus = LumaLinkRdpSidecarService.shared.currentStatus(refreshPermissions: refreshPermissions)
+        mosAccessibilityTrusted = MosEngine.shared.isAccessibilityTrusted
     }
 
     func executeClipboardEntry(_ entry: ClipboardEntry) {

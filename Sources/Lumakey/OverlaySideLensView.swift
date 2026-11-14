@@ -12,7 +12,7 @@ struct OverlaySideLensView: View {
                 PluginViewLensContainerCard(
                     payload: viewPayload,
                     onCopyText: { val in copyString(val, toast: "已复制：\(val)") },
-                    onOpenURL: { url in NSWorkspace.shared.open(url) },
+                    onOpenURL: { url in viewModel.handlePluginOpenURL(url) },
                     onRunCommandArgs: { args in
                         guard let plugin = viewModel.activeInlinePlugin else { return }
                         viewModel.runPlugin(plugin, query: viewModel.overlayQuery, arguments: args, showInline: true)
@@ -166,13 +166,22 @@ struct OverlaySideLensView: View {
     private func pluginDetailCard(plugin: PluginDescriptor, candidate: LauncherCandidate) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                SquircleBadge(symbol: plugin.manifest.icon ?? "puzzlepiece.extension.fill", topColor: .purple, bottomColor: .indigo, size: 38)
+                SquircleBadge(
+                    symbol: plugin.manifest.icon ?? "puzzlepiece.extension.fill",
+                    topColor: plugin.isBuiltin ? .cyan : .purple,
+                    bottomColor: plugin.isBuiltin ? .blue : .indigo,
+                    size: 38
+                )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(plugin.manifest.name).font(.headline).foregroundStyle(LiquidColors.textPrimary)
-                    LiquidStatusPill(title: plugin.manifest.mode.rawValue.uppercased(), tint: .purple)
+                    LiquidStatusPill(
+                        title: plugin.isBuiltin ? "BUILTIN" : plugin.manifest.mode.rawValue.uppercased(),
+                        tint: plugin.isBuiltin ? .mint : .purple
+                    )
                 }
             }
-            Text(plugin.manifest.description).font(.caption).foregroundStyle(LiquidColors.textSecondary)
+            Text(plugin.builtinMetadata?.statusSummary ?? plugin.manifest.description)
+                .font(.caption).foregroundStyle(LiquidColors.textSecondary)
             LiquidSectionDivider()
             MetadataLabel(key: "ID", val: plugin.id)
             MetadataLabel(key: "关键词", val: plugin.manifest.keywords.joined(separator: ", "))
@@ -180,8 +189,14 @@ struct OverlaySideLensView: View {
             HStack(spacing: 8) {
                 Button("运行插件 ↩") { viewModel.executeCandidate(candidate) }
                     .buttonStyle(GlassPillButtonStyle(prominent: true))
-                Button("配置") { viewModel.openRoute(.settings(.plugins)) }
-                    .buttonStyle(GlassPillButtonStyle())
+                Button(plugin.isBuiltin ? "原生设置" : "配置") {
+                    if plugin.isBuiltin {
+                        viewModel.openBuiltinPluginSettings(plugin)
+                    } else {
+                        viewModel.openRoute(.settings(.plugins))
+                    }
+                }
+                .buttonStyle(GlassPillButtonStyle())
             }
         }
         .padding(14)

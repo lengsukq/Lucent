@@ -1,134 +1,12 @@
 import Foundation
 
-public enum PluginMode: String, Codable, Sendable, Hashable, CaseIterable {
-    case script, view
-}
-
-public enum PluginConfigFieldType: String, Codable, Sendable, Hashable, CaseIterable {
-    case text, secret, boolean, select
-}
-
-public struct PluginConfigField: Codable, Sendable, Hashable, Identifiable {
-    public var id: String { key }
-    public let key: String
-    public let label: String
-    public let type: PluginConfigFieldType
-    public let defaultValue: String?
-    public let placeholder: String?
-    public let options: [String]?
-    public let required: Bool?
-
-    public init(
-        key: String, label: String, type: PluginConfigFieldType = .text,
-        defaultValue: String? = nil, placeholder: String? = nil,
-        options: [String]? = nil, required: Bool? = nil
-    ) {
-        self.key = key; self.label = label; self.type = type
-        self.defaultValue = defaultValue; self.placeholder = placeholder
-        self.options = options; self.required = required
-    }
-}
-
-public struct PluginManifest: Codable, Sendable, Hashable {
-    public let id: String
-    public let name: String
-    public let version: String
-    public let description: String
-    public let mode: PluginMode
-    public let keywords: [String]
-    public let entry: String
-    public let author: String?
-    public let icon: String?
-    public let hotkey: String?
-    public let config: [PluginConfigField]?
-
-    public init(
-        id: String, name: String, version: String, description: String,
-        mode: PluginMode, keywords: [String], entry: String,
-        author: String? = nil, icon: String? = nil,
-        hotkey: String? = nil, config: [PluginConfigField]? = nil
-    ) {
-        self.id = id; self.name = name; self.version = version; self.description = description
-        self.mode = mode; self.keywords = keywords; self.entry = entry
-        self.author = author; self.icon = icon; self.hotkey = hotkey; self.config = config
-    }
-}
-
-public struct PluginInstanceState: Codable, Sendable, Hashable, Equatable {
-    public var isEnabled: Bool
-    public var configValues: [String: String]
-
-    public init(isEnabled: Bool = true, configValues: [String: String] = [:]) {
-        self.isEnabled = isEnabled
-        self.configValues = configValues
-    }
-}
-
-public struct PluginStateSnapshot: Codable, Sendable, Hashable, Equatable {
-    public var schemaVersion: Int
-    public var plugins: [String: PluginInstanceState]
-
-    public init(schemaVersion: Int = 1, plugins: [String: PluginInstanceState] = [:]) {
-        self.schemaVersion = schemaVersion
-        self.plugins = plugins
-    }
-}
-
-public struct PluginDescriptor: Identifiable, Sendable, Hashable {
-    public let id: String
-    public let directoryURL: URL
-    public let manifest: PluginManifest
-    public let validationIssues: [String]
-    public let nameLowercased: String
-    public let descriptionLowercased: String
-    public let keywordsLowercased: [String]
-    public let isEnabled: Bool
-    public let userConfig: [String: String]
-    public var isValid: Bool { validationIssues.isEmpty }
-
-    public init(
-        id: String,
-        directoryURL: URL,
-        manifest: PluginManifest,
-        validationIssues: [String],
-        isEnabled: Bool = true,
-        userConfig: [String: String] = [:]
-    ) {
-        self.id = id
-        self.directoryURL = directoryURL
-        self.manifest = manifest
-        self.validationIssues = validationIssues
-        self.nameLowercased = manifest.name.lowercased()
-        self.descriptionLowercased = manifest.description.lowercased()
-        self.keywordsLowercased = manifest.keywords.map { $0.lowercased() }
-        self.isEnabled = isEnabled
-        self.userConfig = userConfig
-    }
-}
-
-public struct PluginExecutionResult: Sendable, Hashable, Equatable {
-    public let exitCode: Int32
-    public let stdout: String
-    public let stderr: String
-    public let durationMs: Int
-
-    public init(exitCode: Int32, stdout: String, stderr: String, durationMs: Int) {
-        self.exitCode = exitCode
-        self.stdout = stdout
-        self.stderr = stderr
-        self.durationMs = durationMs
-    }
-}
-
 public enum PluginSystem {
     static let stateLock = NSLock()
 
     public static func defaultPluginsDirectory() -> URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
-        return appSupport
-            .appendingPathComponent("Lumakey", isDirectory: true)
-            .appendingPathComponent("Plugins", isDirectory: true)
+        return appSupport.appendingPathComponent("Lumakey", isDirectory: true).appendingPathComponent("Plugins", isDirectory: true)
     }
 
     public static func stateFileURL(for rootDir: URL = defaultPluginsDirectory()) -> URL {
@@ -153,26 +31,33 @@ public enum PluginSystem {
         return merged
     }
 
-    public static func listPlugins(in rootDir: URL = defaultPluginsDirectory(), includeDisabled: Bool = true) -> [PluginDescriptor] {
+    public static func listPlugins(
+        in rootDir: URL = defaultPluginsDirectory(),
+        includeDisabled: Bool = true,
+        includeBuiltin: Bool = false
+    ) -> [PluginDescriptor] {
+        var results: [PluginDescriptor] = []
+        if includeBuiltin {
+            let builtins = PluginBuiltinRegistry.descriptors()
+            results.append(contentsOf: includeDisabled ? builtins : builtins.filter(\.isEnabled))
+        }
         guard let folders = try? FileManager.default.contentsOfDirectory(
-            at: rootDir,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else { return [] }
+            at: rootDir, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]
+        ) else { return results }
 
         let snapshot = loadStateSnapshot(in: rootDir)
-        return folders.compactMap { folder in
+        let externals = folders.compactMap { folder -> PluginDescriptor? in
             let isDir = (try? folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             guard isDir else { return nil }
             let desc = loadPlugin(at: folder, snapshot: snapshot)
             return (!includeDisabled && !desc.isEnabled) ? nil : desc
         }.sorted { $0.id < $1.id }
+        return results + externals
     }
 
     public static func loadPlugin(at directoryURL: URL, in rootDir: URL? = nil) -> PluginDescriptor {
         let resolvedRoot = rootDir ?? directoryURL.deletingLastPathComponent()
-        let snapshot = loadStateSnapshot(in: resolvedRoot)
-        return loadPlugin(at: directoryURL, snapshot: snapshot)
+        return loadPlugin(at: directoryURL, snapshot: loadStateSnapshot(in: resolvedRoot))
     }
 
     static func loadPlugin(at directoryURL: URL, snapshot: PluginStateSnapshot) -> PluginDescriptor {
@@ -187,19 +72,18 @@ public enum PluginSystem {
         let issues = validate(manifest: manifest, in: directoryURL)
         let inst = snapshot.plugins[manifest.id] ?? PluginInstanceState()
         let config = resolvedConfig(for: manifest, stored: inst.configValues)
+        let granted = Set(inst.grantedCapabilities.compactMap { PluginCapability(rawValue: $0) })
         return PluginDescriptor(
-            id: manifest.id,
-            directoryURL: directoryURL,
-            manifest: manifest,
-            validationIssues: issues,
-            isEnabled: inst.isEnabled,
-            userConfig: config
+            id: manifest.id, directoryURL: directoryURL, manifest: manifest,
+            validationIssues: issues, isEnabled: inst.isEnabled, userConfig: config,
+            kind: .external, grantedCapabilities: granted
         )
     }
 
     public static func validate(manifest: PluginManifest, in directoryURL: URL) -> [String] {
         var issues: [String] = []
         if !isSafePluginID(manifest.id) { issues.append("id 仅允许小写字母、数字与连字符") }
+        if PluginBuiltinRegistry.isBuiltin(id: manifest.id) { issues.append("id '\(manifest.id)' 为内置插件保留前缀") }
         if manifest.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { issues.append("name 不能为空") }
         if manifest.keywords.isEmpty { issues.append("keywords 至少包含一个触发词") }
         let entryURL = directoryURL.appendingPathComponent(manifest.entry).standardizedFileURL
@@ -218,6 +102,12 @@ public enum PluginSystem {
             if field.type == .select && (field.options ?? []).isEmpty {
                 issues.append("config 下拉项 '\(field.key)' 缺少 options 候选列表")
             }
+        }
+        if manifest.capabilities == nil {
+            issues.append("注册时必须显式声明 capabilities 权限列表（无需宿主权限请写 []）")
+        }
+        for rawCap in manifest.capabilities ?? [] where PluginCapability(rawValue: rawCap) == nil {
+            issues.append("未知 capability 声明：'\(rawCap)'")
         }
         return issues
     }

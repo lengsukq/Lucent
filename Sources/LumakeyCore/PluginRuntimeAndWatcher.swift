@@ -1,115 +1,4 @@
-import CoreServices
 import Foundation
-
-public struct PluginKeyValue: Codable, Sendable, Equatable, Hashable, Identifiable {
-    public var id: String { "\(key):\(value)" }
-    public let key: String
-    public let value: String
-
-    public init(key: String, value: String) {
-        self.key = key
-        self.value = value
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case key, label, value
-    }
-
-    public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.key = (try? c.decode(String.self, forKey: .key))
-            ?? (try? c.decode(String.self, forKey: .label))
-            ?? ""
-        self.value = try c.decode(String.self, forKey: .value)
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(key, forKey: .key)
-        try c.encode(value, forKey: .value)
-    }
-}
-
-public struct PluginViewItem: Codable, Sendable, Equatable, Hashable, Identifiable {
-    public var id: String { "\(title)|\(subtitle ?? "")|\(copyText ?? "")|\(openURL ?? "")" }
-    public let title: String
-    public let subtitle: String?
-    public let icon: String?
-    public let badge: String?
-    public let copyText: String?
-    public let openURL: String?
-    public let commandArgs: [String]?
-
-    public init(
-        title: String, subtitle: String? = nil, icon: String? = nil, badge: String? = nil,
-        copyText: String? = nil, openURL: String? = nil, commandArgs: [String]? = nil
-    ) {
-        self.title = title; self.subtitle = subtitle; self.icon = icon; self.badge = badge
-        self.copyText = copyText; self.openURL = openURL; self.commandArgs = commandArgs
-    }
-}
-
-public struct PluginViewPayload: Codable, Sendable, Equatable, Hashable {
-    public let title: String
-    public let subtitle: String?
-    public let badge: String?
-    public let markdown: String?
-    public let metrics: [PluginKeyValue]?
-    public let items: [PluginViewItem]?
-
-    public init(
-        title: String, subtitle: String? = nil, badge: String? = nil,
-        markdown: String? = nil, metrics: [PluginKeyValue]? = nil, items: [PluginViewItem]? = nil
-    ) {
-        self.title = title; self.subtitle = subtitle; self.badge = badge
-        self.markdown = markdown; self.metrics = metrics; self.items = items
-    }
-
-    public static func parse(from rawOutput: String) -> PluginViewPayload? {
-        let trimmed = rawOutput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.first == "{", trimmed.last == "}",
-              let data = trimmed.data(using: .utf8),
-              let payload = try? JSONDecoder().decode(PluginViewPayload.self, from: data),
-              !payload.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { return nil }
-        return payload
-    }
-}
-
-public struct PluginResolvedOutput: Sendable, Equatable, Hashable {
-    public let pluginID: String
-    public let pluginName: String
-    public let mode: PluginMode
-    public let execution: PluginExecutionResult
-    public let viewPayload: PluginViewPayload?
-    public let plainText: String
-    public var isStructuredView: Bool { viewPayload != nil }
-
-    public init(descriptor: PluginDescriptor, execution: PluginExecutionResult) {
-        self.pluginID = descriptor.id
-        self.pluginName = descriptor.manifest.name
-        self.mode = descriptor.manifest.mode
-        self.execution = execution
-        if execution.exitCode == 0, let parsed = PluginViewPayload.parse(from: execution.stdout) {
-            self.viewPayload = parsed
-            self.plainText = Self.summarize(parsed)
-        } else {
-            self.viewPayload = nil
-            self.plainText = execution.stdout.isEmpty ? execution.stderr : execution.stdout
-        }
-    }
-
-    private static func summarize(_ payload: PluginViewPayload) -> String {
-        var lines: [String] = [payload.title]
-        if let sub = payload.subtitle, !sub.isEmpty { lines.append(sub) }
-        for m in payload.metrics ?? [] { lines.append("\(m.key): \(m.value)") }
-        for item in payload.items ?? [] {
-            lines.append("• \(item.title)" + (item.subtitle.map { " — \($0)" } ?? ""))
-        }
-        if let md = payload.markdown, !md.isEmpty { lines.append(md) }
-        return lines.joined(separator: "\n")
-    }
-}
 
 extension PluginSystem {
     public static func loadStateSnapshot(in rootDir: URL = defaultPluginsDirectory()) -> PluginStateSnapshot {
@@ -138,6 +27,7 @@ extension PluginSystem {
     }
 
     public static func setPluginEnabled(id: String, isEnabled: Bool, in rootDir: URL = defaultPluginsDirectory()) throws {
+        if PluginBuiltinRegistry.setBuiltinEnabled(id: id, isEnabled: isEnabled) { return }
         guard isSafePluginID(id) else { throw LumakeyError.pluginInvalid("插件 id '\(id)' 不合法") }
         var snap = loadStateSnapshot(in: rootDir)
         var inst = snap.plugins[id] ?? PluginInstanceState()
@@ -159,21 +49,55 @@ extension PluginSystem {
         try saveStateSnapshot(snap, in: rootDir)
     }
 
+    public static func grantedCapabilities(id: String, in rootDir: URL = defaultPluginsDirectory()) -> Set<PluginCapability> {
+        let raw = loadStateSnapshot(in: rootDir).plugins[id]?.grantedCapabilities ?? []
+        return Set(raw.compactMap { PluginCapability(rawValue: $0) })
+    }
+
+    public static func setPluginCapabilityGranted(
+        id: String, capability: PluginCapability, granted: Bool, in rootDir: URL = defaultPluginsDirectory()
+    ) throws {
+        var current = grantedCapabilities(id: id, in: rootDir)
+        if granted { current.insert(capability) } else { current.remove(capability) }
+        try setPluginCapabilities(id: id, capabilities: current, in: rootDir)
+    }
+
+    public static func setPluginCapabilities(
+        id: String, capabilities: Set<PluginCapability>, in rootDir: URL = defaultPluginsDirectory()
+    ) throws {
+        guard isSafePluginID(id) else { throw LumakeyError.pluginInvalid("插件 id '\(id)' 不合法") }
+        var snap = loadStateSnapshot(in: rootDir)
+        var inst = snap.plugins[id] ?? PluginInstanceState()
+        inst.grantedCapabilities = capabilities.map(\.rawValue).sorted()
+        snap.plugins[id] = inst
+        try saveStateSnapshot(snap, in: rootDir)
+    }
+
     public static func buildStdinContextData(
         for descriptor: PluginDescriptor,
         query: String,
         clipboardText: String = "",
+        bridgeSocketPath: String? = nil,
+        bridgeToken: String? = nil,
+        grantedCapabilities: Set<PluginCapability> = [],
         in rootDir: URL? = nil
     ) throws -> Data {
         let stateRoot = rootDir ?? descriptor.directoryURL.deletingLastPathComponent()
         let stored = pluginConfig(id: descriptor.id, in: stateRoot)
         let mergedConfig = resolvedConfig(for: descriptor.manifest, stored: descriptor.userConfig.merging(stored) { _, new in new })
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "query": query,
             "mode": descriptor.manifest.mode.rawValue,
             "config": mergedConfig,
             "clipboard": clipboardText
         ]
+        if let bridgeSocketPath, let bridgeToken {
+            payload["bridge"] = [
+                "socket": bridgeSocketPath,
+                "token": bridgeToken,
+                "grantedCapabilities": grantedCapabilities.map(\.rawValue).sorted()
+            ]
+        }
         return try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
     }
 
@@ -182,26 +106,44 @@ extension PluginSystem {
         query: String,
         clipboardText: String = "",
         arguments: [String] = [],
+        hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
         timeoutSeconds: Double = 8.0
     ) throws -> PluginExecutionResult {
         guard descriptor.isValid else {
             throw LumakeyError.pluginInvalid(descriptor.validationIssues.joined(separator: "；"))
         }
+        if descriptor.isBuiltin {
+            if let resolved = PluginBuiltinRegistry.runBuiltin(id: descriptor.id, query: query) {
+                return resolved.execution
+            }
+            throw LumakeyError.pluginInvalid("未知内置插件：\(descriptor.id)")
+        }
         let stateRoot = rootDir ?? descriptor.directoryURL.deletingLastPathComponent()
         let enabledNow = descriptor.isEnabled && isPluginEnabled(id: descriptor.id, in: stateRoot)
         guard enabledNow else {
             throw LumakeyError.pluginExecutionFailed("插件 '\(descriptor.manifest.name)' 当前已禁用")
         }
+        let latestGrants = descriptor.grantedCapabilities.union(grantedCapabilities(id: descriptor.id, in: stateRoot))
+            .intersection(Set(descriptor.declaredCapabilities))
+        var bridgeServer: PluginHostBridgeServer?
+        var bridgeEnv: [String: String]?
+        if !descriptor.declaredCapabilities.isEmpty {
+            let server = try PluginHostBridgeServer(descriptor: descriptor, grantedCapabilities: latestGrants, hostContext: hostContext)
+            bridgeServer = server
+            bridgeEnv = ["LUMAKEY_BRIDGE_SOCK": server.socketPath, "LUMAKEY_BRIDGE_TOKEN": server.token]
+        }
+        defer { bridgeServer?.stop() }
+
         let entryURL = descriptor.directoryURL.appendingPathComponent(descriptor.manifest.entry).standardizedFileURL
-        let inputData = try buildStdinContextData(for: descriptor, query: query, clipboardText: clipboardText, in: stateRoot)
+        let inputData = try buildStdinContextData(
+            for: descriptor, query: query, clipboardText: clipboardText,
+            bridgeSocketPath: bridgeServer?.socketPath, bridgeToken: bridgeServer?.token,
+            grantedCapabilities: latestGrants, in: stateRoot
+        )
         let result = try ProcessSupervisor.shared.run(
-            executableURL: entryURL,
-            arguments: arguments,
-            currentDirectoryURL: descriptor.directoryURL,
-            stdinData: inputData,
-            timeoutSeconds: timeoutSeconds,
-            maxOutputBytes: 131_072
+            executableURL: entryURL, arguments: arguments, currentDirectoryURL: descriptor.directoryURL,
+            environment: bridgeEnv, stdinData: inputData, timeoutSeconds: timeoutSeconds, maxOutputBytes: 131_072
         )
         if result.timedOut {
             throw LumakeyError.pluginExecutionFailed("插件进程执行超时（\(Int(timeoutSeconds))s）已被自动终止")
@@ -214,10 +156,17 @@ extension PluginSystem {
         query: String,
         clipboardText: String = "",
         arguments: [String] = [],
+        hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
         timeoutSeconds: Double = 8.0
     ) throws -> PluginResolvedOutput {
-        let exec = try runScriptPlugin(descriptor, query: query, clipboardText: clipboardText, arguments: arguments, in: rootDir, timeoutSeconds: timeoutSeconds)
+        if descriptor.isBuiltin, let resolved = PluginBuiltinRegistry.runBuiltin(id: descriptor.id, query: query) {
+            return resolved
+        }
+        let exec = try runScriptPlugin(
+            descriptor, query: query, clipboardText: clipboardText, arguments: arguments,
+            hostContext: hostContext, in: rootDir, timeoutSeconds: timeoutSeconds
+        )
         return PluginResolvedOutput(descriptor: descriptor, execution: exec)
     }
 
@@ -226,11 +175,15 @@ extension PluginSystem {
         query: String,
         clipboardText: String = "",
         arguments: [String] = [],
+        hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
         timeoutSeconds: Double = 8.0
     ) async throws -> PluginResolvedOutput {
         try await Task.detached(priority: .userInitiated) {
-            try runPluginSync(descriptor, query: query, clipboardText: clipboardText, arguments: arguments, in: rootDir, timeoutSeconds: timeoutSeconds)
+            try runPluginSync(
+                descriptor, query: query, clipboardText: clipboardText, arguments: arguments,
+                hostContext: hostContext, in: rootDir, timeoutSeconds: timeoutSeconds
+            )
         }.value
     }
 }

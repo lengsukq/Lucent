@@ -1,0 +1,137 @@
+name: Release macOS DMG
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_prefix:
+        description: "Base version prefix (defaults to variable LUMAKEY_VERSION_PREFIX or 0.8.1)"
+        required: false
+        default: ""
+        type: string
+      publish_release:
+        description: "Publish GitHub Release with DMG & SHA-256"
+        required: false
+        default: true
+        type: boolean
+      run_checks:
+        description: "Run verify-macos.sh checks before packaging"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  package-arm64:
+    name: Build & Package Lumakey (arm64)
+    runs-on: macos-15
+    env:
+      CI_KEYCHAIN_NAME: build-signing.keychain-db
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute timestamp version
+        id: meta
+        run: |
+          BASE_VER="${{ inputs.version_prefix }}"
+          if [[ -z "$BASE_VER" ]]; then
+            BASE_VER="${{ vars.LUMAKEY_VERSION_PREFIX }}"
+          fi
+          if [[ -z "$BASE_VER" ]]; then
+            BASE_VER="0.8.1"
+          fi
+          TZ_VAL="${{ vars.LUMAKEY_TZ }}"
+          if [[ -z "$TZ_VAL" ]]; then
+            TZ_VAL="Asia/Shanghai"
+          fi
+          TS_DASH="$(TZ="$TZ_VAL" date '+%Y%m%d-%H%M%S')"
+          TS_NUM="$(TZ="$TZ_VAL" date '+%Y%m%d%H%M')"
+          SHORT_VERSION="${BASE_VER}-${TS_DASH}"
+          RELEASE_TAG="v${SHORT_VERSION}"
+          DMG_NAME="Lumakey-${RELEASE_TAG}-arm64.dmg"
+          echo "base_version=$BASE_VER" >> "$GITHUB_OUTPUT"
+          echo "short_version=$SHORT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "bundle_version=$TS_NUM" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: short=$SHORT_VERSION build=$TS_NUM tag=$RELEASE_TAG"
+
+      - name: Import code signing identity
+        if: ${{ secrets.LUMAKEY_SIGN_P12_BASE64 != '' && secrets.LUMAKEY_SIGN_P12_PASSWORD != '' }}
+        env:
+          P12_BASE64: ${{ secrets.LUMAKEY_SIGN_P12_BASE64 }}
+          P12_PASS: ${{ secrets.LUMAKEY_SIGN_P12_PASSWORD }}
+          SIGN_IDENTITY_VAR: ${{ vars.LUMAKEY_SIGN_IDENTITY }}
+        run: |
+          KC_PATH="$RUNNER_TEMP/$CI_KEYCHAIN_NAME"
+          KC_PASS="$(openssl rand -hex 24)"
+          P12_FILE="$RUNNER_TEMP/signer.p12"
+          printf '%s' "$P12_BASE64" | base64 --decode > "$P12_FILE"
+
+          security create-keychain -p "$KC_PASS" "$KC_PATH"
+          security set-keychain-settings -lut 21600 "$KC_PATH"
+          security unlock-keychain -p "$KC_PASS" "$KC_PATH"
+          security import "$P12_FILE" -k "$KC_PATH" -P "$P12_PASS" -T /usr/bin/codesign -T /usr/bin/security
+          rm -f "$P12_FILE"
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASS" "$KC_PATH"
+          security list-keychains -d user -s "$KC_PATH" login.keychain-db
+          security find-identity -v -p codesigning "$KC_PATH"
+
+          if [[ -n "$SIGN_IDENTITY_VAR" ]]; then
+            echo "LUMAKEY_SIGN_IDENTITY=$SIGN_IDENTITY_VAR" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run verify-macos.sh
+        if: ${{ inputs.run_checks }}
+        run: bash scripts/verify-macos.sh
+
+      - name: Build release app & package DMG
+        env:
+          LUMAKEY_BUNDLE_SHORT_VERSION: ${{ steps.meta.outputs.short_version }}
+          LUMAKEY_BUNDLE_VERSION: ${{ steps.meta.outputs.bundle_version }}
+        run: |
+          bash scripts/build-macos.sh
+          bash scripts/package-dmg.sh "dist/${{ steps.meta.outputs.dmg_name }}"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lumakey-${{ steps.meta.outputs.release_tag }}-arm64
+          path: |
+            dist/*.dmg
+            dist/*.sha256
+
+      - name: Publish GitHub Release
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DMG_FILE="dist/${{ steps.meta.outputs.dmg_name }}"
+          SHA_TEXT="$(cat "${DMG_FILE}.sha256")"
+          NOTES=$(cat <<EOF
+          Lumakey macOS arm64 release \`${{ steps.meta.outputs.release_tag }}\`
+
+          - **CFBundleShortVersionString**: \`${{ steps.meta.outputs.short_version }}\`
+          - **CFBundleVersion**: \`${{ steps.meta.outputs.bundle_version }}\`
+          - **Signing Identity**: \`${LUMAKEY_SIGN_IDENTITY:-ad-hoc}\`
+          - **SHA-256**: \`${SHA_TEXT}\`
+
+          > 首次从浏览器下载未公证自签名 DMG 时，如系统提示无法验证开发者，请在「系统设置 → 隐私与安全性」点击「仍要打开」或执行 \`xattr -dr com.apple.quarantine /Applications/Lumakey.app\`。
+          EOF
+          )
+          gh release create "${{ steps.meta.outputs.release_tag }}" \
+            "$DMG_FILE" \
+            "${DMG_FILE}.sha256" \
+            --title "Lumakey ${{ steps.meta.outputs.release_tag }}" \
+            --notes "$NOTES"
+
+      - name: Cleanup temporary keychain
+        if: always()
+        run: |
+          KC_PATH="$RUNNER_TEMP/$CI_KEYCHAIN_NAME"
+          if [[ -f "$KC_PATH" ]]; then
+            security delete-keychain "$KC_PATH" || true
+          fi

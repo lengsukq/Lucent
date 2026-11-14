@@ -20,8 +20,9 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 ICONSET_DIR="$ROOT_DIR/.build/Lumakey.iconset"
 
+HELPERS_DIR="$CONTENTS_DIR/Helpers"
 rm -rf "$APP_DIR" "$ICONSET_DIR"
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$HELPERS_DIR"
 
 echo "==> Generating Retina Liquid Glass AppIcon.icns"
 swift "$ROOT_DIR/scripts/generate-icon.swift" "$ICONSET_DIR"
@@ -29,10 +30,31 @@ swift "$ROOT_DIR/scripts/generate-icon.swift" "$ICONSET_DIR"
 rm -rf "$ICONSET_DIR"
 
 cp "$ROOT_DIR/apps/macos/Info.plist" "$CONTENTS_DIR/Info.plist"
+if [[ -n "${LUMAKEY_BUNDLE_SHORT_VERSION:-}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $LUMAKEY_BUNDLE_SHORT_VERSION" "$CONTENTS_DIR/Info.plist"
+fi
+if [[ -n "${LUMAKEY_BUNDLE_VERSION:-}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $LUMAKEY_BUNDLE_VERSION" "$CONTENTS_DIR/Info.plist"
+fi
 cp "$BIN_DIR/Lumakey" "$MACOS_DIR/Lumakey"
 cp "$BIN_DIR/lumakey-mcp" "$MACOS_DIR/lumakey-mcp"
 chmod +x "$MACOS_DIR/Lumakey" "$MACOS_DIR/lumakey-mcp"
 /usr/bin/strip -x "$MACOS_DIR/Lumakey" "$MACOS_DIR/lumakey-mcp"
+
+RDP_HELPER_SRC=""
+for candidate in \
+  "/Volumes/lightlsle/dependencies/build/mac-remote-host/MacRemoteRDPServer.app/Contents/MacOS/macos-rdp-daemon" \
+  "/Volumes/lightlsle/dependencies/build/macos-rdp-server-macos14-final/macos-rdp-daemon"; do
+  if [[ -x "$candidate" ]]; then
+    RDP_HELPER_SRC="$candidate"
+    break
+  fi
+done
+if [[ -n "$RDP_HELPER_SRC" ]]; then
+  cp "$RDP_HELPER_SRC" "$HELPERS_DIR/macos-rdp-daemon"
+  chmod +x "$HELPERS_DIR/macos-rdp-daemon"
+  echo "==> Embedded RDP helper: $HELPERS_DIR/macos-rdp-daemon"
+fi
 
 for bin in Lumakey lumakey-mcp; do
   archs=$(lipo -archs "$MACOS_DIR/$bin")
@@ -72,6 +94,9 @@ else
   echo "==> Codesigning Lumakey.app with stable Keychain identity: $SIGN_ID"
 fi
 
+if [[ -x "$HELPERS_DIR/macos-rdp-daemon" ]]; then
+  codesign --force --sign "$SIGN_ID" --identifier "app.lumakey.macos.rdp" "$HELPERS_DIR/macos-rdp-daemon"
+fi
 codesign --force --sign "$SIGN_ID" --identifier "app.lumakey.macos.mcp" "$MACOS_DIR/lumakey-mcp"
 codesign --force --sign "$SIGN_ID" --identifier "app.lumakey.macos" "$APP_DIR"
 codesign --verify --deep --strict "$APP_DIR"

@@ -79,7 +79,12 @@ struct OverlayUnifiedRowsView: View {
         case .clipboard(let entry):
             clipboardLeadingBadge(entry)
         case .plugin(let plugin):
-            SquircleBadge(symbol: plugin.manifest.icon ?? "puzzlepiece.extension.fill", topColor: .purple, bottomColor: .indigo, size: 32)
+            SquircleBadge(
+                symbol: plugin.manifest.icon ?? "puzzlepiece.extension.fill",
+                topColor: plugin.isBuiltin ? .cyan : .purple,
+                bottomColor: plugin.isBuiltin ? .blue : .indigo,
+                size: 32
+            )
         case .command(let cmd):
             SquircleBadge(symbol: cmd.symbol, topColor: .cyan, bottomColor: .blue, size: 32)
         }
@@ -231,7 +236,7 @@ struct OverlayUnifiedRowsView: View {
         case .snippet(let m): m.snippet.keyword.isEmpty ? "短语" : m.snippet.keyword
         case .fileHit(let hit): hit.mediaKind.badgeTitle
         case .clipboard(let entry): entry.payloadKind.badgeTitle
-        case .plugin(let p): p.manifest.mode == .view ? "插件卡片" : "插件"
+        case .plugin(let p): p.isBuiltin ? "BUILTIN" : (p.manifest.mode == .view ? "插件卡片" : "插件")
         case .command(let cmd): cmd.badgeLabel
         }
     }

@@ -51,6 +51,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             GifCaptureController.shared.dismissCompletedHUD()
         }
         MosEngine.shared.stopTapAndReleaseAll()
+        LumaLinkServer.shared.stopAll()
         SystemPulseWindowController.shared.shutdown()
         ProcessSupervisor.shared.terminateAll()
         PinWindowController.shared.closeAll()

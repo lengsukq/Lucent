@@ -166,8 +166,8 @@ struct SettingsDetailSectionsView: View {
         VStack(alignment: .leading, spacing: 12) {
             SettingsSectionHeroHeader(
                 symbol: "puzzlepiece.extension.fill", topColor: .purple, bottomColor: .indigo,
-                title: "插件生态与原生 MCP Server",
-                subtitle: "脚本插件按需触发执行并自动回收子进程，支持搭配 lumakey-mcp 由 AI 自动生成与校验扩展。"
+                title: "插件生态 v3 与原生 MCP Server",
+                subtitle: "内置原生插件 (BUILTIN) 与外部扩展均随开关按需启停；外部脚本通过临时 Host Bridge 零弹窗复用宿主权限。"
             ) {
                 Button("复制 MCP JSON 配置") {
                     let mcpPath = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/lumakey-mcp").path
@@ -189,7 +189,7 @@ struct SettingsDetailSectionsView: View {
                     Text("流光 Lumakey 0.7.1").font(.title2.weight(.bold))
                     Text("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 17")
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
-                    Text("轻量级菜单栏高效快捷中枢：以液态玻璃美学统合全局智能检索、文件工作台多选框选与安全归档、原生 GIF 动图录屏、QQ 式截图标注、离线 Vision OCR、热键冲突诊断、WebDAV 云备份与插件系统 v2。")
+                    Text("轻量级菜单栏高效快捷中枢：以液态玻璃美学统合全局智能检索、文件工作台多选框选与安全归档、原生 GIF 动图录屏、QQ 式截图标注、离线 Vision OCR、热键冲突诊断、WebDAV 云备份与插件系统 v3。")
                         .font(.callout).multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 540)
                 }
                 .padding(20).frame(maxWidth: .infinity)

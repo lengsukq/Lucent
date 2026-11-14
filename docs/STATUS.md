@@ -2,6 +2,14 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.8.1)
+
+- **插件系统 Plugin v3、全 App 权限审计矩阵、一过性 Host Bridge 与 `lumakey-mcp` v0.3.0 (`PluginModels`, `PluginPermissionAudit`, `PluginBuiltinRegistry`, `PluginHostBridge`, `PluginHostBridgeHandlers`, `PluginCenterView`, `PluginPermissionsMatrixView`, `MCPServer`, `MCPToolHandlers`)**：
+  - 统一 `BUILTIN` 原生插件（`builtin-mos`、`builtin-lumalink`、`builtin-system-pulse`）与外部扩展插件模型：坚持非后台服务器/零常驻守护进程边界，关闭内置或外部开关即刻停用事件监听、定时器与助手进程，运行期直接复用宿主 TCC 权限；
+  - 强制注册权限声明与全 App 权限全景清单：每个插件在 `plugin.json` 注册时必须显式声明 `capabilities`（无宿主权限需声明 `[]`），`PluginBuiltinRegistry` 为每个内置插件显式声明 `LumakeyPermission`；插件中心新增「权限清单」视图（`PluginPermissionsMatrixView`），直观展示整个 App 所需的 11 项系统 TCC/内核采样/宿主桥接权限、各自对应的调用插件与授权状态，以及纯沙盒插件列表；
+  - 受控一过性 `Host Bridge`（`clipboard`、`ocr`、`everythingSearch`、`displayInfo`、`systemControl`、`lumaLinkStatus`）：外部插件声明能力默认关闭，由用户授权后仅在触发周期通过 `0600` 临时 UDS Socket + 48 位随机 Token 安全代理，严格校验 Token / 声明 / 授权三重边界并在退出后立即 `unlink` 销毁套接字；精选商店新增 `host-snapshot` Bridge 模板；
+  - `lumakey-mcp` 升级至 `0.3.0`：在 `initialize` 返回架构指引 `instructions`，新增 `lumakey://specs/plugin-v3` 规范资源、`lumakey_app_permissions` 权限矩阵查询工具、`lumakey_list_plugins` 内置/外部全景列表以及必选 `capabilities` 参数校验。
+
 ## 已完成与已验证 (v0.7.1)
 
 - **文件工作台全能力多选、液态蓝框选与安全文件操作引擎 (`WorkspaceFileOperations`, `WorkspaceMarqueeCanvas`, `AppViewModel+WorkspaceSelection`, `AppViewModel+WorkspaceOps`, `WorkspaceActionOverlays`, `WorkspaceContextMenuViews`)**：

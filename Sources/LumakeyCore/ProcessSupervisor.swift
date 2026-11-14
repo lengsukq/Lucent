@@ -26,6 +26,7 @@ public final class ProcessSupervisor: @unchecked Sendable {
         executableURL: URL,
         arguments: [String] = [],
         currentDirectoryURL: URL? = nil,
+        environment: [String: String]? = nil,
         stdinData: Data? = nil,
         timeoutSeconds: Double = 8.0,
         maxOutputBytes: Int = 65_536
@@ -35,6 +36,11 @@ public final class ProcessSupervisor: @unchecked Sendable {
         process.executableURL = executableURL
         process.arguments = arguments
         process.currentDirectoryURL = currentDirectoryURL
+        if let environment, !environment.isEmpty {
+            var merged = ProcessInfo.processInfo.environment
+            for (k, v) in environment { merged[k] = v }
+            process.environment = merged
+        }
 
         let stdinPipe = Pipe()
         let stdoutPipe = Pipe()

@@ -80,7 +80,8 @@ private func verifyPluginV2LifecycleAndWatcher() throws {
             PluginConfigField(key: "token", label: "Secret", type: .secret, defaultValue: ""),
             PluginConfigField(key: "verbose", label: "Verbose", type: .boolean, defaultValue: "true"),
             PluginConfigField(key: "region", label: "Region", type: .select, defaultValue: "cn", options: ["cn", "us"])
-        ]
+        ],
+        capabilities: []
     )
     try JSONEncoder().encode(v2Manifest).write(to: v2Dir.appendingPathComponent("plugin.json"))
 
@@ -127,8 +128,8 @@ private func verifyPluginV2LifecycleAndWatcher() throws {
     check(blockedDisabled, "disabled plugin execution is blocked")
     try PluginSystem.setPluginEnabled(id: "custom-view", isEnabled: true, in: pluginsRoot)
 
-    // 5. Starter Gallery (all 4 templates) + Export / Remove / Import roundtrip
-    check(PluginStarterGallery.templates.count == 4, "4 starter templates registered")
+    // 5. Starter Gallery (all 5 templates) + Export / Remove / Import roundtrip
+    check(PluginStarterGallery.templates.count == 5, "5 starter templates registered")
     for tpl in PluginStarterGallery.templates {
         let inst = try PluginStarterGallery.install(templateID: tpl.id, in: pluginsRoot)
         check(inst.isValid, "starter template '\(tpl.id)' valid: \(inst.validationIssues)")

@@ -40,6 +40,9 @@ final class AppViewModel: ObservableObject {
     @Published var mosConfig: MosConfig = MosConfig.load()
     @Published var mosTapActive: Bool = false
     @Published var mosAccessibilityTrusted: Bool = false
+    @Published var lumaLinkConfig: LumaLinkConfig = LumaLinkConfig.load()
+    @Published var lumaLinkStatus: LumaLinkRuntimeSnapshot = LumaLinkRuntimeSnapshot()
+    @Published var lumaLinkRdpStatus: LumaLinkRdpStatus = LumaLinkRdpStatus()
 
     @Published var layoutMode: ExplorerLayoutMode = .single
     @Published var activePane: PaneSide = .left
@@ -135,6 +138,14 @@ final class AppViewModel: ObservableObject {
         primeEverythingIndexOnStartup(scope: everythingScope)
         MosEngine.shared.apply(config: mosConfig, persist: false)
         refreshMosStatus()
+        LumaLinkServer.shared.onStatusChanged = { [weak self] in
+            self?.refreshLumaLinkStatus(refreshPermissions: false)
+        }
+        LumaLinkRdpSidecarService.shared.onStatusChanged = { [weak self] in
+            self?.refreshLumaLinkStatus(refreshPermissions: false)
+        }
+        LumaLinkServer.shared.apply(config: lumaLinkConfig, persist: false)
+        refreshLumaLinkStatus(refreshPermissions: lumaLinkConfig.rdpEnabled)
         startClipboardMonitor()
         BackupCoordinator.triggerAutoBackupOnLaunchIfNeeded(viewModel: self)
         Task { [weak self] in

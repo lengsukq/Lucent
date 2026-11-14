@@ -185,6 +185,13 @@ struct PluginStarterGalleryListView: View {
                                     .foregroundStyle(tpl.mode == .view ? .cyan : .purple)
                                     .padding(.horizontal, 6).padding(.vertical, 1.5)
                                     .background(LiquidColors.pillSurface, in: Capsule())
+                                if !tpl.capabilities.isEmpty {
+                                    Text("Bridge")
+                                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.mint)
+                                        .padding(.horizontal, 6).padding(.vertical, 1.5)
+                                        .background(LiquidColors.pillSurface, in: Capsule())
+                                }
                             }
                             Text(tpl.description)
                                 .font(.caption2)

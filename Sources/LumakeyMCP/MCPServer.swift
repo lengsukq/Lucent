@@ -2,7 +2,7 @@ import Foundation
 import LumakeyCore
 
 final class MCPServer {
-    private let pluginsDirectory: URL
+    let pluginsDirectory: URL
 
     init(pluginsDirectory: URL) {
         self.pluginsDirectory = pluginsDirectory
@@ -29,7 +29,16 @@ final class MCPServer {
             return ok(id: id, result: [
                 "protocolVersion": "2024-11-05",
                 "capabilities": ["resources": [:], "tools": [:]],
-                "serverInfo": ["name": "lumakey-mcp", "version": "0.2.0"]
+                "serverInfo": ["name": "lumakey-mcp", "version": "0.3.0"],
+                "instructions": """
+                Lumakey is a lightweight macOS productivity hub (NOT a resident server, daemon runner, or cron gateway).
+                Follow these mandatory rules when creating or inspecting Lumakey plugins:
+                1. Before authoring any plugin, read `lumakey://specs/plugin-v3` and call `lumakey_list_plugins` (to check BUILTIN native plugins like Mos/LumaLink/SystemPulse so you do not duplicate them) and `lumakey_app_permissions` (to audit app-wide permission usage).
+                2. Every plugin MUST explicitly declare its required permissions via `capabilities` in `plugin.json` at registration time (pass `[]` if pure sandboxed needing no host capabilities, or list values such as `clipboard`, `ocr`, `everythingSearch`, `displayInfo`, `systemControl`, `lumaLinkStatus`).
+                3. Reuse host TCC permissions through declared `capabilities` and the ephemeral per-run UDS Host Bridge (`LUMAKEY_BRIDGE_SOCK` / `LUMAKEY_BRIDGE_TOKEN`). Never write `launchd` plists, resident HTTP servers, or infinite `while true` loops.
+                4. Prefer `mode: "view"` outputting `PluginViewPayload` JSON for native Liquid Glass cards.
+                5. Always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after scaffolding or editing a plugin.
+                """
             ])
         case "ping":
             return ok(id: id, result: [:])
@@ -47,6 +56,12 @@ final class MCPServer {
                         "name": "Lumakey Plugin Spec v2",
                         "description": "Declarative view JSON payload, config fields, state persistence and hot-reload.",
                         "mimeType": "text/markdown"
+                    ],
+                    [
+                        "uri": "lumakey://specs/plugin-v3",
+                        "name": "Lumakey Plugin Spec v3",
+                        "description": "Unified Builtin/External model, mandatory registration capabilities declaration, and ephemeral UDS Host Bridge protocol.",
+                        "mimeType": "text/markdown"
                     ]
                 ]
             ])
@@ -55,6 +70,7 @@ final class MCPServer {
             let specText: String? = switch uri {
             case "lumakey://specs/plugin-v1": PluginSystem.specMarkdown
             case "lumakey://specs/plugin-v2": PluginSystem.specV2Markdown
+            case "lumakey://specs/plugin-v3": PluginSystem.specV3Markdown
             default: nil
             }
             guard let specText else {
@@ -74,145 +90,13 @@ final class MCPServer {
         }
     }
 
-    private func callTool(name: String, arguments: [String: Any]) -> [String: Any] {
-        switch name {
-        case "lumakey_list_plugins":
-            let plugins = PluginSystem.listPlugins(in: pluginsDirectory).map { desc -> [String: Any] in
-                [
-                    "id": desc.id,
-                    "name": desc.manifest.name,
-                    "mode": desc.manifest.mode.rawValue,
-                    "keywords": desc.manifest.keywords,
-                    "enabled": desc.isEnabled,
-                    "valid": desc.isValid,
-                    "issues": desc.validationIssues
-                ]
-            }
-            return textResult(prettyJSON(plugins))
-
-        case "lumakey_scaffold_plugin":
-            let id = arguments["id"] as? String ?? ""
-            let displayName = arguments["name"] as? String ?? id
-            let keywords = arguments["keywords"] as? [String] ?? [id]
-            let description = arguments["description"] as? String ?? "AI 生成插件"
-            let mode = PluginMode(rawValue: arguments["mode"] as? String ?? "script") ?? .script
-            do {
-                let created = try PluginSystem.scaffoldPlugin(
-                    id: id, name: displayName, keywords: keywords,
-                    description: description, mode: mode, in: pluginsDirectory
-                )
-                return textResult("Scaffolded plugin '\(created.id)' at \(created.directoryURL.path)")
-            } catch {
-                return textResult("Error: \(error.localizedDescription)", isError: true)
-            }
-
-        case "lumakey_validate_plugin":
-            let id = arguments["id"] as? String ?? ""
-            guard PluginSystem.isSafePluginID(id) else {
-                return textResult("Invalid plugin id: \(id)", isError: true)
-            }
-            let dir = pluginsDirectory.appendingPathComponent(id, isDirectory: true)
-            let desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory)
-            return textResult(prettyJSON(["id": desc.id, "valid": desc.isValid, "issues": desc.validationIssues]))
-
-        case "lumakey_run_plugin_test":
-            let id = arguments["id"] as? String ?? ""
-            let query = arguments["query"] as? String ?? ""
-            guard PluginSystem.isSafePluginID(id) else {
-                return textResult("Invalid plugin id: \(id)", isError: true)
-            }
-            let dir = pluginsDirectory.appendingPathComponent(id, isDirectory: true)
-            let desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory)
-            do {
-                let res = try PluginSystem.runScriptPlugin(desc, query: query, in: pluginsDirectory)
-                return textResult(prettyJSON([
-                    "exitCode": res.exitCode,
-                    "durationMs": res.durationMs,
-                    "stdout": res.stdout,
-                    "stderr": res.stderr
-                ]), isError: res.exitCode != 0)
-            } catch {
-                return textResult("Execution error: \(error.localizedDescription)", isError: true)
-            }
-
-        case "lumakey_install_starter_plugin":
-            let id = arguments["id"] as? String ?? ""
-            let overwrite = arguments["overwrite"] as? Bool ?? true
-            do {
-                let installed = try PluginStarterGallery.install(templateID: id, in: pluginsDirectory, overwrite: overwrite)
-                return textResult(prettyJSON([
-                    "id": installed.id,
-                    "name": installed.manifest.name,
-                    "mode": installed.manifest.mode.rawValue,
-                    "path": installed.directoryURL.path,
-                    "valid": installed.isValid
-                ]))
-            } catch {
-                return textResult("Install error: \(error.localizedDescription)", isError: true)
-            }
-
-        case "lumakey_set_plugin_enabled":
-            let id = arguments["id"] as? String ?? ""
-            guard let enabled = arguments["enabled"] as? Bool else {
-                return textResult("Missing boolean argument 'enabled'", isError: true)
-            }
-            let dir = pluginsDirectory.appendingPathComponent(id, isDirectory: true)
-            guard PluginSystem.isSafePluginID(id), FileManager.default.fileExists(atPath: dir.path) else {
-                return textResult("Plugin not found or invalid id: \(id)", isError: true)
-            }
-            do {
-                try PluginSystem.setPluginEnabled(id: id, isEnabled: enabled, in: pluginsDirectory)
-                return textResult(prettyJSON(["id": id, "enabled": enabled]))
-            } catch {
-                return textResult("Error: \(error.localizedDescription)", isError: true)
-            }
-
-        case "lumakey_remove_plugin":
-            let id = arguments["id"] as? String ?? ""
-            do {
-                try PluginSystem.removePlugin(id: id, in: pluginsDirectory)
-                return textResult(prettyJSON(["id": id, "removed": true]))
-            } catch {
-                return textResult("Remove error: \(error.localizedDescription)", isError: true)
-            }
-
-        default:
-            return textResult("Unknown tool: \(name)", isError: true)
-        }
-    }
-
-    private func toolSchemas() -> [[String: Any]] {
-        let starterIDs = PluginStarterGallery.templates.map(\.id)
-        return [
-            schema("lumakey_list_plugins", "List plugins in Lumakey Plugins directory.", [:], []),
-            schema("lumakey_scaffold_plugin", "Scaffold a new Lumakey plugin manifest and executable script.", [
-                "id": ["type": "string"],
-                "name": ["type": "string"],
-                "keywords": ["type": "array", "items": ["type": "string"]],
-                "description": ["type": "string"],
-                "mode": ["type": "string", "enum": ["script", "view"]]
-            ], ["id", "name", "keywords"]),
-            schema("lumakey_validate_plugin", "Validate a plugin's plugin.json and entrypoint.", ["id": ["type": "string"]], ["id"]),
-            schema("lumakey_run_plugin_test", "Run a plugin with a test query over stdin.", [
-                "id": ["type": "string"], "query": ["type": "string"]
-            ], ["id", "query"]),
-            schema("lumakey_install_starter_plugin", "Install a curated starter plugin template.", [
-                "id": ["type": "string", "enum": starterIDs], "overwrite": ["type": "boolean"]
-            ], ["id"]),
-            schema("lumakey_set_plugin_enabled", "Enable or disable an installed plugin.", [
-                "id": ["type": "string"], "enabled": ["type": "boolean"]
-            ], ["id", "enabled"]),
-            schema("lumakey_remove_plugin", "Remove an installed plugin directory.", ["id": ["type": "string"]], ["id"])
-        ]
-    }
-
-    private func schema(_ name: String, _ desc: String, _ props: [String: Any], _ req: [String]) -> [String: Any] {
+    func schema(_ name: String, _ desc: String, _ props: [String: Any], _ req: [String]) -> [String: Any] {
         var input: [String: Any] = ["type": "object", "properties": props]
         if !req.isEmpty { input["required"] = req }
         return ["name": name, "description": desc, "inputSchema": input]
     }
 
-    private func textResult(_ text: String, isError: Bool = false) -> [String: Any] {
+    func textResult(_ text: String, isError: Bool = false) -> [String: Any] {
         ["content": [["type": "text", "text": text]], "isError": isError]
     }
 
@@ -224,7 +108,7 @@ final class MCPServer {
         ["jsonrpc": "2.0", "id": id, "error": ["code": code, "message": message]]
     }
 
-    private func prettyJSON(_ object: Any) -> String {
+    func prettyJSON(_ object: Any) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]),
               let text = String(data: data, encoding: .utf8)
         else { return "{}" }

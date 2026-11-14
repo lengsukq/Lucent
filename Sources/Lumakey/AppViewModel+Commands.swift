@@ -97,8 +97,12 @@ extension AppViewModel {
             }
         case .snippet:
             openRoute(.settings(.snippets))
-        case .plugin:
-            openRoute(.settings(.plugins))
+        case .plugin(let plugin):
+            if plugin.isBuiltin {
+                openBuiltinPluginSettings(plugin)
+            } else {
+                openRoute(.settings(.plugins))
+            }
         default:
             executeCandidate(selected)
         }

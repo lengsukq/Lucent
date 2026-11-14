@@ -22,7 +22,8 @@ Lumakey/
 │   ├── check-docs.py             # 文档索引覆盖与断链/锚点检查
 │   ├── verify-macos.sh           # arm64 环境、300 行 Clean Code、编译与校验总门禁
 │   ├── generate-icon.swift       # 生成 Retina iOS 液态玻璃 AppIcon 图标集
-│   ├── build-macos.sh            # 构建 dist/Lumakey.app（含 AppIcon.icns）并执行临时签名
+│   ├── build-macos.sh            # 构建 dist/Lumakey.app（含 AppIcon.icns、可选版本注入与签名）
+│   ├── package-dmg.sh            # 将 dist/Lumakey.app 封装为压缩 DMG 与 .sha256
 │   └── install-macos.sh          # 构建、封装 dist/Lumakey.dmg 并部署到 /Applications/Lumakey.app
 └── docs/                         # 设计与工程文档
 ```

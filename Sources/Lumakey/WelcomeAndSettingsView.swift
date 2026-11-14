@@ -11,7 +11,7 @@ struct WelcomeGuideView: View {
         ("command.square.fill", .mint, .teal, "全局热键自定义与冲突诊断", "10 项全局动作即按即录，内置应用内/系统/外部进程三层冲突检测"),
         ("externaldrive.badge.icloud", .blue, .purple, "归档备份与 WebDAV 云同步", "SHA-256 自校验 .lumakeybackup 归档，钥匙串安全同步坚果云/NAS"),
         ("camera.viewfinder", .mint, .teal, "QQ 式截图标注 (⌥A / ⌥O)", "窗口吸附、放大镜取色、涂鸦马赛克、悬浮钉屏与 Vision OCR"),
-        ("puzzlepiece.extension.fill", .purple, .indigo, "插件系统 v2 与 MCP 生态", "声明式 view 卡片原生渲染、精选市场一键装与 FSEvents 热重载")
+        ("puzzlepiece.extension.fill", .purple, .indigo, "插件系统 v3 与 MCP 生态", "内置原生插件统一治理、Host Bridge 宿主能力授权与 view 卡片渲染")
     ]
 
     var body: some View {
@@ -115,6 +115,7 @@ struct SettingsCenterView: View {
             case .cache:
                 ScrollView { AppCacheSettingsView(viewModel: viewModel) }
             case .mos: MosPluginSettingsView(viewModel: viewModel)
+            case .lumaLink: LumaLinkSettingsView(viewModel: viewModel)
             case .snippets: SnippetsSettingsView(viewModel: viewModel)
             case .shortcuts:
                 HotKeySettingsView(

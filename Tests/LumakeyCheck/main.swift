@@ -163,7 +163,7 @@ func testPluginAndMCPSubprocess() throws {
         #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
         #"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#,
         #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v1"}}"#,
-        #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"demo-echo","name":"Demo Echo","keywords":["echo"]}}}"#,
+        #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"demo-echo","name":"Demo Echo","keywords":["echo"],"mode":"script","capabilities":[]}}}"#,
         #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_validate_plugin","arguments":{"id":"demo-echo"}}}"#,
         #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"demo-echo","query":"ping"}}}"#
     ]
@@ -189,7 +189,7 @@ func testPluginAndMCPSubprocess() throws {
 
     check(lines[0].contains("lumakey-mcp"), "initialize response")
     check(lines[1].contains("Lumakey Plugin Specification"), "spec resource content")
-    check(toolText(at: 2).contains("Scaffolded plugin 'demo-echo'"), "scaffold result: \(toolText(at: 2))")
+    check(toolText(at: 2).contains("demo-echo") && toolText(at: 2).contains("\"valid\" : true"), "scaffold result: \(toolText(at: 2))")
     let validateText = toolText(at: 3)
     let validateObj = (try? JSONSerialization.jsonObject(with: Data(validateText.utf8)) as? [String: Any]) ?? [:]
     check((validateObj["valid"] as? Bool) == true, "scaffolded plugin validates cleanly, got: \(validateText)")
@@ -796,8 +796,10 @@ do {
     try testV070HotKeyConflict()
     try testV070BackupAndWebDAV()
     try testV070PluginsAndToolkit()
+    try testV081PluginV3AndMCP()
     try testV070Wave2Integration()
     try testV071WorkspaceOperations()
+    try testV080LumaLink()
     print("ALL LUMAKEY CHECKS PASSED")
 } catch {
     fputs("UNEXPECTED ERROR: \(error)\n", stderr)

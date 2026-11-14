@@ -9,7 +9,8 @@ echo "==> 检查钥匙串中是否已存在 '$CERT_NAME' 代码签名证书..."
 if security find-identity -v -p codesigning "$KEYCHAIN" 2>/dev/null | grep -Fq "\"$CERT_NAME\""; then
   echo "✓ 已检测到有效证书 '$CERT_NAME'，跳过创建。"
 else
-  OPENSSL_BIN="/opt/homebrew/bin/openssl"
+  # 优先使用 macOS 自带 LibreSSL (/usr/bin/openssl)：OpenSSL 3/4 默认 PKCS12 加密算法会导致 security import 报错
+  OPENSSL_BIN="/usr/bin/openssl"
   if [[ ! -x "$OPENSSL_BIN" ]]; then
     OPENSSL_BIN="$(command -v openssl)"
   fi

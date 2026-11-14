@@ -5,7 +5,8 @@ import SwiftUI
 
 enum PluginCenterTab: String, CaseIterable, Identifiable {
     case gallery = "精选市场"
-    case inspector = "配置与预览"
+    case inspector = "配置预览"
+    case permissions = "权限清单"
     case scaffold = "脚手架"
     var id: String { rawValue }
 }
@@ -20,16 +21,20 @@ final class PluginCenterController: ObservableObject {
     @Published var latestOutput: PluginResolvedOutput?
     @Published var statusNote: String = "350ms 防抖实时热重载就绪"
     @Published var isWatcherOnline: Bool = false
+    @Published var showEmbeddedBuiltinSettings: Bool = false
+    @Published var showUnusedPermissions: Bool = false
 
     @Published var newID: String = "uuid-card"
     @Published var newName: String = "UUID 视图卡"
     @Published var newKeywords: String = "uuidcard"
     @Published var newMode: PluginMode = .view
+    @Published var newCapabilities: Set<PluginCapability> = []
 
     private var watcher: PluginDirectoryWatcher?
     private var runTask: Task<Void, Never>?
 
     func startWatching(syncing viewModel: AppViewModel) {
+        viewModel.reloadPlugins()
         if watcher == nil {
             watcher = PluginDirectoryWatcher(debounceInterval: 0.35) { [weak self, weak viewModel] in
                 Task { @MainActor in
@@ -71,6 +76,7 @@ final class PluginCenterController: ObservableObject {
     func select(_ plugin: PluginDescriptor, switchTab: Bool = true) {
         selectedPluginID = plugin.id
         configDraft = plugin.userConfig
+        showEmbeddedBuiltinSettings = false
         if switchTab { activeTab = .inspector }
     }
 
@@ -92,9 +98,23 @@ final class PluginCenterController: ObservableObject {
 
     func setEnabled(_ plugin: PluginDescriptor, isEnabled: Bool, viewModel: AppViewModel) {
         do {
-            try PluginSystem.setPluginEnabled(id: plugin.id, isEnabled: isEnabled)
-            viewModel.reloadAppsAndPlugins()
+            try viewModel.setPluginEnabled(plugin, isEnabled: isEnabled)
             statusNote = "\(plugin.manifest.name) 已\(isEnabled ? "启用" : "禁用")"
+        } catch {
+            statusNote = error.localizedDescription
+        }
+    }
+
+    func setCapabilityGranted(
+        _ plugin: PluginDescriptor,
+        capability: PluginCapability,
+        granted: Bool,
+        viewModel: AppViewModel
+    ) {
+        do {
+            try viewModel.setPluginCapabilityGranted(plugin, capability: capability, granted: granted)
+            statusNote = "\(plugin.manifest.name) · \(capability.title) 已\(granted ? "授权" : "收回")"
+            viewModel.serviceMessage = statusNote
         } catch {
             statusNote = error.localizedDescription
         }
@@ -116,10 +136,12 @@ final class PluginCenterController: ObservableObject {
         isRunning = true
         let query = testQuery
         let clip = NSPasteboard.general.string(forType: .string) ?? ""
+        let bridgeContext = viewModel.makePluginBridgeContext()
         runTask = Task { [weak self, weak viewModel] in
             do {
                 let resolved = try await PluginSystem.runPluginAsync(
-                    plugin, query: query, clipboardText: clip, arguments: arguments
+                    plugin, query: query, clipboardText: clip,
+                    arguments: arguments, hostContext: bridgeContext
                 )
                 guard !Task.isCancelled, let self else { return }
                 self.isRunning = false
@@ -141,7 +163,9 @@ final class PluginCenterController: ObservableObject {
             let installed = try PluginStarterGallery.install(templateID: tpl.id, overwrite: true)
             viewModel.reloadAppsAndPlugins()
             select(installed, switchTab: true)
-            statusNote = "已安装精选模板：\(installed.manifest.name)"
+            statusNote = tpl.capabilities.isEmpty
+                ? "已安装精选模板：\(installed.manifest.name)"
+                : "已安装 \(installed.manifest.name)，请在详情页按需授权宿主能力"
             runAsync(installed, viewModel: viewModel)
         } catch {
             statusNote = error.localizedDescription
@@ -150,10 +174,12 @@ final class PluginCenterController: ObservableObject {
 
     func scaffoldCustom(viewModel: AppViewModel) {
         let kws = newKeywords.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let caps = PluginCapability.allCases.filter { newCapabilities.contains($0) }
         do {
             let created = try PluginSystem.scaffoldPlugin(
                 id: newID, name: newName, keywords: kws,
-                description: "通过 Lumakey 插件中心创建", mode: newMode
+                description: "通过 Lumakey 插件中心创建", mode: newMode,
+                capabilities: caps
             )
             viewModel.reloadAppsAndPlugins()
             select(created, switchTab: true)
@@ -168,6 +194,10 @@ final class PluginCenterController: ObservableObject {
     }
 
     func remove(_ plugin: PluginDescriptor, viewModel: AppViewModel) {
+        guard !plugin.isBuiltin else {
+            statusNote = "内置原生插件不可卸载，可通过开关随时停用（零后台消耗）"
+            return
+        }
         do {
             try PluginSystem.removePlugin(id: plugin.id)
             if latestOutput?.pluginID == plugin.id { latestOutput = nil }
@@ -197,6 +227,7 @@ final class PluginCenterController: ObservableObject {
     }
 
     func exportToFinder(_ plugin: PluginDescriptor) {
+        guard !plugin.isBuiltin else { return }
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false

@@ -29,6 +29,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     case cache
     case search
     case mos
+    case lumaLink
     case clipboard
     case snippets
     case plugins
@@ -46,6 +47,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .cache: "应用缓存"
         case .search: "检索范围"
         case .mos: "Mos 鼠标"
+        case .lumaLink: "流光随行"
         case .clipboard: "剪贴板隐私"
         case .snippets: "快捷短语"
         case .plugins: "插件与 MCP"
@@ -63,6 +65,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .cache: "internaldrive.fill"
         case .search: "magnifyingglass.circle.fill"
         case .mos: "computermouse.fill"
+        case .lumaLink: "ipad.and.iphone"
         case .clipboard: "doc.on.clipboard.fill"
         case .snippets: "text.quote"
         case .plugins: "puzzlepiece.extension.fill"
@@ -80,6 +83,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .cache: (.orange, .indigo)
         case .search: (.teal, .blue)
         case .mos: (.cyan, .indigo)
+        case .lumaLink: (.cyan, .blue)
         case .clipboard: (.orange, .pink)
         case .snippets: (.cyan, .indigo)
         case .plugins: (.purple, .indigo)

@@ -9,28 +9,17 @@ public struct PluginStarterTemplate: Identifiable, Sendable, Hashable, Equatable
     public let icon: String
     public let keywords: [String]
     public let config: [PluginConfigField]
+    public let capabilities: [PluginCapability]
     public let scriptBody: String
 
     public init(
-        id: String,
-        name: String,
-        subtitle: String,
-        description: String,
-        mode: PluginMode,
-        icon: String,
-        keywords: [String],
-        config: [PluginConfigField],
-        scriptBody: String
+        id: String, name: String, subtitle: String, description: String,
+        mode: PluginMode, icon: String, keywords: [String],
+        config: [PluginConfigField], capabilities: [PluginCapability] = [], scriptBody: String
     ) {
-        self.id = id
-        self.name = name
-        self.subtitle = subtitle
-        self.description = description
-        self.mode = mode
-        self.icon = icon
-        self.keywords = keywords
-        self.config = config
-        self.scriptBody = scriptBody
+        self.id = id; self.name = name; self.subtitle = subtitle; self.description = description
+        self.mode = mode; self.icon = icon; self.keywords = keywords
+        self.config = config; self.capabilities = capabilities; self.scriptBody = scriptBody
     }
 }
 
@@ -41,9 +30,7 @@ public enum PluginStarterGallery {
             name: "网络 IP 与 DNS 诊断",
             subtitle: "局域网 IPv4 · 主机名 · DNS 解析栈卡片",
             description: "即时读取本机活跃网卡 IPv4、LocalHostName、系统 DNS 服务器及可选公网出口 IP，点击即可复制。",
-            mode: .view,
-            icon: "network",
-            keywords: ["ip", "dns", "netdiag"],
+            mode: .view, icon: "network", keywords: ["ip", "dns", "netdiag"],
             config: [
                 PluginConfigField(key: "interfaceHint", label: "首选网卡接口", type: .select, defaultValue: "en0", options: ["en0", "en1", "utun0"]),
                 PluginConfigField(key: "fetchPublicIP", label: "查询公网出口 IP (1.2s 超时)", type: .boolean, defaultValue: "false")
@@ -73,12 +60,8 @@ public enum PluginStarterGallery {
             name: "批量 UUID 与摘要生成",
             subtitle: "SHA-256 · MD5 · 批量标准 UUID 卡片",
             description: "对输入文本（或剪贴板）计算 SHA-256 与 MD5 摘要，并一次生成多枚可一键复制的 UUID。",
-            mode: .view,
-            icon: "number.square.fill",
-            keywords: ["hash", "uuidbatch", "digest"],
-            config: [
-                PluginConfigField(key: "uppercase", label: "输出大写字符", type: .boolean, defaultValue: "false")
-            ],
+            mode: .view, icon: "number.square.fill", keywords: ["hash", "uuidbatch", "digest"],
+            config: [PluginConfigField(key: "uppercase", label: "输出大写字符", type: .boolean, defaultValue: "false")],
             scriptBody: """
             #!/bin/zsh
             set -euo pipefail
@@ -91,13 +74,8 @@ public enum PluginStarterGallery {
             [[ -z "$SRC" ]] && SRC="lumakey"
             SHA="$(printf '%s' "$SRC" | /usr/bin/shasum -a 256 | awk '{print $1}')"
             MD5V="$(printf '%s' "$SRC" | /sbin/md5 -q)"
-            U1="$(/usr/bin/uuidgen)"
-            U2="$(/usr/bin/uuidgen)"
-            if [[ "$UPPER" != "true" ]]; then
-              U1="${U1:l}"; U2="${U2:l}"
-            else
-              SHA="${SHA:u}"; MD5V="${MD5V:u}"
-            fi
+            U1="$(/usr/bin/uuidgen)"; U2="$(/usr/bin/uuidgen)"
+            if [[ "$UPPER" != "true" ]]; then U1="${U1:l}"; U2="${U2:l}"; else SHA="${SHA:u}"; MD5V="${MD5V:u}"; fi
             cat <<EOF
             {"title":"摘要与批量 UUID","subtitle":"源文本长度 ${#SRC} 字符","badge":"CRYPTO","metrics":[{"key":"MD5","value":"$(esc "$MD5V")"},{"key":"UUID #1","value":"$(esc "$U1")"}],"items":[{"title":"$(esc "$SHA")","subtitle":"SHA-256 摘要","icon":"lock.shield","badge":"SHA256","copyText":"$(esc "$SHA")"},{"title":"$(esc "$MD5V")","subtitle":"MD5 摘要","icon":"number","badge":"MD5","copyText":"$(esc "$MD5V")"},{"title":"$(esc "$U1")","subtitle":"随机 UUID #1","icon":"sparkles","badge":"UUID","copyText":"$(esc "$U1")"},{"title":"$(esc "$U2")","subtitle":"随机 UUID #2","icon":"sparkles","badge":"UUID","copyText":"$(esc "$U2")"}]}
             EOF
@@ -108,12 +86,8 @@ public enum PluginStarterGallery {
             name: "端口监听进程排查",
             subtitle: "lsof 秒查端口占用 · 生成优雅释放命令",
             description: "输入端口号（如 3000 / 8080）排查占用进程 PID 与可执行程序，一键复制释放指令。",
-            mode: .view,
-            icon: "bolt.horizontal.circle.fill",
-            keywords: ["port", "lsof", "listen"],
-            config: [
-                PluginConfigField(key: "defaultPort", label: "空查询默认排查端口", type: .text, defaultValue: "3000", placeholder: "3000")
-            ],
+            mode: .view, icon: "bolt.horizontal.circle.fill", keywords: ["port", "lsof", "listen"],
+            config: [PluginConfigField(key: "defaultPort", label: "空查询默认排查端口", type: .text, defaultValue: "3000", placeholder: "3000")],
             scriptBody: """
             #!/bin/zsh
             set -euo pipefail
@@ -141,9 +115,7 @@ public enum PluginStarterGallery {
             name: "快速追加灵感笔记",
             subtitle: "极速追加带时间戳 Markdown 速记",
             description: "将灵感或待办附带时间戳与标签快速追加到本地 Markdown 收件箱文件。",
-            mode: .script,
-            icon: "note.text.badge.plus",
-            keywords: ["note", "memo", "inbox"],
+            mode: .script, icon: "note.text.badge.plus", keywords: ["note", "memo", "inbox"],
             config: [
                 PluginConfigField(key: "notesPath", label: "Markdown 笔记路径", type: .text, defaultValue: "~/Documents/Lumakey-Notes.md", placeholder: "~/Documents/Lumakey-Notes.md"),
                 PluginConfigField(key: "tagPrefix", label: "默认标签前缀", type: .text, defaultValue: "#idea", placeholder: "#idea")
@@ -164,6 +136,36 @@ public enum PluginStarterGallery {
             else
               [[ -f "$NOTE_FILE" ]] && tail -n 5 "$NOTE_FILE" || echo "笔记为空，输入内容即可追加至 $NOTE_FILE"
             fi
+            """
+        ),
+        PluginStarterTemplate(
+            id: "host-snapshot",
+            name: "宿主显示与状态速览 (v3)",
+            subtitle: "经 Host Bridge 零弹窗读取显示器与音量状态",
+            description: "演示 Plugin v3 capabilities 声明与临时 UDS 宿主桥调用，需先在插件中心授权 displayInfo 与 systemControl。",
+            mode: .view, icon: "display.and.arrow.down", keywords: ["hostsnap", "display", "bridge"],
+            config: [],
+            capabilities: [.displayInfo, .systemControl],
+            scriptBody: """
+            #!/bin/zsh
+            set -euo pipefail
+            cat >/dev/null
+            DISP_RESP="$(printf '{"token":"%s","capability":"displayInfo","action":"list","params":{}}\\n' "$LUMAKEY_BRIDGE_TOKEN" | /usr/bin/nc -U "$LUMAKEY_BRIDGE_SOCK")"
+            SYS_RESP="$(printf '{"token":"%s","capability":"systemControl","action":"status","params":{}}\\n' "$LUMAKEY_BRIDGE_TOKEN" | /usr/bin/nc -U "$LUMAKEY_BRIDGE_SOCK")"
+            /usr/bin/python3 -c '
+            import json, sys
+            d = json.loads(sys.argv[1]); s = json.loads(sys.argv[2])
+            if not d.get("ok") or not s.get("ok"):
+                msg = (d if not d.get("ok") else s).get("message", "请在插件中心开启权限")
+                print(json.dumps({"title": "等待宿主能力授权", "subtitle": msg, "badge": "LOCKED", "items": [{"title": "请在右侧「宿主能力授权」打开 displayInfo 与 systemControl", "subtitle": "最小权限默认关闭", "icon": "lock.shield"}]}))
+                sys.exit(0)
+            displays = d["data"]["displays"]
+            sysd = s["data"]
+            items = [{"title": x["name"], "subtitle": x["currentModeKey"], "icon": "display", "badge": "MAIN" if x["isMain"] else "EXT", "copyText": x["currentModeKey"]} for x in displays]
+            print(json.dumps({"title": "宿主显示与音频速览", "subtitle": "Host Bridge v3 零弹窗直读", "badge": "BRIDGE",
+              "metrics": [{"key": "活跃屏幕", "value": str(len(displays))}, {"key": "系统音量", "value": f"{sysd[\"volumePercent\"]}%"}, {"key": "静音", "value": str(sysd["isMuted"])}, {"key": "防休眠", "value": str(sysd["caffeineActive"])}],
+              "items": items}))
+            ' "$DISP_RESP" "$SYS_RESP"
             """
         )
     ]
@@ -198,37 +200,14 @@ public enum PluginStarterGallery {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
 
         let manifest = PluginManifest(
-            id: tpl.id,
-            name: tpl.name,
-            version: "1.0.0",
-            description: tpl.description,
-            mode: tpl.mode,
-            keywords: tpl.keywords,
-            entry: entryName,
-            author: "Lumakey Official",
-            icon: tpl.icon,
-            config: tpl.config
+            id: tpl.id, name: tpl.name, version: "1.0.0", description: tpl.description,
+            mode: tpl.mode, keywords: tpl.keywords, entry: entryName,
+            author: "Lumakey Official", icon: tpl.icon, config: tpl.config,
+            capabilities: tpl.capabilities.map(\.rawValue)
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(manifest).write(to: pluginDir.appendingPathComponent("plugin.json"), options: .atomic)
         return PluginSystem.loadPlugin(at: pluginDir, in: rootDir)
     }
-}
-
-extension PluginSystem {
-    public static let specMarkdown: String = """
-    # Lumakey Plugin Specification (v1)
-    - Directory: ~/Library/Application Support/Lumakey/Plugins/<id>/
-    - Manifest (`plugin.json`): id (`[a-z0-9-]+`), name, version, description, mode (`script` | `view`), keywords (`[String]`), entry (relative path)
-    - Script protocol: reads `{"query":"..."}` JSON from stdin, writes plain result text to stdout, exits 0.
-    """
-
-    public static let specV2Markdown: String = """
-    # Lumakey Plugin Specification (v2)
-    - Backward-compatible with v1 `plugin.json`; optional v2 fields: `author`, `icon` (SF Symbol), `hotkey`, `config` (`[PluginConfigField]` with `key`, `label`, `type`: `text|secret|boolean|select`, `defaultValue`, `placeholder`, `options`, `required`).
-    - State & Config: persisted in `plugin-state.json` (`isEnabled` + `configValues`), hot-reloaded with 350ms FSEvents debounce.
-    - Enriched stdin JSON: `{"query":"...","mode":"script|view","config":{...},"clipboard":"..."}`.
-    - Declarative `view` stdout JSON (`PluginViewPayload`): `{"title":"...","subtitle":"...","badge":"...","markdown":"...","metrics":[{"key":"...","value":"..."}],"items":[{"title":"...","subtitle":"...","icon":"...","badge":"...","copyText":"...","openURL":"...","commandArgs":["..."]}]}` (gracefully degrades to plain text if stdout is non-JSON).
-    """
 }
