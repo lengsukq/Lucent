@@ -3,7 +3,12 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>zh_CN</string>
+    <string>zh-Hans</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>zh-Hans</string>
+        <string>en</string>
+    </array>
     <key>CFBundleExecutable</key>
     <string>Lumakey</string>
     <key>CFBundleIdentifier</key>
@@ -17,15 +22,17 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.7.1</string>
+    <string>0.8.7</string>
     <key>CFBundleVersion</key>
-    <string>17</string>
+    <string>24</string>
     <key>NSScreenCaptureUsageDescription</key>
     <string>流光 Lumakey 需要屏幕录制权限以提供原生选区截图、窗口智能吸附、区域 GIF 动图录制、涂鸦马赛克标注与离线 Vision OCR 识字。</string>
     <key>NSAudioCaptureUsageDescription</key>
     <string>流光 Lumakey 需要系统音频录制权限，以便通过流光随行/RDP 将电脑扬声器声音实时转发到您的手机端。</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>流光 Lumakey 需要音频访问权限以在远程控制期间路由虚拟麦克风与音频通道。</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>流光 Lumakey 需要发送 Apple Events 以执行锁屏与访达清空废纸篓等系统快捷命令。</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSUIElement</key>

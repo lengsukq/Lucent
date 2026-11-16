@@ -9,27 +9,80 @@ if [[ "$(uname -m)" != "arm64" ]]; then
   exit 1
 fi
 
-echo "==> Building release binaries (arm64, -O + dead_strip)"
-swift build -c release --arch arm64 -Xswiftc -O -Xlinker -dead_strip --product Lumakey
-swift build -c release --arch arm64 -Xswiftc -O -Xlinker -dead_strip --product lumakey-mcp
+DISTRIBUTION_MODE="${LUMAKEY_DISTRIBUTION:-0}"
+if [[ "${1:-}" == "--distribution" ]]; then
+  DISTRIBUTION_MODE="1"
+fi
 
-BIN_DIR="$(swift build -c release --arch arm64 --show-bin-path)"
+EXTRA_SPM_ARGS=()
+if [[ -n "${LUMAKEY_SPM_EXTRA_ARGS:-}" ]]; then
+  # shellcheck disable=SC2206
+  EXTRA_SPM_ARGS=(${LUMAKEY_SPM_EXTRA_ARGS})
+fi
+
+echo "==> Building release binaries (arm64, -O + dead_strip)"
+swift build ${EXTRA_SPM_ARGS[@]+"${EXTRA_SPM_ARGS[@]}"} -c release --arch arm64 -Xswiftc -O -Xlinker -dead_strip --product Lumakey
+swift build ${EXTRA_SPM_ARGS[@]+"${EXTRA_SPM_ARGS[@]}"} -c release --arch arm64 -Xswiftc -O -Xlinker -dead_strip --product lumakey-mcp
+
+BIN_DIR="$(swift build ${EXTRA_SPM_ARGS[@]+"${EXTRA_SPM_ARGS[@]}"} -c release --arch arm64 --show-bin-path)"
 APP_DIR="$ROOT_DIR/dist/Lumakey.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
-ICONSET_DIR="$ROOT_DIR/.build/Lumakey.iconset"
-
 HELPERS_DIR="$CONTENTS_DIR/Helpers"
-rm -rf "$APP_DIR" "$ICONSET_DIR"
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$HELPERS_DIR"
+ENTITLEMENTS_PLIST="$ROOT_DIR/apps/macos/Lumakey.entitlements"
+ICONSET_DIR="${TMPDIR:-/tmp}/lumakey-iconset-$$/Lumakey.iconset"
 
-echo "==> Generating Retina Liquid Glass AppIcon.icns"
-swift "$ROOT_DIR/scripts/generate-icon.swift" "$ICONSET_DIR"
-/usr/bin/iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns"
-rm -rf "$ICONSET_DIR"
+rm -rf "$APP_DIR" "$(dirname "$ICONSET_DIR")"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$HELPERS_DIR" "$ICONSET_DIR"
+
+echo "==> Generating Retina AppIcon.icns"
+GEN_ICON_BIN="${TMPDIR:-/tmp}/lumakey-gen-icon-$$"
+swiftc -module-cache-path "${TMPDIR:-/tmp}/lumakey-modcache" "$ROOT_DIR/scripts/generate-icon.swift" -o "$GEN_ICON_BIN"
+"$GEN_ICON_BIN" "$ICONSET_DIR"
+rm -f "$GEN_ICON_BIN"
+
+if ! /usr/bin/iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns" 2>/dev/null; then
+  PACK_ICNS_SRC="${TMPDIR:-/tmp}/lumakey-pack-icns-$$.swift"
+  PACK_ICNS_BIN="${TMPDIR:-/tmp}/lumakey-pack-icns-$$"
+  cat > "$PACK_ICNS_SRC" <<'SWIFT'
+import AppKit
+import Foundation
+import ImageIO
+
+let iconset = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+let outURL = URL(fileURLWithPath: CommandLine.arguments[2])
+let slots: [(String, Double)] = [
+    ("icon_16x16.png", 72.0), ("icon_16x16@2x.png", 144.0),
+    ("icon_32x32.png", 72.0), ("icon_32x32@2x.png", 144.0),
+    ("icon_128x128.png", 72.0), ("icon_128x128@2x.png", 144.0),
+    ("icon_256x256.png", 72.0), ("icon_256x256@2x.png", 144.0),
+    ("icon_512x512.png", 72.0), ("icon_512x512@2x.png", 144.0)
+]
+guard let dest = CGImageDestinationCreateWithURL(outURL as CFURL, "com.apple.icns" as CFString, slots.count, nil) else {
+    exit(1)
+}
+for (name, dpi) in slots {
+    let url = iconset.appendingPathComponent(name)
+    guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+          let cg = CGImageSourceCreateImageAtIndex(src, 0, nil) else { exit(1) }
+    CGImageDestinationAddImage(dest, cg, [kCGImagePropertyDPIWidth: dpi, kCGImagePropertyDPIHeight: dpi] as CFDictionary)
+}
+guard CGImageDestinationFinalize(dest) else { exit(1) }
+SWIFT
+  swiftc -module-cache-path "${TMPDIR:-/tmp}/lumakey-modcache" "$PACK_ICNS_SRC" -o "$PACK_ICNS_BIN"
+  "$PACK_ICNS_BIN" "$ICONSET_DIR" "$RESOURCES_DIR/AppIcon.icns"
+  rm -f "$PACK_ICNS_SRC" "$PACK_ICNS_BIN"
+fi
+rm -rf "$(dirname "$ICONSET_DIR")"
 
 cp "$ROOT_DIR/apps/macos/Info.plist" "$CONTENTS_DIR/Info.plist"
+for lproj in zh-Hans.lproj en.lproj; do
+  if [[ -d "$ROOT_DIR/apps/macos/$lproj" ]]; then
+    rm -rf "$RESOURCES_DIR/$lproj"
+    cp -R "$ROOT_DIR/apps/macos/$lproj" "$RESOURCES_DIR/$lproj"
+  fi
+done
 if [[ -n "${LUMAKEY_BUNDLE_SHORT_VERSION:-}" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $LUMAKEY_BUNDLE_SHORT_VERSION" "$CONTENTS_DIR/Info.plist"
 fi
@@ -43,9 +96,11 @@ chmod +x "$MACOS_DIR/Lumakey" "$MACOS_DIR/lumakey-mcp"
 
 RDP_HELPER_SRC=""
 for candidate in \
-  "/Volumes/lightlsle/dependencies/build/mac-remote-host/MacRemoteRDPServer.app/Contents/MacOS/macos-rdp-daemon" \
-  "/Volumes/lightlsle/dependencies/build/macos-rdp-server-macos14-final/macos-rdp-daemon"; do
-  if [[ -x "$candidate" ]]; then
+  "${LUMAKEY_RDP_HELPER_SRC:-}" \
+  "$HOME/.local/share/lumakey/macos-rdp-daemon" \
+  "/opt/homebrew/sbin/macos-rdp-daemon" \
+  "/usr/local/sbin/macos-rdp-daemon"; do
+  if [[ -n "$candidate" && -x "$candidate" ]]; then
     RDP_HELPER_SRC="$candidate"
     break
   fi
@@ -72,6 +127,18 @@ select_signing_identity() {
   local identities
   identities=$(security find-identity -v -p codesigning 2>/dev/null || true)
   local match
+  if [[ "$DISTRIBUTION_MODE" == "1" ]]; then
+    # For public distribution, ONLY use an official Apple Developer ID Application certificate (or clean '-' ad-hoc for open-source builds).
+    # Never embed personal machine self-signed or Apple Development certificates into redistributable packages.
+    match=$(printf '%s\n' "$identities" | grep -oE '"Developer ID Application:[^"]*"' | head -n 1 | tr -d '"' || true)
+    if [[ -n "$match" ]]; then
+      echo "$match"
+    else
+      echo "-"
+    fi
+    return
+  fi
+
   for pattern in '"Developer ID Application:[^"]*"' '"Apple Development:[^"]*"' '"Mac Developer:[^"]*"' '"Lumakey Local Signer"'; do
     match=$(printf '%s\n' "$identities" | grep -oE "$pattern" | head -n 1 | tr -d '"' || true)
     if [[ -n "$match" ]]; then
@@ -79,28 +146,35 @@ select_signing_identity() {
       return
     fi
   done
-  match=$(printf '%s\n' "$identities" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' || true)
-  if [[ -n "$match" ]]; then
-    echo "$match"
-  else
-    echo "-"
-  fi
+  echo "-"
 }
 
 SIGN_ID="$(select_signing_identity)"
-if [[ "$SIGN_ID" == "-" ]]; then
-  echo "==> Ad-hoc codesigning Lumakey.app (Tip: run 'bash scripts/setup-local-signing.sh' once for stable macOS TCC permissions)"
+CODESIGN_RUNTIME_FLAGS=()
+if [[ "$SIGN_ID" == "Developer ID Application:"* || "${LUMAKEY_HARDENED_RUNTIME:-0}" == "1" ]]; then
+  CODESIGN_RUNTIME_FLAGS=(--options runtime --timestamp)
+  echo "==> Codesigning for distribution with Hardened Runtime + Timestamp: $SIGN_ID"
+elif [[ "$SIGN_ID" == "-" ]]; then
+  if [[ "$DISTRIBUTION_MODE" == "1" ]]; then
+    echo "==> Building clean Open-Source Community bundle (Ad-hoc '-', no Developer ID certificate detected in Keychain)"
+  else
+    echo "==> Ad-hoc codesigning local build ('-')"
+  fi
 else
-  echo "==> Codesigning Lumakey.app with stable Keychain identity: $SIGN_ID"
+  echo "==> Codesigning local build with Keychain identity: $SIGN_ID"
 fi
 
 if [[ -x "$HELPERS_DIR/macos-rdp-daemon" ]]; then
-  codesign --force --sign "$SIGN_ID" --identifier "app.lumakey.macos.rdp" "$HELPERS_DIR/macos-rdp-daemon"
+  codesign --force ${CODESIGN_RUNTIME_FLAGS[@]+"${CODESIGN_RUNTIME_FLAGS[@]}"} --sign "$SIGN_ID" --identifier "app.lumakey.macos.rdp" "$HELPERS_DIR/macos-rdp-daemon"
 fi
-codesign --force --sign "$SIGN_ID" --identifier "app.lumakey.macos.mcp" "$MACOS_DIR/lumakey-mcp"
-codesign --force --sign "$SIGN_ID" --identifier "app.lumakey.macos" "$APP_DIR"
+codesign --force ${CODESIGN_RUNTIME_FLAGS[@]+"${CODESIGN_RUNTIME_FLAGS[@]}"} --sign "$SIGN_ID" --identifier "app.lumakey.macos.mcp" "$MACOS_DIR/lumakey-mcp"
+codesign --force ${CODESIGN_RUNTIME_FLAGS[@]+"${CODESIGN_RUNTIME_FLAGS[@]}"} --entitlements "$ENTITLEMENTS_PLIST" --sign "$SIGN_ID" --identifier "app.lumakey.macos" "$APP_DIR"
+
 codesign --verify --deep --strict "$APP_DIR"
 codesign -d -r- "$APP_DIR" 2>&1 || true
 plutil -lint "$CONTENTS_DIR/Info.plist"
+plutil -lint "$ENTITLEMENTS_PLIST"
+plutil -lint "$RESOURCES_DIR/zh-Hans.lproj/Localizable.strings"
+plutil -lint "$RESOURCES_DIR/en.lproj/Localizable.strings"
 
-echo "Built $APP_DIR successfully (arm64 only, includes Lumakey + lumakey-mcp + AppIcon.icns)."
+echo "Built $APP_DIR successfully (mode=$( [[ "$DISTRIBUTION_MODE" == "1" ]] && echo "distribution" || echo "local" ), sign='$SIGN_ID')."

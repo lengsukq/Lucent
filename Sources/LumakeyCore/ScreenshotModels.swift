@@ -8,15 +8,15 @@ public enum AnnotationToolKind: String, CaseIterable, Identifiable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .move: return "移动"
-        case .rect: return "矩形"
-        case .ellipse: return "椭圆"
-        case .arrow: return "箭头"
-        case .pen: return "画笔"
-        case .highlighter: return "荧光笔"
-        case .mosaic: return "马赛克"
-        case .counter: return "序号"
-        case .text: return "文字"
+        case .move: return L10n.pick("移动", "Move")
+        case .rect: return L10n.pick("矩形", "Rect")
+        case .ellipse: return L10n.pick("椭圆", "Ellipse")
+        case .arrow: return L10n.pick("箭头", "Arrow")
+        case .pen: return L10n.pick("画笔", "Pen")
+        case .highlighter: return L10n.pick("荧光笔", "Marker")
+        case .mosaic: return L10n.pick("马赛克", "Mosaic")
+        case .counter: return L10n.pick("序号", "Step")
+        case .text: return L10n.pick("文字", "Text")
         }
     }
 
@@ -69,9 +69,9 @@ public enum AnnotationStrokeSize: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case .small: return "细"
-        case .medium: return "中"
-        case .large: return "粗"
+        case .small: return L10n.pick("细", "S")
+        case .medium: return L10n.pick("中", "M")
+        case .large: return L10n.pick("粗", "L")
         }
     }
 

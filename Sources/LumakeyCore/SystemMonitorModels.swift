@@ -62,9 +62,9 @@ public enum TelemetryDisplayMode: String, Codable, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .compactHoverExpand: "顶部精简 · 悬停展开"
-        case .alwaysExpanded: "完整常驻"
-        case .edgeAutoHide: "贴边自动隐藏"
+        case .compactHoverExpand: L10n.pick("顶部精简 · 悬停展开", "Compact Top · Hover Expand")
+        case .alwaysExpanded: L10n.pick("完整常驻", "Always Expanded")
+        case .edgeAutoHide: L10n.pick("贴边自动隐藏", "Edge Auto-Hide")
         }
     }
 }

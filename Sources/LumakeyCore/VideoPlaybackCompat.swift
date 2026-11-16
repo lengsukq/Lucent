@@ -208,7 +208,7 @@ public enum VideoPlaybackCompat {
                 try? FileManager.default.removeItem(at: remuxedURL)
             }
         }
-        return .unsupported(reason: "当前视频封装或编码超出 macOS 原生解码范围，建议使用 IINA 打开。")
+        return .unsupported(reason: "当前视频封装或编码超出 macOS 原生解码范围，建议使用外部播放器打开。")
     }
 
     public static func cleanupTempDirectory() {

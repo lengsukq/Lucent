@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 public struct WebDAVConfig: Codable, Sendable, Equatable {
@@ -109,12 +110,15 @@ public struct WebDAVProviderPreset: Identifiable, Sendable, Equatable {
 
 public enum WebDAVKeychainError: Error, LocalizedError, Sendable, Equatable {
     case unhandledStatus(OSStatus)
+    case vaultError(String)
 
     public var errorDescription: String? {
         switch self {
         case .unhandledStatus(let status):
             let msg = (SecCopyErrorMessageString(status, nil) as String?) ?? "OSStatus \(status)"
-            return "系统钥匙串访问失败：\(msg)"
+            return L10n.pick("WebDAV 密钥访问失败：\(msg)", "WebDAV secret access failed: \(msg)")
+        case .vaultError(let detail):
+            return detail
         }
     }
 }
@@ -130,73 +134,81 @@ public enum WebDAVKeychainStore {
     public static func savePassword(
         _ password: String,
         account: String,
-        service: String = defaultService
+        service: String = defaultService,
+        customVaultURL: URL? = nil
     ) throws {
-        if password.isEmpty {
-            try deletePassword(account: account, service: service)
-            return
-        }
         let acct = normalizedAccount(account)
-        let secretData = Data(password.utf8)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: acct
-        ]
-        let attributesToUpdate: [String: Any] = [
-            kSecValueData as String: secretData
-        ]
-        let updateStatus = SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
-        if updateStatus == errSecSuccess { return }
-        if updateStatus != errSecItemNotFound {
-            throw WebDAVKeychainError.unhandledStatus(updateStatus)
-        }
-
-        var insertQuery = query
-        insertQuery[kSecValueData as String] = secretData
-        insertQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        insertQuery[kSecAttrLabel as String] = "Lumakey WebDAV (\(acct))"
-        let addStatus = SecItemAdd(insertQuery as CFDictionary, nil)
-        guard addStatus == errSecSuccess else {
-            throw WebDAVKeychainError.unhandledStatus(addStatus)
+        do {
+            try LocalSecretVault.saveValue(password, service: service, account: acct, customVaultURL: customVaultURL)
+            if password.isEmpty && customVaultURL == nil {
+                deleteLegacyPasswordSilently(account: acct, service: service)
+            }
+        } catch {
+            throw WebDAVKeychainError.vaultError(error.localizedDescription)
         }
     }
 
     public static func loadPassword(
         account: String,
-        service: String = defaultService
+        service: String = defaultService,
+        customVaultURL: URL? = nil
     ) throws -> String? {
         let acct = normalizedAccount(account)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: acct,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess else {
-            throw WebDAVKeychainError.unhandledStatus(status)
+        if let stored = try? LocalSecretVault.loadValue(service: service, account: acct, customVaultURL: customVaultURL),
+           !stored.isEmpty {
+            return stored
         }
-        guard let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        guard customVaultURL == nil else { return nil }
+        if let legacy = loadLegacyPasswordSilently(account: acct, service: service), !legacy.isEmpty {
+            try? LocalSecretVault.saveValue(legacy, service: service, account: acct)
+            deleteLegacyPasswordSilently(account: acct, service: service)
+            return legacy
+        }
+        return nil
     }
 
     public static func deletePassword(
         account: String,
-        service: String = defaultService
+        service: String = defaultService,
+        customVaultURL: URL? = nil
     ) throws {
         let acct = normalizedAccount(account)
+        do {
+            try LocalSecretVault.deleteValue(service: service, account: acct, customVaultURL: customVaultURL)
+            if customVaultURL == nil {
+                deleteLegacyPasswordSilently(account: acct, service: service)
+            }
+        } catch {
+            throw WebDAVKeychainError.vaultError(error.localizedDescription)
+        }
+    }
+
+    private static func loadLegacyPasswordSilently(account: String, service: String) -> String? {
+        let ctx = LAContext()
+        ctx.interactionNotAllowed = true
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: acct
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: ctx
         ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw WebDAVKeychainError.unhandledStatus(status)
-        }
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess, let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private static func deleteLegacyPasswordSilently(account: String, service: String) {
+        let ctx = LAContext()
+        ctx.interactionNotAllowed = true
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecUseAuthenticationContext as String: ctx
+        ]
+        _ = SecItemDelete(query as CFDictionary)
     }
 }

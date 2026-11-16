@@ -39,7 +39,9 @@ public enum BackupArchiveService {
     public static func isSafeConfigFileName(_ name: String) -> Bool {
         guard !name.isEmpty, name.count <= 128, !name.hasPrefix(".") else { return false }
         guard !name.contains("/"), !name.contains("\\"), !name.contains(".."), !name.contains("\0") else { return false }
-        return name.lowercased().hasSuffix(".json")
+        let lower = name.lowercased()
+        guard !lower.contains("vault"), !lower.contains("secret") else { return false }
+        return lower.hasSuffix(".json")
     }
 
     public static func isSafeRelativePluginPath(_ path: String) -> Bool {

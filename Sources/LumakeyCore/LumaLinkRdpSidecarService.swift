@@ -83,13 +83,14 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
         }
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser.path
+        let envOverride = ProcessInfo.processInfo.environment["LUMAKEY_RDP_HELPER_PATH"]
         let candidates: [String?] = [
+            envOverride,
             Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/macos-rdp-daemon").path,
             Bundle.main.sharedSupportURL?.appendingPathComponent("macos-rdp-daemon").path,
             "\(home)/.local/share/lumakey/macos-rdp-daemon",
-            "/usr/local/sbin/macos-rdp-daemon",
-            "/Volumes/lightlsle/dependencies/build/mac-remote-host/MacRemoteRDPServer.app/Contents/MacOS/macos-rdp-daemon",
-            "/Volumes/lightlsle/dependencies/build/macos-rdp-server-macos14-final/macos-rdp-daemon"
+            "/opt/homebrew/sbin/macos-rdp-daemon",
+            "/usr/local/sbin/macos-rdp-daemon"
         ]
         for case let path? in candidates where fm.isExecutableFile(atPath: path) {
             lock.withLock { cachedBinaryPath = path }

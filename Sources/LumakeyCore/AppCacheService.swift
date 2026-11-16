@@ -6,6 +6,10 @@ public enum AppCacheBucketKind: String, CaseIterable, Identifiable, Sendable {
     public var isProtected: Bool { self == .appSupportConfig }
 
     public var title: String {
+        L10n.translate(rawTitle)
+    }
+
+    private var rawTitle: String {
         switch self {
         case .clipboardImages: "剪贴板图片与富媒体缓存"
         case .screenshotsAndPins: "选区截图与贴图临时文件"
@@ -19,15 +23,19 @@ public enum AppCacheBucketKind: String, CaseIterable, Identifiable, Sendable {
     }
 
     public var subtitle: String {
+        L10n.translate(rawSubtitle)
+    }
+
+    private var rawSubtitle: String {
         switch self {
         case .clipboardImages: "自动保留已收藏/置顶的剪贴板文件，其余可安全释放"
         case .screenshotsAndPins: "含截图、OCR 与钉屏临时 PNG（跳过仍在置顶引用的文件）"
         case .gifCaptures: "区域与窗口 GIF 录制生成的临时动图文件（lumakey-gifs）"
         case .visionCutouts: "离线主体分割生成的透明 PNG 缓存"
         case .cinemaRemux: "MKV/AVI 等封装无损重封 MP4 临时缓存"
-        case .diskIndexSnapshot: "Everything 二进制快照 (.lmkyidx)，支持 mmap 秒开启动"
-        case .inMemoryIndexes: "Everything 内存节点、目录缓存与工作台缩略图计数"
-        case .appSupportConfig: "存放 Mos 规则、系统脉搏配置与自定义扩展（受保护）"
+        case .diskIndexSnapshot: "全盘索引二进制快照 (.lmkyidx)，支持 mmap 秒开启动"
+        case .inMemoryIndexes: "全盘索引内存节点、目录缓存与工作台缩略图计数"
+        case .appSupportConfig: "存放鼠标滚轮规则、系统脉搏配置与自定义扩展（受保护）"
         }
     }
 }

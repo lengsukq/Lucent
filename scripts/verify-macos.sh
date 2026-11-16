@@ -23,16 +23,29 @@ while IFS= read -r -d '' file; do
   fi
 done < <(find "$ROOT_DIR/Sources" -type f -name "*.swift" -print0)
 
-echo "==> Checking Info.plist"
+echo "==> Checking Info.plist & Entitlements"
 plutil -lint "$ROOT_DIR/apps/macos/Info.plist"
+plutil -lint "$ROOT_DIR/apps/macos/Lumakey.entitlements"
 
 echo "==> Checking documentation links and index coverage"
 python3 -B "$ROOT_DIR/scripts/check-docs.py"
 
-echo "==> Building Swift 6 targets (arm64 debug)"
-swift build -c debug --arch arm64
+EXTRA_SPM_ARGS=()
+if [[ -n "${LUMAKEY_SPM_EXTRA_ARGS:-}" ]]; then
+  # shellcheck disable=SC2206
+  EXTRA_SPM_ARGS=(${LUMAKEY_SPM_EXTRA_ARGS})
+fi
 
-BIN_DIR="$(swift build -c debug --arch arm64 --show-bin-path)"
+CHECK_ARGS=()
+if [[ -n "${LUMAKEY_CHECK_ARGS:-}" ]]; then
+  # shellcheck disable=SC2206
+  CHECK_ARGS=(${LUMAKEY_CHECK_ARGS})
+fi
+
+echo "==> Building Swift 6 targets (arm64 debug)"
+swift build ${EXTRA_SPM_ARGS[@]+"${EXTRA_SPM_ARGS[@]}"} -c debug --arch arm64
+
+BIN_DIR="$(swift build ${EXTRA_SPM_ARGS[@]+"${EXTRA_SPM_ARGS[@]}"} -c debug --arch arm64 --show-bin-path)"
 for bin in Lumakey lumakey-mcp lumakey-check; do
   archs=$(lipo -archs "$BIN_DIR/$bin")
   if [[ "$archs" != "arm64" ]]; then
@@ -42,4 +55,4 @@ for bin in Lumakey lumakey-mcp lumakey-check; do
 done
 
 echo "==> Running LumakeyCheck + real lumakey-mcp subprocess verification"
-"$BIN_DIR/lumakey-check"
+"$BIN_DIR/lumakey-check" ${CHECK_ARGS[@]+"${CHECK_ARGS[@]}"}

@@ -10,6 +10,16 @@ public enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
     case pinned = "收藏"
 
     public var id: String { rawValue }
+
+    public var localizedTitle: String {
+        switch self {
+        case .all: L10n.pick("全部", "All")
+        case .text: L10n.pick("文本", "Text")
+        case .image: L10n.pick("图片", "Images")
+        case .file: L10n.pick("文件", "Files")
+        case .pinned: L10n.pick("收藏", "Pinned")
+        }
+    }
 }
 
 public enum ClipboardPayloadKind: Sendable, Hashable {
@@ -20,10 +30,10 @@ public enum ClipboardPayloadKind: Sendable, Hashable {
 
     public var badgeTitle: String {
         switch self {
-        case .text: "文本"
-        case .colorHex: "色值"
-        case .image: "图片"
-        case .file: "文件"
+        case .text: L10n.pick("文本", "Text")
+        case .colorHex: L10n.pick("色值", "Color")
+        case .image: L10n.pick("图片", "Image")
+        case .file: L10n.pick("文件", "File")
         }
     }
 }

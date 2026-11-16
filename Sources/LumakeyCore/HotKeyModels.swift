@@ -16,8 +16,8 @@ public enum HotKeyActionID: String, CaseIterable, Codable, Sendable, Identifiabl
 
     public var id: String { rawValue }
     public var carbonHotKeyNumericID: UInt32 { meta.numID }
-    public var title: String { meta.title }
-    public var subtitle: String { meta.subtitle }
+    public var title: String { L10n.translate(meta.title) }
+    public var subtitle: String { L10n.translate(meta.subtitle) }
     public var symbolName: String { meta.symbol }
     public var defaultChord: HotKeyChord? { meta.defaultChord }
 
@@ -25,7 +25,7 @@ public enum HotKeyActionID: String, CaseIterable, Codable, Sendable, Identifiabl
         let opt = Int(optionKey)
         return switch self {
         case .launcher: (1, "全局统一快捷中枢", "毫秒呼出应用启动、文件检索、算式换算与快捷指令", "sparkles", HotKeyChord(keyCode: kVK_Space, carbonModifiers: opt))
-        case .files: (2, "Everything 极速搜文件", "直达全盘与外置磁盘文件秒搜及右侧预览", "magnifyingglass", HotKeyChord(keyCode: kVK_ANSI_F, carbonModifiers: opt))
+        case .files: (2, "全盘文件极速检索", "直达全盘与外置磁盘文件秒搜及右侧预览", "magnifyingglass", HotKeyChord(keyCode: kVK_ANSI_F, carbonModifiers: opt))
         case .clipboard: (3, "智能剪贴板历史库", "检索历史文本、#HEX 色值、图片与文件路径", "doc.on.clipboard.fill", HotKeyChord(keyCode: kVK_ANSI_C, carbonModifiers: opt))
         case .screenshotPin: (4, "选区截图与标注钉屏", "窗口自动吸附、放大镜取色、涂鸦马赛克与桌面钉图", "camera.viewfinder", HotKeyChord(keyCode: kVK_ANSI_A, carbonModifiers: opt))
         case .screenshotOCR: (5, "选区截图离线识字", "Apple Vision 离线极速识别中英文本与二维码", "text.viewfinder", HotKeyChord(keyCode: kVK_ANSI_O, carbonModifiers: opt))
@@ -83,10 +83,10 @@ public struct HotKeyChord: Codable, Sendable, Hashable, Equatable {
 
     public var validationError: String? {
         if isPureModifierKey || keyCode < 0 || Self.keyLabel(for: keyCode) == nil {
-            return "请按下完整的主键组合（不能只按修饰键）"
+            return L10n.translate("请按下完整的主键组合（不能只按修饰键）")
         }
         if !isFunctionKey && (carbonModifiers & Self.primaryCarbonMask) == 0 {
-            return "普通按键必须包含 ⌘、⌥ 或 ⌃ 至少一个修饰键，防止打字误触"
+            return L10n.translate("普通按键必须包含 ⌘、⌥ 或 ⌃ 至少一个修饰键，防止打字误触")
         }
         return nil
     }

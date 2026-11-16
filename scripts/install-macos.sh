@@ -4,21 +4,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-bash "$ROOT_DIR/scripts/build-macos.sh"
-
 APP_DIR="$ROOT_DIR/dist/Lumakey.app"
 DMG_PATH="$ROOT_DIR/dist/Lumakey.dmg"
-STAGE_DIR="$ROOT_DIR/.build/dmg-stage"
 DEST_APP="/Applications/Lumakey.app"
 
-rm -rf "$STAGE_DIR" "$DMG_PATH"
-mkdir -p "$STAGE_DIR"
-ditto "$APP_DIR" "$STAGE_DIR/Lumakey.app"
-ln -s /Applications "$STAGE_DIR/Applications"
+if [[ "${1:-}" != "--skip-build" || ! -d "$APP_DIR" ]]; then
+  bash "$ROOT_DIR/scripts/build-macos.sh"
+fi
 
-echo "==> Packaging $DMG_PATH"
-hdiutil create -volname "Lumakey" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG_PATH"
-rm -rf "$STAGE_DIR"
+bash "$ROOT_DIR/scripts/package-dmg.sh" "$DMG_PATH"
 
 echo "==> Stopping any running Lumakey instances"
 if pgrep -x Lumakey >/dev/null 2>&1; then

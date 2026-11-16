@@ -85,7 +85,7 @@ public enum ExplorerLayoutMode: String, CaseIterable, Identifiable, Sendable {
     case dual
 
     public var id: String { rawValue }
-    public var title: String { self == .single ? "单栏" : "双栏" }
+    public var title: String { self == .single ? L10n.pick("单栏", "Single") : L10n.pick("双栏", "Dual") }
 }
 
 public enum SortField: String, CaseIterable, Identifiable, Sendable {
@@ -99,12 +99,12 @@ public enum SortField: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .name: "名称"
-        case .modifiedAt: "修改时间"
-        case .createdAt: "创建时间"
-        case .size: "大小"
-        case .kind: "类型"
-        case .ext: "扩展名"
+        case .name: L10n.pick("名称", "Name")
+        case .modifiedAt: L10n.pick("修改时间", "Modified")
+        case .createdAt: L10n.pick("创建时间", "Created")
+        case .size: L10n.pick("大小", "Size")
+        case .kind: L10n.pick("类型", "Kind")
+        case .ext: L10n.pick("扩展名", "Extension")
         }
     }
 }
@@ -117,9 +117,9 @@ public enum WorkspaceDisplayMode: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .list: "列表"
-        case .grid: "网格"
-        case .compact: "紧凑"
+        case .list: L10n.pick("列表", "List")
+        case .grid: L10n.pick("网格", "Grid")
+        case .compact: L10n.pick("紧凑", "Compact")
         }
     }
 
@@ -144,13 +144,13 @@ public enum WorkspaceMediaFilter: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .all: "全部"
-        case .folder: "文件夹"
-        case .image: "图片"
-        case .video: "视频"
-        case .audio: "音频"
-        case .document: "文档"
-        case .archive: "压缩包"
+        case .all: L10n.pick("全部", "All")
+        case .folder: L10n.pick("文件夹", "Folders")
+        case .image: L10n.pick("图片", "Images")
+        case .video: L10n.pick("视频", "Videos")
+        case .audio: L10n.pick("音频", "Audio")
+        case .document: L10n.pick("文档", "Docs")
+        case .archive: L10n.pick("压缩包", "Archives")
         }
     }
 
