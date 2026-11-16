@@ -7,7 +7,7 @@
 | 全局快捷键唤醒与三层冲突检测 | `Carbon` (`InstallEventHandler` + `RegisterEventHotKey`) + `com.apple.symbolichotkeys` | 在无边框 `.accessory` 应用中可靠捕获 10 项自定义全局热键，并在录制时探测应用内、系统符号热键与第三方 Carbon 占用，无需辅助功能权限 |
 | 真圆角背景折射与无障碍自适应 | `AppKit.NSVisualEffectView` (`maskImage` 9-slice) + `NSWorkspace.accessibilityDisplayOptionsDidChangeNotification` | `28pt` 无缝背景折射、零方角外溢、全区拖拽与 O(1) 事件驱动无障碍减透/高对比度降级 |
 | 应用使用度冷启动探测与活跃追踪 | `CoreServices.MDItem` (`kMDItemUseCount` / `kMDItemLastUsedDate`) + `NSWorkspace` 前台激活通知 | 零隐私侵入融合系统 Spotlight 启动计数、Dock 常用栏与前台活跃时长，驱动智能排序与常驻钉选 |
-| 物理鼠标独立平滑 (内置 Mos) | `CoreGraphics.CGEvent.tapCreate` + `AXIsProcessTrustedWithOptions` + `CFRunLoopTimer` | 基于 `scrollWheelEventIsContinuous == 0` 精确区分外接鼠标与触控板；仅在启用 Mos 时请求辅助功能权限 |
+| 物理鼠标独立平滑与反转 | `CoreGraphics.CGEvent.tapCreate` + `AXIsProcessTrustedWithOptions` + `CFRunLoopTimer` | 基于 `scrollWheelEventIsContinuous == 0` 精确区分外接鼠标与触控板；仅在启用该服务时请求辅助功能权限 |
 | 内存计量与低开销回收 | `Darwin.task_info` (`TASK_VM_INFO`) + `malloc_zone_pressure_relief` + `DispatchSource.makeMemoryPressureSource` | 实时监控物理内存足迹并在空闲/系统内存紧张时主动归还自由堆页 |
 | 有界子进程监管 | `Foundation.Process` + `DispatchWorkItem` + `SIGKILL` | 统一限定输出缓冲区与超时时间，窗口隐藏或退出即清理全部活跃子进程 |
 | 系统资源、DVFS 频率与整机功耗监控 | `Darwin` (`host_processor_info` + `host_statistics64` + `getifaddrs` + `statfs`) + `IOKit` (`AppleSmartBattery`, `IOAccelerator`, `pmgr`) | 零子进程读取 CPU P/E 核负载、硬件频表等效频率、物理/压缩内存、实时功耗 (`W`) 与网速，并确定性释放 Mach VM 与 IOKit 对象 |

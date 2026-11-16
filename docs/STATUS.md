@@ -2,6 +2,55 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.8.9)
+
+- **自定义插件商店入驻、单输入框智能地址识别与 `lumakey-mcp` 商店打包闭环 (`PluginStoreModels`, `PluginStoreSniffer`, `PluginStoreService`, `PluginStorePackager`, `PluginStoreSpecs`, `PluginStoreController`, `PluginStoreMarketplaceView`, `PluginStoreSheetsView`, `MCPStoreHandlers`, `CheckPluginStore`)**：
+  - **单一地址栏自动识别（商店源 vs 单插件）**：在「精选市场」顶部提供统一的智能地址输入框（及一键粘贴与内置「入驻规范」速查弹窗），自动按「`.zip`/`.lumakeyplugin` 直链 -> GitHub 仓库主页探测 -> `.json` 顶层字段嗅探 -> 站点目录约定路径补全」分流为**自定义插件商店 (`lumakey-registry.json`)** 或**独立单插件**；
+  - **多源入驻管理、SHA-256 防伪装校验与无损版本升级**：自定义商店订阅源持久化于 `plugin-registries.json`（自动纳入 `.lumakeybackup` 备份恢复），自动识别已装状态与语义化版本更新（`一键安装 / 更新 / 重装`）；安装时强制校验 `CryptoKit` `SHA-256`、通过私密 `0700` 沙盒 `ditto` 解压拦截软链接与路径逃逸，并比对包内真实 `plugin.json` 防止夹带商店词条未声明的权限；覆盖升级时无损保留用户自定义触发词、快捷键与密封密钥；
+  - **规范内置 `lumakey-mcp` 与一键商店打包工具**：新增 `lumakey://specs/plugin-store-v1` 内置规范资源，配套 `lumakey_package_plugin_for_store`（自动 v3 校验、生成干净 `.zip`、计算 64 位 `sha256` 并创建/更新 `lumakey-registry.json`）、`lumakey_list_plugin_stores` 与 `lumakey_resolve_or_install_url`。
+
+## 已完成与已验证 (v0.8.8)
+
+- **外部扩展插件全链路原生化体验对齐 (`PluginNativePresentation`, `PluginIconBadgeView`, `PluginModels`, `PluginCommandModels`, `PluginViewActions`, `PluginConfigFormCard`, `PluginDedicatedSettingsView`, `PluginGalleryAndViewCard`, `OverlayPluginFilterAndContextViews`, `CheckPluginV5NativeExperience`)**：
+  - **包内自定义图标、品牌色与自然分类标签**：支持在 `plugin.json` 声明包内相对路径图标（如 `icon.svg` / `assets/icon.png`，内置防目录逃逸校验与 `IconCache` 位图缓存）、`accentColor` 主题色令牌/`#HEX` 色值与 `categoryTag` 分类标签，列表词条同步支持 `PluginData` 图标与 `tintColor`，彻底告别千篇一律的紫底 `VIEW`/`SCRIPT` 脚本标签；
+  - **外置插件双语本地化 (`locales`) 与宿主环境感知**：支持在 `plugin.json` 配置 `locales` 多语言覆盖（免重启实时联动插件名、分类标签、子功能标题与表单文案，且全语言词条均可被全局搜索命中），并在运行期向子进程注入 `stdin.locale` / `stdin.theme` 与 `LUMAKEY_LOCALE` / `LUMAKEY_THEME`；
+  - **设置页即时自动保存、`Slider` 滑块与折叠式诊断面板**：外置插件配置表单对齐内置设置页体验，开关/分段/选择器/标签即时自动落盘、文本与密钥防抖/失焦自动同步，数值字段新增 `"control": "slider"` 原生滑块支持，并将缓存清理与实时调试器收敛进底部默认折叠的「开发者诊断」面板；
+  - **富排版 Markdown 卡片与宿主独立窗口深链路由 (`PluginDeepLinkParser`)**：`PluginStructuredViewCard` 复用纯 Swift `MarkdownBlocksStackView` 渲染表格、代码块、引用与任务列表，并打通 `lumakey://reader`、`lumakey://image`、`lumakey://pin` 深链与 `PluginPostActionEffect` 窗口动作，外置插件可直接唤起独立阅读窗、看图窗与桌面悬浮钉图；
+  - **子功能级独立全局热键 (`commandHotKeys`)、轻量状态摘要 (`status.json`) 与主浮窗胶囊对称化**：每项插件子功能支持独立录制全局快捷键（含 `silentWhenHotKeyTriggered` 静默瞬发与 `HotKeyConflictDetector` 三层冲突检测），支持通过 `effect.statusSummary` / `PluginData/<id>/status.json` 零子进程展示最新运行状态摘要，并在主浮窗顶部胶囊过滤条与 `Tab` 子模式中实现内置与外部插件完全对称的交互体验。
+
+## 已完成与已验证 (v0.8.7)
+
+- **应用内 `0600` AES-GCM 密钥保险箱与按需懒加载体系（零钥匙串弹窗）(`LocalSecretVault`, `PluginKeychainStore`, `WebDAVConfigStore`, `PluginSystem`, `AppViewModel+Plugins`, `PluginCenterController`, `BackupArchiveService`, `CheckSecretVault`)**：
+  - **硬件绑定 `0700/0600` `AES-GCM` 密封存储**：新增 `LocalSecretVault`（通过 `IOPlatformUUID` + `UID` 经 `HKDF-SHA256` 派生 256-bit 对称密钥，采用 `LMKYVLT1` AAD 认证加密写入 `~/Library/Application Support/Lumakey/.vault/secrets.v1.enc`，强制 `0700` 目录与 `0600` 原子替换权限），彻底消除开发重编、跨版本升级及无证书开源分发时的传统 macOS 文件型钥匙串密码弹窗；
+  - **静默免弹窗历史迁移、启动懒加载与双重备份隔离**：首次读取未命中时自动通过 `LAContext.interactionNotAllowed = true` 静默无弹窗迁移旧钥匙串记录；`AppViewModel.reloadPlugins()` 默认改为 `includeSecrets: false`，冷启动与列表刷新零密钥解密驻留，仅在实际运行插件或进入该插件独立设置页时按需加载；`BackupArchiveService` 同时从隐藏目录与文件名白名单双层排除 `vault` / `secret` 文件，确保密钥永不随备份外泄。
+
+## 已完成与已验证 (v0.8.6)
+
+- **中英双语多语言系统（首次启动跟随系统语言 + 免重启全局实时热切）(`LanguageModels`, `LocalizationService`, `LocalizationPatterns`, `LanguageManager`, `LanguageSettingsCardView`, `en.lproj/Localizable.strings`, `zh-Hans.lproj/Localizable.strings`, `CheckLanguageSystem`)**：
+  - **首次启动自动识别系统语言并持久化偏好**：首次打开尚未生成 `~/Library/Application Support/Lumakey/language-config.json` 时，通过 `AppLanguageConfig.loadOrBootstrap()` 自动读取 `Locale.preferredLanguages` 首选系统语言（匹配 `zh*` 选用 `简体中文`，否则选用 `English`）并落盘记录；后续启动严格读取用户保存的语言配置，且 `language-config.json` 完整纳入 `.lumakeybackup` 本地/WebDAV 备份与恢复热重载；
+  - **免重启全窗口实时切换**：在「设置中心 -> 通用与内存」与欢迎引导页提供双语卡片切换器 (`LanguageSettingsCardView`)，并在菜单栏、程序坞右键菜单及 `⌥Space` 全局搜索指令（`language` / `english` / `chinese` / `语言` / `英文` / `中文`）提供一键切换入口；通过 `LocalizedRootContainer`（动态注入 `.environment(\.locale, ...)` 驱动 905 条双语 `.lproj/Localizable.strings` 词表）配合 `L10n` 动态模板引擎，使全部 SwiftUI 浮窗/二级窗口、AppKit 菜单、窗口标题与内置插件元数据即时联动刷新。
+
+## 已完成与已验证 (v0.8.5)
+
+- **双内置视觉主题体系：「凝霜留白」与「霓彩流光」(`ThemeModels`, `ThemeManager`, `LiquidTheme`, `LiquidGlassComponents`, `ThemeSettingsCardView`, `FloatingPanelController`, `UnitAndCommandEngine`, `CheckThemeSystem`)**：
+  - **两套鲜明独立的内置美学语言**：
+    - **「凝霜留白」(`Pure Frost`)**：纯净云母磨砂底色、零背景弥散杂光、高不透明度白瓷/石墨卡片、细腻单层微描边、系统钴蓝强调色与干练几何圆角（面板 `24pt` / 卡片 `14pt`），清爽专注；
+    - **「霓彩流光」(`Prism Pulse`)**：三重极光弥散光晕（电光青 + 珊瑚粉 + 星云紫）、通透液态玻璃、双层棱镜折射高光描边、三色光谱渐变胶囊与饱满圆角（面板 `28pt` / 卡片 `18pt`），灵动鲜明；
+  - **全窗口实时热切、流式胶囊布局、候选锚定防跳回与标准公证分发流水线**：设置中心首页提供可视化微缩预览双主题切换卡 (`ThemeSettingsCardView`)，主浮窗与全部二级窗口实时联动刷新；新增 `FlowWrapLayout` 自适应流式折行布局消除多触发词单字竖排挤压，并全面去除第三方软件借名对比文案；新增 `LauncherSelectionAnchor` 消除后台索引合并与 `FSEvents` 刷新冲掉当前选中项的问题；全面清除源码与脚本中的个人盘符硬编码路径，补齐 `apps/macos/Lumakey.entitlements` 与 `scripts/release-macos.sh`（支持 `Developer ID Application` + `Hardened Runtime` + `xcrun notarytool` + `stapler` 正式公证分发，以及无证书环境下的干净开源通用 `.dmg` 打包）。
+
+## 已完成与已验证 (v0.8.4)
+
+- **插件内部子功能全局搜索注册与默认关闭的按需快捷按钮体系 (`PluginCommandModels`, `PluginBuiltinCommands`, `LauncherEngine`, `AppViewModel+PluginCommands`, `PluginCommandSettingsCard`, `OverlayBentoHomeView`, `OverlayFilterStripsView`)**：
+  - **子功能声明与全局搜索直达 (`PluginCommandSpec` / `.pluginCommand`)**：外部插件（`plugin.json` `commands` 数组，如 `notion-bookmarks` 的「收藏剪贴板链接到 Notion / 同步刷新书签索引 / 浏览全部书签」及 5 款官方精选模板）与三大 `BUILTIN` 原生插件（`鼠标滚轮` 反转/平滑开关、`流光随行` 远控/RDP 开关、`系统脉搏` 悬浮窗/菜单栏开关）均可声明多项独立子功能，自动注册进 `⌥Space` 全局搜索与单插件专属列表，支持独立触发词、中文全拼/首字母匹配与命令后参数透传；
+  - **快捷按钮严格默认全关、按需一键挂载 (`quickButtonCommandIDs = []`, `pinnedInOverlay = false`)**：所有新装与内置插件及全部子功能默认均无快捷按钮（主浮窗保持纯净零打扰）；用户可在单插件独立设置页、插件中心检查器、搜索候选右键菜单或 `⌘Return` 按需勾选想要挂载的子功能快捷按钮，开启后同步呈现在主浮窗首页「快捷按钮」栏与底部常驻栏实现一键瞬启。
+
+## 已完成与已验证 (v0.8.3)
+
+- **插件系统深度融合、独立插件设置列表与用户个性化覆盖体系 (`PluginCustomizationModels`, `PluginDataInspector`, `PluginStateOverrides`, `PluginDedicatedSettingsView`, `PluginDedicatedSettingsState`, `PluginDedicatedDataAndTestCards`, `OverlayPluginFilterAndContextViews`, `PluginConfigFormCard`, `LauncherEngine`, `CheckPluginV4Customization`)**：
+  - **独立插件设置列表与专属全宽配置页**：重构设置中心侧边栏 (`WelcomeAndSettingsView`)，将「核心设置」与动态「插件独立设置」（统合 `BUILTIN` 原生插件与全部已安装外部插件）清晰分组；每个外部插件均拥有独立的全宽设置视图、实时全局热键录制胶囊、自定义触发词胶囊编辑器、`PluginData` 缓存与免前缀索引面板，并打通 `lumakey://settings/plugin/<id>` 深链、主浮窗 `⌘,` / `⌘Return` 直达路由及备份恢复后的 Keychain 密钥缺失引导；
+  - **代码与个性化解耦 (`PluginUserOverrides`) + 增强型配置表单**：在不修改 `plugin.json` 的前提下持久化 `customKeywords`、`customHotKey`（联动 `HotKeySettingsView` 冲突诊断与一键改绑）、`pinnedInOverlay`、`includeInGlobalSearch`、`showInSettingsSidebar`、`priorityBoost` 与调用频次 `log2`/近度加权；`PluginConfigFormCard` 扩展支持 `number`（范围步进）、`path`/`directory`（`NSOpenPanel` 选择器）、`tags`（多标签胶囊）、`section` 分组及 Keychain 状态标识；
+  - **主浮窗 (`⌥Space`) 子模式与跨模块动作注入**：新增插件模式顶部二级过滤条 (`OverlayPluginFilterStrip`)、选中插件按 `Tab` 进入单插件专属列表子模式（搜索框内嵌可按空退格 `⌫` / `Esc` 退出的作用域胶囊）、首页常用栏钉选插件条 (`OverlayBentoHomeView`)，以及基于 `accepts` 零子进程内存匹配的剪贴板侧边镜、Everything 文件预览、双栏文件工作台右键菜单与 Vision 离线识字窗四处跨模块「发送到扩展插件」直达动作（注入 `stdin.context`）与 `refreshIntervalSeconds` 按需静默索引刷新；`lumakey-mcp` 同步新增 `lumakey_update_plugin_overrides` 及上下文测试能力。
+
 ## 已完成与已验证 (v0.8.1)
 
 - **插件系统 Plugin v3、全 App 权限审计矩阵、一过性 Host Bridge 与 `lumakey-mcp` v0.3.0 (`PluginModels`, `PluginPermissionAudit`, `PluginBuiltinRegistry`, `PluginHostBridge`, `PluginHostBridgeHandlers`, `PluginCenterView`, `PluginPermissionsMatrixView`, `MCPServer`, `MCPToolHandlers`)**：
@@ -96,7 +145,7 @@
 ## 已完成与已验证 (v0.5.3)
 
 - **独立工程与 Clean Code 门禁**：
-  - 独立仓库位于 `/Volumes/lightlsle/Code/Lumakey`，`app.lumakey.macos` (`0.5.3`, build `9`)，零外部依赖；
+  - 独立 Swift Package 仓库架构，`app.lumakey.macos` (`0.5.3`, build `9`)，零外部依赖；
   - `Sources/` 下全部 `.swift` 文件严格拆分，单文件均不超过 300 行。
 - **暗黑沉浸式 4K 影院播放器与 `'hev1'` / MKV 硬件解码兼容 (`VideoPlaybackCompat` & `CinemaPlayerWindowView`)**：
   - 针对主流 4K HEVC `.mp4` 使用 `'hev1'` 标签导致 `AVPlayer` 黑屏/只出声的问题，新增零拷贝 `Hev1ResourceLoader`（`AVAssetResourceLoaderDelegate` 流式将 `moov` 中的 `'hev1'` 动态映射为 `'hvc1'`），无需写临时文件即可直接调用 Apple Silicon VideoToolbox 硬件解码（`SideLivePreviewCard` 右侧预览与独立影院窗口均受益）；
@@ -125,7 +174,7 @@
   - `SystemMonitorConfig` 将 `floatingEnabled` 与 `showInMenuBar` 新装默认值设为 `false`（零后台采样占用），并在设置中新增专门的 `系统监控` 页签（`TelemetrySettingsView`），可自由开关桌面悬浮窗、切换顶部精简/常驻/贴边自动隐藏、开关菜单栏读数并自选 `CPU / 频率 / 内存 / 功耗 / 网速` 显示项；
   - `SystemMonitorSampler` 通过 Mach/IOKit/`getifaddrs` 实时采集 CPU 总占比与 P/E 簇负载、硬件 DVFS 等效频率 (`GHz`)、GPU 利用率、物理内存/压缩内存/Swap、实时整机功耗 (`W`)、网络 `↑/↓` 速率与磁盘可用空间；
   - `SystemPulseWindowController` 与 `SystemPulseOverlayView` 提供顶部精简胶囊（悬停或点击向下展开 4 卡片实时趋势面板）、拖至屏幕左/右/上边缘自动贴边隐藏与悬停滑出，以及菜单栏等宽紧凑读数开关。
-- **QQ 式原生截图标注、钉图与极速识字引擎 (`⌥A` / `⌥O`)**：
+- **智能选区截图标注、钉图与极速识字引擎 (`⌥A` / `⌥O`)**：
   - 基于 `ScreenCaptureKit`（`SCShareableContent` + `SCScreenshotManager.captureImage`）与 `CGPreflightScreenCaptureAccess` 实现全屏冻结、窗口智能吸附、8 控制点选区缩放、放大镜 `#HEX` 像素取色（`C` 键复制）、实时像素化马赛克预览、自动聚焦文字框、选中平移联动标注及鼠标右键快速清空/取消；
   - 通过隔离底层 `DragGesture` 避免拦截工具栏按钮点击；`⌥O` 识字模式框选或单击窗口松手即刻触发识别；
   - **修复 Vision 离线 OCR 卡死问题**：`VisionService` 显式将计算阶段绑定至 `MLComputeDevice.cpu`，消除 Apple Silicon Neural Engine ~36s 阻塞，实测亚秒级（~0.14s）完成中英混排 OCR 与条码扫描并弹出独立可编辑/合并换行的 `OCRResultWindowController` 窗口；
@@ -133,10 +182,10 @@
 - **LumakeyCore 核心引擎与 LumakeyMCP (`lumakey-mcp`)**：
   - `LauncherEngine`、`UnitAndCommandEngine`、`MosMouseService`、`MarkdownDocumentParser`、`MediaClassifier`、`ProcessSupervisor` + `MemoryStats`、`ClipboardMonitor`、`EverythingQuery`/`EverythingIndex`、`DirectoryScanner`、`BatchRenamePlanner`、`VolumeInspector`、`VisionService`、`PluginSystem` 及 stdio MCP 工具闭环。
 - **Lumakey 原生界面与本机 `.dmg` 安装**：
-  - `RoundedGlassContainerView` 9-slice `28pt` 连续圆角、Bento 控制中心、单一全搜框 + `Tab` 过滤、Mos 设置面板、独立销毁型 Markdown/文本/图片/视频阅读窗与全链路内存自洁；
+  - `RoundedGlassContainerView` 9-slice `28pt` 连续圆角、Bento 控制中心、单一全搜框 + `Tab` 过滤、鼠标滚轮设置面板、独立销毁型 Markdown/文本/图片/视频阅读窗与全链路内存自洁；
   - `scripts/install-macos.sh` 支持一键构建 `dist/Lumakey.app`、打包 `dist/Lumakey.dmg` 并签名安装至 `/Applications/Lumakey.app`。
 
 ## 当前已知约束
 
-- `LumakeyCheck` 覆盖全部 `LumakeyCore` 能力、Markdown 解析、统一全搜、`ProcessSupervisor` 超时强杀、Mos 配置、`MemoryStats`、`ScreenshotCompositor` 合成与像素采样、GIF89a 流式编码、应用使用度排序、三层热键冲突检测、`.lumakeybackup` SHA-256 归档与本地 WebDAV 协议往返、Plugin v2 + DevToolkit + Snippets、文件工作台安全操作与废纸篓隔离单测、以及真实 `lumakey-mcp` 子进程测试；GUI 交互、全局热键、真实 `ScreenCaptureKit` 屏幕录制弹窗与桌面滚轮拦截以实际运行验收为准；
-- 初次使用 Mos 物理鼠标平滑与反转需授权「辅助功能」，初次使用原生截图标注与区域 GIF 录制需授权「屏幕录制」（均可在系统设置中一键跳转授权）。
+- `LumakeyCheck` 覆盖全部 `LumakeyCore` 能力、Markdown 解析、统一全搜、`ProcessSupervisor` 超时强杀、鼠标滚轮配置、`MemoryStats`、`ScreenshotCompositor` 合成与像素采样、GIF89a 流式编码、应用使用度排序、三层热键冲突检测、`.lumakeybackup` SHA-256 归档与本地 WebDAV 协议往返、Plugin v2 + DevToolkit + Snippets、文件工作台安全操作与废纸篓隔离单测、以及真实 `lumakey-mcp` 子进程测试；GUI 交互、全局热键、真实 `ScreenCaptureKit` 屏幕录制弹窗与桌面滚轮拦截以实际运行验收为准；
+- 初次使用物理鼠标平滑与滚轮反转需授权「辅助功能」，初次使用原生截图标注与区域 GIF 录制需授权「屏幕录制」（均可在系统设置中一键跳转授权）。
