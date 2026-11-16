@@ -100,7 +100,7 @@ func testV080LumaLink() throws {
     check(LumaLinkRdpProcessGuard.readPidRecord(in: pidDir) == nil, "PID record with ownerPID=1 cleaned up")
 
     check(LumaLinkRdpProcessGuard.isLumakeyOwnedDaemonPath("/Applications/Lumakey.app/Contents/Helpers/macos-rdp-daemon"), "Recognizes Lumakey app helper path")
-    check(!LumaLinkRdpProcessGuard.isLumakeyOwnedDaemonPath("/Volumes/lightlsle/dependencies/build/mac-remote-host/MacRemoteRDPServer.app/Contents/MacOS/macos-rdp-daemon"), "Does not match external MacRemoteHost binary")
+    check(!LumaLinkRdpProcessGuard.isLumakeyOwnedDaemonPath("/opt/third-party/MacRemoteRDPServer.app/Contents/MacOS/macos-rdp-daemon"), "Does not match external MacRemoteHost binary")
 
     let sleeper = Process()
     sleeper.executableURL = URL(fileURLWithPath: "/bin/sleep")

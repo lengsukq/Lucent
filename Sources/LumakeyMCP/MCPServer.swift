@@ -33,11 +33,12 @@ final class MCPServer {
                 "instructions": """
                 Lumakey is a lightweight macOS productivity hub (NOT a resident server, daemon runner, or cron gateway).
                 Follow these mandatory rules when creating or inspecting Lumakey plugins:
-                1. Before authoring any plugin, read `lumakey://specs/plugin-v3` and call `lumakey_list_plugins` (to check BUILTIN native plugins like Mos/LumaLink/SystemPulse so you do not duplicate them) and `lumakey_app_permissions` (to audit app-wide permission usage).
+                1. Before authoring any plugin, read `lumakey://specs/plugin-v3` and call `lumakey_list_plugins` (to check BUILTIN native plugins like SmoothScroll/LumaLink/SystemPulse so you do not duplicate them) and `lumakey_app_permissions` (to audit app-wide permission usage).
                 2. Every plugin MUST explicitly declare its required permissions via `capabilities` (Host Bridge) AND `resourceScopes` (`network`, `filesystem`, `subprocess`, or `[]` if none) in `plugin.json` at registration time. Pass `[]` for both when authoring a pure sandboxed plugin.
                 3. Reuse host TCC permissions through declared `capabilities` and the ephemeral per-run UDS Host Bridge (`LUMAKEY_BRIDGE_SOCK` / `LUMAKEY_BRIDGE_TOKEN`). Never write `launchd` plists, resident HTTP servers, or infinite `while true` loops.
                 4. Prefer `mode: "view"` outputting `PluginViewPayload` JSON for native Liquid Glass cards.
                 5. Always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after scaffolding or editing a plugin.
+                6. When sharing a plugin or building a custom plugin store (`lumakey-registry.json`), read `lumakey://specs/plugin-store-v1` and call `lumakey_package_plugin_for_store`.
                 """
             ])
         case "ping":
@@ -62,6 +63,12 @@ final class MCPServer {
                         "name": "Lumakey Plugin Spec v3",
                         "description": "Unified Builtin/External model, mandatory registration capabilities declaration, and ephemeral UDS Host Bridge protocol.",
                         "mimeType": "text/markdown"
+                    ],
+                    [
+                        "uri": "lumakey://specs/plugin-store-v1",
+                        "name": "Lumakey Plugin & Store Distribution Spec v1",
+                        "description": "Smart URL auto-detection rules, lumakey-registry.json custom store format, SHA-256 verification, and packaging workflow.",
+                        "mimeType": "text/markdown"
                     ]
                 ]
             ])
@@ -71,6 +78,7 @@ final class MCPServer {
             case "lumakey://specs/plugin-v1": PluginSystem.specMarkdown
             case "lumakey://specs/plugin-v2": PluginSystem.specV2Markdown
             case "lumakey://specs/plugin-v3": PluginSystem.specV3Markdown
+            case "lumakey://specs/plugin-store-v1": PluginSystem.specStoreV1Markdown
             default: nil
             }
             guard let specText else {

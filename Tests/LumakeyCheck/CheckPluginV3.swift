@@ -23,21 +23,22 @@ private func verifyBuiltinRegistryAndLifecycle() throws {
     check(PluginSystem.listPlugins(in: tmp, includeBuiltin: false).isEmpty, "includeBuiltin=false excludes builtins")
     check(PluginSystem.listPlugins(in: tmp, includeBuiltin: true).count == 3, "includeBuiltin=true includes builtins")
 
-    // Stopping builtins turns off listeners/taps safely
-    let savedMos = MosConfig.load()
-    let savedLL = LumaLinkConfig.load()
+    // Stopping builtins turns off listeners/taps safely without touching real user Application Support configs
+    let cfgPaths = BuiltinPluginConfigPaths(
+        mosURL: tmp.appendingPathComponent("mos-config.json"),
+        lumaLinkURL: tmp.appendingPathComponent("lumalink-config.json"),
+        monitorURL: tmp.appendingPathComponent("telemetry-v2.json")
+    )
     defer {
         MosEngine.shared.stopTapAndReleaseAll()
         LumaLinkServer.shared.stopAll(waitUntilFinished: true)
-        savedMos.save()
-        savedLL.save()
     }
-    check(PluginBuiltinRegistry.setBuiltinEnabled(id: "builtin-mos", isEnabled: false), "disable builtin-mos")
+    check(PluginBuiltinRegistry.setBuiltinEnabled(id: "builtin-mos", isEnabled: false, configPaths: cfgPaths), "disable builtin-mos")
     check(!MosEngine.shared.isTapActive, "disabling builtin-mos stops CGEventTap")
-    check(PluginBuiltinRegistry.setBuiltinEnabled(id: "builtin-lumalink", isEnabled: false), "disable builtin-lumalink")
+    check(PluginBuiltinRegistry.setBuiltinEnabled(id: "builtin-lumalink", isEnabled: false, configPaths: cfgPaths), "disable builtin-lumalink")
     check(!LumaLinkServer.shared.currentSnapshot().isListening, "disabling builtin-lumalink stops listener")
 
-    let runOut = PluginBuiltinRegistry.runBuiltin(id: "builtin-mos", query: "wheel")
+    let runOut = PluginBuiltinRegistry.runBuiltin(id: "builtin-mos", query: "wheel", configPaths: cfgPaths)
     check(runOut?.isStructuredView == true && runOut?.viewPayload?.items?.first?.openURL == "lumakey://settings/mos",
           "runBuiltin returns structured view card with lumakey://settings/mos URL")
 }

@@ -204,9 +204,17 @@ private func verifyViewProtocolV2AndBuiltinArguments() throws {
           && parsed?.effect?.reloadSearchIndex == true,
           "View v2 actions/confirmMessage/effect decode cleanly")
 
-    let savedMos = MosConfig.load()
-    defer { MosEngine.shared.apply(config: savedMos, persist: true) }
-    let builtinOut = PluginBuiltinRegistry.runBuiltin(id: "builtin-mos", query: "", arguments: ["--disable"])
+    let cfgTmp = try makeTempDir("v31-builtin-cfg")
+    defer {
+        MosEngine.shared.stopTapAndReleaseAll()
+        try? FileManager.default.removeItem(at: cfgTmp)
+    }
+    let cfgPaths = BuiltinPluginConfigPaths(
+        mosURL: cfgTmp.appendingPathComponent("mos-config.json"),
+        lumaLinkURL: cfgTmp.appendingPathComponent("lumalink-config.json"),
+        monitorURL: cfgTmp.appendingPathComponent("telemetry-v2.json")
+    )
+    let builtinOut = PluginBuiltinRegistry.runBuiltin(id: "builtin-mos", query: "", arguments: ["--disable"], configPaths: cfgPaths)
     check(builtinOut?.viewPayload?.items?.contains(where: { $0.commandArgs == ["--enable"] }) == true,
           "runBuiltin executes --disable argument cleanly")
 }

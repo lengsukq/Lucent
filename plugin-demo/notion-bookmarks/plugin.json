@@ -2,56 +2,152 @@
   "schemaVersion": 3,
   "id": "notion-bookmarks",
   "name": "Notion 书签收藏",
-  "version": "1.1.0",
-  "description": "参考 nav-notion-lime 的 Notion 数据库模型，支持无前缀检索、剪贴板/表单新增、原生确认归档与置顶管理",
+  "version": "1.4.0",
+  "description": "支持包内图标、中英双语、子功能独立快捷键、滑块缓存配置与免前缀检索",
   "mode": "view",
   "keywords": ["bm", "bookmark", "notion", "nav"],
   "entry": "run.sh",
   "author": "Lumakey Official",
-  "icon": "bookmark.fill",
+  "icon": "icon.svg",
+  "accentColor": "teal",
+  "categoryTag": "书签",
   "capabilities": ["clipboard"],
   "resourceScopes": ["network", "filesystem"],
+  "accepts": ["url", "text"],
+  "refreshIntervalSeconds": 180,
+  "commands": [
+    {
+      "id": "add-clipboard",
+      "title": "收藏剪贴板链接到 Notion",
+      "subtitle": "读取当前剪贴板网页链接并一键写入 Notion 书签数据库",
+      "keywords": ["bmadd", "saveurl", "收藏书签", "剪贴板书签"],
+      "icon": "plus.circle.fill",
+      "arguments": ["--add-clipboard"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "refresh-bookmarks",
+      "title": "同步刷新 Notion 书签索引",
+      "subtitle": "强制拉取最新 Notion 书签并刷新本地免前缀检索索引",
+      "keywords": ["bmsync", "刷新书签", "同步书签"],
+      "icon": "arrow.clockwise",
+      "arguments": ["--refresh"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "list-bookmarks",
+      "title": "浏览全部 Notion 书签",
+      "subtitle": "打开 Notion 书签总览卡片并管理置顶或归档",
+      "keywords": ["bmlist", "书签列表", "全部书签"],
+      "icon": "bookmark.fill",
+      "arguments": ["--list"],
+      "passQuery": false
+    }
+  ],
   "config": [
     {
       "key": "notionToken",
       "label": "Notion Secret Token",
       "type": "secret",
       "placeholder": "ntn_... 或 secret_...",
-      "required": true
+      "required": true,
+      "section": "Notion 鉴权与数据库",
+      "helpText": "由本机 0600 保险箱加密托管，不会明文写入 plugin-state.json"
     },
     {
       "key": "databaseId",
       "label": "Notion Database ID / 数据库链接",
       "type": "text",
       "placeholder": "32位 ID 或完整 notion.so 数据库 URL",
-      "required": true
+      "required": true,
+      "section": "Notion 鉴权与数据库"
     },
     {
       "key": "defaultTags",
-      "label": "新建默认标签 (逗号分隔)",
-      "type": "text",
+      "label": "新建默认标签",
+      "type": "tags",
       "defaultValue": "书签",
-      "placeholder": "例如: 书签, 常用"
+      "placeholder": "输入标签回车添加，例如: 书签, 常用",
+      "section": "采集与缓存策略"
     },
     {
       "key": "autoFetchMeta",
       "label": "新增时自动抓取网页标题与简介",
       "type": "boolean",
-      "defaultValue": "true"
+      "defaultValue": "true",
+      "section": "采集与缓存策略"
     },
     {
       "key": "cacheTtlSeconds",
-      "label": "本地缓存有效期 (秒，0 表示每次实时请求)",
-      "type": "text",
+      "label": "本地缓存有效期 (秒)",
+      "type": "number",
+      "control": "slider",
       "defaultValue": "120",
-      "placeholder": "120"
+      "minValue": 0,
+      "maxValue": 3600,
+      "stepValue": 30,
+      "section": "采集与缓存策略"
     },
     {
       "key": "maxItems",
       "label": "卡片最多展示条数",
       "type": "select",
       "defaultValue": "15",
-      "options": ["10", "15", "25"]
+      "options": ["10", "15", "25"],
+      "section": "采集与缓存策略"
     }
-  ]
+  ],
+  "locales": {
+    "en": {
+      "name": "Notion Bookmarks",
+      "description": "Zero-prefix Notion bookmark search, sub-command hotkeys, clip saving & pin management",
+      "categoryTag": "Bookmarks",
+      "commands": {
+        "add-clipboard": {
+          "title": "Save Clipboard URL to Notion",
+          "subtitle": "Read the current clipboard URL and save it to your Notion database"
+        },
+        "refresh-bookmarks": {
+          "title": "Sync Notion Bookmark Index",
+          "subtitle": "Fetch latest Notion bookmarks and rebuild local instant-search index"
+        },
+        "list-bookmarks": {
+          "title": "Browse All Notion Bookmarks",
+          "subtitle": "Open structured bookmark card to pin or archive items"
+        }
+      },
+      "config": {
+        "notionToken": {
+          "label": "Notion Secret Token",
+          "placeholder": "ntn_... or secret_...",
+          "section": "Notion Auth & Database",
+          "helpText": "Encrypted locally; never written in plaintext to plugin-state.json"
+        },
+        "databaseId": {
+          "label": "Notion Database ID / URL",
+          "placeholder": "32-char ID or full notion.so URL",
+          "section": "Notion Auth & Database"
+        },
+        "defaultTags": {
+          "label": "Default Tags",
+          "placeholder": "Press Return to add tags",
+          "section": "Capture & Cache"
+        },
+        "autoFetchMeta": {
+          "label": "Auto-fetch page title & description",
+          "section": "Capture & Cache"
+        },
+        "cacheTtlSeconds": {
+          "label": "Local Cache TTL (seconds)",
+          "section": "Capture & Cache"
+        },
+        "maxItems": {
+          "label": "Max Card Items",
+          "section": "Capture & Cache"
+        }
+      }
+    }
+  }
 }
