@@ -9,11 +9,14 @@ extension PluginStarterGallery {
             description: "即时读取本机活跃网卡 IPv4、LocalHostName、系统 DNS 服务器及可选公网出口 IP，点击即可复制。",
             mode: .view, icon: "network", keywords: ["ip", "dns", "netdiag"],
             config: [
-                PluginConfigField(key: "interfaceHint", label: "首选网卡接口", type: .select, defaultValue: "en0", options: ["en0", "en1", "utun0"]),
-                PluginConfigField(key: "fetchPublicIP", label: "查询公网出口 IP (1.2s 超时)", type: .boolean, defaultValue: "false")
+                PluginConfigField(key: "interfaceHint", label: "首选网卡接口", type: .select, defaultValue: "en0", options: ["en0", "en1", "utun0"], section: "网络采样"),
+                PluginConfigField(key: "fetchPublicIP", label: "查询公网出口 IP (1.2s 超时)", type: .boolean, defaultValue: "false", section: "网络采样")
             ],
             capabilities: [],
             resourceScopes: [.network, .subprocess],
+            commands: [
+                PluginCommandSpec(id: "lan-dns", title: "速查本机局域网 IP 与 DNS", subtitle: "一键展示活跃网卡 IPv4、主机名与首选 DNS", keywords: ["lanip", "查ip", "本机dns"], icon: "wifi", arguments: ["--lan"], passQuery: false)
+            ],
             scriptBody: """
             #!/bin/zsh
             set -euo pipefail
@@ -38,20 +41,26 @@ extension PluginStarterGallery {
             id: "quick-hash-uuid",
             name: "批量 UUID 与摘要生成",
             subtitle: "SHA-256 · MD5 · 批量标准 UUID 卡片",
-            description: "对输入文本（需授权剪贴板能力才可自动回退读取剪贴板）计算 SHA-256 与 MD5 摘要，并一次生成多枚 UUID。",
+            description: "对输入文本（支持剪贴板与 OCR 上下文直达）计算 SHA-256 与 MD5 摘要，并一次生成多枚 UUID。",
             mode: .view, icon: "number.square.fill", keywords: ["hash", "uuidbatch", "digest"],
-            config: [PluginConfigField(key: "uppercase", label: "输出大写字符", type: .boolean, defaultValue: "false")],
+            config: [PluginConfigField(key: "uppercase", label: "输出大写字符", type: .boolean, defaultValue: "false", section: "输出格式")],
             capabilities: [.clipboard],
             resourceScopes: [.subprocess],
+            accepts: [.text, .url],
+            commands: [
+                PluginCommandSpec(id: "clip-digest", title: "计算剪贴板 SHA-256 摘要", subtitle: "对当前剪贴板或附加文本计算 SHA-256 与 MD5", keywords: ["cliphash", "剪贴板哈希"], icon: "lock.shield", arguments: ["--digest"], passQuery: true),
+                PluginCommandSpec(id: "batch-uuid", title: "生成批量随机 UUID", subtitle: "一键生成多枚标准 UUID 并展示复制卡片", keywords: ["genuuid", "批量uuid"], icon: "sparkles", arguments: ["--uuid"], passQuery: false)
+            ],
             scriptBody: """
             #!/bin/zsh
             set -euo pipefail
             PAYLOAD="$(cat)"
             esc() { printf '%s' "$1" | tr '\\r\\n\\t' '   ' | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g'; }
             Q="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract query raw -o - - 2>/dev/null || true)"
+            CTX_T="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract context.text raw -o - - 2>/dev/null || true)"
             CLIP="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract clipboard raw -o - - 2>/dev/null || true)"
             UPPER="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract config.uppercase raw -o - - 2>/dev/null || echo "false")"
-            SRC="${Q:-$CLIP}"
+            SRC="${Q:-${CTX_T:-$CLIP}}"
             [[ -z "$SRC" ]] && SRC="lumakey"
             SHA="$(printf '%s' "$SRC" | /usr/bin/shasum -a 256 | awk '{print $1}')"
             MD5V="$(printf '%s' "$SRC" | /sbin/md5 -q)"
@@ -68,9 +77,18 @@ extension PluginStarterGallery {
             subtitle: "lsof 秒查端口占用 · 生成优雅释放命令",
             description: "输入端口号（如 3000 / 8080）排查占用进程 PID 与可执行程序，一键复制释放指令。",
             mode: .view, icon: "bolt.horizontal.circle.fill", keywords: ["port", "lsof", "listen"],
-            config: [PluginConfigField(key: "defaultPort", label: "空查询默认排查端口", type: .text, defaultValue: "3000", placeholder: "3000")],
+            config: [
+                PluginConfigField(
+                    key: "defaultPort", label: "空查询默认排查端口", type: .number,
+                    defaultValue: "3000", placeholder: "3000", section: "默认端口",
+                    minValue: 1, maxValue: 65535, stepValue: 1
+                )
+            ],
             capabilities: [],
             resourceScopes: [.subprocess],
+            commands: [
+                PluginCommandSpec(id: "check-default-port", title: "排查默认开发端口占用", subtitle: "使用 lsof 探测预设端口的监听进程 PID", keywords: ["portcheck", "排查端口"], icon: "bolt.horizontal.circle", arguments: ["--default"], passQuery: true)
+            ],
             scriptBody: """
             #!/bin/zsh
             set -euo pipefail
@@ -97,27 +115,33 @@ extension PluginStarterGallery {
             id: "shell-note",
             name: "快速追加灵感笔记",
             subtitle: "极速追加带时间戳 Markdown 速记",
-            description: "将灵感或待办附带时间戳与标签快速追加到本地 Markdown 收件箱文件。",
+            description: "将灵感、剪贴板摘录或链接附带时间戳与标签快速追加到本地 Markdown 收件箱文件。",
             mode: .script, icon: "note.text.badge.plus", keywords: ["note", "memo", "inbox"],
             config: [
-                PluginConfigField(key: "notesPath", label: "Markdown 笔记路径", type: .text, defaultValue: "~/Documents/Lumakey-Notes.md", placeholder: "~/Documents/Lumakey-Notes.md"),
-                PluginConfigField(key: "tagPrefix", label: "默认标签前缀", type: .text, defaultValue: "#idea", placeholder: "#idea")
+                PluginConfigField(key: "notesPath", label: "Markdown 笔记路径", type: .path, defaultValue: "~/Documents/Lumakey-Notes.md", placeholder: "~/Documents/Lumakey-Notes.md", section: "存储与标签"),
+                PluginConfigField(key: "tagPrefix", label: "默认标签前缀", type: .text, defaultValue: "#idea", placeholder: "#idea", section: "存储与标签")
             ],
             capabilities: [],
             resourceScopes: [.filesystem],
+            accepts: [.text, .url],
+            commands: [
+                PluginCommandSpec(id: "recent-notes", title: "查看最近 5 条灵感速记", subtitle: "快速读取本地 Markdown 收件箱尾部记录", keywords: ["notetail", "最近笔记"], icon: "doc.plaintext", arguments: ["--tail"], passQuery: false)
+            ],
             scriptBody: """
             #!/bin/zsh
             set -euo pipefail
             PAYLOAD="$(cat)"
             Q="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract query raw -o - - 2>/dev/null || true)"
+            CTX_T="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract context.text raw -o - - 2>/dev/null || true)"
             RAW_PATH="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract config.notesPath raw -o - - 2>/dev/null || echo "~/Documents/Lumakey-Notes.md")"
             TAG="$(printf '%s' "$PAYLOAD" | /usr/bin/plutil -extract config.tagPrefix raw -o - - 2>/dev/null || echo "#idea")"
             NOTE_FILE="${RAW_PATH/#\\~/$HOME}"
             mkdir -p "$(dirname "$NOTE_FILE")"
-            if [[ -n "${Q// /}" ]]; then
+            BODY="${Q:-$CTX_T}"
+            if [[ "${1:-}" != "--tail" && -n "${BODY// /}" ]]; then
               TS="$(date '+%Y-%m-%d %H:%M')"
-              printf -- '- [%s] %s %s\\n' "$TS" "$TAG" "$Q" >> "$NOTE_FILE"
-              echo "已写入笔记 ($NOTE_FILE): [$TS] $TAG $Q"
+              printf -- '- [%s] %s %s\\n' "$TS" "$TAG" "$BODY" >> "$NOTE_FILE"
+              echo "已写入笔记 ($NOTE_FILE): [$TS] $TAG $BODY"
             else
               [[ -f "$NOTE_FILE" ]] && tail -n 5 "$NOTE_FILE" || echo "笔记为空，输入内容即可追加至 $NOTE_FILE"
             fi
@@ -132,6 +156,9 @@ extension PluginStarterGallery {
             config: [],
             capabilities: [.displayInfo, .systemControl],
             resourceScopes: [.subprocess],
+            commands: [
+                PluginCommandSpec(id: "snapshot-now", title: "读取显示器与系统音量速览", subtitle: "经临时 Host Bridge 零弹窗采集屏幕模式与防休眠状态", keywords: ["dispsnap", "屏幕速览"], icon: "display", arguments: ["--snapshot"], passQuery: false)
+            ],
             scriptBody: """
             #!/bin/zsh
             set -euo pipefail

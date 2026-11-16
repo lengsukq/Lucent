@@ -64,11 +64,94 @@ public struct PluginPostActionEffect: Codable, Sendable, Hashable {
     public let toast: String?
     public let closeOverlay: Bool?
     public let reloadSearchIndex: Bool?
+    public let statusSummary: String?
+    public let statusBadge: String?
+    public let openReaderPath: String?
+    public let openImagePath: String?
+    public let pinImagePath: String?
 
-    public init(toast: String? = nil, closeOverlay: Bool? = nil, reloadSearchIndex: Bool? = nil) {
+    public init(
+        toast: String? = nil,
+        closeOverlay: Bool? = nil,
+        reloadSearchIndex: Bool? = nil,
+        statusSummary: String? = nil,
+        statusBadge: String? = nil,
+        openReaderPath: String? = nil,
+        openImagePath: String? = nil,
+        pinImagePath: String? = nil
+    ) {
         self.toast = toast
         self.closeOverlay = closeOverlay
         self.reloadSearchIndex = reloadSearchIndex
+        self.statusSummary = statusSummary
+        self.statusBadge = statusBadge
+        self.openReaderPath = openReaderPath
+        self.openImagePath = openImagePath
+        self.pinImagePath = pinImagePath
+    }
+}
+
+public enum PluginDeepLinkTarget: Sendable, Hashable, Equatable {
+    case settingsSection(String)
+    case pluginSettings(String)
+    case documentReader(URL)
+    case imageViewer(URL, pinOnTop: Bool)
+    case pinImage(URL)
+}
+
+public enum PluginDeepLinkParser {
+    public static func parse(_ url: URL) -> PluginDeepLinkTarget? {
+        guard url.scheme?.lowercased() == "lumakey", let host = url.host?.lowercased() else {
+            return nil
+        }
+        let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let queryMap = Dictionary(uniqueKeysWithValues: (comps?.queryItems ?? []).compactMap { item -> (String, String)? in
+            guard let val = item.value, !val.isEmpty else { return nil }
+            return (item.name, val)
+        })
+
+        switch host {
+        case "settings":
+            let parts = url.path.split(separator: "/").map(String.init)
+            if parts.count >= 2, parts[0] == "plugin" {
+                return .pluginSettings(parts[1])
+            }
+            return .settingsSection(parts.first ?? "general")
+
+        case "reader":
+            if let rawPath = queryMap["path"] ?? (url.path.count > 1 ? url.path : nil) {
+                let target = URL(fileURLWithPath: rawPath).standardizedFileURL
+                guard FileManager.default.fileExists(atPath: target.path) else { return nil }
+                return .documentReader(target)
+            }
+            if let md = queryMap["markdown"], !md.isEmpty {
+                let rawTitle = (queryMap["title"] ?? "plugin-note")
+                    .replacingOccurrences(of: "/", with: "-")
+                    .replacingOccurrences(of: "..", with: "")
+                let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent("lumakey-plugin-docs", isDirectory: true)
+                try? FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+                let fileURL = tmpDir.appendingPathComponent("\(rawTitle).md")
+                try? Data(md.utf8).write(to: fileURL, options: .atomic)
+                return .documentReader(fileURL)
+            }
+            return nil
+
+        case "image":
+            guard let rawPath = queryMap["path"] ?? (url.path.count > 1 ? url.path : nil) else { return nil }
+            let target = URL(fileURLWithPath: rawPath).standardizedFileURL
+            guard FileManager.default.fileExists(atPath: target.path) else { return nil }
+            let pin = queryMap["pin"] == "1" || queryMap["pin"]?.lowercased() == "true"
+            return .imageViewer(target, pinOnTop: pin)
+
+        case "pin":
+            guard let rawPath = queryMap["path"] ?? (url.path.count > 1 ? url.path : nil) else { return nil }
+            let target = URL(fileURLWithPath: rawPath).standardizedFileURL
+            guard FileManager.default.fileExists(atPath: target.path) else { return nil }
+            return .pinImage(target)
+
+        default:
+            return nil
+        }
     }
 }
 

@@ -8,10 +8,10 @@ public enum LumakeyPermissionCategory: String, Codable, Sendable, Hashable, Case
 
     public var title: String {
         switch self {
-        case .systemTCC: "系统 TCC"
-        case .systemKernel: "内核采样"
-        case .hostBridge: "宿主桥接"
-        case .resourceScope: "外部作用域"
+        case .systemTCC: L10n.pick("系统 TCC", "System TCC")
+        case .systemKernel: L10n.pick("内核采样", "Kernel Telemetry")
+        case .hostBridge: L10n.pick("宿主桥接", "Host Bridge")
+        case .resourceScope: L10n.pick("外部作用域", "Resource Scope")
         }
     }
 }
@@ -87,11 +87,11 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
         if let cap = capability { return cap.title }
         if let scope = resourceScope { return scope.title }
         switch self {
-        case .accessibility: return "辅助功能 (Accessibility)"
-        case .screenRecording: return "屏幕录制 (Screen Recording)"
-        case .localNetwork: return "本地网络 (Local Network)"
-        case .microphoneAndAudio: return "麦克风与系统音频"
-        case .telemetrySampling: return "IOKit / Mach 硬件采样"
+        case .accessibility: return L10n.pick("辅助功能 (Accessibility)", "Accessibility")
+        case .screenRecording: return L10n.pick("屏幕录制 (Screen Recording)", "Screen Recording")
+        case .localNetwork: return L10n.pick("本地网络 (Local Network)", "Local Network")
+        case .microphoneAndAudio: return L10n.pick("麦克风与系统音频", "Microphone & System Audio")
+        case .telemetrySampling: return L10n.pick("IOKit / Mach 硬件采样", "IOKit / Mach Hardware Telemetry")
         default: return rawValue
         }
     }
@@ -100,11 +100,11 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
         if let cap = capability { return cap.summary }
         if let scope = resourceScope { return scope.summary }
         switch self {
-        case .accessibility: return "用于全局鼠标/键盘事件捕获与远程控制键鼠输入注入"
-        case .screenRecording: return "用于截图采集、远控桌面镜像捕获与光学文字识别输入"
-        case .localNetwork: return "用于 Bonjour 局域网服务广播与 LumaLink 设备配对通信"
-        case .microphoneAndAudio: return "用于远控双向音频捕获与实时音频流透传"
-        case .telemetrySampling: return "只读采样 CPU/DVFS 频率、内存、功耗与网速（免 TCC 弹窗）"
+        case .accessibility: return L10n.pick("用于全局鼠标/键盘事件捕获与远程控制键鼠输入注入", "Global mouse wheel smoothing, text selection & remote input injection")
+        case .screenRecording: return L10n.pick("用于截图采集、远控桌面镜像捕获与光学文字识别输入", "Screenshot capture, GIF recording, Vision OCR & remote screen sharing")
+        case .localNetwork: return L10n.pick("用于 Bonjour 局域网服务广播与 LumaLink 设备配对通信", "Bonjour LAN service discovery & LumaLink device pairing")
+        case .microphoneAndAudio: return L10n.pick("用于远控双向音频捕获与实时音频流透传", "Two-way audio capture & real-time system audio streaming")
+        case .telemetrySampling: return L10n.pick("只读采样 CPU/DVFS 频率、内存、功耗与网速（免 TCC 弹窗）", "Read-only CPU/DVFS, memory, power & network sampling (no TCC prompt)")
         default: return ""
         }
     }
@@ -202,17 +202,17 @@ public enum PluginPermissionAudit {
                 if plugin.isBuiltin {
                     authorized = (permission == .accessibility) ? accessibilityGranted : true
                     note = plugin.isEnabled
-                        ? (authorized ? "内置原生 · 宿主共享中" : "内置原生 · 待授系统权限")
-                        : "内置原生 · 插件已关闭（零消耗）"
+                        ? (authorized ? L10n.pick("内置原生 · 宿主共享中", "Built-in · Shared") : L10n.pick("内置原生 · 待授系统权限", "Built-in · Grant TCC"))
+                        : L10n.pick("内置原生 · 插件已关闭（零消耗）", "Built-in · Off (0% CPU)")
                 } else if let cap = permission.capability {
                     authorized = plugin.isCapabilityGranted(cap)
-                    note = authorized ? "Host Bridge · 已授权" : "Host Bridge · 默认关闭（未授权）"
+                    note = authorized ? L10n.pick("Host Bridge · 已授权", "Host Bridge · Granted") : L10n.pick("Host Bridge · 默认关闭（未授权）", "Host Bridge · Denied")
                 } else if permission.resourceScope != nil {
                     authorized = true
-                    note = "注册声明作用域（审计可见）"
+                    note = L10n.pick("注册声明作用域（审计可见）", "Declared Scope (Audited)")
                 } else {
                     authorized = false
-                    note = "声明权限"
+                    note = L10n.pick("声明权限", "Declared")
                 }
                 usages.append(PluginPermissionUsage(
                     permissionRaw: permission.rawValue,

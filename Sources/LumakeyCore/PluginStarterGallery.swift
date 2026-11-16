@@ -11,18 +11,24 @@ public struct PluginStarterTemplate: Identifiable, Sendable, Hashable, Equatable
     public let config: [PluginConfigField]
     public let capabilities: [PluginCapability]
     public let resourceScopes: [PluginResourceScope]
+    public let accepts: [PluginContextKind]
+    public let commands: [PluginCommandSpec]
     public let scriptBody: String
 
     public init(
         id: String, name: String, subtitle: String, description: String,
         mode: PluginMode, icon: String, keywords: [String],
         config: [PluginConfigField], capabilities: [PluginCapability] = [],
-        resourceScopes: [PluginResourceScope] = [], scriptBody: String
+        resourceScopes: [PluginResourceScope] = [],
+        accepts: [PluginContextKind] = [],
+        commands: [PluginCommandSpec] = [],
+        scriptBody: String
     ) {
         self.id = id; self.name = name; self.subtitle = subtitle; self.description = description
         self.mode = mode; self.icon = icon; self.keywords = keywords
         self.config = config; self.capabilities = capabilities
-        self.resourceScopes = resourceScopes; self.scriptBody = scriptBody
+        self.resourceScopes = resourceScopes; self.accepts = accepts
+        self.commands = commands; self.scriptBody = scriptBody
     }
 }
 
@@ -62,7 +68,9 @@ public enum PluginStarterGallery {
             mode: tpl.mode, keywords: tpl.keywords, entry: entryName,
             author: "Lumakey Official", icon: tpl.icon, config: tpl.config,
             capabilities: tpl.capabilities.map(\.rawValue),
-            resourceScopes: tpl.resourceScopes.map(\.rawValue)
+            resourceScopes: tpl.resourceScopes.map(\.rawValue),
+            accepts: tpl.accepts.isEmpty ? nil : tpl.accepts.map(\.rawValue),
+            commands: tpl.commands.isEmpty ? nil : tpl.commands
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

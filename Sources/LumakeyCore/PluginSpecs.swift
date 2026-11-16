@@ -10,14 +10,14 @@ extension PluginSystem {
 
     public static let specV2Markdown: String = """
     # Lumakey Plugin Specification (v2)
-    - Backward-compatible with v1 `plugin.json`; optional v2 fields: `author`, `icon` (SF Symbol), `hotkey`, `config` (`[PluginConfigField]` with `key`, `label`, `type`: `text|secret|boolean|select`, `defaultValue`, `placeholder`, `options`, `required`).
+    - Backward-compatible with v1 `plugin.json`; optional v2 fields: `author`, `icon` (SF Symbol or relative bundle image), `hotkey`, `config` (`[PluginConfigField]` with `key`, `label`, `type`: `text|secret|boolean|select`, `defaultValue`, `placeholder`, `options`, `required`).
     - State & Config: persisted in `plugin-state.json` (`isEnabled` + `configValues`), hot-reloaded with 350ms FSEvents debounce.
-    - Enriched stdin JSON: `{"query":"...","mode":"script|view","config":{...},"clipboard":"..."}`.
-    - Declarative `view` stdout JSON (`PluginViewPayload`): `{"title":"...","subtitle":"...","badge":"...","markdown":"...","metrics":[{"key":"...","value":"..."}],"items":[{"title":"...","subtitle":"...","icon":"...","badge":"...","copyText":"...","openURL":"...","commandArgs":["..."]}]}` (gracefully degrades to plain text if stdout is non-JSON).
+    - Enriched stdin JSON: `{"query":"...","mode":"script|view","locale":"zh-Hans|en","theme":"pure-frost|prism-pulse","config":{...},"clipboard":"..."}`.
+    - Declarative `view` stdout JSON (`PluginViewPayload`): `{"title":"...","subtitle":"...","badge":"...","markdown":"...","metrics":[{"key":"...","value":"..."}],"items":[{"title":"...","subtitle":"...","icon":"...","tintColor":"...","badge":"...","copyText":"...","openURL":"...","commandArgs":["..."]}]}` (gracefully degrades to plain text if stdout is non-JSON).
     """
 
     public static let specV3Markdown: String = """
-    # Lumakey Plugin Specification (v3.1)
+    # Lumakey Plugin Specification (v3.4 · Native Experience, Bilingual Locales & Command Hotkeys)
 
     Lumakey is a **lightweight macOS productivity hub** — NOT a background application server, gateway, or daemon runner.
 
@@ -25,73 +25,30 @@ extension PluginSystem {
     1. **Zero Resident Daemons**: NEVER write `launchd` plists, infinite `while true` loops, background HTTP servers, or cron schedulers inside a plugin.
     2. **On-Demand Execution Only**: Plugins are spawned when triggered, emit stdout, and exit immediately. Swift Task cancellation terminates the entire child process group cleanly.
     3. **Mandatory Permission & Resource Declaration on Registration**: Every plugin MUST explicitly declare BOTH `"capabilities"` (Host Bridge capabilities or `[]`) AND `"resourceScopes"` (`network`, `filesystem`, `subprocess`, or `[]`). Omitting either fails strict validation.
-    4. **Keychain Secrets & Gated Context**: `type: "secret"` fields are stored in macOS Keychain (never in `plugin-state.json`). `stdin.clipboard` is injected ONLY when `"clipboard"` is both declared and granted.
-    5. **Code/State Separation**: Put immutable code in `Plugins/<id>/` and write caches/`search-index.json` into `LUMAKEY_DATA_DIR` (`stdin.dataDir` -> `Application Support/Lumakey/PluginData/<id>/`).
+    4. **Encrypted Secrets & Gated Context**: `type: "secret"` fields are encrypted locally (never stored in plaintext in `plugin-state.json`). `stdin.clipboard` is injected ONLY when `"clipboard"` is both declared and granted.
+    5. **Code/State/Override Separation & Default-OFF Quick Buttons**: Put immutable code/icons in `Plugins/<id>/`, write caches/`search-index.json`/`status.json` into `LUMAKEY_DATA_DIR`, while user customizations (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs`, `includeInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) live in `plugin-state.json` (`overrides`). **By default, ALL plugins and ALL sub-commands have NO Quick Button enabled (`pinnedInOverlay = false`, `quickButtonCommandIDs = []`)**.
 
-    ## Directory & `plugin.json` v3.1 Schema
-    Path: `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json`
-    ```json
-    {
-      "schemaVersion": 3,
-      "id": "my-tool",
-      "name": "My Tool",
-      "version": "1.0.0",
-      "description": "Short summary",
-      "mode": "view",
-      "keywords": ["mytool"],
-      "entry": "run.sh",
-      "author": "Author",
-      "icon": "sparkles",
-      "hotkey": "⌥⇧M",
-      "capabilities": ["displayInfo", "systemControl"],
-      "resourceScopes": ["subprocess"],
-      "config": [
-        { "key": "limit", "label": "Max Items", "type": "text", "defaultValue": "10" }
-      ]
-    }
-    ```
-    - `id` must match `[a-z0-9-]+` and MUST NOT start with `builtin-` (reserved for in-process native plugins).
-    - `entry` must be an executable relative path inside the plugin directory (no `..` traversal).
-    - Optional `search-index.json` inside `PluginData/<id>/` (or plugin directory fallback) enables zero-subprocess prefix-free search in the main launcher.
-    - View items support multi-actions `actions: [{id, label, style: "primary|secondary|destructive", commandArgs, confirmMessage, promptFields}]` and top-level `effect: {toast, closeOverlay, reloadSearchIndex}`.
+    ## Native Visuals, Bilingual Manifest & Deep Links
+    - **Custom Bundle Icons & Brand Accent**: `icon` accepts either an SF Symbol (`"bookmark.fill"`) or a relative image path inside the plugin folder (`"icon.svg"`, `"assets/icon.png"`). Optional `"accentColor"` (`"teal"`, `"cyan"`, `"orange"`, `"#14B8A6"`, etc.) and `"categoryTag"` (`"书签"`) give external plugins first-class native badges instead of raw `VIEW`/`SCRIPT` labels.
+    - **Bilingual `locales` & Runtime Context**: Optional `"locales": { "en": { "name": "...", "description": "...", "categoryTag": "...", "commands": { "<cmdId>": { "title": "...", "subtitle": "..." } }, "config": { "<key>": { "label": "...", "section": "...", "helpText": "..." } } } }` adapts UI live when switching between `简体中文` and `English`. Subprocesses also receive `"locale"` and `"theme"` in `stdin` JSON plus `LUMAKEY_LOCALE` and `LUMAKEY_THEME` env vars.
+    - **Auto-Saved Preferences & Sliders**: `config` fields auto-save in Settings; `type: "number"` supports `"control": "slider"` when `minValue < maxValue` are provided.
+    - **Sub-Command Global Hotkeys & Lightweight Status**: Each item in `commands` supports optional `"hotkey"` and `"silentWhenHotKeyTriggered": true`, and users can record per-command hotkeys (`commandHotKeys`). Returning `"effect": { "statusSummary": "...", "statusBadge": "..." }` (or writing `PluginData/<id>/status.json`) updates the plugin's zero-subprocess status subtitle.
+    - **Rich Markdown & Host Window Deep Links**: `PluginViewPayload.markdown` renders full blocks (tables, fenced code, quotes, callouts, checklists) via `MarkdownBlocksStackView`. `openURL` and `effect` support `lumakey://reader?path=/abs/doc.md` (or `?title=...&markdown=...`), `lumakey://image?path=/abs/img.png&pin=1`, `lumakey://pin?path=/abs/img.png`, and `lumakey://settings/plugin/<id>`.
 
     ## Capabilities & Ephemeral Host Bridge Protocol
-    Declared capabilities default to **DENIED** until toggled ON in Lumakey Plugin Center (`plugin-state.json` `grantedCapabilities`).
+    Declared capabilities default to **DENIED** until toggled ON in Lumakey (`grantedCapabilities`).
     When `capabilities` is non-empty, Lumakey creates an ephemeral `0600` Unix Domain Socket inside a `0700` user-private directory and injects:
-    - Env vars: `LUMAKEY_BRIDGE_SOCK`, `LUMAKEY_BRIDGE_TOKEN`, and `LUMAKEY_DATA_DIR`
-    - `stdin` JSON: `{"query":"...","mode":"...","config":{...},"clipboard":"...","dataDir":"...","bridge":{"socket":"...","token":"...","grantedCapabilities":[...]}}`
-
-    Send one newline-terminated JSON request per UDS connection and read one JSON response line:
-    Request: `{"token":"$LUMAKEY_BRIDGE_TOKEN","capability":"<cap>","action":"<act>","params":{...}}`
-    Success: `{"ok":true,"capability":"<cap>","action":"<act>","data":{...}}`
-    Denied/Error: `{"ok":false,"error":"capability_not_granted|capability_not_declared|invalid_token|...","message":"..."}`
+    - Env vars: `LUMAKEY_BRIDGE_SOCK`, `LUMAKEY_BRIDGE_TOKEN`, `LUMAKEY_DATA_DIR`, `LUMAKEY_LOCALE`, `LUMAKEY_THEME`
+    - `stdin` JSON: `{"query":"...","mode":"...","locale":"...","theme":"...","config":{...},"clipboard":"...","context":{...},"dataDir":"...","bridge":{"socket":"...","token":"...","grantedCapabilities":[...]}}`
 
     ### Available Capabilities & Actions
     - `clipboard`: `read` (`params:{}`) -> `{text}`; `write` (`params:{"text":"..."}`) -> `{written,length}`
-    - `selection`: `read` (`params:{}`) -> `{text,sourceApp,bundleIdentifier}` (captures frontmost selection via host Accessibility before overlay steals focus)
-    - `audio`: `play` (`params:{"path":"/abs/file.mp3"}`) -> `{playing,mode,path,duration}`; `speak` (`params:{"text":"...","language":"en-US"}`) -> `{playing,mode,length}`; `stop` (`params:{}`) -> `{stopped}`
+    - `selection`: `read` (`params:{}`) -> `{text,sourceApp,bundleIdentifier}`
+    - `audio`: `play` (`params:{"path":"/abs/file.mp3"}`); `speak` (`params:{"text":"...","language":"en-US"}`); `stop` (`params:{}`)
     - `ocr`: `recognize` (`params:{"imagePath":"/abs/path.png"}`) -> `{text,barcodes}`
-    - `everythingSearch`: `search` (`params:{"query":"ext:md","limit":20}`) -> `{indexLoaded,count,hits:[{name,path,relativeParent,isDirectory,sizeBytes}]}`
+    - `everythingSearch`: `search` (`params:{"query":"ext:md","limit":20}`) -> `{indexLoaded,count,hits:[...]}`
     - `displayInfo`: `list` (`params:{}`) -> `{displays:[{displayID,name,isMain,currentModeKey,modes:[...]}]}`
-    - `systemControl`: `status` -> `{volumePercent,isMuted,caffeineActive,curtainActive}`; `setVolume` (`{"percent":50}`); `setMute` (`{"muted":true|false|"toggle"}`); `setCaffeine` (`{"active":true|false}`)
+    - `systemControl`: `status`; `setVolume` (`{"percent":50}`); `setMute` (`{"muted":true|false|"toggle"}`); `setCaffeine` (`{"active":true|false}`)
     - `lumaLinkStatus`: `status` (`params:{}`) -> `{enabled,isListening,port,connectedDeviceCount,pairedDeviceCount,rdpEnabled,rdpRunning,localIPv4}`
-
-    ## Copy-Paste `zsh` Host Bridge Example (`run.sh`)
-    ```zsh
-    #!/bin/zsh
-    set -euo pipefail
-    PAYLOAD="$(cat)"
-    RESP=$(printf '{"token":"%s","capability":"displayInfo","action":"list","params":{}}\n' "$LUMAKEY_BRIDGE_TOKEN" | /usr/bin/nc -U "$LUMAKEY_BRIDGE_SOCK")
-    echo "$RESP" | /usr/bin/python3 -c '
-    import json, sys
-    r = json.load(sys.stdin)
-    if not r.get("ok"):
-        print(json.dumps({"title":"需要授权","subtitle":r.get("message",""),"badge":"BRIDGE","items":[{"title":"请在插件中心授权 displayInfo","subtitle":r.get("error","")}]}))
-        sys.exit(0)
-    ds = r["data"]["displays"]
-    print(json.dumps({"title":"显示器速览","badge":"VIEW","metrics":[{"key":"数量","value":str(len(ds))}],
-      "items":[{"title":d["name"],"subtitle":d["currentModeKey"],"icon":"display","copyText":d["currentModeKey"]} for d in ds]}))
-    '
-    ```
     """
 }

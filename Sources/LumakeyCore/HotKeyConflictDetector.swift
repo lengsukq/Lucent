@@ -16,10 +16,15 @@ public enum HotKeyConflictKind: String, Codable, Sendable, Equatable {
 
 public struct ExternalPluginHotKey: Sendable, Equatable, Hashable {
     public let pluginID: String
+    public let commandID: String?
     public let pluginName: String
     public let chord: HotKeyChord
-    public init(pluginID: String, pluginName: String, chord: HotKeyChord) {
-        self.pluginID = pluginID; self.pluginName = pluginName; self.chord = chord
+
+    public init(pluginID: String, commandID: String? = nil, pluginName: String, chord: HotKeyChord) {
+        self.pluginID = pluginID
+        self.commandID = commandID
+        self.pluginName = pluginName
+        self.chord = chord
     }
 }
 
@@ -158,8 +163,8 @@ public enum HotKeyConflictDetector {
             if registrationSucceeded == false || (probeExternal && probeChordOccupiedByExternalProcess(chord, ownedChords: ownedChords)) {
                 issues.append(HotKeyConflictIssue(
                     kind: .externalAppOccupied, severity: .warning, sourceTitle: "已被其他运行中应用占用",
-                    detail: "Carbon 热键探测返回已存在 (-9878)，可能已被 Raycast / Alfred / Snipaste / uTools / Bob 等抢占",
-                    suggestion: "请关闭外部工具中的同款全局热键，或为 Lumakey 换用未占用组合键。"
+                    detail: "Carbon 热键探测返回已存在 (-9878)，可能已被其他运行中的全局热键应用抢占",
+                    suggestion: "请关闭外部应用中的同款全局热键，或为 Lumakey 换用未占用组合键。"
                 ))
             }
         }

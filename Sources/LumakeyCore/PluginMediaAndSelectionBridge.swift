@@ -17,18 +17,26 @@ public struct PluginSelectionSnapshot: Sendable, Hashable {
 
 public enum PluginSelectionReader {
     public static func captureFrontmostSelection(
-        excludingPID: pid_t = ProcessInfo.processInfo.processIdentifier
+        excludingPID: pid_t = ProcessInfo.processInfo.processIdentifier,
+        allowCopyFallback: Bool = false
     ) -> PluginSelectionSnapshot {
         if Thread.isMainThread {
-            return MainActor.assumeIsolated { readFrontmostSelectionOnMain(excludingPID: excludingPID) }
+            return MainActor.assumeIsolated {
+                readFrontmostSelectionOnMain(excludingPID: excludingPID, allowCopyFallback: allowCopyFallback)
+            }
         }
         return DispatchQueue.main.sync {
-            MainActor.assumeIsolated { readFrontmostSelectionOnMain(excludingPID: excludingPID) }
+            MainActor.assumeIsolated {
+                readFrontmostSelectionOnMain(excludingPID: excludingPID, allowCopyFallback: allowCopyFallback)
+            }
         }
     }
 
     @MainActor
-    private static func readFrontmostSelectionOnMain(excludingPID: pid_t) -> PluginSelectionSnapshot {
+    private static func readFrontmostSelectionOnMain(
+        excludingPID: pid_t,
+        allowCopyFallback: Bool
+    ) -> PluginSelectionSnapshot {
         guard let app = NSWorkspace.shared.frontmostApplication else {
             return PluginSelectionSnapshot()
         }
@@ -39,35 +47,98 @@ public enum PluginSelectionReader {
         }
 
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
-        var focusedRef: CFTypeRef?
-        let focusStatus = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedRef)
-        guard focusStatus == .success, let focusedObj = focusedRef,
-              CFGetTypeID(focusedObj) == AXUIElementGetTypeID() else {
-            return PluginSelectionSnapshot(text: "", sourceApp: appName, bundleIdentifier: bundleID)
-        }
-        let focusedElement = unsafeDowncast(focusedObj, to: AXUIElement.self)
-
-        var selectedRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(focusedElement, kAXSelectedTextAttribute as CFString, &selectedRef) == .success,
-           let directText = selectedRef as? String, !directText.isEmpty {
-            return PluginSelectionSnapshot(text: directText, sourceApp: appName, bundleIdentifier: bundleID)
+        if let direct = readSelectionFromAX(appElement: appElement), !direct.isEmpty {
+            return PluginSelectionSnapshot(text: direct, sourceApp: appName, bundleIdentifier: bundleID)
         }
 
-        var rangeRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(focusedElement, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
-           let rangeObj = rangeRef {
-            var rangedTextRef: CFTypeRef?
-            if AXUIElementCopyParameterizedAttributeValue(
-                focusedElement,
-                kAXStringForRangeParameterizedAttribute as CFString,
-                rangeObj,
-                &rangedTextRef
-            ) == .success, let rangedText = rangedTextRef as? String, !rangedText.isEmpty {
-                return PluginSelectionSnapshot(text: rangedText, sourceApp: appName, bundleIdentifier: bundleID)
+        // Chromium / Electron apps lazily expose AX nodes only after AXManualAccessibility is enabled.
+        AXUIElementSetAttributeValue(appElement, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        if let manualText = readSelectionFromAX(appElement: appElement), !manualText.isEmpty {
+            return PluginSelectionSnapshot(text: manualText, sourceApp: appName, bundleIdentifier: bundleID)
+        }
+
+        if allowCopyFallback {
+            let copied = PluginSelectionFallback.copySelectionWithPasteboardRestore(
+                appElement: appElement,
+                bundleIdentifier: bundleID
+            )
+            if !copied.isEmpty {
+                return PluginSelectionSnapshot(text: copied, sourceApp: appName, bundleIdentifier: bundleID)
             }
         }
 
         return PluginSelectionSnapshot(text: "", sourceApp: appName, bundleIdentifier: bundleID)
+    }
+
+    private static func readSelectionFromAX(appElement: AXUIElement) -> String? {
+        for element in candidateAXElements(from: appElement) {
+            if let text = extractSelectedText(from: element), !text.isEmpty {
+                return text
+            }
+        }
+        return nil
+    }
+
+    private static func candidateAXElements(from appElement: AXUIElement) -> [AXUIElement] {
+        var candidates: [AXUIElement] = []
+        if let focused = copyAXElement(appElement, attribute: kAXFocusedUIElementAttribute as CFString) {
+            candidates.append(focused)
+        }
+        if let window = copyAXElement(appElement, attribute: kAXFocusedWindowAttribute as CFString) {
+            if let winFocused = copyAXElement(window, attribute: kAXFocusedUIElementAttribute as CFString) {
+                candidates.append(winFocused)
+            }
+            candidates.append(window)
+        }
+        return candidates
+    }
+
+    private static func copyAXElement(_ element: AXUIElement, attribute: CFString) -> AXUIElement? {
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, attribute, &ref) == .success,
+              let obj = ref,
+              CFGetTypeID(obj) == AXUIElementGetTypeID() else {
+            return nil
+        }
+        return unsafeDowncast(obj, to: AXUIElement.self)
+    }
+
+    private static func extractSelectedText(from element: AXUIElement) -> String? {
+        var selectedRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &selectedRef) == .success,
+           let directText = selectedRef as? String, !directText.isEmpty {
+            return directText
+        }
+
+        var rangeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
+           let rangeObj = rangeRef {
+            var rangedTextRef: CFTypeRef?
+            if AXUIElementCopyParameterizedAttributeValue(
+                element,
+                kAXStringForRangeParameterizedAttribute as CFString,
+                rangeObj,
+                &rangedTextRef
+            ) == .success, let rangedText = rangedTextRef as? String, !rangedText.isEmpty {
+                return rangedText
+            }
+        }
+
+        var markerRangeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, "AXSelectedTextMarkerRange" as CFString, &markerRangeRef) == .success,
+           let markerRange = markerRangeRef {
+            var markerTextRef: CFTypeRef?
+            if AXUIElementCopyParameterizedAttributeValue(
+                element,
+                "AXStringForTextMarkerRange" as CFString,
+                markerRange,
+                &markerTextRef
+            ) == .success, let markerText = markerTextRef as? String, !markerText.isEmpty {
+                return markerText
+            }
+        }
+
+        return nil
     }
 }
 

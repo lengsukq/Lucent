@@ -19,7 +19,7 @@ public enum PluginSystem {
 
     public static func isSafePluginID(_ id: String) -> Bool {
         guard !id.isEmpty, id.count <= 64 else { return false }
-        return id.allSatisfy { ($0 >= "a" && $0 <= "z") || ($0 >= "0" && $0 <= "9") || $0 == "-" }
+        return id.allSatisfy { ($0 >= "a" && $0 <= "z") || ($0 >= "0" && $0 <= "9") || ($0 == "-") }
     }
 
     public static func listPlugins(
@@ -28,16 +28,17 @@ public enum PluginSystem {
         includeBuiltin: Bool = false,
         includeSecrets: Bool = true
     ) -> [PluginDescriptor] {
+        let snapshot = loadStateSnapshot(in: rootDir)
         var results: [PluginDescriptor] = []
         if includeBuiltin {
-            let builtins = PluginBuiltinRegistry.descriptors()
+            let builtinOverrides = snapshot.plugins.mapValues(\.overrides)
+            let builtins = PluginBuiltinRegistry.descriptors(overridesByID: builtinOverrides)
             results.append(contentsOf: includeDisabled ? builtins : builtins.filter(\.isEnabled))
         }
         guard let folders = try? FileManager.default.contentsOfDirectory(
             at: rootDir, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]
         ) else { return results }
 
-        let snapshot = loadStateSnapshot(in: rootDir)
         let externals = folders.compactMap { folder -> PluginDescriptor? in
             guard folder.lastPathComponent != "PluginData" else { return nil }
             let isDir = (try? folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
@@ -90,10 +91,12 @@ public enum PluginSystem {
             allowKeychainInteraction: allowKeychainInteraction
         )
         let granted = Set(inst.grantedCapabilities.compactMap { PluginCapability(rawValue: $0) })
+        let rtStatus = PluginDataInspector.readRuntimeStatus(for: manifest.id, in: resolvedRoot)
         return PluginDescriptor(
             id: manifest.id, directoryURL: directoryURL, manifest: manifest,
             validationIssues: issues, isEnabled: inst.isEnabled, userConfig: config,
-            kind: .external, grantedCapabilities: granted
+            kind: .external, grantedCapabilities: granted, overrides: inst.overrides,
+            runtimeStatus: rtStatus
         )
     }
 
@@ -111,10 +114,8 @@ public enum PluginSystem {
             if field.type == .secret {
                 guard includeSecrets else { continue }
                 if let kcValue = try? PluginKeychainStore.loadSecret(
-                    pluginID: manifest.id,
-                    fieldKey: field.key,
-                    service: service,
-                    allowInteraction: allowKeychainInteraction
+                    pluginID: manifest.id, fieldKey: field.key,
+                    service: service, allowInteraction: allowKeychainInteraction
                 ), !kcValue.isEmpty {
                     merged[field.key] = kcValue
                 } else if let legacy = stored[field.key], !legacy.isEmpty {
@@ -138,6 +139,19 @@ public enum PluginSystem {
         return merged
     }
 
+    public static func resolvedUserConfigWithSecrets(
+        for plugin: PluginDescriptor,
+        in rootDir: URL? = nil
+    ) -> [String: String] {
+        guard !plugin.isBuiltin else { return plugin.userConfig }
+        let resolvedRoot = rootDir ?? plugin.directoryURL.deletingLastPathComponent()
+        let stored = loadStateSnapshot(in: resolvedRoot).plugins[plugin.id]?.configValues ?? plugin.userConfig
+        return resolvedConfig(
+            for: plugin.manifest, stored: stored, pluginsRoot: resolvedRoot,
+            includeSecrets: true, allowKeychainInteraction: false
+        )
+    }
+
     private static func scrubLegacySecrets(pluginID: String, secretKeys: Set<String>, in rootDir: URL) {
         guard !secretKeys.isEmpty else { return }
         var snap = loadStateSnapshot(in: rootDir)
@@ -157,6 +171,9 @@ public enum PluginSystem {
         if PluginBuiltinRegistry.isBuiltin(id: manifest.id) { issues.append("id '\(manifest.id)' 为内置插件保留前缀") }
         if manifest.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { issues.append("name 不能为空") }
         if manifest.keywords.isEmpty { issues.append("keywords 至少包含一个触发词") }
+        if let iconErr = PluginIconResolver.validateManifestIcon(manifest.icon, in: directoryURL) {
+            issues.append(iconErr)
+        }
         let entryURL = directoryURL.appendingPathComponent(manifest.entry).standardizedFileURL
         let rootPath = directoryURL.standardizedFileURL.path
         if manifest.entry.isEmpty || !entryURL.path.hasPrefix(rootPath + "/") {
@@ -173,6 +190,14 @@ public enum PluginSystem {
             if field.type == .select && (field.options ?? []).isEmpty {
                 issues.append("config 下拉项 '\(field.key)' 缺少 options 候选列表")
             }
+            if field.type == .number, let lo = field.minValue, let hi = field.maxValue, lo > hi {
+                issues.append("config 数值项 '\(field.key)' 的 minValue 不能大于 maxValue")
+            }
+            if field.control == .slider {
+                if field.type != .number || field.minValue == nil || field.maxValue == nil || (field.minValue ?? 0) >= (field.maxValue ?? 0) {
+                    issues.append("config 滑块项 '\(field.key)' 必须为 number 类型且声明有效的 minValue < maxValue")
+                }
+            }
         }
         if manifest.capabilities == nil {
             issues.append("注册时必须显式声明 capabilities 权限列表（无需宿主权限请写 []）")
@@ -185,6 +210,20 @@ public enum PluginSystem {
         }
         for rawScope in manifest.resourceScopes ?? [] where PluginResourceScope(rawValue: rawScope) == nil {
             issues.append("未知 resourceScope 声明：'\(rawScope)'")
+        }
+        for rawAccept in manifest.accepts ?? [] where PluginContextKind(rawValue: rawAccept) == nil {
+            issues.append("未知 accepts 上下文类型声明：'\(rawAccept)'")
+        }
+        var seenCmdIDs = Set<String>()
+        for cmd in manifest.commands ?? [] {
+            if !PluginCommandRegistry.isSafeCommandID(cmd.id) {
+                issues.append("commands 子功能 id '\(cmd.id)' 不合法（仅允许小写字母、数字、连字符与下划线）")
+            } else if !seenCmdIDs.insert(cmd.id).inserted {
+                issues.append("commands 存在重复的子功能 id：'\(cmd.id)'")
+            }
+            if cmd.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                issues.append("commands 子功能 '\(cmd.id)' 的 title 不能为空")
+            }
         }
         return issues
     }

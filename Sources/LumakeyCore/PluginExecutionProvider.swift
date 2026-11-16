@@ -4,6 +4,7 @@ public struct PluginExecutionContext: @unchecked Sendable {
     public let query: String
     public let arguments: [String]
     public let clipboardText: String
+    public let contextPayload: PluginContextPayload?
     public let configOverrides: [String: String]?
     public let hostContext: PluginBridgeHostContext
     public let pluginsRoot: URL?
@@ -14,6 +15,7 @@ public struct PluginExecutionContext: @unchecked Sendable {
         query: String,
         arguments: [String] = [],
         clipboardText: String = "",
+        contextPayload: PluginContextPayload? = nil,
         configOverrides: [String: String]? = nil,
         hostContext: PluginBridgeHostContext = .default,
         pluginsRoot: URL? = nil,
@@ -23,6 +25,7 @@ public struct PluginExecutionContext: @unchecked Sendable {
         self.query = query
         self.arguments = arguments
         self.clipboardText = clipboardText
+        self.contextPayload = contextPayload
         self.configOverrides = configOverrides
         self.hostContext = hostContext
         self.pluginsRoot = pluginsRoot

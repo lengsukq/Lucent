@@ -31,6 +31,7 @@ public struct PluginViewItem: Codable, Sendable, Equatable, Hashable, Identifiab
     public let title: String
     public let subtitle: String?
     public let icon: String?
+    public let tintColor: String?
     public let badge: String?
     public let copyText: String?
     public let openURL: String?
@@ -46,17 +47,18 @@ public struct PluginViewItem: Codable, Sendable, Equatable, Hashable, Identifiab
 
     enum CodingKeys: String, CodingKey {
         case explicitID = "id"
-        case title, subtitle, icon, badge, copyText, openURL, commandArgs, actions
+        case title, subtitle, icon, tintColor, badge, copyText, openURL, commandArgs, actions
     }
 
     public init(
         explicitID: String? = nil,
-        title: String, subtitle: String? = nil, icon: String? = nil, badge: String? = nil,
-        copyText: String? = nil, openURL: String? = nil, commandArgs: [String]? = nil,
-        actions: [PluginViewAction]? = nil
+        title: String, subtitle: String? = nil, icon: String? = nil, tintColor: String? = nil,
+        badge: String? = nil, copyText: String? = nil, openURL: String? = nil,
+        commandArgs: [String]? = nil, actions: [PluginViewAction]? = nil
     ) {
         self.explicitID = explicitID
-        self.title = title; self.subtitle = subtitle; self.icon = icon; self.badge = badge
+        self.title = title; self.subtitle = subtitle; self.icon = icon
+        self.tintColor = tintColor; self.badge = badge
         self.copyText = copyText; self.openURL = openURL
         self.commandArgs = commandArgs; self.actions = actions
     }
@@ -123,7 +125,7 @@ public struct PluginResolvedOutput: Sendable, Equatable, Hashable {
 
     public init(descriptor: PluginDescriptor, execution: PluginExecutionResult) {
         self.pluginID = descriptor.id
-        self.pluginName = descriptor.manifest.name
+        self.pluginName = descriptor.displayName
         self.mode = descriptor.manifest.mode
         self.execution = execution
         if execution.exitCode == 0 {

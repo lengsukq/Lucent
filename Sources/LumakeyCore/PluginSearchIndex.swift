@@ -10,11 +10,15 @@ public struct PluginSearchEntry: Identifiable, Sendable, Hashable {
     public let url: String?
     public let copyText: String?
     public let icon: String?
+    public let customIconURL: URL?
+    public let tintColor: String?
     public let badge: String?
     public let tags: [String]
     public let pinned: Bool
     public let priority: Int
     public let commandArgs: [String]?
+    public let includeInGlobalSearch: Bool
+    public let pluginBoost: Int
 
     public let titleLowercased: String
     public let subtitleLowercased: String
@@ -22,6 +26,11 @@ public struct PluginSearchEntry: Identifiable, Sendable, Hashable {
     public let tagsLowercased: [String]
     public let fullPinyin: String
     public let pinyinInitials: String
+
+    public var symbolIconName: String {
+        if let icon, !icon.isEmpty, !PluginIconResolver.looksLikeRelativeFilePath(icon) { return icon }
+        return pinned ? "pin.fill" : "bookmark.fill"
+    }
 
     public init(
         pluginID: String,
@@ -32,11 +41,15 @@ public struct PluginSearchEntry: Identifiable, Sendable, Hashable {
         url: String? = nil,
         copyText: String? = nil,
         icon: String? = nil,
+        customIconURL: URL? = nil,
+        tintColor: String? = nil,
         badge: String? = nil,
         tags: [String] = [],
         pinned: Bool = false,
         priority: Int = 0,
-        commandArgs: [String]? = nil
+        commandArgs: [String]? = nil,
+        includeInGlobalSearch: Bool = true,
+        pluginBoost: Int = 0
     ) {
         self.id = "\(pluginID):\(itemID)"
         self.pluginID = pluginID
@@ -47,11 +60,15 @@ public struct PluginSearchEntry: Identifiable, Sendable, Hashable {
         self.url = url
         self.copyText = copyText
         self.icon = icon
+        self.customIconURL = customIconURL
+        self.tintColor = tintColor
         self.badge = badge
         self.tags = tags
         self.pinned = pinned
         self.priority = priority
         self.commandArgs = commandArgs
+        self.includeInGlobalSearch = includeInGlobalSearch
+        self.pluginBoost = pluginBoost
         self.titleLowercased = title.lowercased()
         self.subtitleLowercased = subtitle.lowercased()
         self.urlLowercased = (url ?? "").lowercased()
@@ -77,6 +94,7 @@ public enum PluginSearchIndex {
         let url: String?
         let copyText: String?
         let icon: String?
+        let tintColor: String?
         let badge: String?
         let tags: [String]?
         let pinned: Bool?
@@ -109,7 +127,8 @@ public enum PluginSearchIndex {
     ) -> [PluginSearchEntry] {
         var all: [PluginSearchEntry] = []
         for plugin in plugins where !plugin.isBuiltin && plugin.isValid && plugin.isEnabled {
-            guard let fileURL = indexFileURL(for: plugin, in: pluginsRoot),
+            let resolvedRoot = pluginsRoot ?? plugin.directoryURL.deletingLastPathComponent()
+            guard let fileURL = indexFileURL(for: plugin, in: resolvedRoot),
                   let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
                   let fileSize = attrs[.size] as? Int,
                   fileSize > 0, fileSize <= maxIndexBytes,
@@ -125,30 +144,61 @@ public enum PluginSearchIndex {
                 continue
             }
 
+            let boost = plugin.effectiveRankingBoost
+            let dataDir = PluginDataPaths.dataDirectory(for: plugin.id, pluginsRoot: resolvedRoot)
+            let pName = plugin.displayName
             for (idx, item) in rawItems.prefix(maxItemsPerPlugin).enumerated() {
                 let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !title.isEmpty else { continue }
                 let itemID = (item.id?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? "row-\(idx)"
+                let iconURL = PluginIconResolver.resolveItemIconURL(
+                    rawIcon: item.icon, bundleDirectory: plugin.directoryURL, dataDirectory: dataDir
+                )
                 all.append(
                     PluginSearchEntry(
                         pluginID: plugin.id,
-                        pluginName: plugin.manifest.name,
+                        pluginName: pName,
                         itemID: itemID,
                         title: title,
                         subtitle: item.subtitle ?? "",
                         url: item.url,
                         copyText: item.copyText,
                         icon: item.icon,
+                        customIconURL: iconURL,
+                        tintColor: item.tintColor ?? plugin.manifest.accentColor,
                         badge: item.badge,
                         tags: item.tags ?? [],
                         pinned: item.pinned ?? false,
                         priority: item.priority ?? 0,
-                        commandArgs: item.commandArgs
+                        commandArgs: item.commandArgs,
+                        includeInGlobalSearch: plugin.includeInGlobalSearch,
+                        pluginBoost: boost
                     )
                 )
             }
         }
         return all
+    }
+
+    public static func scopedEntries(
+        from entries: [PluginSearchEntry],
+        pluginID: String,
+        query: String,
+        limit: Int = 40
+    ) -> [(entry: PluginSearchEntry, score: Int)] {
+        let filtered = entries.filter { $0.pluginID == pluginID }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            let sorted = filtered.sorted { lhs, rhs in
+                if lhs.pinned != rhs.pinned { return lhs.pinned }
+                if lhs.priority != rhs.priority { return lhs.priority > rhs.priority }
+                return lhs.titleLowercased < rhs.titleLowercased
+            }
+            return sorted.prefix(limit).enumerated().map { idx, item in
+                (item, 9_100 + (item.pinned ? 150 : 0) - idx)
+            }
+        }
+        return match(entries: filtered, query: trimmed, limit: limit)
     }
 
     public static func match(
@@ -176,7 +226,7 @@ public enum PluginSearchIndex {
             }
             guard matchedAll else { continue }
             let avgScore = totalScore / tokens.count
-            let boost = (entry.pinned ? 150 : 0) + min(max(entry.priority, 0), 100)
+            let boost = (entry.pinned ? 150 : 0) + min(max(entry.priority, 0), 100) + entry.pluginBoost
             hits.append((entry, avgScore + boost))
         }
 

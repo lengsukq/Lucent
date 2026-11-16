@@ -22,6 +22,10 @@ public struct InstalledAppItem: Identifiable, Sendable, Hashable {
         self.fullPinyin = full
         self.pinyinInitials = initials
     }
+
+    public var displayName: String {
+        L10n.isEnglish ? englishName : name
+    }
 }
 
 public enum OmniFilter: String, CaseIterable, Identifiable, Sendable {
@@ -29,10 +33,10 @@ public enum OmniFilter: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .all: "全部"
-        case .files: "文件"
-        case .clipboard: "剪贴板"
-        case .plugins: "插件"
+        case .all: L10n.pick("全部", "All")
+        case .files: L10n.pick("文件", "Files")
+        case .clipboard: L10n.pick("剪贴板", "Clipboard")
+        case .plugins: L10n.pick("插件", "Plugins")
         }
     }
     public var next: OmniFilter {
@@ -49,6 +53,7 @@ public enum LauncherCandidateKind: Sendable, Hashable {
     case fileHit(EverythingSearchHit)
     case clipboard(ClipboardEntry)
     case plugin(PluginDescriptor)
+    case pluginCommand(PluginRegisteredCommand)
     case pluginItem(PluginSearchEntry)
     case command(CommandSuggestion)
 }
@@ -61,8 +66,12 @@ public struct LauncherCandidate: Identifiable, Sendable, Hashable {
     public init(id: String, score: Int, kind: LauncherCandidateKind) {
         self.id = id
         self.score = score
-        self.kind = kind
+        self.kind = VerticalScoreClamp.clamp(kind)
     }
+}
+
+private enum VerticalScoreClamp {
+    static func clamp(_ kind: LauncherCandidateKind) -> LauncherCandidateKind { kind }
 }
 
 public enum LauncherEngine {
@@ -108,23 +117,37 @@ public enum LauncherEngine {
         filter: OmniFilter = .all,
         apps: [InstalledAppItem],
         plugins: [PluginDescriptor],
+        pluginCommands: [PluginRegisteredCommand]? = nil,
         pluginSearchEntries: [PluginSearchEntry] = [],
         clipboardItems: [ClipboardEntry] = [],
         volumes: [VolumeSummary] = [],
         everythingIndex: EverythingIndex? = nil,
         launchCounts: [String: Int] = [:],
         usageBoosts: [String: Int] = [:],
-        clipboardText: String? = nil
+        clipboardText: String? = nil,
+        scopedPluginID: String? = nil
     ) -> [LauncherCandidate] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let needle = trimmed.lowercased()
         let effectiveClip = clipboardText ?? clipboardItems.first(where: { $0.textValue != nil })?.textValue
+        let resolvedCommands = pluginCommands ?? PluginCommandRegistry.registeredCommands(for: plugins)
+
+        if let scopedID = scopedPluginID,
+           let scopedPlugin = plugins.first(where: { $0.id == scopedID && $0.isValid && ($0.isBuiltin || $0.isEnabled) }) {
+            return rankScopedPluginCandidates(
+                plugin: scopedPlugin,
+                query: trimmed,
+                commands: resolvedCommands.filter { $0.pluginID == scopedID },
+                entries: pluginSearchEntries
+            )
+        }
+
         var results: [LauncherCandidate] = []
         results.reserveCapacity(64)
 
         if filter == .all {
             if let math = SafeMathEvaluator.evaluate(trimmed) {
-                results.append(LauncherCandidate(id: "calc:\(trimmed)", score: 10_000, kind: .calculator(expression: trimmed, resultText: math, badgeLabel: "计算")))
+                results.append(LauncherCandidate(id: "calc:\(trimmed)", score: 10_000, kind: .calculator(expression: trimmed, resultText: math, badgeLabel: L10n.pick("计算", "Math"))))
             }
             if !trimmed.isEmpty {
                 for (idx, tool) in DevToolkitEngine.evaluate(trimmed, clipboardText: effectiveClip).enumerated() {
@@ -164,19 +187,37 @@ public enum LauncherEngine {
         }
 
         if filter == .all || filter == .plugins {
-            for plugin in plugins where plugin.isValid && plugin.isEnabled {
-                let kwHit = !needle.isEmpty && plugin.keywordsLowercased.contains {
-                    $0 == needle || needle.hasPrefix($0) || $0.contains(needle)
+            for plugin in plugins where plugin.isValid && (plugin.isBuiltin || plugin.isEnabled) {
+                if filter == .all && (!plugin.isEnabled || !plugin.includeInGlobalSearch) { continue }
+                if filter == .plugins && !plugin.isBuiltin && !plugin.isEnabled { continue }
+                let kws = plugin.effectiveKeywordsLowercased
+                let kwHit = !needle.isEmpty && kws.contains {
+                    $0 == needle || needle.hasPrefix($0 + " ") || $0.hasPrefix(needle)
                 }
-                let nameHit = !needle.isEmpty && (plugin.nameLowercased.contains(needle) || plugin.descriptionLowercased.contains(needle))
+                let nameHit = !needle.isEmpty && (plugin.nameLowercased.contains(needle)
+                    || plugin.descriptionLowercased.contains(needle)
+                    || plugin.localizedSearchPoolLowercased.contains(needle))
                 if filter == .plugins || kwHit || nameHit {
-                    let score = kwHit ? 9_500 : (nameHit ? 7_800 : 6_200)
-                    results.append(LauncherCandidate(id: "plugin:\(plugin.id)", score: score, kind: .plugin(plugin)))
+                    let base = kwHit ? 9_500 : (nameHit ? 7_800 : 6_200)
+                    results.append(LauncherCandidate(id: "plugin:\(plugin.id)", score: base + plugin.effectiveRankingBoost, kind: .plugin(plugin)))
                 }
             }
+
+            let cmdMatches = PluginCommandRegistry.matchCommands(
+                resolvedCommands,
+                query: trimmed,
+                requireSearchEnabled: filter == .all,
+                allowEmptyQuery: filter == .plugins,
+                limit: filter == .plugins ? 30 : 15
+            )
+            for hit in cmdMatches {
+                results.append(LauncherCandidate(id: "plugcmd:\(hit.command.id)", score: hit.score, kind: .pluginCommand(hit.command)))
+            }
+
             if !needle.isEmpty {
+                let pool = filter == .all ? pluginSearchEntries.filter(\.includeInGlobalSearch) : pluginSearchEntries
                 let itemLimit = filter == .plugins ? 25 : 12
-                for hit in PluginSearchIndex.match(entries: pluginSearchEntries, query: trimmed, limit: itemLimit) {
+                for hit in PluginSearchIndex.match(entries: pool, query: trimmed, limit: itemLimit) {
                     results.append(LauncherCandidate(id: "plugitem:\(hit.entry.id)", score: hit.score, kind: .pluginItem(hit.entry)))
                 }
             }
@@ -189,8 +230,7 @@ public enum LauncherEngine {
                     results.append(LauncherCandidate(id: app.id, score: 200 + boost, kind: .app(app)))
                     continue
                 }
-                let lowerName = app.nameLowercased
-                let lowerEng = app.englishNameLowercased
+                let lowerName = app.nameLowercased; let lowerEng = app.englishNameLowercased
                 var score = 0
                 if lowerName == needle || lowerEng == needle { score = 9_000 }
                 else if lowerName.hasPrefix(needle) || lowerEng.hasPrefix(needle) { score = 8_500 }
@@ -203,6 +243,28 @@ public enum LauncherEngine {
         }
 
         return results.sorted { $0.score != $1.score ? $0.score > $1.score : $0.id < $1.id }
+    }
+
+    private static func rankScopedPluginCandidates(
+        plugin: PluginDescriptor,
+        query: String,
+        commands: [PluginRegisteredCommand],
+        entries: [PluginSearchEntry]
+    ) -> [LauncherCandidate] {
+        var out: [LauncherCandidate] = []
+        let cmdHits = PluginCommandRegistry.matchCommands(
+            commands, query: query, requireSearchEnabled: false, allowEmptyQuery: true, limit: 20
+        )
+        for hit in cmdHits {
+            out.append(LauncherCandidate(id: "plugcmd:\(hit.command.id)", score: hit.score + 1_200, kind: .pluginCommand(hit.command)))
+        }
+        let itemHits = PluginSearchIndex.scopedEntries(from: entries, pluginID: plugin.id, query: query, limit: 45)
+        for hit in itemHits {
+            out.append(LauncherCandidate(id: "plugitem:\(hit.entry.id)", score: hit.score, kind: .pluginItem(hit.entry)))
+        }
+        let runScore = out.isEmpty ? 9_800 : 7_100
+        out.append(LauncherCandidate(id: "plugin:\(plugin.id)", score: runScore, kind: .plugin(plugin)))
+        return out.sorted { $0.score != $1.score ? $0.score > $1.score : $0.id < $1.id }
     }
 
     private static func stripFilePrefix(_ raw: String) -> String {

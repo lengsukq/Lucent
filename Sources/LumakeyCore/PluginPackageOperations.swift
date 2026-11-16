@@ -14,6 +14,8 @@ extension PluginSystem {
         config: [PluginConfigField]? = nil,
         capabilities: [PluginCapability] = [],
         resourceScopes: [PluginResourceScope] = [],
+        accepts: [PluginContextKind]? = nil,
+        commands: [PluginCommandSpec]? = nil,
         in rootDir: URL = defaultPluginsDirectory()
     ) throws -> PluginDescriptor {
         guard isSafePluginID(id) else {
@@ -37,7 +39,9 @@ extension PluginSystem {
             mode: mode, keywords: keywords.isEmpty ? [id] : keywords, entry: entryName,
             author: author, icon: icon, hotkey: hotkey, config: config,
             capabilities: capabilities.map(\.rawValue),
-            resourceScopes: resourceScopes.map(\.rawValue)
+            resourceScopes: resourceScopes.map(\.rawValue),
+            accepts: accepts.map { $0.map(\.rawValue) },
+            commands: commands
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -79,7 +83,11 @@ extension PluginSystem {
             #!/bin/zsh
             set -euo pipefail
             PAYLOAD="$(cat)"
-            echo "[\(id)] ok: $PAYLOAD"
+            if [[ $# -gt 0 ]]; then
+              echo "[\(id)] args=$* ok: $PAYLOAD"
+            else
+              echo "[\(id)] ok: $PAYLOAD"
+            fi
             """
         }
         return """

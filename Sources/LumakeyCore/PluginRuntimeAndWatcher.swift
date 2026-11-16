@@ -105,11 +105,14 @@ extension PluginSystem {
         for descriptor: PluginDescriptor,
         query: String,
         clipboardText: String = "",
+        contextPayload: PluginContextPayload? = nil,
         bridgeSocketPath: String? = nil,
         bridgeToken: String? = nil,
         grantedCapabilities: Set<PluginCapability> = [],
         dataDirectoryURL: URL? = nil,
         configOverrides: [String: String]? = nil,
+        locale: AppLanguageID = L10n.current,
+        theme: AppThemeID? = nil,
         in rootDir: URL? = nil
     ) throws -> Data {
         let stateRoot = rootDir ?? descriptor.directoryURL.deletingLastPathComponent()
@@ -123,15 +126,17 @@ extension PluginSystem {
             for (k, v) in configOverrides { mergedConfig[k] = v }
         }
         let gatedClipboard = grantedCapabilities.contains(.clipboard) ? clipboardText : ""
+        let resolvedTheme = (theme ?? AppThemeConfig.load().selectedTheme).rawValue
         var payload: [String: Any] = [
             "query": query,
             "mode": descriptor.manifest.mode.rawValue,
+            "locale": locale.rawValue,
+            "theme": resolvedTheme,
             "config": mergedConfig,
             "clipboard": gatedClipboard
         ]
-        if let dataDirectoryURL {
-            payload["dataDir"] = dataDirectoryURL.path
-        }
+        if let contextPayload { payload["context"] = contextPayload.toJSONObject() }
+        if let dataDirectoryURL { payload["dataDir"] = dataDirectoryURL.path }
         if let bridgeSocketPath, let bridgeToken {
             payload["bridge"] = [
                 "socket": bridgeSocketPath,
@@ -147,6 +152,7 @@ extension PluginSystem {
         query: String,
         clipboardText: String = "",
         arguments: [String] = [],
+        contextPayload: PluginContextPayload? = nil,
         hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
         timeoutSeconds: Double = 8.0
@@ -154,20 +160,14 @@ extension PluginSystem {
         try runExternalPlugin(
             descriptor,
             context: PluginExecutionContext(
-                query: query,
-                arguments: arguments,
-                clipboardText: clipboardText,
-                hostContext: hostContext,
-                pluginsRoot: rootDir,
-                timeoutSeconds: timeoutSeconds
+                query: query, arguments: arguments, clipboardText: clipboardText,
+                contextPayload: contextPayload, hostContext: hostContext,
+                pluginsRoot: rootDir, timeoutSeconds: timeoutSeconds
             )
         )
     }
 
-    static func runExternalPlugin(
-        _ descriptor: PluginDescriptor,
-        context: PluginExecutionContext
-    ) throws -> PluginExecutionResult {
+    static func runExternalPlugin(_ descriptor: PluginDescriptor, context: PluginExecutionContext) throws -> PluginExecutionResult {
         guard descriptor.isValid else {
             throw LumakeyError.pluginInvalid(descriptor.validationIssues.joined(separator: "；"))
         }
@@ -175,14 +175,18 @@ extension PluginSystem {
             return try BuiltinPluginProvider().execute(descriptor, context: context).execution
         }
         let stateRoot = context.pluginsRoot ?? descriptor.directoryURL.deletingLastPathComponent()
-        let enabledNow = descriptor.isEnabled && isPluginEnabled(id: descriptor.id, in: stateRoot)
-        guard enabledNow else {
-            throw LumakeyError.pluginExecutionFailed("插件 '\(descriptor.manifest.name)' 当前已禁用")
+        guard descriptor.isEnabled && isPluginEnabled(id: descriptor.id, in: stateRoot) else {
+            throw LumakeyError.pluginExecutionFailed("插件 '\(descriptor.displayName)' 当前已禁用")
         }
         let latestGrants = descriptor.grantedCapabilities.union(grantedCapabilities(id: descriptor.id, in: stateRoot))
             .intersection(Set(descriptor.declaredCapabilities))
         var bridgeServer: PluginHostBridgeServer?
-        var env: [String: String] = [:]
+        let activeLocale = L10n.current
+        let activeTheme = AppThemeConfig.load().selectedTheme
+        var env: [String: String] = [
+            "LUMAKEY_LOCALE": activeLocale.rawValue,
+            "LUMAKEY_THEME": activeTheme.rawValue
+        ]
         if let dataDir = PluginDataPaths.ensureDataDirectory(for: descriptor.id, pluginsRoot: stateRoot) {
             env["LUMAKEY_DATA_DIR"] = dataDir.path
         }
@@ -197,34 +201,33 @@ extension PluginSystem {
         let entryURL = descriptor.directoryURL.appendingPathComponent(descriptor.manifest.entry).standardizedFileURL
         let dataDir = PluginDataPaths.dataDirectory(for: descriptor.id, pluginsRoot: stateRoot)
         let inputData = try buildStdinContextData(
-            for: descriptor,
-            query: context.query,
-            clipboardText: context.clipboardText,
-            bridgeSocketPath: bridgeServer?.socketPath,
-            bridgeToken: bridgeServer?.token,
-            grantedCapabilities: latestGrants,
-            dataDirectoryURL: dataDir,
-            configOverrides: context.configOverrides,
-            in: stateRoot
+            for: descriptor, query: context.query, clipboardText: context.clipboardText,
+            contextPayload: context.contextPayload, bridgeSocketPath: bridgeServer?.socketPath,
+            bridgeToken: bridgeServer?.token, grantedCapabilities: latestGrants,
+            dataDirectoryURL: dataDir, configOverrides: context.configOverrides,
+            locale: activeLocale, theme: activeTheme, in: stateRoot
         )
         let result = try ProcessSupervisor.shared.run(
-            executableURL: entryURL,
-            arguments: context.arguments,
-            currentDirectoryURL: descriptor.directoryURL,
-            environment: env.isEmpty ? nil : env,
-            stdinData: inputData,
-            timeoutSeconds: context.timeoutSeconds,
-            maxOutputBytes: 131_072,
-            cancellationHandle: context.cancellationHandle
+            executableURL: entryURL, arguments: context.arguments,
+            currentDirectoryURL: descriptor.directoryURL, environment: env,
+            stdinData: inputData, timeoutSeconds: context.timeoutSeconds,
+            maxOutputBytes: 131_072, cancellationHandle: context.cancellationHandle
         )
         if result.wasCancelled {
-            if descriptor.declaredCapabilities.contains(.audio) {
-                _ = PluginAudioBridgePlayer.shared.stop()
-            }
+            if descriptor.declaredCapabilities.contains(.audio) { _ = PluginAudioBridgePlayer.shared.stop() }
             throw CancellationError()
         }
         if result.timedOut {
             throw LumakeyError.pluginExecutionFailed("插件进程执行超时（\(Int(context.timeoutSeconds))s）已被自动终止")
+        }
+        if result.exitCode == 0,
+           let parsed = PluginViewPayload.parse(from: result.stdout),
+           let summary = parsed.effect?.statusSummary?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !summary.isEmpty {
+            PluginDataInspector.saveRuntimeStatus(
+                PluginRuntimeStatus(summary: summary, badge: parsed.effect?.statusBadge),
+                for: descriptor.id, in: stateRoot
+            )
         }
         return PluginExecutionResult(exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, durationMs: result.durationMs)
     }
@@ -234,6 +237,7 @@ extension PluginSystem {
         query: String,
         clipboardText: String = "",
         arguments: [String] = [],
+        contextPayload: PluginContextPayload? = nil,
         configOverrides: [String: String]? = nil,
         hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
@@ -241,8 +245,8 @@ extension PluginSystem {
     ) throws -> PluginResolvedOutput {
         let context = PluginExecutionContext(
             query: query, arguments: arguments, clipboardText: clipboardText,
-            configOverrides: configOverrides, hostContext: hostContext,
-            pluginsRoot: rootDir, timeoutSeconds: timeoutSeconds
+            contextPayload: contextPayload, configOverrides: configOverrides,
+            hostContext: hostContext, pluginsRoot: rootDir, timeoutSeconds: timeoutSeconds
         )
         let providers: [any PluginExecutionProvider] = [BuiltinPluginProvider(), ExternalScriptPluginProvider()]
         guard let provider = providers.first(where: { $0.supports(descriptor) }) else {
@@ -256,6 +260,7 @@ extension PluginSystem {
         query: String,
         clipboardText: String = "",
         arguments: [String] = [],
+        contextPayload: PluginContextPayload? = nil,
         configOverrides: [String: String]? = nil,
         hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
@@ -266,9 +271,9 @@ extension PluginSystem {
             try await Task.detached(priority: .userInitiated) {
                 let context = PluginExecutionContext(
                     query: query, arguments: arguments, clipboardText: clipboardText,
-                    configOverrides: configOverrides, hostContext: hostContext,
-                    pluginsRoot: rootDir, timeoutSeconds: timeoutSeconds,
-                    cancellationHandle: cancelHandle
+                    contextPayload: contextPayload, configOverrides: configOverrides,
+                    hostContext: hostContext, pluginsRoot: rootDir,
+                    timeoutSeconds: timeoutSeconds, cancellationHandle: cancelHandle
                 )
                 let providers: [any PluginExecutionProvider] = [BuiltinPluginProvider(), ExternalScriptPluginProvider()]
                 guard let provider = providers.first(where: { $0.supports(descriptor) }) else {
