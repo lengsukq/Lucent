@@ -24,7 +24,7 @@ final class GifHUDPanel: NSPanel {
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
-        panel.contentView = NSHostingView(rootView: GifRecordingHUDView(controller: controller))
+        panel.contentView = NSHostingView(rootView: LocalizedRootContainer { GifRecordingHUDView(controller: controller) })
         panel.orderFrontRegardless()
         return panel
     }
@@ -41,7 +41,7 @@ final class GifHUDPanel: NSPanel {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
         panel.acceptsMouseMovedEvents = true
-        panel.contentView = NSHostingView(rootView: GifSelectionOverlayView(session: session, onStartRecording: onStart, onCancel: onCancel))
+        panel.contentView = NSHostingView(rootView: LocalizedRootContainer { GifSelectionOverlayView(session: session, onStartRecording: onStart, onCancel: onCancel) })
         panel.setFrame(screen.frame, display: true)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -183,17 +183,17 @@ struct GifRecordingHUDView: View {
     }
 
     private func frameSummaryText(isPaused: Bool) -> String {
-        if isPaused { return "已暂停 · \(controller.encodedFrameCount)帧" }
+        if isPaused { return L10n.pick("已暂停 · \(controller.encodedFrameCount)帧", "Paused · \(controller.encodedFrameCount)f") }
         return controller.mergedFrameCount > 0
-            ? "\(controller.encodedFrameCount)帧 (省\(controller.mergedFrameCount))"
-            : "\(controller.encodedFrameCount) 帧"
+            ? L10n.pick("\(controller.encodedFrameCount)帧 (省\(controller.mergedFrameCount))", "\(controller.encodedFrameCount)f (-\(controller.mergedFrameCount))")
+            : L10n.pick("\(controller.encodedFrameCount) 帧", "\(controller.encodedFrameCount) frames")
     }
 
     private func hudButton(title: String, symbol: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Image(systemName: symbol).font(.system(size: 10, weight: .semibold))
-                Text(title).font(.system(size: 11, weight: .semibold))
+                Text(L10n.translate(title)).font(.system(size: 11, weight: .semibold))
             }
             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             .foregroundStyle(.white.opacity(0.94)).padding(.horizontal, 9.5).padding(.vertical, 5.5)

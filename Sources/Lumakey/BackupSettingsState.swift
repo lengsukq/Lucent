@@ -40,6 +40,8 @@ enum BackupCoordinator {
             merged = ClipboardService.insert(entry, into: merged)
         }
         viewModel.clipboardItems = merged
+        viewModel.reloadThemeFromDisk()
+        viewModel.reloadLanguageFromDisk()
         viewModel.reloadAppsAndPlugins()
     }
 
@@ -171,7 +173,13 @@ final class BackupSettingsViewState: ObservableObject {
             let r = try BackupArchiveService.restoreBackupData(pending.data, options: pending.options)
             BackupCoordinator.applyRestoreReport(r, to: viewModel)
             pendingRestore = nil
-            let msg = "恢复完成：\(r.restoredConfigFileNames.count) 项配置、\(r.restoredClipboardEntries.count) 条收藏、\(r.restoredPluginIDs.count) 个插件已生效"
+            let missingPlugins = viewModel.plugins
+                .filter { r.restoredPluginIDs.contains($0.id) && !PluginDataInspector.inspect($0).missingRequiredSecretKeys.isEmpty }
+                .map(\.manifest.name)
+            let secretNote = missingPlugins.isEmpty
+                ? ""
+                : "（提示：\(missingPlugins.joined(separator: "、")) 的钥匙串密钥需在对应插件独立设置页重新录入）"
+            let msg = "恢复完成：\(r.restoredConfigFileNames.count) 项配置、\(r.restoredClipboardEntries.count) 条收藏、\(r.restoredPluginIDs.count) 个插件已生效\(secretNote)"
             banner = BackupStatusBanner(tone: .success, message: msg)
             viewModel.serviceMessage = msg
         } catch {

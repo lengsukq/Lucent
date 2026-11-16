@@ -82,7 +82,7 @@ struct CinemaVideoPlayerSheet: View {
                 windowPins.toggleCompact(forKey: windowKey)
             }
             if !isCompact {
-                CinemaCapsuleButton(symbol: "arrow.up.forward.app", label: compactLabels ? nil : "IINA") { state.openInExternalPlayer(fallback: initialURL) }
+                CinemaCapsuleButton(symbol: "arrow.up.forward.app", label: compactLabels ? nil : "外部播放") { state.openInExternalPlayer(fallback: initialURL) }
             }
         }
     }
@@ -113,7 +113,7 @@ struct CinemaVideoPlayerSheet: View {
             ProgressView().controlSize(.regular)
             Text("正在准备硬件解码管线…").font(.callout.weight(.semibold)).foregroundStyle(.white)
             Text(activeURL.lastPathComponent).font(.caption).foregroundStyle(.white.opacity(0.68)).lineLimit(1)
-            Button("直接用 IINA / 外部播放器打开") { state.openInExternalPlayer(fallback: initialURL) }
+            Button("使用外部播放器打开") { state.openInExternalPlayer(fallback: initialURL) }
                 .buttonStyle(.borderedProminent).controlSize(.small)
         }
         .padding(22)
@@ -126,7 +126,7 @@ struct CinemaVideoPlayerSheet: View {
             SquircleBadge(symbol: "exclamationmark.triangle.fill", topColor: .orange, bottomColor: .red, size: 42)
             Text(reason).font(.callout).foregroundStyle(.white).multilineTextAlignment(.center).frame(maxWidth: 380)
             HStack(spacing: 10) {
-                Button("使用 IINA / 外部播放器打开") { state.openInExternalPlayer(fallback: initialURL) }.buttonStyle(.borderedProminent)
+                Button("使用外部播放器打开") { state.openInExternalPlayer(fallback: initialURL) }.buttonStyle(.borderedProminent)
                 Button("在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([activeURL]) }.buttonStyle(.bordered)
             }
         }

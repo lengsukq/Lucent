@@ -20,6 +20,19 @@ struct WorkspaceEntryContextMenu: View {
             mediaSpecificButtons
         }
 
+        if let ctx = PluginContextMatcher.payloadFromFiles(targets.map(\.url), source: "workspace") {
+            let matchedPlugins = PluginContextMatcher.matchingPlugins(in: viewModel.plugins, for: ctx)
+            if !matchedPlugins.isEmpty {
+                Menu("发送到扩展插件") {
+                    ForEach(matchedPlugins) { plugin in
+                        Button(plugin.manifest.name) {
+                            viewModel.runPluginWithContext(plugin, context: ctx)
+                        }
+                    }
+                }
+            }
+        }
+
         Divider()
 
         Button(isBatch ? "复制 \(targets.count) 项 (⌘C)" : "复制 (⌘C)") {

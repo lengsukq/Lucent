@@ -16,7 +16,7 @@ struct MosPluginSettingsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 SettingsSectionHeroHeader(
                     symbol: "computermouse.fill", topColor: .cyan, bottomColor: .indigo,
-                    title: "内置 Mos 鼠标平滑与滚轮方向",
+                    title: "物理鼠标平滑滚动与滚轮方向",
                     subtitle: "自动区分物理鼠标滚轮与触控板，提供滚轮反转与 120Hz 平滑插值；闲置时零后台消耗。"
                 ) {
                     Toggle("", isOn: binding(\.enabled))
@@ -27,6 +27,7 @@ struct MosPluginSettingsView: View {
                 behaviorCard
                 exclusionsCard
             }
+            .padding(.trailing, 4)
         }
         .onAppear {
             viewModel.refreshMosStatus()
@@ -111,6 +112,7 @@ struct MosPluginSettingsView: View {
 
             HStack(spacing: 8) {
                 GlassInputField(symbol: "app.badge", placeholder: "输入 Bundle ID，例如 com.microsoft.rdc.macos", text: $draft.bundleInput)
+                    .onSubmit { addExclusion() }
                 Button("添加") {
                     addExclusion()
                 }
@@ -141,9 +143,9 @@ struct MosPluginSettingsView: View {
     }
 
     private var statusSummary: String {
-        if !viewModel.mosConfig.enabled { return "插件已关闭 · 未安装 CGEventTap（零系统事件回调消耗）" }
+        if !viewModel.mosConfig.enabled { return "服务已关闭 · 未安装 CGEventTap（零系统事件回调消耗）" }
         if !viewModel.mosAccessibilityTrusted { return "需要系统「辅助功能」权限以区分鼠标与触控板事件" }
-        return viewModel.mosTapActive ? "CGEventTap 已激活 · 正在拦截物理鼠标滚轮" : "辅助功能已授权，准备激活中"
+        return viewModel.mosTapActive ? "CGEventTap 已激活 · 正在平滑拦截物理鼠标滚轮" : "辅助功能已授权，准备激活中"
     }
 
     private func binding<T>(_ keyPath: WritableKeyPath<MosConfig, T>) -> Binding<T> {
@@ -174,19 +176,20 @@ private struct FlowTagsList: View {
     let onRemove: (String) -> Void
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 8)], spacing: 8) {
+        FlowWrapLayout(horizontalSpacing: 8, verticalSpacing: 8) {
             ForEach(items, id: \.self) { id in
                 HStack(spacing: 6) {
                     Text(id).font(.caption2.monospaced()).lineLimit(1)
-                    Spacer(minLength: 4)
                     Button { onRemove(id) } label: {
                         Image(systemName: "xmark.circle.fill").font(.caption2).foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
+                .overlay { Capsule(style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
             }
         }
     }

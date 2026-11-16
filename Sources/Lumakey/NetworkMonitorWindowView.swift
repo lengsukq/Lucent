@@ -142,7 +142,7 @@ struct NetworkMonitorCoreView: View {
                         .liquidGlassCard(cornerRadius: LiquidRadii.bento)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

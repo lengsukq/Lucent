@@ -50,7 +50,7 @@ final class HotKeySettingsViewState: ObservableObject {
         )
         if announce {
             transientMessage = conflictActions.isEmpty
-                ? "全面扫描完成：全部 \(activeBoundCount) 项启用热键均无冲突"
+                ? "全面扫描完成：全部 \(activeBoundCount) 项核心热键均无冲突"
                 : "扫描完成：检测到 \(conflictActions.count) 项按键冲突，请按提示调整"
         }
     }
@@ -117,9 +117,15 @@ final class HotKeySettingsViewState: ObservableObject {
 struct HotKeySettingsView: View {
     @StateObject private var state: HotKeySettingsViewState
     private let pluginHotKeys: [ExternalPluginHotKey]
+    private let externalPlugins: [PluginDescriptor]
+    private let onOpenPluginSettings: ((String) -> Void)?
 
-    init(hotKeyManager: GlobalHotKeyManager? = nil, pluginHotKeys: [ExternalPluginHotKey] = [], onConfigChanged: ((HotKeyBindingConfig) -> Void)? = nil) {
-        self.pluginHotKeys = pluginHotKeys
+    init(
+        hotKeyManager: GlobalHotKeyManager? = nil, pluginHotKeys: [ExternalPluginHotKey] = [],
+        externalPlugins: [PluginDescriptor] = [], onOpenPluginSettings: ((String) -> Void)? = nil,
+        onConfigChanged: ((HotKeyBindingConfig) -> Void)? = nil
+    ) {
+        self.pluginHotKeys = pluginHotKeys; self.externalPlugins = externalPlugins; self.onOpenPluginSettings = onOpenPluginSettings
         _state = StateObject(wrappedValue: HotKeySettingsViewState(hotKeyManager: hotKeyManager, pluginHotKeys: pluginHotKeys, onConfigChanged: onConfigChanged))
     }
 
@@ -129,7 +135,7 @@ struct HotKeySettingsView: View {
                 SettingsSectionHeroHeader(
                     symbol: "command.square.fill", topColor: .mint, bottomColor: .teal,
                     title: "全局热键录制与冲突检测",
-                    subtitle: "点击键帽胶囊直接录制新快捷键；内置应用内、macOS 系统热键与运行中外部应用三层冲突诊断。"
+                    subtitle: "点击键帽胶囊直接录制新快捷键；内置应用内、macOS 系统热键与扩展子功能三层冲突诊断。"
                 ) {
                     HStack(spacing: 8) {
                         Button { state.scanAllConflicts(announce: true) } label: {
@@ -150,11 +156,41 @@ struct HotKeySettingsView: View {
                     .padding(.horizontal, 12).padding(.vertical, 8).liquidGlassCard(cornerRadius: LiquidRadii.row)
                 }
                 VStack(spacing: 9) { ForEach(HotKeyActionID.allCases) { hotKeyRow($0) } }
-            }
+                if !externalPlugins.isEmpty || !pluginHotKeys.isEmpty { pluginHotKeySection }
+            }.padding(.trailing, 4)
         }
         .onAppear { state.onViewAppear(latestPluginHotKeys: pluginHotKeys) }
         .onChange(of: pluginHotKeys) { _, next in state.syncPluginHotKeys(next) }
         .onDisappear { state.stopRecording() }
+    }
+
+    private var pluginHotKeySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("插件与子功能全局热键（支持在插件独立设置页自定义重录）")
+                .font(.caption.weight(.bold)).foregroundStyle(LiquidColors.textSecondary).padding(.top, 4)
+            ForEach(externalPlugins) { plugin in
+                let cmdBindings = pluginHotKeys.filter { $0.pluginID == plugin.id && $0.commandID != nil }
+                HStack(spacing: 10) {
+                    PluginIconBadge(plugin: plugin, size: 30)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(plugin.displayName).font(.caption.weight(.semibold)).lineLimit(1)
+                        Text(cmdBindings.isEmpty
+                             ? "触发词: \(plugin.effectiveKeywords.joined(separator: ", "))"
+                             : "子功能热键: \(cmdBindings.map { $0.chord.displayString }.joined(separator: ", "))")
+                            .font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
+                    }
+                    Spacer()
+                    Text(plugin.effectiveHotKey ?? (cmdBindings.first?.chord.displayString ?? "未绑定"))
+                        .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                        .foregroundStyle((plugin.effectiveHotKey != nil || !cmdBindings.isEmpty) ? .cyan : LiquidColors.textSecondary)
+                        .padding(.horizontal, 10).padding(.vertical, 4).background(LiquidColors.pillSurface, in: Capsule())
+                    if let onOpenPluginSettings {
+                        Button("改绑热键 →") { onOpenPluginSettings(plugin.id) }.buttonStyle(GlassPillButtonStyle(compact: true))
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 9).liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
+            }
+        }
     }
 
     private var healthBanner: some View {
@@ -166,7 +202,7 @@ struct HotKeySettingsView: View {
                 topColor: healthy ? .mint : .orange, bottomColor: healthy ? .green : .red, size: 36
             )
             VStack(alignment: .leading, spacing: 2) {
-                Text(healthy ? "全部 \(state.activeBoundCount) 项热键正常生效，0 冲突" : "检测到 \(conflicts.count) 项按键冲突：\(conflicts.map(\.title).joined(separator: "、"))")
+                Text(healthy ? "全部 \(state.activeBoundCount) 项核心热键正常生效，0 冲突" : "检测到 \(conflicts.count) 项按键冲突：\(conflicts.map(\.title).joined(separator: "、"))")
                     .font(.callout.weight(.semibold)).foregroundStyle(healthy ? LiquidColors.textPrimary : .orange)
                 Text(healthy ? "点击右侧键帽胶囊即时重录（Esc 取消 · ⌫ 清空），改动立即生效无需重启应用。" : "冲突热键可能被系统或其他软件优先拦截，建议点击对应键帽胶囊改绑组合键。")
                     .font(.caption2).foregroundStyle(LiquidColors.textSecondary)

@@ -20,16 +20,12 @@ final class OCRResultState: ObservableObject {
         self.barcodes = analysis.barcodes
         self.thumbnail = NSImage(contentsOf: imageURL)
         self.editableText = self.rawText
-        self.toastText = self.rawText.isEmpty ? "未检测到文本" : "✓ 已自动复制到剪贴板"
+        self.toastText = self.rawText.isEmpty ? L10n.pick("未检测到文本", "No text detected") : L10n.pick("✓ 已自动复制到剪贴板", "✓ Auto-copied to clipboard")
     }
 
     func toggleMergeLines() {
         mergeLines.toggle()
-        if mergeLines {
-            editableText = Self.smartJoinLines(rawText)
-        } else {
-            editableText = rawText
-        }
+        editableText = mergeLines ? Self.smartJoinLines(rawText) : rawText
         copyAll()
     }
 
@@ -37,7 +33,7 @@ final class OCRResultState: ObservableObject {
         guard !editableText.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(editableText, forType: .string)
-        toastText = "✓ 已复制到剪贴板"
+        toastText = L10n.pick("✓ 已复制到剪贴板", "✓ Copied to clipboard")
     }
 
     private static func smartJoinLines(_ raw: String) -> String {
@@ -67,6 +63,7 @@ private final class KeyableOCRWindow: NSWindow {
 final class OCRResultWindowController: NSObject, NSWindowDelegate {
     static let shared = OCRResultWindowController()
     var onVisibilityChanged: (() -> Void)?
+    var onRouteToPlugin: ((PluginDescriptor, PluginContextPayload) -> Void)?
     private var window: KeyableOCRWindow?
 
     var isWindowVisible: Bool { window?.isVisible == true }
@@ -93,7 +90,7 @@ final class OCRResultWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        win.title = "Vision 离线识字结果"
+        win.title = L10n.translate("Vision 离线识字结果")
         win.titleVisibility = .hidden
         win.titlebarAppearsTransparent = true
         win.isOpaque = false
@@ -103,15 +100,20 @@ final class OCRResultWindowController: NSObject, NSWindowDelegate {
         win.onEscape = { [weak win] in win?.close() }
         if window == nil { win.center() }
 
-        win.contentView = NSHostingView(rootView: OCRResultSheetView(
-            state: state,
-            onPinImage: { PinWindowController.shared.pinImage(at: imageURL) },
-            onRetake: { [weak win] in
-                win?.close()
-                onRetake?()
-            },
-            onClose: { [weak win] in win?.close() }
-        ))
+        let availablePlugins = PluginSystem.listPlugins(includeDisabled: false, includeBuiltin: false, includeSecrets: false)
+        win.contentView = NSHostingView(rootView: LocalizedRootContainer {
+            OCRResultSheetView(
+                state: state,
+                availablePlugins: availablePlugins,
+                onPinImage: { PinWindowController.shared.pinImage(at: imageURL) },
+                onRetake: { [weak win] in win?.close(); onRetake?() },
+                onSendToPlugin: { [weak self, weak win] plugin, ctx in
+                    win?.close()
+                    self?.onRouteToPlugin?(plugin, ctx)
+                },
+                onClose: { [weak win] in win?.close() }
+            )
+        })
         WindowLevelStore.shared.attach(window: win, key: "ocrResult", initialPinned: true)
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -131,14 +133,16 @@ final class OCRResultWindowController: NSObject, NSWindowDelegate {
 
 private struct OCRResultSheetView: View {
     @ObservedObject var state: OCRResultState
+    let availablePlugins: [PluginDescriptor]
     let onPinImage: () -> Void
     let onRetake: () -> Void
+    let onSendToPlugin: (PluginDescriptor, PluginContextPayload) -> Void
     let onClose: () -> Void
 
     var body: some View {
         SecondaryWindowScaffold(
             title: "Vision 离线识字",
-            subtitle: state.rawText.isEmpty ? "未检测到文本" : "\(state.editableText.count) 字符",
+            subtitle: state.rawText.isEmpty ? L10n.pick("未检测到文本", "No text detected") : L10n.pick("\(state.editableText.count) 字符", "\(state.editableText.count) chars"),
             symbol: "text.viewfinder",
             pinWindowKey: "ocrResult"
         ) {
@@ -152,15 +156,26 @@ private struct OCRResultSheetView: View {
     }
 
     private var headerBar: some View {
-        HStack(alignment: .center, spacing: 10) {
+        let ctx = PluginContextMatcher.payloadFromText(state.editableText, source: "ocr")
+        let matched = ctx.map { PluginContextMatcher.matchingPlugins(in: availablePlugins, for: $0) } ?? []
+        return HStack(alignment: .center, spacing: 8) {
             SquircleBadge(symbol: "text.viewfinder", topColor: .indigo, bottomColor: .purple, size: 34)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Vision 离线识字结果").font(.callout.weight(.semibold))
-                Text("\(state.toastText) · \(state.editableText.count) 字符")
+                Text(L10n.pick("\(state.toastText) · \(state.editableText.count) 字符", "\(state.toastText) · \(state.editableText.count) chars"))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(state.rawText.isEmpty ? .orange : .green)
             }
             Spacer()
+            if let ctx, !matched.isEmpty {
+                Menu("发送到插件") {
+                    ForEach(matched) { plugin in
+                        Button(L10n.translate(plugin.manifest.name)) { onSendToPlugin(plugin, ctx) }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
             Button(state.mergeLines ? "保留段落" : "合并换行") { state.toggleMergeLines() }
                 .buttonStyle(GlassPillButtonStyle()).disabled(state.rawText.isEmpty)
             Button("钉住原图", action: onPinImage).buttonStyle(GlassPillButtonStyle())
@@ -183,15 +198,10 @@ private struct OCRResultSheetView: View {
                 if let img = state.thumbnail {
                     Button(action: onPinImage) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
-                                .fill(LiquidColors.pillSurface)
-                            Image(nsImage: img)
-                                .resizable()
-                                .scaledToFit()
-                                .padding(6)
+                            RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).fill(LiquidColors.pillSurface)
+                            Image(nsImage: img).resizable().scaledToFit().padding(6)
                         }
-                        .frame(height: 196)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                        .frame(height: 196).frame(maxWidth: .infinity, alignment: .center)
                     }
                     .buttonStyle(.plain)
                     .help("点击钉住原图到屏幕")
@@ -206,25 +216,19 @@ private struct OCRResultSheetView: View {
                                 } else {
                                     NSPasteboard.general.clearContents()
                                     NSPasteboard.general.setString(code, forType: .string)
-                                    state.toastText = "已复制条码"
+                                    state.toastText = L10n.pick("已复制条码", "Barcode copied")
                                 }
                             } label: {
-                                Text(code)
-                                    .font(.caption2.monospaced())
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(code).font(.caption2.monospaced()).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(GlassPillButtonStyle())
                         }
                     }
                 }
                 Spacer()
-                Text("Esc 关闭窗口 · 可直接编辑校准")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Text("Esc 关闭窗口 · 可直接编辑校准").font(.caption2).foregroundStyle(.secondary)
             }
-            .padding(12)
-            .frame(width: 204)
+            .padding(12).frame(width: 204)
             .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
 
             Group {
@@ -236,9 +240,7 @@ private struct OCRResultSheetView: View {
                     }
                 } else {
                     TextEditor(text: $state.editableText)
-                        .font(.system(size: 13.5))
-                        .scrollContentBackground(.hidden)
-                        .padding(12)
+                        .font(.system(size: 13.5)).scrollContentBackground(.hidden).padding(12)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

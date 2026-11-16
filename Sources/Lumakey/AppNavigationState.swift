@@ -13,12 +13,13 @@ extension OmniFilter {
     }
 
     var placeholder: String {
-        switch self {
+        let raw = switch self {
         case .all: "搜应用(拼音)、文件名、算式、ts/uuid/qr/;短语、gif、备份..."
         case .files: "仅搜索磁盘文件：ext:swift  pic:  video:  folder:  !tmp ..."
         case .clipboard: "仅搜索剪贴板历史（文本 / #色值 / 图片 / 文件）..."
-        case .plugins: "筛选已启用扩展插件（支持 view 卡片与目录热重载）..."
+        case .plugins: "筛选插件或按 Tab 进入单插件专属列表（⌘, 直达该插件设置）..."
         }
+        return L10n.translate(raw)
     }
 }
 
@@ -33,28 +34,40 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     case clipboard
     case snippets
     case plugins
+    case pluginDetail
     case shortcuts
     case backup
     case about
 
     var id: String { rawValue }
 
+    static let coreSidebarSections: [SettingsSection] = [
+        .general, .search, .clipboard, .snippets, .shortcuts,
+        .plugins, .network, .cache, .backup, .about
+    ]
+
+    static let builtinPluginSections: [SettingsSection] = [
+        .mos, .lumaLink, .monitor
+    ]
+
     var title: String {
-        switch self {
+        let raw = switch self {
         case .general: "通用与内存"
-        case .monitor: "系统监控"
+        case .monitor: "系统脉搏监控"
         case .network: "网络流量"
         case .cache: "应用缓存"
         case .search: "检索范围"
-        case .mos: "Mos 鼠标"
+        case .mos: "鼠标滚轮"
         case .lumaLink: "流光随行"
         case .clipboard: "剪贴板隐私"
         case .snippets: "快捷短语"
-        case .plugins: "插件与 MCP"
+        case .plugins: "插件管理与 MCP"
+        case .pluginDetail: "插件独立设置"
         case .shortcuts: "全局热键"
         case .backup: "导出与备份"
         case .about: "关于流光"
         }
+        return L10n.translate(raw)
     }
 
     var symbolName: String {
@@ -69,6 +82,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .clipboard: "doc.on.clipboard.fill"
         case .snippets: "text.quote"
         case .plugins: "puzzlepiece.extension.fill"
+        case .pluginDetail: "wand.and.stars"
         case .shortcuts: "command.square.fill"
         case .backup: "externaldrive.badge.icloud"
         case .about: "sparkles"
@@ -87,6 +101,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .clipboard: (.orange, .pink)
         case .snippets: (.cyan, .indigo)
         case .plugins: (.purple, .indigo)
+        case .pluginDetail: (.purple, .cyan)
         case .shortcuts: (.mint, .teal)
         case .backup: (.blue, .purple)
         case .about: (.indigo, .purple)
@@ -99,6 +114,7 @@ enum WindowRoute: Hashable {
     case workspace
     case networkMonitor
     case settings(SettingsSection)
+    case pluginSettings(String)
     case documentReader(URL, [URL])
     case imageViewer(URL, [URL], Bool)
     case videoPlayer(URL, [URL], Bool)
@@ -121,9 +137,9 @@ enum EverythingScope: Hashable, Identifiable {
 
     var title: String {
         switch self {
-        case .allVolumes: "全盘 + 外置盘"
-        case .quickUserFolders: "常用目录"
-        case .home: "个人主目录"
+        case .allVolumes: L10n.translate("全盘 + 外置盘")
+        case .quickUserFolders: L10n.translate("常用目录")
+        case .home: L10n.translate("个人主目录")
         case .volume(let name, _): name
         }
     }

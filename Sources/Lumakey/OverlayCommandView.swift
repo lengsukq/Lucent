@@ -4,9 +4,11 @@ import SwiftUI
 
 struct OverlayCommandView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var themeManager = ThemeManager.shared
 
     private var showsBentoHome: Bool {
         viewModel.omniFilter == .all
+            && viewModel.scopedPluginID == nil
             && viewModel.overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
@@ -14,6 +16,14 @@ struct OverlayCommandView: View {
         (viewModel.effectiveLensVisible && !showsBentoHome)
             || viewModel.inlineResultBody != nil
             || viewModel.inlinePluginViewPayload != nil
+    }
+
+    private var effectivePlaceholder: String {
+        if let scoped = viewModel.activeScopedPlugin {
+            let pName = L10n.translate(scoped.manifest.name)
+            return L10n.pick("在「\(pName)」中筛选词条或输入参数按 ↩ 执行...", "Filter items or pass arguments to \"\(pName)\" and press ↩...")
+        }
+        return viewModel.omniFilter.placeholder
     }
 
     var body: some View {
@@ -43,9 +53,7 @@ struct OverlayCommandView: View {
 
     private var topGrabberStrip: some View {
         ZStack {
-            WindowDragRegion {
-                viewModel.recenterFloatingPanel()
-            }
+            WindowDragRegion { viewModel.recenterFloatingPanel() }
             Capsule(style: .continuous)
                 .fill(LiquidColors.textSecondary.opacity(0.32))
                 .frame(width: 40, height: 4)
@@ -60,28 +68,29 @@ struct OverlayCommandView: View {
             WindowDragRegion()
             HStack(alignment: .center, spacing: 10) {
                 SquircleBadge(
-                    symbol: viewModel.omniFilter.symbolName,
+                    symbol: viewModel.activeScopedPlugin?.manifest.icon ?? viewModel.omniFilter.symbolName,
                     topColor: filterBadgeColors.0,
                     bottomColor: filterBadgeColors.1,
                     size: 36
                 )
 
+                if let scoped = viewModel.activeScopedPlugin {
+                    OverlayScopedPluginCapsule(plugin: scoped) {
+                        viewModel.scopedPluginID = nil
+                        viewModel.inlinePluginViewPayload = nil
+                        viewModel.activeInlinePlugin = nil
+                        viewModel.bumpFocusToken()
+                    }
+                }
+
                 AutoFocusSearchField(
                     text: $viewModel.overlayQuery,
-                    placeholder: viewModel.omniFilter.placeholder,
+                    placeholder: effectivePlaceholder,
                     focusToken: viewModel.focusToken,
-                    onAction: { action in
-                        viewModel.handleOverlayKeyAction(action)
-                    },
-                    onQuickSelectIndex: { index in
-                        viewModel.quickExecuteCandidate(at: index)
-                    },
-                    onCopyCandidate: {
-                        viewModel.copySelectedCandidateValue()
-                    },
-                    onSecondarySubmit: {
-                        viewModel.executeSecondaryCandidateAction()
-                    }
+                    onAction: { action in viewModel.handleOverlayKeyAction(action) },
+                    onQuickSelectIndex: { index in viewModel.quickExecuteCandidate(at: index) },
+                    onCopyCandidate: { viewModel.copySelectedCandidateValue() },
+                    onSecondarySubmit: { viewModel.executeSecondaryCandidateAction() }
                 )
                 .frame(height: 28)
 
@@ -104,9 +113,9 @@ struct OverlayCommandView: View {
                 } label: {
                     Image(systemName: "sidebar.right")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(viewModel.effectiveLensVisible ? .cyan : LiquidColors.textSecondary)
+                        .foregroundStyle(viewModel.effectiveLensVisible ? LiquidColors.accentPrimary : LiquidColors.textSecondary)
                         .frame(width: 28, height: 28)
-                        .background(viewModel.effectiveLensVisible ? Color.cyan.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                        .background(viewModel.effectiveLensVisible ? LiquidColors.accentPrimary.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .help("展开/收起右侧实时预览 (⌘Y)")
@@ -129,15 +138,16 @@ struct OverlayCommandView: View {
     }
 
     private var filterCapsuleBar: some View {
-        let pillShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let pillShape = RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
         return HStack(spacing: 3) {
             ForEach(OmniFilter.allCases) { filter in
                 let active = viewModel.omniFilter == filter
-                let segShape = RoundedRectangle(cornerRadius: 9.5, style: .continuous)
+                let segShape = RoundedRectangle(cornerRadius: max(7, LiquidRadii.control - 2.5), style: .continuous)
                 Button {
                     var tx = Transaction()
                     tx.disablesAnimations = true
                     withTransaction(tx) {
+                        if filter != .plugins { viewModel.scopedPluginID = nil }
                         viewModel.setOmniFilter(filter)
                     }
                 } label: {
@@ -148,7 +158,7 @@ struct OverlayCommandView: View {
                         .padding(.vertical, 5)
                         .background {
                             if active {
-                                segShape.fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                segShape.fill(LiquidColors.accentGradient)
                             }
                         }
                 }
@@ -172,13 +182,16 @@ struct OverlayCommandView: View {
                 } else if viewModel.omniFilter == .clipboard {
                     OverlayClipboardCategoryStrip(viewModel: viewModel)
                     Divider().opacity(0.18)
+                } else if viewModel.omniFilter == .plugins {
+                    OverlayPluginFilterStrip(viewModel: viewModel)
+                    Divider().opacity(0.18)
                 }
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 4) {
                             OverlayUnifiedRowsView(viewModel: viewModel)
                         }
-                        .id(viewModel.omniFilter)
+                        .id("\(viewModel.omniFilter.rawValue):\(viewModel.scopedPluginID ?? "all")")
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                     }
@@ -195,11 +208,12 @@ struct OverlayCommandView: View {
     }
 
     private var filterBadgeColors: (Color, Color) {
+        let isPrism = themeManager.current == .prismPulse
         switch viewModel.omniFilter {
-        case .all: (.cyan, .blue)
-        case .files: (.teal, .indigo)
-        case .clipboard: (.orange, .pink)
-        case .plugins: (.purple, .indigo)
+        case .all: return isPrism ? (.cyan, .purple) : (.blue, .indigo)
+        case .files: return isPrism ? (.teal, .indigo) : (.blue, .teal)
+        case .clipboard: return (.orange, .pink)
+        case .plugins: return (.purple, .indigo)
         }
     }
 }

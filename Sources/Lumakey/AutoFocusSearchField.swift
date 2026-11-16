@@ -1,4 +1,5 @@
 import AppKit
+import LumakeyCore
 import SwiftUI
 
 enum OverlayKeyAction: Sendable {
@@ -7,6 +8,7 @@ enum OverlayKeyAction: Sendable {
     case submit
     case escape
     case cycleMode
+    case deleteBackwardWhenEmpty
     case togglePreview
     case revealInFinder
     case openSettings
@@ -41,8 +43,8 @@ struct AutoFocusSearchField: NSViewRepresentable {
         field.cell?.wraps = false
         field.cell?.isScrollable = true
         field.delegate = context.coordinator
-        applyPlaceholder(placeholder, to: field)
-        context.coordinator.lastPlaceholder = placeholder
+        applyPlaceholder(L10n.translate(placeholder), to: field)
+        context.coordinator.lastPlaceholder = L10n.translate(placeholder)
         context.coordinator.installMonitor(for: field)
         return field
     }
@@ -52,9 +54,10 @@ struct AutoFocusSearchField: NSViewRepresentable {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
-        if context.coordinator.lastPlaceholder != placeholder {
-            applyPlaceholder(placeholder, to: nsView)
-            context.coordinator.lastPlaceholder = placeholder
+        let localizedPlaceholder = L10n.translate(placeholder)
+        if context.coordinator.lastPlaceholder != localizedPlaceholder {
+            applyPlaceholder(localizedPlaceholder, to: nsView)
+            context.coordinator.lastPlaceholder = localizedPlaceholder
         }
         if context.coordinator.lastFocusToken != focusToken {
             context.coordinator.lastFocusToken = focusToken
@@ -192,6 +195,12 @@ struct AutoFocusSearchField: NSViewRepresentable {
             case #selector(NSResponder.insertTab(_:)):
                 parent.onAction(.cycleMode)
                 return true
+            case #selector(NSResponder.deleteBackward(_:)):
+                if textView.string.isEmpty {
+                    parent.onAction(.deleteBackwardWhenEmpty)
+                    return true
+                }
+                return false
             default:
                 return false
             }

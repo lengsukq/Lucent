@@ -16,6 +16,7 @@ final class PluginCenterController: ObservableObject {
     @Published var activeTab: PluginCenterTab = .gallery
     @Published var selectedPluginID: String?
     @Published var configDraft: [String: String] = [:]
+    @Published var hasUnsavedTextEdits: Bool = false
     @Published var testQuery: String = ""
     @Published var isRunning: Bool = false
     @Published var latestOutput: PluginResolvedOutput?
@@ -33,6 +34,7 @@ final class PluginCenterController: ObservableObject {
 
     private var watcher: PluginDirectoryWatcher?
     private var runTask: Task<Void, Never>?
+    private var autoSaveTask: Task<Void, Never>?
 
     func startWatching(syncing viewModel: AppViewModel) {
         viewModel.reloadPlugins()
@@ -57,17 +59,18 @@ final class PluginCenterController: ObservableObject {
     }
 
     func stopWatching() {
-        runTask?.cancel()
-        runTask = nil
-        watcher?.stop()
-        watcher = nil
+        runTask?.cancel(); runTask = nil
+        autoSaveTask?.cancel(); autoSaveTask = nil
+        watcher?.stop(); watcher = nil
         isWatcherOnline = false
     }
 
     func syncSelection(from plugins: [PluginDescriptor]) {
         if let currentID = selectedPluginID,
            let matched = plugins.first(where: { $0.id == currentID }) {
-            if configDraft.isEmpty { configDraft = matched.userConfig }
+            if configDraft.isEmpty {
+                configDraft = matched.isBuiltin ? matched.userConfig : PluginSystem.resolvedUserConfigWithSecrets(for: matched)
+            }
             return
         }
         if let first = plugins.first {
@@ -75,12 +78,15 @@ final class PluginCenterController: ObservableObject {
         } else {
             selectedPluginID = nil
             configDraft = [:]
+            hasUnsavedTextEdits = false
         }
     }
 
     func select(_ plugin: PluginDescriptor, switchTab: Bool = true) {
+        autoSaveTask?.cancel()
         selectedPluginID = plugin.id
-        configDraft = plugin.userConfig
+        configDraft = plugin.isBuiltin ? plugin.userConfig : PluginSystem.resolvedUserConfigWithSecrets(for: plugin)
+        hasUnsavedTextEdits = false
         showEmbeddedBuiltinSettings = false
         if switchTab { activeTab = .inspector }
     }
@@ -91,6 +97,32 @@ final class PluginCenterController: ObservableObject {
             get: { self.configDraft[field.key] ?? fallback },
             set: { self.configDraft[field.key] = $0 }
         )
+    }
+
+    func autoSaveTextBinding(
+        for field: PluginConfigField,
+        plugin: PluginDescriptor,
+        viewModel: AppViewModel
+    ) -> Binding<String> {
+        let fallback = field.defaultValue ?? ""
+        return Binding(
+            get: { self.configDraft[field.key] ?? fallback },
+            set: { [weak self] next in
+                guard let self else { return }
+                self.configDraft[field.key] = next
+                self.hasUnsavedTextEdits = true
+                self.scheduleDebouncedSave(for: plugin, viewModel: viewModel)
+            }
+        )
+    }
+
+    private func scheduleDebouncedSave(for plugin: PluginDescriptor, viewModel: AppViewModel) {
+        autoSaveTask?.cancel()
+        autoSaveTask = Task { [weak self, weak viewModel] in
+            try? await Task.sleep(for: .milliseconds(550))
+            guard !Task.isCancelled, let self, let viewModel else { return }
+            self.saveConfig(for: plugin, viewModel: viewModel, silent: true)
+        }
     }
 
     func boolBinding(for field: PluginConfigField) -> Binding<Bool> {
@@ -104,7 +136,7 @@ final class PluginCenterController: ObservableObject {
     func setEnabled(_ plugin: PluginDescriptor, isEnabled: Bool, viewModel: AppViewModel) {
         do {
             try viewModel.setPluginEnabled(plugin, isEnabled: isEnabled)
-            statusNote = "\(plugin.manifest.name) 已\(isEnabled ? "启用" : "禁用")"
+            statusNote = "\(plugin.displayName) 已\(isEnabled ? "启用" : "禁用")"
         } catch {
             statusNote = error.localizedDescription
         }
@@ -118,19 +150,24 @@ final class PluginCenterController: ObservableObject {
     ) {
         do {
             try viewModel.setPluginCapabilityGranted(plugin, capability: capability, granted: granted)
-            statusNote = "\(plugin.manifest.name) · \(capability.title) 已\(granted ? "授权" : "收回")"
+            statusNote = "\(plugin.displayName) · \(capability.title) 已\(granted ? "授权" : "收回")"
             viewModel.serviceMessage = statusNote
         } catch {
             statusNote = error.localizedDescription
         }
     }
 
-    func saveConfig(for plugin: PluginDescriptor, viewModel: AppViewModel) {
+    func saveConfig(for plugin: PluginDescriptor, viewModel: AppViewModel, silent: Bool = false) {
+        autoSaveTask?.cancel()
         do {
             try PluginSystem.updatePluginConfig(id: plugin.id, values: configDraft)
+            hasUnsavedTextEdits = false
             viewModel.reloadPluginsAndHotKeys()
-            statusNote = "已保存 \(plugin.manifest.name) 配置"
-            viewModel.serviceMessage = statusNote
+            if !silent {
+                configDraft = plugin.isBuiltin ? plugin.userConfig : PluginSystem.resolvedUserConfigWithSecrets(for: plugin)
+                statusNote = L10n.pick("已保存 \(plugin.displayName) 配置", "Saved \(plugin.displayName) preferences")
+                viewModel.serviceMessage = statusNote
+            }
         } catch {
             statusNote = error.localizedDescription
         }
@@ -152,7 +189,8 @@ final class PluginCenterController: ObservableObject {
                 self.isRunning = false
                 self.latestOutput = resolved
                 viewModel?.pluginOutputText = resolved.plainText
-                self.statusNote = "\(plugin.manifest.name) 完成 (\(resolved.execution.durationMs) ms)"
+                viewModel?.reloadPlugins()
+                self.statusNote = "\(plugin.displayName) 完成 (\(resolved.execution.durationMs) ms)"
             } catch {
                 guard !Task.isCancelled, let self else { return }
                 self.isRunning = false
@@ -169,8 +207,8 @@ final class PluginCenterController: ObservableObject {
             viewModel.reloadPluginsAndHotKeys()
             select(installed, switchTab: true)
             statusNote = tpl.capabilities.isEmpty
-                ? "已安装精选模板：\(installed.manifest.name)"
-                : "已安装 \(installed.manifest.name)，请在详情页按需授权宿主能力"
+                ? "已安装精选模板：\(installed.displayName)"
+                : "已安装 \(installed.displayName)，请在详情页按需授权宿主能力"
             runAsync(installed, viewModel: viewModel)
         } catch {
             statusNote = error.localizedDescription
@@ -189,7 +227,7 @@ final class PluginCenterController: ObservableObject {
             )
             viewModel.reloadPluginsAndHotKeys()
             select(created, switchTab: true)
-            statusNote = "已创建插件：\(created.manifest.name)"
+            statusNote = "已创建插件：\(created.displayName)"
             runAsync(created, viewModel: viewModel)
         } catch let err as LumakeyError {
             viewModel.diagnostic = err.diagnostic
@@ -209,7 +247,7 @@ final class PluginCenterController: ObservableObject {
             if latestOutput?.pluginID == plugin.id { latestOutput = nil }
             viewModel.reloadPluginsAndHotKeys()
             syncSelection(from: viewModel.plugins)
-            statusNote = "已移除插件：\(plugin.manifest.name)"
+            statusNote = "已移除插件：\(plugin.displayName)"
         } catch {
             statusNote = error.localizedDescription
         }
@@ -217,16 +255,14 @@ final class PluginCenterController: ObservableObject {
 
     func importFromFinder(viewModel: AppViewModel) {
         let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.allowsMultipleSelection = false
         panel.prompt = "导入插件目录"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let imported = try PluginSystem.importPluginDirectory(from: url, overwrite: true)
             viewModel.reloadPluginsAndHotKeys()
             select(imported, switchTab: true)
-            statusNote = "已导入插件：\(imported.manifest.name)"
+            statusNote = "已导入插件：\(imported.displayName)"
         } catch {
             statusNote = (error as? LumakeyError)?.diagnostic.reason ?? error.localizedDescription
         }
@@ -235,9 +271,7 @@ final class PluginCenterController: ObservableObject {
     func exportToFinder(_ plugin: PluginDescriptor) {
         guard !plugin.isBuiltin else { return }
         let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = true
+        panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.canCreateDirectories = true
         panel.prompt = "导出到此文件夹"
         guard panel.runModal() == .OK, let dest = panel.url else { return }
         if let outURL = try? PluginSystem.exportPlugin(id: plugin.id, to: dest) {

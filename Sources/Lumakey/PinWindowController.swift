@@ -80,7 +80,7 @@ final class PinWindowController {
             onCloseAll: { [weak self] in self?.closeAll() },
             onClose: closeAction
         )
-        let hosting = NSHostingView(rootView: view)
+        let hosting = NSHostingView(rootView: LocalizedRootContainer { view })
         hosting.wantsLayer = true
         hosting.layer?.cornerRadius = 16
         hosting.layer?.cornerCurve = .continuous
@@ -192,16 +192,16 @@ final class PinInteractionNSView: NSView {
     override func menu(for event: NSEvent) -> NSMenu? {
         guard let cb = menuCallbacks else { return nil }
         let menu = NSMenu()
-        menu.addItem(PinMenuActionItem(title: "复制图片", action: cb.copyImage))
-        menu.addItem(PinMenuActionItem(title: "离线识字 (OCR)", action: cb.runOCR))
-        menu.addItem(PinMenuActionItem(title: "主体抠图", action: cb.runCutout))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("复制图片"), action: cb.copyImage))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("离线识字 (OCR)"), action: cb.runOCR))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("主体抠图"), action: cb.runCutout))
         menu.addItem(.separator())
-        menu.addItem(PinMenuActionItem(title: "100% 原始大小", action: cb.resetSize))
-        menu.addItem(PinMenuActionItem(title: "切换半透明对比 (⌥滚轮)", action: cb.toggleOpacity))
-        menu.addItem(PinMenuActionItem(title: "另存为 PNG…", action: cb.savePNG))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("100% 原始大小"), action: cb.resetSize))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("切换半透明对比 (⌥滚轮)"), action: cb.toggleOpacity))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("另存为 PNG…"), action: cb.savePNG))
         menu.addItem(.separator())
-        menu.addItem(PinMenuActionItem(title: "关闭此钉图 (Esc)", action: cb.closeThis))
-        menu.addItem(PinMenuActionItem(title: "关闭全部钉图", action: cb.closeAll))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("关闭此钉图 (Esc)"), action: cb.closeThis))
+        menu.addItem(PinMenuActionItem(title: L10n.translate("关闭全部钉图"), action: cb.closeAll))
         return menu
     }
 }

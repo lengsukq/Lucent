@@ -5,6 +5,7 @@ import SwiftUI
 struct OverlayUnifiedRowsView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var usageTracker = AppUsageTrackerController.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
         let items = viewModel.displayedCandidates
@@ -15,11 +16,10 @@ struct OverlayUnifiedRowsView: View {
                 let isSelected = index == viewModel.overlaySelectedIndex
                 Button {
                     if !viewModel.effectiveLensVisible || isSelected {
-                        viewModel.overlaySelectedIndex = index
+                        viewModel.selectOverlayCandidate(at: index, userInitiated: true)
                         viewModel.executeCandidate(candidate)
                     } else {
-                        viewModel.overlaySelectedIndex = index
-                        viewModel.syncOverlayPreviewToSelection()
+                        viewModel.selectOverlayCandidate(at: index, userInitiated: true)
                     }
                 } label: {
                     HStack(spacing: 12) {
@@ -28,8 +28,7 @@ struct OverlayUnifiedRowsView: View {
                         Spacer(minLength: 8)
                         candidateTrailingInfo(candidate, index: index, selected: isSelected)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8.5)
+                    .padding(.horizontal, 12).padding(.vertical, 8.5)
                     .overlayRowHighlight(selected: isSelected)
                 }
                 .buttonStyle(LiquidResultRowButtonStyle())
@@ -42,8 +41,8 @@ struct OverlayUnifiedRowsView: View {
     private var emptyStateCard: some View {
         VStack(spacing: 10) {
             SquircleBadge(symbol: viewModel.omniFilter.symbolName, topColor: .cyan.opacity(0.85), bottomColor: .blue.opacity(0.85), size: 42)
-            Text(emptyTitle).font(.callout.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
-            Text("试试调整关键词，或按 Tab 切换搜索维度").font(.caption2).foregroundStyle(LiquidColors.textSecondary)
+            Text(L10n.translate(emptyTitle)).font(.callout.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
+            Text("试试调整关键词，或按 Tab 切换搜索维度 / 进入插件专属列表").font(.caption2).foregroundStyle(LiquidColors.textSecondary)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 36).padding(.horizontal, 20)
         .liquidGlassCard(cornerRadius: LiquidRadii.card).padding(.top, 28)
@@ -51,10 +50,10 @@ struct OverlayUnifiedRowsView: View {
 
     private var emptyTitle: String {
         switch viewModel.omniFilter {
-        case .all: "无匹配应用、文件、剪贴板或命令"
+        case .all: "无匹配应用、文件、剪贴板或插件"
         case .files: "无匹配文件，尝试 ext:md / pic: / 关键词"
         case .clipboard: "暂无匹配的剪贴板记录"
-        case .plugins: "未找到已启用插件，可在设置中心安装或启用"
+        case .plugins: "未找到匹配的已启用插件、子功能或索引词条"
         }
     }
 
@@ -64,31 +63,20 @@ struct OverlayUnifiedRowsView: View {
         case .app(let app):
             Image(nsImage: IconCache.shared.appIcon(for: app.url)).resizable()
                 .frame(width: 32, height: 32).shadow(color: .black.opacity(0.14), radius: 3, y: 1.5)
-        case .calculator:
-            SquircleBadge(symbol: "equal", topColor: .orange, bottomColor: .red, size: 32)
+        case .calculator: SquircleBadge(symbol: "equal", topColor: .orange, bottomColor: .red, size: 32)
         case .devTool(let tool):
-            if let hex = tool.colorHex {
-                colorSwatchIcon(hex)
-            } else {
-                SquircleBadge(symbol: tool.symbol, topColor: .mint, bottomColor: .cyan, size: 32)
-            }
-        case .snippet:
-            SquircleBadge(symbol: "text.quote", topColor: .cyan, bottomColor: .indigo, size: 32)
-        case .fileHit(let hit):
-            frostedIconBox(IconCache.shared.fileIcon(isDirectory: hit.isDirectory, extensionLowercased: hit.url.pathExtension.lowercased()))
-        case .clipboard(let entry):
-            clipboardLeadingBadge(entry)
+            if let hex = tool.colorHex { colorSwatchIcon(hex) }
+            else { SquircleBadge(symbol: tool.symbol, topColor: .mint, bottomColor: .cyan, size: 32) }
+        case .snippet: SquircleBadge(symbol: "text.quote", topColor: .cyan, bottomColor: .indigo, size: 32)
+        case .fileHit(let hit): frostedIconBox(IconCache.shared.fileIcon(isDirectory: hit.isDirectory, extensionLowercased: hit.url.pathExtension.lowercased()))
+        case .clipboard(let entry): clipboardLeadingBadge(entry)
         case .plugin(let plugin):
-            SquircleBadge(
-                symbol: plugin.manifest.icon ?? "puzzlepiece.extension.fill",
-                topColor: plugin.isBuiltin ? .cyan : .purple,
-                bottomColor: plugin.isBuiltin ? .blue : .indigo,
-                size: 32
-            )
+            PluginIconBadge(plugin: plugin, size: 32)
+        case .pluginCommand(let cmd):
+            PluginIconBadge(symbol: cmd.symbolName, customIconURL: cmd.pluginCustomIconURL, accentColor: cmd.isQuickButtonEnabled ? "orange" : cmd.pluginAccentColor, isBuiltin: cmd.isBuiltin, size: 32)
         case .pluginItem(let entry):
-            SquircleBadge(symbol: entry.icon ?? (entry.pinned ? "pin.fill" : "bookmark.fill"), topColor: entry.pinned ? .orange : .teal, bottomColor: .blue, size: 32)
-        case .command(let cmd):
-            SquircleBadge(symbol: cmd.symbol, topColor: .cyan, bottomColor: .blue, size: 32)
+            PluginIconBadge(symbol: entry.symbolIconName, customIconURL: entry.customIconURL, accentColor: entry.pinned ? "orange" : (entry.tintColor ?? "teal"), size: 32)
+        case .command(let cmd): SquircleBadge(symbol: cmd.symbol, topColor: .cyan, bottomColor: .blue, size: 32)
         }
     }
 
@@ -107,8 +95,7 @@ struct OverlayUnifiedRowsView: View {
             shape.fill(LiquidColors.elevatedSurface)
             Image(nsImage: image).resizable().scaledToFit().frame(width: 23, height: 23)
         }
-        .frame(width: 32, height: 32)
-        .overlay { shape.strokeBorder(LiquidColors.softCardRimGradient, lineWidth: 0.75) }
+        .frame(width: 32, height: 32).overlay { shape.strokeBorder(LiquidColors.softCardRimGradient, lineWidth: 0.75) }
     }
 
     @ViewBuilder
@@ -125,28 +112,29 @@ struct OverlayUnifiedRowsView: View {
     private func candidateBody(_ candidate: LauncherCandidate) -> some View {
         switch candidate.kind {
         case .app(let app):
-            let badge = usageTracker.compactUsageBadge(for: app)
-            rowLabels(title: app.name, subtitle: badge.map { "\($0) · \(app.url.path)" } ?? app.url.path, boldTitle: true)
+            let badge = usageTracker.compactUsageBadge(for: app).map { L10n.translate($0) }
+            rowLabels(title: app.displayName, subtitle: badge.map { "\($0) · \(app.url.path)" } ?? app.url.path, boldTitle: true)
         case .calculator(let expr, let resultText, _):
             VStack(alignment: .leading, spacing: 2.5) {
                 Text(resultText).font(.title3.weight(.bold).monospacedDigit()).foregroundStyle(LiquidColors.accentGradient).lineLimit(1)
                 Text(expr).font(.caption2.monospaced()).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
             }
-        case .devTool(let tool):
-            rowLabels(title: tool.title, subtitle: tool.subtitle, boldTitle: true, monoSubtitle: true)
+        case .devTool(let tool): rowLabels(title: L10n.translate(tool.title), subtitle: L10n.translate(tool.subtitle), boldTitle: true, monoSubtitle: true)
         case .snippet(let match):
-            let preview = match.expandedText.replacingOccurrences(of: "\n", with: " ↵ ")
-            rowLabels(title: "\(match.snippet.title)  \(match.snippet.keyword)", subtitle: preview, boldTitle: true, monoSubtitle: true)
-        case .fileHit(let hit):
-            rowLabels(title: hit.name, subtitle: hit.relativeParentPath, boldTitle: false, monoSubtitle: true)
-        case .clipboard(let entry):
-            rowLabels(title: entry.title, subtitle: entry.subtitle, boldTitle: false)
+            rowLabels(title: "\(match.snippet.title)  \(match.snippet.keyword)", subtitle: match.expandedText.replacingOccurrences(of: "\n", with: " ↵ "), boldTitle: true, monoSubtitle: true)
+        case .fileHit(let hit): rowLabels(title: hit.name, subtitle: hit.relativeParentPath, boldTitle: false, monoSubtitle: true)
+        case .clipboard(let entry): rowLabels(title: entry.title, subtitle: L10n.translate(entry.subtitle), boldTitle: false)
         case .plugin(let plugin):
-            rowLabels(title: plugin.manifest.name, subtitle: plugin.manifest.description, boldTitle: true)
+            let pName = plugin.displayName
+            let sub = viewModel.scopedPluginID == plugin.id
+                ? L10n.pick("带着当前输入执行「\(pName)」", "Run \"\(pName)\" with current input")
+                : "\(plugin.effectiveKeywords.joined(separator: "/")) · \(plugin.effectiveStatusSummary)"
+            rowLabels(title: pName, subtitle: sub, boldTitle: true)
+        case .pluginCommand(let cmd):
+            rowLabels(title: cmd.localizedTitle, subtitle: "\(cmd.pluginName) · \(cmd.localizedSubtitle)", boldTitle: true)
         case .pluginItem(let entry):
             rowLabels(title: entry.title, subtitle: entry.subtitle.isEmpty ? (entry.url ?? entry.pluginName) : entry.subtitle, boldTitle: true)
-        case .command(let cmd):
-            rowLabels(title: cmd.title, subtitle: cmd.subtitle, boldTitle: true)
+        case .command(let cmd): rowLabels(title: cmd.title, subtitle: cmd.subtitle, boldTitle: true)
         }
     }
 
@@ -161,7 +149,7 @@ struct OverlayUnifiedRowsView: View {
     private func candidateTrailingInfo(_ candidate: LauncherCandidate, index: Int, selected: Bool) -> some View {
         HStack(spacing: 6) {
             if isPinnedCandidate(candidate) {
-                Image(systemName: "pin.fill").font(.system(size: 9.5, weight: .bold)).foregroundStyle(.orange)
+                Image(systemName: "bolt.fill").font(.system(size: 9.5, weight: .bold)).foregroundStyle(.orange)
                     .padding(.horizontal, 6).padding(.vertical, 3)
                     .background(Color.orange.opacity(0.14), in: Capsule(style: .continuous))
                     .overlay { Capsule(style: .continuous).strokeBorder(Color.orange.opacity(0.30), lineWidth: 0.7) }
@@ -171,13 +159,13 @@ struct OverlayUnifiedRowsView: View {
             }
             if index < 9 { LiquidKeyHintBadge(keyText: "⌘\(index + 1)", highlighted: selected) }
             if selected {
-                Text(actionHint(for: candidate)).font(.caption2.weight(.semibold)).foregroundStyle(.white)
+                Text(L10n.translate(actionHint(for: candidate))).font(.caption2.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 9).padding(.vertical, 3.5)
                     .background(LiquidColors.accentGradient, in: Capsule(style: .continuous))
                     .overlay { Capsule(style: .continuous).strokeBorder(.white.opacity(0.38), lineWidth: 0.75) }
-                    .shadow(color: .cyan.opacity(0.24), radius: 5, y: 1.5)
+                    .shadow(color: LiquidColors.accentShadowColor, radius: 5, y: 1.5)
             } else {
-                Text(badgeText(for: candidate)).font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
+                Text(L10n.translate(badgeText(for: candidate))).font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
                     .padding(.horizontal, 8).padding(.vertical, 3.5)
                     .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
                     .overlay { Capsule(style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
@@ -189,6 +177,8 @@ struct OverlayUnifiedRowsView: View {
         switch candidate.kind {
         case .app(let app): usageTracker.isPinned(app)
         case .clipboard(let entry): entry.isPinned
+        case .plugin(let plugin): plugin.pinnedInOverlay
+        case .pluginCommand(let cmd): cmd.isQuickButtonEnabled
         case .pluginItem(let entry): entry.pinned
         default: false
         }
@@ -199,41 +189,43 @@ struct OverlayUnifiedRowsView: View {
         switch candidate.kind {
         case .app(let app):
             let pinned = usageTracker.isPinned(app)
-            Button { usageTracker.togglePin(app) } label: {
-                Label(pinned ? "取消钉住" : "钉在常用栏", systemImage: pinned ? "pin.slash" : "pin.fill")
-            }
-            Button { NSWorkspace.shared.activateFileViewerSelecting([app.url]) } label: {
-                Label("在访达中显示", systemImage: "folder")
-            }
-            Button(role: .destructive) { usageTracker.resetStats(for: app.id) } label: {
-                Label("重置使用记录", systemImage: "arrow.counterclockwise")
-            }
+            Button { usageTracker.togglePin(app) } label: { Label(pinned ? "取消钉住" : "钉在常用栏", systemImage: pinned ? "pin.slash" : "pin.fill") }
+            Button { NSWorkspace.shared.activateFileViewerSelecting([app.url]) } label: { Label("在访达中显示", systemImage: "folder") }
+            Button(role: .destructive) { usageTracker.resetStats(for: app.id) } label: { Label("重置使用记录", systemImage: "arrow.counterclockwise") }
         case .fileHit(let hit):
-            Button { NSWorkspace.shared.activateFileViewerSelecting([hit.url]) } label: {
-                Label("在访达中显示", systemImage: "folder")
-            }
-            Button {
-                NSPasteboard.general.clearContents(); NSPasteboard.general.setString(hit.url.path, forType: .string)
-            } label: { Label("复制完整路径", systemImage: "doc.on.doc") }
+            Button { NSWorkspace.shared.activateFileViewerSelecting([hit.url]) } label: { Label("在访达中显示", systemImage: "folder") }
+            Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(hit.url.path, forType: .string) } label: { Label("复制完整路径", systemImage: "doc.on.doc") }
+            if let ctx = PluginContextMatcher.payloadFromFiles([hit.url], source: "everything") { contextPluginSubmenu(ctx) }
         case .clipboard(let entry):
-            Button { viewModel.toggleClipboardPin(entry) } label: {
-                Label(entry.isPinned ? "取消收藏" : "永久收藏", systemImage: entry.isPinned ? "pin.slash" : "pin.fill")
-            }
+            Button { viewModel.toggleClipboardPin(entry) } label: { Label(entry.isPinned ? "取消收藏" : "永久收藏", systemImage: entry.isPinned ? "pin.slash" : "pin.fill") }
+            if let ctx = PluginContextMatcher.payloadFromClipboard(entry) { contextPluginSubmenu(ctx) }
+        case .plugin(let plugin):
+            Button { viewModel.enterPluginScopedOverlay(plugin) } label: { Label("进入插件专属列表 (Tab)", systemImage: "list.bullet.rectangle") }
+            Button { viewModel.togglePluginOverlayPin(plugin) } label: { Label(plugin.pinnedInOverlay ? "从快捷按钮移除" : "添加到快捷按钮", systemImage: plugin.pinnedInOverlay ? "bolt.slash.fill" : "bolt.circle.fill") }
+            Button { viewModel.openPluginSettings(id: plugin.id) } label: { Label("打开插件独立设置 (⌘,)", systemImage: "slider.horizontal.3") }
+        case .pluginCommand(let cmd):
+            Button { viewModel.executeCandidate(candidate) } label: { Label("立即执行子功能", systemImage: "play.fill") }
+            Button { viewModel.togglePluginCommandQuickButton(cmd) } label: { Label(cmd.isQuickButtonEnabled ? "从快捷按钮移除" : "添加到快捷按钮", systemImage: cmd.isQuickButtonEnabled ? "bolt.slash.fill" : "bolt.circle.fill") }
+            Button { viewModel.openPluginSettings(id: cmd.pluginID) } label: { Label("打开所属插件设置 (⌘,)", systemImage: "slider.horizontal.3") }
         case .pluginItem(let entry):
-            Button { viewModel.executeCandidate(candidate) } label: {
-                Label(entry.url != nil ? "打开网页" : "执行", systemImage: entry.url != nil ? "safari" : "play.fill")
+            Button { viewModel.executeCandidate(candidate) } label: { Label(entry.url != nil ? "打开网页" : "执行", systemImage: entry.url != nil ? "safari" : "play.fill") }
+            if let args = entry.commandArgs, !args.isEmpty, let plugin = viewModel.plugins.first(where: { $0.id == entry.pluginID }) {
+                Button { viewModel.runPlugin(plugin, query: "", arguments: args, showInline: true) } label: { Label("在插件中管理", systemImage: "slider.horizontal.3") }
             }
-            if let args = entry.commandArgs, !args.isEmpty,
-               let plugin = viewModel.plugins.first(where: { $0.id == entry.pluginID }) {
-                Button { viewModel.runPlugin(plugin, query: "", arguments: args, showInline: true) } label: {
-                    Label("在插件中管理", systemImage: "slider.horizontal.3")
-                }
-            }
-            Button {
-                NSPasteboard.general.clearContents(); NSPasteboard.general.setString(entry.copyText ?? entry.url ?? entry.title, forType: .string)
-            } label: { Label("复制链接", systemImage: "doc.on.doc") }
+            Button { viewModel.openPluginSettings(id: entry.pluginID) } label: { Label("打开所属插件设置", systemImage: "gearshape") }
+            Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(entry.copyText ?? entry.url ?? entry.title, forType: .string) } label: { Label("复制内容", systemImage: "doc.on.doc") }
         default:
             Button { viewModel.executeCandidate(candidate) } label: { Label("执行", systemImage: "play.fill") }
+        }
+    }
+
+    @ViewBuilder
+    private func contextPluginSubmenu(_ ctx: PluginContextPayload) -> some View {
+        let matched = PluginContextMatcher.matchingPlugins(in: viewModel.plugins, for: ctx)
+        if !matched.isEmpty {
+            Menu("发送到扩展插件") {
+                ForEach(matched) { plugin in Button(plugin.displayName) { viewModel.runPluginWithContext(plugin, context: ctx) } }
+            }
         }
     }
 
@@ -241,7 +233,8 @@ struct OverlayUnifiedRowsView: View {
         switch candidate.kind {
         case .calculator, .clipboard, .snippet: "复制 ↩"
         case .devTool(let t): t.previewImageURL != nil ? "复制图片 ↩" : "复制 ↩"
-        case .plugin, .command: "执行 ↩"
+        case .plugin(let p): viewModel.scopedPluginID != p.id ? "⇥ 列表 · 执行 ↩" : "执行 ↩"
+        case .pluginCommand, .command: "执行 ↩"
         case .pluginItem(let e): e.url != nil ? "打开 ↩" : "执行 ↩"
         default: "打开 ↩"
         }
@@ -255,7 +248,8 @@ struct OverlayUnifiedRowsView: View {
         case .snippet(let m): m.snippet.keyword.isEmpty ? "短语" : m.snippet.keyword
         case .fileHit(let hit): hit.mediaKind.badgeTitle
         case .clipboard(let entry): entry.payloadKind.badgeTitle
-        case .plugin(let p): p.isBuiltin ? "BUILTIN" : (p.manifest.mode == .view ? "插件卡片" : "插件")
+        case .plugin(let p): p.effectiveHotKey ?? p.displayCategoryBadge
+        case .pluginCommand(let c): c.effectiveHotKey ?? c.command.keywords.first ?? L10n.pick("子功能", "Command")
         case .pluginItem(let e): e.badge ?? e.pluginName
         case .command(let cmd): cmd.badgeLabel
         }
@@ -264,8 +258,7 @@ struct OverlayUnifiedRowsView: View {
 
 private struct LiquidResultRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.985 : 1.0)
+        configuration.label.scaleEffect(configuration.isPressed ? 0.985 : 1.0)
             .opacity(configuration.isPressed ? 0.92 : 1.0)
             .animation(LiquidMotion.pressSpring, value: configuration.isPressed)
     }
@@ -275,23 +268,23 @@ private extension View {
     func overlayRowHighlight(selected: Bool) -> some View {
         let shape = RoundedRectangle(cornerRadius: LiquidRadii.row, style: .continuous)
         let prefs = SystemDisplayPreferences.shared.snapshot
-        let reduceTransparency = prefs.reduceTransparency
-        let highContrast = prefs.increaseContrast
         return background {
             if selected {
                 ZStack {
-                    if !reduceTransparency { shape.fill(.ultraThinMaterial) }
-                    shape.fill(reduceTransparency ? LiquidColors.highlightGlow : LiquidColors.selectedRowFill)
-                    if !reduceTransparency { shape.fill(LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .center)) }
+                    if !prefs.reduceTransparency { shape.fill(.ultraThinMaterial) }
+                    shape.fill(prefs.reduceTransparency ? LiquidColors.highlightGlow : LiquidColors.selectedRowFill)
+                    if !prefs.reduceTransparency && LiquidColors.isPrism {
+                        shape.fill(LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .center))
+                    }
                 }
             }
         }
         .overlay {
             if selected {
-                shape.strokeBorder(highContrast ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(LiquidColors.selectedRowRimGradient), lineWidth: highContrast ? 1.4 : 1.05)
+                shape.strokeBorder(prefs.increaseContrast ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(LiquidColors.selectedRowRimGradient), lineWidth: prefs.increaseContrast ? 1.4 : 1.0)
             }
         }
-        .shadow(color: selected && !reduceTransparency ? Color.cyan.opacity(0.12) : .clear, radius: 8, y: 2)
+        .shadow(color: selected && !prefs.reduceTransparency ? LiquidColors.accentShadowColor.opacity(0.55) : .clear, radius: 8, y: 2)
         .contentShape(shape)
     }
 }

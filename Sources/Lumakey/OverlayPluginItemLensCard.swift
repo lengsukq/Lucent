@@ -9,12 +9,13 @@ struct OverlayPluginItemLensCard: View {
     let onCopyText: (String, String) -> Void
 
     var body: some View {
+        let tint = PluginVisualPalette.tint(from: entry.tintColor, fallback: entry.pinned ? .orange : .cyan)
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                SquircleBadge(
-                    symbol: entry.icon ?? (entry.pinned ? "pin.fill" : "bookmark.fill"),
-                    topColor: entry.pinned ? .orange : .teal,
-                    bottomColor: .blue,
+                PluginIconBadge(
+                    symbol: entry.symbolIconName,
+                    customIconURL: entry.customIconURL,
+                    accentColor: entry.pinned ? "orange" : (entry.tintColor ?? "teal"),
                     size: 38
                 )
                 VStack(alignment: .leading, spacing: 3) {
@@ -23,7 +24,7 @@ struct OverlayPluginItemLensCard: View {
                         .foregroundStyle(LiquidColors.textPrimary)
                         .lineLimit(2)
                     HStack(spacing: 6) {
-                        LiquidStatusPill(title: entry.badge ?? entry.pluginName, tint: entry.pinned ? .orange : .cyan)
+                        LiquidStatusPill(title: entry.badge ?? entry.pluginName, tint: tint)
                         if entry.pinned {
                             LiquidStatusPill(title: "已置顶", symbol: "pin.fill", tint: .orange)
                         }
@@ -34,7 +35,7 @@ struct OverlayPluginItemLensCard: View {
             if !entry.tags.isEmpty {
                 Text(entry.tags.map { "#\($0)" }.joined(separator: "  "))
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(tint)
             }
 
             if let rawURL = entry.url, !rawURL.isEmpty {
@@ -56,15 +57,15 @@ struct OverlayPluginItemLensCard: View {
 
             HStack(spacing: 7) {
                 if let rawURL = entry.url, let url = URL(string: rawURL) {
-                    Button("打开网页 ↩") { onOpenURL(url) }
+                    Button(L10n.pick("打开 ↩", "Open ↩")) { onOpenURL(url) }
                         .buttonStyle(GlassPillButtonStyle(prominent: true))
                 }
                 if let args = entry.commandArgs, !args.isEmpty {
-                    Button("管理 / 置顶 ⌘↩") { onRunManage(args) }
+                    Button(L10n.pick("管理 / 置顶 ⌘↩", "Manage ⌘↩")) { onRunManage(args) }
                         .buttonStyle(GlassPillButtonStyle(prominent: entry.url == nil))
                 }
                 if let copyVal = entry.copyText ?? entry.url, !copyVal.isEmpty {
-                    Button("复制 ⌘C") { onCopyText(copyVal, "已复制：\(entry.title)") }
+                    Button(L10n.pick("复制 ⌘C", "Copy ⌘C")) { onCopyText(copyVal, "已复制：\(entry.title)") }
                         .buttonStyle(GlassPillButtonStyle())
                 }
             }

@@ -22,17 +22,17 @@ struct SettingsDetailSectionsView: View {
             ("pic:", "一键列出全盘与外置盘图片"),
             ("video:", "快速查找视频与影片文件"),
             ("folder:", "仅筛选目录文件夹（排除普通文件）"),
-            ("path:lightlsle", "限制在包含指定目录或卷名下检索"),
+            ("path:Documents", "限制在包含指定目录或卷名下检索"),
             ("report !tmp | ext:pdf", "空格表“与”、!表“排除”、|表“或”")
         ]
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 SettingsSectionHeroHeader(
                     symbol: "magnifyingglass.circle.fill", topColor: .teal, bottomColor: .blue,
-                    title: "Everything 检索引擎与范围",
+                    title: "全盘文件检索引擎与范围",
                     subtitle: "基于 POSIX opendir/readdir 与多卷轮询队列，开箱自动索引本机主目录与全部已挂载外置磁盘。"
                 ) {
-                    Text(viewModel.isIndexingEverything ? "索引中…" : "\(viewModel.everythingNodeCount) 节点")
+                    Text(viewModel.isIndexingEverything ? L10n.pick("索引中…", "Indexing…") : L10n.pick("\(viewModel.everythingNodeCount) 节点", "\(viewModel.everythingNodeCount) nodes"))
                         .font(.caption.monospacedDigit().weight(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 10).padding(.vertical, 5)
@@ -54,7 +54,7 @@ struct SettingsDetailSectionsView: View {
                             Button { viewModel.rebuildEverythingIndex(scope: scope) } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: scopeIcon(scope))
-                                        .foregroundStyle(active ? Color.white : .cyan)
+                                        .foregroundStyle(active ? Color.white : LiquidColors.accentPrimary)
                                     Text(scope.title).font(.caption.weight(.semibold)).lineLimit(1)
                                     Spacer()
                                 }
@@ -70,7 +70,7 @@ struct SettingsDetailSectionsView: View {
                 .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Everything 查询语法速查（点击自动填入搜索框试用）").font(.callout.weight(.semibold))
+                    Text("文件检索语法速查（点击自动填入搜索框试用）").font(.callout.weight(.semibold))
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                         ForEach(dslExamples, id: \.token) { item in
                             Button {
@@ -78,8 +78,8 @@ struct SettingsDetailSectionsView: View {
                                 viewModel.showOverlay(filter: .files)
                             } label: {
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(item.token).font(.caption.monospaced().weight(.bold)).foregroundStyle(.cyan)
-                                    Text(item.desc).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                    Text(item.token).font(.caption.monospaced().weight(.bold)).foregroundStyle(LiquidColors.accentPrimary)
+                                    Text(L10n.translate(item.desc)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 .padding(10).frame(maxWidth: .infinity, alignment: .leading)
                                 .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
@@ -91,6 +91,7 @@ struct SettingsDetailSectionsView: View {
                 }
                 .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
             }
+            .padding(.trailing, 4)
         }
     }
 
@@ -117,14 +118,14 @@ struct SettingsDetailSectionsView: View {
                 }
 
                 HStack(spacing: 10) {
-                    statBox("当前历史条目", value: "\(viewModel.clipboardItems.count) 条", sub: "未收藏上限 80 条", tint: .orange)
-                    statBox("永久收藏条目", value: "\(pinnedCount) 条", sub: "不受 FIFO 淘汰清理", tint: .pink)
+                    statBox("当前历史条目", value: L10n.pick("\(viewModel.clipboardItems.count) 条", "\(viewModel.clipboardItems.count) items"), sub: "未收藏上限 80 条", tint: .orange)
+                    statBox("永久收藏条目", value: L10n.pick("\(pinnedCount) 条", "\(pinnedCount) items"), sub: "不受 FIFO 淘汰清理", tint: .pink)
                     statBox("隐私过滤模式", value: "已启用", sub: "自动绕过密码管理器", tint: .green)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("安全采集与内存回收机制").font(.callout.weight(.semibold))
-                    privacyRuleRow("lock.shield.fill", .green, "自动过滤密码管理器敏感内容", "遇到 org.nspasteboard.ConcealedType、TransientType 或 1Password 复制项立即跳过记录。")
+                    privacyRuleRow("lock.shield.fill", .green, "自动过滤密码管理器敏感内容", "遇到 org.nspasteboard.ConcealedType、TransientType 等密码管理器隐私标记项立即跳过记录。")
                     privacyRuleRow("paintpalette.fill", .purple, "支持文本、#HEX 色块、图片与文件路径", "识别颜色值后可直接在右侧预览色块并一键复制。")
                     privacyRuleRow("trash.circle.fill", .orange, "临时图片引用随记录淘汰自动删除", "点击“清空未收藏条目”会同时从磁盘删除对应剪贴板临时 PNG。")
                 }
@@ -137,14 +138,15 @@ struct SettingsDetailSectionsView: View {
                         .buttonStyle(GlassPillButtonStyle())
                 }
             }
+            .padding(.trailing, 4)
         }
     }
 
     private func statBox(_ title: String, value: String, sub: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption2).foregroundStyle(.secondary)
-            Text(value).font(.title3.weight(.bold).monospacedDigit()).foregroundStyle(tint)
-            Text(sub).font(.caption2).foregroundStyle(.secondary)
+            Text(L10n.translate(title)).font(.caption2).foregroundStyle(.secondary)
+            Text(L10n.translate(value)).font(.title3.weight(.bold).monospacedDigit()).foregroundStyle(tint)
+            Text(L10n.translate(sub)).font(.caption2).foregroundStyle(.secondary)
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
         .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
@@ -154,8 +156,8 @@ struct SettingsDetailSectionsView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: symbol).foregroundStyle(color).frame(width: 20, height: 20)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.caption.weight(.semibold))
-                Text(desc).font(.caption2).foregroundStyle(.secondary)
+                Text(L10n.translate(title)).font(.caption.weight(.semibold))
+                Text(L10n.translate(desc)).font(.caption2).foregroundStyle(.secondary)
             }
         }
         .padding(10).frame(maxWidth: .infinity, alignment: .leading)
@@ -173,7 +175,7 @@ struct SettingsDetailSectionsView: View {
                     let mcpPath = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/lumakey-mcp").path
                     let snippet = "{\n  \"mcpServers\": {\n    \"lumakey\": {\n      \"command\": \"\(mcpPath)\",\n      \"args\": []\n    }\n  }\n}"
                     NSPasteboard.general.clearContents(); NSPasteboard.general.setString(snippet, forType: .string)
-                    viewModel.serviceMessage = "已复制 lumakey-mcp 配置 JSON"
+                    viewModel.serviceMessage = L10n.pick("已复制 lumakey-mcp 配置 JSON", "Copied lumakey-mcp JSON configuration")
                 }
                 .buttonStyle(GlassPillButtonStyle(prominent: true))
             }
@@ -186,29 +188,35 @@ struct SettingsDetailSectionsView: View {
             VStack(spacing: 14) {
                 VStack(spacing: 10) {
                     SquircleBadge(symbol: "sparkles", topColor: .cyan, bottomColor: .indigo, size: 60)
-                    Text("流光 Lumakey 0.7.1").font(.title2.weight(.bold))
-                    Text("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 17")
+                    Text(L10n.pick("流光 Lumakey 0.8.7", "Lumakey 0.8.7")).font(.title2.weight(.bold))
+                    Text(L10n.pick("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 24", "Apple Silicon (arm64) Native Swift 6 · Zero Third-Party Dependencies · Build 24"))
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
-                    Text("轻量级菜单栏高效快捷中枢：以液态玻璃美学统合全局智能检索、文件工作台多选框选与安全归档、原生 GIF 动图录屏、QQ 式截图标注、离线 Vision OCR、热键冲突诊断、WebDAV 云备份与插件系统 v3。")
-                        .font(.callout).multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 540)
+                    Text(
+                        L10n.pick(
+                            "轻量级菜单栏高效快捷中枢：内置中英双语实时切换与「凝霜留白」「霓彩流光」双视觉主题，统合全局智能检索、插件独立设置与按需快捷按钮、文件工作台多选归档、原生 GIF 录屏、智能截图标注与钉屏、离线 Vision OCR、WebDAV 云备份与插件系统 v3。",
+                            "Lightweight native menu bar productivity hub with live Chinese/English switching and dual built-in themes (Pure Frost & Prism Pulse), uniting omni-search, dedicated plugin settings & quick buttons, multi-volume file workspace, GIF capture, screenshot annotation & pinning, offline Vision OCR, WebDAV backup, and Plugin System v3."
+                        )
+                    )
+                    .font(.callout).multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 540)
                 }
                 .padding(20).frame(maxWidth: .infinity)
                 .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
 
                 HStack(spacing: 10) {
-                    aboutPillar("cpu", .cyan, "Native Services First", "完全基于 SwiftUI、AppKit、Vision 与 CoreGraphics 原生构建，无任何外部依赖或 Electron 壳。")
+                    aboutPillar("cpu", .cyan, "Native Services First", "完全基于 SwiftUI、AppKit、Vision 与 CoreGraphics 原生构建，无任何外部依赖或浏览器壳。")
                     aboutPillar("leaf.arrow.circlepath", .green, "最优内存自洁架构", "浮窗隐藏 30s 回收视图树，索引按需驻留 · 空闲 90s 卸载（保留 LMKYIDX2 快照），独立窗口关闭即销毁。")
                     aboutPillar("shield.lefthalf.filled", .orange, "无感静默启动策略", "全部悬浮监控与顶部实时状态新装默认关闭，不安装任何 launchd 后台常驻守护进程。")
                 }
             }
+            .padding(.trailing, 4)
         }
     }
 
     private func aboutPillar(_ symbol: String, _ color: Color, _ title: String, _ desc: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Image(systemName: symbol).font(.title3).foregroundStyle(color)
-            Text(title).font(.callout.weight(.semibold))
-            Text(desc).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text(L10n.translate(title)).font(.callout.weight(.semibold))
+            Text(L10n.translate(desc)).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(14).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)

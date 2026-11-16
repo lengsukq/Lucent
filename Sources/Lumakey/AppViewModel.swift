@@ -8,22 +8,36 @@ import SwiftUI
 final class AppViewModel: ObservableObject {
     @Published var omniFilter: OmniFilter = .all
     @Published var overlayQuery: String = "" {
-        didSet { handleOverlayQueryChanged() }
+        didSet {
+            guard overlayQuery != oldValue else { return }
+            handleOverlayQueryChanged()
+        }
     }
     @Published var overlaySelectedIndex: Int = 0
+    var userMovedOverlaySelection: Bool = false
+    var anchoredOverlayCandidateID: String? = nil
     @Published var isOverlayPinned: Bool = false
     @Published var showOverlayLens: Bool = false
     @Published var focusToken: Int = 0
+    @Published var scopedPluginID: String? = nil {
+        didSet {
+            guard scopedPluginID != oldValue else { return }
+            if isOverlayVisible {
+                refreshDisplayedCandidates(resetSelection: true)
+            }
+        }
+    }
     @Published var everythingScope: EverythingScope = .allVolumes
     @Published var clipboardItems: [ClipboardEntry] = [] {
         didSet {
-            if isOverlayVisible { refreshDisplayedCandidates() }
+            guard clipboardItems != oldValue else { return }
+            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
         }
     }
     @Published var clipboardCategory: ClipboardCategory = .all {
         didSet {
-            overlaySelectedIndex = 0
-            refreshDisplayedCandidates()
+            guard clipboardCategory != oldValue else { return }
+            refreshDisplayedCandidates(resetSelection: true)
         }
     }
     @Published var inlineResultTitle: String = ""
@@ -31,7 +45,10 @@ final class AppViewModel: ObservableObject {
     @Published var inlinePluginViewPayload: PluginViewPayload?
     @Published var activeInlinePlugin: PluginDescriptor?
     @Published var showDockIcon: Bool = false
+    @Published var appTheme: AppThemeID = ThemeManager.shared.current
+    @Published var appLanguage: AppLanguageID = LanguageManager.shared.current
     @Published var activeSettingsSection: SettingsSection = .general
+    @Published var activePluginSettingsID: String? = nil
     @Published var appLaunchCounts: [String: Int] = [:] {
         didSet { updateCachedDockApps() }
     }
@@ -58,18 +75,28 @@ final class AppViewModel: ObservableObject {
 
     @Published var installedApps: [InstalledAppItem] = [] {
         didSet {
+            guard installedApps != oldValue else { return }
             updateCachedDockApps()
-            if isOverlayVisible { refreshDisplayedCandidates() }
+            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
         }
     }
     @Published var plugins: [PluginDescriptor] = [] {
         didSet {
-            if isOverlayVisible { refreshDisplayedCandidates() }
+            guard plugins != oldValue else { return }
+            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
         }
     }
+    @Published var pluginCommands: [PluginRegisteredCommand] = [] {
+        didSet {
+            guard pluginCommands != oldValue else { return }
+            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
+        }
+    }
+    @Published var enabledQuickButtons: [PluginQuickButtonItem] = []
     @Published var pluginSearchEntries: [PluginSearchEntry] = [] {
         didSet {
-            if isOverlayVisible { refreshDisplayedCandidates() }
+            guard pluginSearchEntries != oldValue else { return }
+            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
         }
     }
     @Published var pluginOutputText: String = ""
@@ -98,7 +125,7 @@ final class AppViewModel: ObservableObject {
     var everythingIndex: EverythingIndex?
     var residentEverythingNodeCount: Int { everythingIndex?.nodes.count ?? 0 }
     var needsEverythingIndexResident: Bool {
-        isOverlayVisible && (omniFilter == .files || !overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        isOverlayVisible && (omniFilter == .files || (!overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && scopedPluginID == nil))
     }
     var searchTask: Task<Void, Never>?
     var everythingIndexTask: Task<Void, Never>?
@@ -121,6 +148,7 @@ final class AppViewModel: ObservableObject {
     var lastPasteboardChangeCount: Int = -1
     var hasLoadedWorkspace: Bool = false
     var lastCapturedSelection: PluginSelectionSnapshot?
+    var skipNextSelectionCapture: Bool = false
 
     var onRouteRequest: ((WindowRoute) -> Void)?
     var onHideOverlayRequest: (() -> Void)?
@@ -163,12 +191,16 @@ final class AppViewModel: ObservableObject {
     }
 
     var effectiveLensVisible: Bool {
-        omniFilter == .files || omniFilter == .clipboard || showOverlayLens || inlineResultBody != nil || inlinePluginViewPayload != nil
+        omniFilter == .files || omniFilter == .clipboard || scopedPluginID != nil
+            || showOverlayLens || inlineResultBody != nil || inlinePluginViewPayload != nil
     }
 
-    var activePaneState: PaneState {
-        activePane == .left ? leftPane : rightPane
+    var activeScopedPlugin: PluginDescriptor? {
+        guard let id = scopedPluginID else { return nil }
+        return plugins.first { $0.id == id && $0.isValid && ($0.isBuiltin || $0.isEnabled) }
     }
+
+    var activePaneState: PaneState { activePane == .left ? leftPane : rightPane }
 
     func mutatePane(_ pane: PaneSide, _ transform: (inout PaneState) -> Void) {
         if pane == .left { transform(&leftPane) } else { transform(&rightPane) }
@@ -201,9 +233,7 @@ final class AppViewModel: ObservableObject {
             state.currentDirectory = url
             state.diagnostic = nil
         }
-        if changed && activePane == pane {
-            clearWorkspaceSelection()
-        }
+        if changed && activePane == pane { clearWorkspaceSelection() }
         refreshDirectory(pane: pane)
     }
 

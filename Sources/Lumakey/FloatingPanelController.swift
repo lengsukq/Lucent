@@ -13,15 +13,20 @@ final class RoundedGlassContainerView: NSVisualEffectView {
     private let outerRimMask = CALayer()
     private let innerRimLayer = CAGradientLayer()
     private let innerRimMask = CALayer()
-
     init(cornerRadius: CGFloat = LiquidRadii.panel) {
         self.currentCornerRadius = cornerRadius
         super.init(frame: .zero)
-        material = .popover; blendingMode = .behindWindow; state = .active
+        blendingMode = .behindWindow; state = .active
         isEmphasized = true; wantsLayer = true
         configureSpecularRimLayers()
-        updateCornerRadius(cornerRadius, force: true)
-        updateRimAppearance()
+        applyCurrentThemeMetrics(force: true)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleThemeChanged), name: .lumakeyThemeDidChange, object: nil
+        )
+    }
+
+    @objc private func handleThemeChanged() {
+        applyCurrentThemeMetrics(force: false)
     }
 
     required init?(coder: NSCoder) { nil }
@@ -36,6 +41,13 @@ final class RoundedGlassContainerView: NSVisualEffectView {
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
+        updateRimAppearance()
+    }
+
+    func applyCurrentThemeMetrics(force: Bool) {
+        let isPrism = ThemeManager.currentSnapshot == .prismPulse
+        material = isPrism ? .popover : .menu
+        updateCornerRadius(LiquidRadii.panel, force: force)
         updateRimAppearance()
     }
 
@@ -73,22 +85,24 @@ final class RoundedGlassContainerView: NSVisualEffectView {
 
     private func updateRimAppearance() {
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        if SystemDisplayPreferences.shared.increaseContrast {
-            let edge = (isDark ? NSColor.white : NSColor.black).withAlphaComponent(0.28).cgColor
+        let isPrism = ThemeManager.currentSnapshot == .prismPulse
+        if SystemDisplayPreferences.shared.increaseContrast || !isPrism {
+            let alpha: CGFloat = SystemDisplayPreferences.shared.increaseContrast ? 0.28 : (isDark ? 0.18 : 0.12)
+            let edge = (isDark ? NSColor.white : NSColor.black).withAlphaComponent(alpha).cgColor
             outerRimLayer.colors = [edge, edge]; outerRimLayer.locations = [0.0, 1.0]
             innerRimLayer.isHidden = true
             return
         }
         innerRimLayer.isHidden = false
         outerRimLayer.colors = [
-            NSColor.white.withAlphaComponent(isDark ? 0.46 : 0.78).cgColor,
-            NSColor.white.withAlphaComponent(isDark ? 0.08 : 0.16).cgColor,
-            NSColor.white.withAlphaComponent(isDark ? 0.24 : 0.36).cgColor
+            NSColor.white.withAlphaComponent(isDark ? 0.50 : 0.80).cgColor,
+            NSColor.systemCyan.withAlphaComponent(isDark ? 0.18 : 0.22).cgColor,
+            NSColor.systemPink.withAlphaComponent(isDark ? 0.30 : 0.34).cgColor
         ]
         outerRimLayer.locations = [0.0, 0.48, 1.0]
         innerRimLayer.colors = [
-            NSColor.white.withAlphaComponent(isDark ? 0.22 : 0.38).cgColor,
-            NSColor.systemCyan.withAlphaComponent(isDark ? 0.14 : 0.10).cgColor,
+            NSColor.white.withAlphaComponent(isDark ? 0.24 : 0.40).cgColor,
+            NSColor.systemPurple.withAlphaComponent(isDark ? 0.18 : 0.14).cgColor,
             NSColor.clear.cgColor
         ]
         innerRimLayer.locations = [0.0, 0.5, 1.0]
@@ -185,7 +199,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         created.isMovableByWindowBackground = true; created.hidesOnDeactivate = false; created.delegate = self
 
         let glassRoot = RoundedGlassContainerView(cornerRadius: LiquidRadii.panel)
-        let hosting = NSHostingView(rootView: OverlayCommandView(viewModel: viewModel))
+        let hosting = NSHostingView(rootView: LocalizedRootContainer { OverlayCommandView(viewModel: viewModel) })
         hosting.sizingOptions = []; hosting.translatesAutoresizingMaskIntoConstraints = false
         hosting.wantsLayer = true; hosting.layer?.backgroundColor = NSColor.clear.cgColor
         glassRoot.addSubview(hosting)

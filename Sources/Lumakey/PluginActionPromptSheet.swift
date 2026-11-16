@@ -1,3 +1,4 @@
+import AppKit
 import LumakeyCore
 import SwiftUI
 
@@ -52,6 +53,10 @@ struct PluginActionPromptSheet: View {
 
     @ViewBuilder
     private func fieldView(_ field: PluginActionPromptField) -> some View {
+        let binding = Binding(
+            get: { state.values[field.key] ?? field.defaultValue ?? "" },
+            set: { state.values[field.key] = $0 }
+        )
         VStack(alignment: .leading, spacing: 4) {
             Text(field.label + (field.required == true ? " *" : ""))
                 .font(.caption.weight(.semibold))
@@ -72,14 +77,23 @@ struct PluginActionPromptSheet: View {
                             .buttonStyle(GlassPillButtonStyle(prominent: active))
                     }
                 }
-            case .text, .secret:
+            case .path, .directory:
+                let chooseDir = field.type == .directory
+                HStack(spacing: 6) {
+                    GlassInputField(symbol: chooseDir ? "folder" : "doc", placeholder: field.placeholder ?? field.key, text: binding)
+                    Button("选择…") {
+                        let panel = NSOpenPanel()
+                        panel.canChooseFiles = !chooseDir
+                        panel.canChooseDirectories = chooseDir
+                        if panel.runModal() == .OK, let url = panel.url { state.values[field.key] = url.path }
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                }
+            case .text, .secret, .number, .tags:
                 GlassInputField(
-                    symbol: "pencil",
+                    symbol: field.type == .number ? "number" : (field.type == .tags ? "tag" : "pencil"),
                     placeholder: field.placeholder ?? field.key,
-                    text: Binding(
-                        get: { state.values[field.key] ?? field.defaultValue ?? "" },
-                        set: { state.values[field.key] = $0 }
-                    )
+                    text: binding
                 )
             }
         }

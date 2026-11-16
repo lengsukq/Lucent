@@ -132,8 +132,9 @@ struct SnippetsSettingsView: View {
 
             HStack(spacing: 12) {
                 snippetListPane
+                    .frame(minWidth: 0, maxWidth: .infinity)
                 editorPane
-                    .frame(width: 380)
+                    .frame(width: 344)
             }
         }
     }
@@ -145,24 +146,25 @@ struct SnippetsSettingsView: View {
                 LazyVStack(spacing: 7) {
                     ForEach(ctrl.filteredSnippets) { item in
                         let selected = ctrl.editingID == item.id
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             Text(item.keyword.isEmpty ? "—" : item.keyword)
                                 .font(.caption.monospaced().weight(.bold))
                                 .foregroundStyle(.cyan)
                                 .lineLimit(1)
                                 .fixedSize(horizontal: true, vertical: false)
-                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .padding(.horizontal, 7).padding(.vertical, 4)
                                 .background(LiquidColors.pillSurface, in: Capsule())
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title).font(.callout.weight(.semibold)).lineLimit(1)
                                 Text(item.content.replacingOccurrences(of: "\n", with: " ↵ "))
                                     .font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
                             }
+                            .frame(minWidth: 0, alignment: .leading)
                             Spacer(minLength: 4)
                             Button("复制") { ctrl.copyExpanded(item, notify: viewModel) }
-                                .buttonStyle(GlassPillButtonStyle())
+                                .buttonStyle(GlassPillButtonStyle(compact: true))
                             Button("删除") { ctrl.delete(item, notify: viewModel) }
-                                .buttonStyle(GlassPillButtonStyle())
+                                .buttonStyle(GlassPillButtonStyle(compact: true))
                         }
                         .padding(9)
                         .background(selected ? LiquidColors.highlightGlow : LiquidColors.pillSurface.opacity(0.6), in: RoundedRectangle(cornerRadius: LiquidRadii.row, style: .continuous))
@@ -201,12 +203,12 @@ struct SnippetsSettingsView: View {
                 ForEach(placeholders, id: \.self) { token in
                     Button { ctrl.insertPlaceholder(token) } label: {
                         Text(token)
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
                             .foregroundStyle(LiquidColors.textPrimary)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
-                            .padding(.horizontal, 6.5)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 3.5)
                             .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
                             .overlay { Capsule(style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.75) }
                     }

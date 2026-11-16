@@ -64,22 +64,33 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
         }
     }
 
-    func setDisplayMode(_ mode: TelemetryDisplayMode) { state.applyDisplayMode(mode); presentWithSavedConfig() }
-    func dockToEdge(_ edge: PulseDockEdge) { state.applyDockEdge(edge); presentWithSavedConfig() }
+    func setDisplayMode(_ mode: TelemetryDisplayMode) {
+        state.applyDisplayMode(mode)
+        presentWithSavedConfig(openIfDisabled: false)
+    }
+
+    func dockToEdge(_ edge: PulseDockEdge, openIfDisabled: Bool = false) {
+        state.applyDockEdge(edge)
+        presentWithSavedConfig(openIfDisabled: openIfDisabled)
+    }
 
     func snapToSideEdge() {
         let vis = targetScreenVisibleFrame(), midX = panel?.frame.midX ?? vis.maxX
-        dockToEdge(abs(midX - vis.minX) < abs(vis.maxX - midX) ? .left : .right)
+        dockToEdge(abs(midX - vis.minX) < abs(vis.maxX - midX) ? .left : .right, openIfDisabled: true)
     }
 
     func snapToNearestEdge() {
         let vis = targetScreenVisibleFrame()
         let ref = panel?.frame ?? NSRect(x: vis.maxX - 60, y: vis.midY, width: 58, height: 182)
-        dockToEdge(PulseDockEdge.nearestEdge(for: ref, visibleFrame: vis))
+        dockToEdge(PulseDockEdge.nearestEdge(for: ref, visibleFrame: vis), openIfDisabled: true)
     }
 
-    private func presentWithSavedConfig() {
+    private func presentWithSavedConfig(openIfDisabled: Bool) {
         if !state.config.floatingEnabled {
+            guard openIfDisabled else {
+                state.config.save()
+                return
+            }
             state.config.floatingEnabled = true; state.config.save()
             syncSamplingLoop(); showPanel(animate: true)
         } else {
@@ -194,7 +205,7 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
             onHoverChanged: { [weak self] h in self?.setHovered(h) },
             onDragEnded: { [weak self] in self?.handleDragFinished() }
         )
-        let hosting = UnconstrainedPulseHostingView(rootView: root)
+        let hosting = UnconstrainedPulseHostingView(rootView: LocalizedRootContainer { root })
         hosting.sizingOptions = []; hosting.wantsLayer = true; hosting.layer?.backgroundColor = NSColor.clear.cgColor
         hosting.frame = glass.bounds; hosting.autoresizingMask = [.width, .height]
         glass.addSubview(hosting); created.contentView = glass; self.panel = created

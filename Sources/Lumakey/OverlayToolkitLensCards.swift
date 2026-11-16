@@ -4,20 +4,27 @@ import SwiftUI
 
 struct PluginViewLensContainerCard: View {
     let payload: PluginViewPayload
+    var plugin: PluginDescriptor? = nil
     let onCopyText: (String) -> Void
     let onOpenURL: (URL) -> Void
     let onRunCommandArgs: ([String]) -> Void
     let onClose: () -> Void
 
     var body: some View {
+        let dataDir = plugin.flatMap { PluginDataPaths.dataDirectory(for: $0.id, pluginsRoot: $0.directoryURL.deletingLastPathComponent()) }
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                SquircleBadge(symbol: "rectangle.3.group.bubble.fill", topColor: .cyan, bottomColor: .indigo, size: 26)
-                Text("插件视图卡片")
+                if let plugin {
+                    PluginIconBadge(plugin: plugin, size: 26)
+                } else {
+                    SquircleBadge(symbol: "rectangle.3.group.bubble.fill", topColor: .cyan, bottomColor: .indigo, size: 26)
+                }
+                Text(plugin?.displayName ?? L10n.pick("视图卡片", "Plugin View"))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(LiquidColors.textSecondary)
+                    .lineLimit(1)
                 Spacer()
-                LiquidKeyHintBadge(keyText: "Esc 关闭")
+                LiquidKeyHintBadge(keyText: L10n.pick("Esc 关闭", "Esc"))
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                 }
@@ -27,6 +34,8 @@ struct PluginViewLensContainerCard: View {
             ScrollView {
                 PluginStructuredViewCard(
                     payload: payload,
+                    bundleDirectory: plugin?.directoryURL,
+                    dataDirectory: dataDir,
                     onCopyText: onCopyText,
                     onOpenURL: onOpenURL,
                     onRunCommandArgs: onRunCommandArgs

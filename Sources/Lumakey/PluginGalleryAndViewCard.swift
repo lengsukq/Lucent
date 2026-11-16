@@ -10,6 +10,8 @@ private final class PluginCardDialogState: ObservableObject {
 
 struct PluginStructuredViewCard: View {
     let payload: PluginViewPayload
+    var bundleDirectory: URL? = nil
+    var dataDirectory: URL? = nil
     var onCopyText: ((String) -> Void)? = nil
     var onOpenURL: ((URL) -> Void)? = nil
     var onRunCommandArgs: (([String]) -> Void)? = nil
@@ -83,14 +85,14 @@ struct PluginStructuredViewCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
         .alert(
-            dialogState.pendingConfirmAction?.label ?? "确认操作",
+            dialogState.pendingConfirmAction?.label ?? L10n.pick("确认操作", "Confirm Action"),
             isPresented: Binding(
                 get: { dialogState.pendingConfirmAction != nil },
                 set: { if !$0 { dialogState.pendingConfirmAction = nil } }
             )
         ) {
-            Button("取消", role: .cancel) { dialogState.pendingConfirmAction = nil }
-            Button("确认", role: dialogState.pendingConfirmAction?.style == .destructive ? .destructive : nil) {
+            Button(L10n.pick("取消", "Cancel"), role: .cancel) { dialogState.pendingConfirmAction = nil }
+            Button(L10n.pick("确认", "Confirm"), role: dialogState.pendingConfirmAction?.style == .destructive ? .destructive : nil) {
                 guard let action = dialogState.pendingConfirmAction else { return }
                 dialogState.pendingConfirmAction = nil
                 if let fields = action.promptFields, !fields.isEmpty {
@@ -100,7 +102,7 @@ struct PluginStructuredViewCard: View {
                 }
             }
         } message: {
-            Text(dialogState.pendingConfirmAction?.confirmMessage ?? "确认执行该插件操作？")
+            Text(dialogState.pendingConfirmAction?.confirmMessage ?? L10n.pick("确认执行该插件操作？", "Run this plugin action?"))
         }
         .sheet(item: $dialogState.pendingPromptAction) { action in
             PluginActionPromptSheet(
@@ -116,11 +118,13 @@ struct PluginStructuredViewCard: View {
 
     private func itemRow(_ item: PluginViewItem) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: item.icon ?? "sparkles")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.cyan)
-                .frame(width: 26, height: 26)
-                .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            PluginItemLeadingBadge(
+                rawIcon: item.icon,
+                tintColor: item.tintColor,
+                bundleDirectory: bundleDirectory,
+                dataDirectory: dataDirectory,
+                size: 26
+            )
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.title)
@@ -145,14 +149,14 @@ struct PluginStructuredViewCard: View {
                     .background(LiquidColors.pillSurface, in: Capsule())
             }
             if let copyText = item.copyText, !copyText.isEmpty {
-                Button("复制") { copyValue(copyText) }
-                    .buttonStyle(GlassPillButtonStyle())
+                Button(L10n.pick("复制", "Copy")) { copyValue(copyText) }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
             }
             if let rawURL = item.openURL, let url = URL(string: rawURL) {
-                Button("打开") {
+                Button(openButtonTitle(for: url)) {
                     if let onOpenURL { onOpenURL(url) } else { NSWorkspace.shared.open(url) }
                 }
-                .buttonStyle(GlassPillButtonStyle())
+                .buttonStyle(GlassPillButtonStyle(compact: true))
             }
             PluginViewActionButtons(
                 item: item,
@@ -177,23 +181,38 @@ struct PluginStructuredViewCard: View {
         }
     }
 
-    @ViewBuilder
-    private func markdownBlock(_ raw: String) -> some View {
-        let attributed = try? AttributedString(
-            markdown: raw,
-            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )
-        Group {
-            if let attributed {
-                Text(attributed)
-            } else {
-                Text(raw)
+    private func openButtonTitle(for url: URL) -> String {
+        if url.scheme?.lowercased() == "lumakey" {
+            switch url.host?.lowercased() {
+            case "reader": return L10n.pick("阅读窗", "Reader")
+            case "pin": return L10n.pick("钉在屏幕", "Pin")
+            case "image": return L10n.pick("看图窗", "Viewer")
+            default: return L10n.pick("打开", "Open")
             }
         }
-        .font(.caption)
-        .foregroundStyle(LiquidColors.textPrimary)
-        .textSelection(.enabled)
-        .padding(9)
+        return L10n.pick("打开", "Open")
+    }
+
+    @ViewBuilder
+    private func markdownBlock(_ raw: String) -> some View {
+        let blocks = MarkdownDocumentParser.parse(raw)
+        let hasRichStructure = blocks.count > 1 || blocks.contains { block in
+            if case .paragraph = block { return false }
+            return true
+        }
+        Group {
+            if hasRichStructure {
+                MarkdownBlocksStackView(blocks: blocks, baseFontSize: 12)
+            } else if let attributed = try? AttributedString(
+                markdown: raw,
+                options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+            ) {
+                Text(attributed).font(.caption).foregroundStyle(LiquidColors.textPrimary).textSelection(.enabled)
+            } else {
+                Text(raw).font(.caption).foregroundStyle(LiquidColors.textPrimary).textSelection(.enabled)
+            }
+        }
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
     }
@@ -220,27 +239,22 @@ struct PluginStarterGalleryListView: View {
                     HStack(alignment: .center, spacing: 11) {
                         SquircleBadge(
                             symbol: tpl.icon,
-                            topColor: tpl.mode == .view ? .cyan : .purple,
-                            bottomColor: tpl.mode == .view ? .blue : .indigo,
+                            topColor: tpl.mode == .view ? .cyan : .indigo,
+                            bottomColor: tpl.mode == .view ? .blue : .purple,
                             size: 36
                         )
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
-                                Text(tpl.name).font(.caption.weight(.bold)).foregroundStyle(LiquidColors.textPrimary)
-                                Text(tpl.mode.rawValue.uppercased())
-                                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                                    .foregroundStyle(tpl.mode == .view ? .cyan : .purple)
-                                    .padding(.horizontal, 6).padding(.vertical, 1.5)
-                                    .background(LiquidColors.pillSurface, in: Capsule())
+                                Text(L10n.translate(tpl.name)).font(.caption.weight(.bold)).foregroundStyle(LiquidColors.textPrimary)
                                 if !tpl.capabilities.isEmpty {
-                                    Text("Bridge")
+                                    Text("Host Bridge")
                                         .font(.system(size: 9, weight: .bold, design: .rounded))
                                         .foregroundStyle(.mint)
                                         .padding(.horizontal, 6).padding(.vertical, 1.5)
                                         .background(LiquidColors.pillSurface, in: Capsule())
                                 }
                             }
-                            Text(tpl.description)
+                            Text(L10n.translate(tpl.description))
                                 .font(.caption2)
                                 .foregroundStyle(LiquidColors.textSecondary)
                                 .lineLimit(2)

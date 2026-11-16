@@ -28,7 +28,7 @@ final class ScreenCaptureCoordinator {
         }
         guard CGPreflightScreenCaptureAccess() else {
             CGRequestScreenCaptureAccess()
-            throw LumakeyError.visionFailed("尚未授予“屏幕录制”权限，请在系统设置 -> 隐私与安全性 -> 屏幕录制 中勾选 Lumakey。")
+            throw LumakeyError.visionFailed(L10n.pick("尚未授予“屏幕录制”权限，请在系统设置 -> 隐私与安全性 -> 屏幕录制 中勾选 Lumakey。", "Screen Recording permission is not granted. Enable Lumakey in System Settings > Privacy & Security > Screen Recording."))
         }
 
         try? await Task.sleep(for: .milliseconds(120))
@@ -38,7 +38,7 @@ final class ScreenCaptureCoordinator {
 
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let scDisplay = content.displays.first(where: { $0.displayID == CGDirectDisplayID(screenNumber) }) ?? content.displays.first else {
-            throw LumakeyError.visionFailed("未检测到可用显示器。")
+            throw LumakeyError.visionFailed(L10n.pick("未检测到可用显示器。", "No available display detected."))
         }
 
         let ownPID = ProcessInfo.processInfo.processIdentifier
@@ -101,10 +101,12 @@ final class ScreenCaptureCoordinator {
         panel.backgroundColor = .clear
         panel.hasShadow = false
         panel.acceptsMouseMovedEvents = true
-        panel.contentView = NSHostingView(rootView: ScreenshotCanvasView(
-            session: session,
-            onAction: { [weak self] action in self?.handleAction(action) }
-        ))
+        panel.contentView = NSHostingView(rootView: LocalizedRootContainer {
+            ScreenshotCanvasView(
+                session: session,
+                onAction: { [weak self] action in self?.handleAction(action) }
+            )
+        })
         panel.setFrame(screen.frame, display: true)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -154,7 +156,7 @@ final class ScreenCaptureCoordinator {
                 self.didModifyPasteboard = false
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(current.cursorHex, forType: .string)
-                current.bannerMessage = "已复制色值 \(current.cursorHex)"
+                current.bannerMessage = L10n.pick("已复制色值 \(current.cursorHex)", "Copied color \(current.cursorHex)")
                 return nil
             }
             return event
@@ -198,7 +200,7 @@ final class ScreenCaptureCoordinator {
             selectionRect: sel, annotations: session.annotations
         ) {
             copyComposedToPasteboard(composed, session: session)
-            session.bannerMessage = "✓ 已自动放入剪贴板 · 可直接粘贴、标注或按回车完成"
+            session.bannerMessage = L10n.pick("✓ 已自动放入剪贴板 · 可直接粘贴、标注或按回车完成", "✓ Copied to clipboard · Paste directly, annotate, or press Return")
         }
     }
 

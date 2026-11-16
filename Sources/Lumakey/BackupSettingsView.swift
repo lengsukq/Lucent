@@ -101,7 +101,7 @@ struct BackupSettingsView: View {
             SquircleBadge(symbol: "archivebox.fill", topColor: .teal, bottomColor: .blue, size: 40)
             VStack(alignment: .leading, spacing: 3) {
                 Text("本地 .lumakeybackup 快照归档").font(.callout.weight(.semibold)).lineLimit(1)
-                Text("包含 Mos 滚轮、系统脉搏、热键/短语 JSON、收藏剪贴板（单图 ≤ 2MB 内嵌）与可执行插件。")
+                Text("包含鼠标滚轮、系统脉搏、热键/短语 JSON、收藏剪贴板（单图 ≤ 2MB 内嵌）与可执行插件。")
                     .font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

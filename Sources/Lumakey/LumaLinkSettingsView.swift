@@ -94,7 +94,7 @@ struct LumaLinkSettingsView: View {
                     .font(.system(size: 30, weight: .bold, design: .rounded).monospacedDigit())
                     .foregroundStyle(.cyan)
                     .textSelection(.enabled)
-                Text("在 MacRemote Android 会话内点击「配对 LumaLink」并输入配对码或扫码；每次成功配对后自动轮换。")
+                Text("在移动端远控客户端内点击「配对 LumaLink」并输入配对码或扫码；每次成功配对后自动轮换。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 8) {

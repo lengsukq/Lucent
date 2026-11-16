@@ -180,12 +180,14 @@ struct PluginSandboxPermissionCard: View {
                 Spacer(minLength: 0)
             }
             if !plugin.declaredResourceScopes.isEmpty {
-                HStack(spacing: 5) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 95), spacing: 5)], spacing: 5) {
                     ForEach(plugin.declaredResourceScopes) { scope in
                         Label(scope.shortLabel, systemImage: scope.symbolName)
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(.purple)
+                            .lineLimit(1)
                             .padding(.horizontal, 7).padding(.vertical, 3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .background(LiquidColors.pillSurface, in: Capsule())
                     }
                 }
