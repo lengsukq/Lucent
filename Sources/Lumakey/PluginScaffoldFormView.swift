@@ -52,10 +52,12 @@ struct PluginScaffoldFormView: View {
                         }
                     }
                 }
-                Button("生成并运行测试") { ctrl.scaffoldCustom(viewModel: viewModel) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
-                Text("也可将 lumakey-mcp 接入 AI 客户端，读取 lumakey://specs/plugin-v3 自动生成。")
-                    .font(.caption2).foregroundStyle(LiquidColors.textSecondary)
+                HStack(spacing: 8) {
+                    Button("生成并运行测试") { ctrl.scaffoldCustom(viewModel: viewModel) }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true))
+                    Button("前往「MCP 接入」复制 Agent 提示词 →") { ctrl.activeTab = .mcp }
+                        .buttonStyle(GlassPillButtonStyle())
+                }
             }
             .padding(2)
         }

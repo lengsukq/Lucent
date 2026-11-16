@@ -36,7 +36,7 @@ private final class TextLensModeState: ObservableObject {
 
 struct ColorSwatchLensCard: View {
     let hex: String; let clip: ClipboardEntry
-    let onCopyText: (String, String) -> Void; let onCopyClipboard: () -> Void; let onTogglePin: () -> Void
+    let onCopyText: (String, String) -> Void; let onCopyClipboard: () -> Void; let onPasteClipboard: () -> Void; let onTogglePin: () -> Void
 
     var body: some View {
         let swatch = LiquidColors.color(fromHex: hex) ?? .accentColor
@@ -73,6 +73,7 @@ struct ColorSwatchLensCard: View {
             Spacer(minLength: 0)
             HStack(spacing: 6) {
                 Button("复制粘贴板", action: onCopyClipboard).buttonStyle(GlassPillButtonStyle(prominent: true))
+                Button("直接粘贴", action: onPasteClipboard).buttonStyle(GlassPillButtonStyle())
                 Button(clip.isPinned ? "取消收藏" : "收藏", action: onTogglePin).buttonStyle(GlassPillButtonStyle())
             }
         }
@@ -90,7 +91,7 @@ struct ColorSwatchLensCard: View {
 
 struct ImageClipboardLensCard: View {
     let url: URL; let dimensions: CGSize; let clip: ClipboardEntry
-    let onCopyImage: () -> Void; let onPinOverlay: () -> Void; let onOpenViewer: () -> Void
+    let onCopyImage: () -> Void; let onPasteImage: () -> Void; let onPinOverlay: () -> Void; let onOpenViewer: () -> Void
     let onTogglePin: () -> Void; let onCopyText: (String, String) -> Void
     @StateObject private var qrState = ImageQRScannerState()
 
@@ -131,10 +132,11 @@ struct ImageClipboardLensCard: View {
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Button { onCopyImage() } label: { Label("复制图片", systemImage: "doc.on.doc") }.buttonStyle(GlassPillButtonStyle(prominent: true))
-                    Button { onPinOverlay() } label: { Label("贴图置顶", systemImage: "pin.fill") }.buttonStyle(GlassPillButtonStyle())
+                    Button { onCopyImage() } label: { Label("复制图片 ↩", systemImage: "doc.on.doc") }.buttonStyle(GlassPillButtonStyle(prominent: true))
+                    Button { onPasteImage() } label: { Label("直接粘贴 ⇧↩", systemImage: "arrow.turn.down.left") }.buttonStyle(GlassPillButtonStyle())
                 }
                 HStack(spacing: 6) {
+                    Button { onPinOverlay() } label: { Label("贴图置顶", systemImage: "pin.fill") }.buttonStyle(GlassPillButtonStyle())
                     Button("看图置顶", action: onOpenViewer).buttonStyle(GlassPillButtonStyle())
                     Button(clip.isPinned ? "取消收藏" : "收藏", action: onTogglePin).buttonStyle(GlassPillButtonStyle())
                 }
@@ -147,7 +149,7 @@ struct ImageClipboardLensCard: View {
 }
 
 struct TextClipboardLensCard: View {
-    let clip: ClipboardEntry; let onCopyClipboard: () -> Void; let onTogglePin: () -> Void
+    let clip: ClipboardEntry; let onCopyClipboard: () -> Void; let onPasteClipboard: () -> Void; let onTogglePin: () -> Void
     @StateObject private var mode = TextLensModeState()
 
     var body: some View {
@@ -178,6 +180,7 @@ struct TextClipboardLensCard: View {
             }
             HStack(spacing: 6) {
                 Button("复制粘贴板", action: onCopyClipboard).buttonStyle(GlassPillButtonStyle(prominent: true))
+                Button("直接粘贴", action: onPasteClipboard).buttonStyle(GlassPillButtonStyle())
                 Button(clip.isPinned ? "取消收藏" : "收藏", action: onTogglePin).buttonStyle(GlassPillButtonStyle())
                 if let url = URL(string: payload.trimmingCharacters(in: .whitespacesAndNewlines)),
                    ["http", "https"].contains(url.scheme?.lowercased() ?? "") {

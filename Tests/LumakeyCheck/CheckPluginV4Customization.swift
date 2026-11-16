@@ -248,7 +248,7 @@ private func verifyPluginSubCommandsAndDefaultOffQuickButtons() throws {
         ],
         in: pluginsRoot
     )
-    let starterInstalled = try PluginStarterGallery.install(templateID: "quick-hash-uuid", in: pluginsRoot)
+    let starterInstalled = try PluginStarterGallery.install(templateID: "port-killer", in: pluginsRoot)
     let allPlugins = PluginSystem.listPlugins(in: pluginsRoot, includeBuiltin: true, includeSecrets: false)
 
     // 1. Hard requirement: ALL plugins (builtin + external + starter) have ZERO quick buttons by default!

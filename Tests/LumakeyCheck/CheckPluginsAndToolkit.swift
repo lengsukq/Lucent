@@ -130,33 +130,31 @@ private func verifyPluginV2LifecycleAndWatcher() throws {
     check(blockedDisabled, "disabled plugin execution is blocked")
     try PluginSystem.setPluginEnabled(id: "custom-view", isEnabled: true, in: pluginsRoot)
 
-    // 5. Starter Gallery (all 5 templates) + Export / Remove / Import roundtrip
-    check(PluginStarterGallery.templates.count == 5, "5 starter templates registered")
+    // 5. Starter Gallery (3 non-redundant full-featured templates) + Export / Remove / Import roundtrip
+    check(PluginStarterGallery.templates.map(\.id) == ["sys-ip-dns", "port-killer", "shell-note"], "3 non-redundant starter templates registered")
     for tpl in PluginStarterGallery.templates {
         let inst = try PluginStarterGallery.install(templateID: tpl.id, in: pluginsRoot)
         check(inst.isValid, "starter template '\(tpl.id)' valid: \(inst.validationIssues)")
     }
     let ipOut = try PluginSystem.runPluginSync(PluginSystem.loadPlugin(at: pluginsRoot.appendingPathComponent("sys-ip-dns"), in: pluginsRoot), query: "", in: pluginsRoot)
-    check(ipOut.isStructuredView && !(ipOut.viewPayload?.metrics ?? []).isEmpty, "sys-ip-dns returns structured view")
-
-    let hashOut = try PluginSystem.runPluginSync(PluginSystem.loadPlugin(at: pluginsRoot.appendingPathComponent("quick-hash-uuid"), in: pluginsRoot), query: "abc", in: pluginsRoot)
-    check(hashOut.isStructuredView && (hashOut.viewPayload?.items?.count ?? 0) >= 3, "quick-hash-uuid returns structured items")
+    check(ipOut.isStructuredView && !(ipOut.viewPayload?.metrics ?? []).isEmpty, "sys-ip-dns returns structured network stack view")
 
     let portOut = try PluginSystem.runPluginSync(PluginSystem.loadPlugin(at: pluginsRoot.appendingPathComponent("port-killer"), in: pluginsRoot), query: "65531", in: pluginsRoot)
-    check(portOut.isStructuredView, "port-killer returns structured view")
+    check(portOut.isStructuredView && !(portOut.viewPayload?.metrics ?? []).isEmpty, "port-killer returns structured port table view")
 
     let noteFile = tmp.appendingPathComponent("inbox.md")
-    try PluginSystem.updatePluginConfig(id: "shell-note", values: ["notesPath": noteFile.path, "tagPrefix": "#v070"], in: pluginsRoot)
+    try PluginSystem.updatePluginConfig(id: "shell-note", values: ["notesPath": noteFile.path, "defaultTag": "#v070"], in: pluginsRoot)
     let noteDesc = PluginSystem.loadPlugin(at: pluginsRoot.appendingPathComponent("shell-note"), in: pluginsRoot)
     let noteOut = try PluginSystem.runPluginSync(noteDesc, query: "Test quick capture", in: pluginsRoot)
-    check(noteOut.execution.exitCode == 0 && (try? String(contentsOf: noteFile, encoding: .utf8))?.contains("#v070 Test quick capture") == true, "shell-note wrote configured markdown file")
+    check(noteOut.isStructuredView && (try? String(contentsOf: noteFile, encoding: .utf8))?.contains("#v070 Test quick capture") == true, "shell-note wrote structured markdown inbox & returned view card")
+    check(PluginSearchIndex.loadEntries(for: [noteDesc], in: pluginsRoot).count == 1, "shell-note synced PluginData search-index.json")
 
     let exportParent = tmp.appendingPathComponent("exported", isDirectory: true)
-    let exportedURL = try PluginSystem.exportPlugin(id: "quick-hash-uuid", to: exportParent, in: pluginsRoot)
-    try PluginSystem.removePlugin(id: "quick-hash-uuid", in: pluginsRoot)
-    check(!PluginStarterGallery.isInstalled(templateID: "quick-hash-uuid", in: pluginsRoot), "removePlugin deleted folder")
+    let exportedURL = try PluginSystem.exportPlugin(id: "port-killer", to: exportParent, in: pluginsRoot)
+    try PluginSystem.removePlugin(id: "port-killer", in: pluginsRoot)
+    check(!PluginStarterGallery.isInstalled(templateID: "port-killer", in: pluginsRoot), "removePlugin deleted folder")
     let reimported = try PluginSystem.importPluginDirectory(from: exportedURL, in: pluginsRoot)
-    check(reimported.isValid && reimported.id == "quick-hash-uuid", "importPluginDirectory restored valid plugin")
+    check(reimported.isValid && reimported.id == "port-killer", "importPluginDirectory restored valid plugin")
 }
 
 private func verifyMCPServerV2Subprocess() throws {
@@ -177,12 +175,12 @@ private func verifyMCPServerV2Subprocess() throws {
     let requests = [
         #"{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}"#,
         #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v2"}}"#,
-        #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_install_starter_plugin","arguments":{"id":"quick-hash-uuid"}}}"#,
-        #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_set_plugin_enabled","arguments":{"id":"quick-hash-uuid","enabled":false}}}"#,
-        #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"quick-hash-uuid","query":"hi"}}}"#,
-        #"{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"lumakey_set_plugin_enabled","arguments":{"id":"quick-hash-uuid","enabled":true}}}"#,
-        #"{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"quick-hash-uuid","query":"hi"}}}"#,
-        #"{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"lumakey_remove_plugin","arguments":{"id":"quick-hash-uuid"}}}"#
+        #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_install_starter_plugin","arguments":{"id":"port-killer"}}}"#,
+        #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_set_plugin_enabled","arguments":{"id":"port-killer","enabled":false}}}"#,
+        #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"port-killer","query":"65531"}}}"#,
+        #"{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"lumakey_set_plugin_enabled","arguments":{"id":"port-killer","enabled":true}}}"#,
+        #"{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"port-killer","query":"65531"}}}"#,
+        #"{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"lumakey_remove_plugin","arguments":{"id":"port-killer"}}}"#
     ]
     try inPipe.fileHandleForWriting.write(contentsOf: Data((requests.joined(separator: "\n") + "\n").utf8))
     try inPipe.fileHandleForWriting.close()
@@ -194,7 +192,7 @@ private func verifyMCPServerV2Subprocess() throws {
     check(lines.count == 8, "expected 8 MCP responses, got \(lines.count)")
     check(lines[0].contains("lumakey://specs/plugin-v1") && lines[0].contains("lumakey://specs/plugin-v2"), "resources/list exposes v1 & v2")
     check(lines[1].contains("PluginViewPayload"), "plugin-v2 spec content returned")
-    check(lines[2].contains("quick-hash-uuid"), "lumakey_install_starter_plugin succeeded")
+    check(lines[2].contains("port-killer"), "lumakey_install_starter_plugin succeeded")
     check(lines[4].contains(#""isError":true"#), "disabled plugin run returns isError=true")
     check(lines[6].contains(#""isError":false"#), "re-enabled plugin run succeeds")
     check(lines[7].contains(#""removed" : true"#) || lines[7].contains("removed"), "lumakey_remove_plugin succeeded")

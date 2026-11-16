@@ -137,19 +137,28 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
     private var idleTeardownTask: Task<Void, Never>?
     private var userDraggedTopCenter: NSPoint?
     private var isAdjustingFrame = false
+    private(set) var previousFrontmostApp: NSRunningApplication?
 
     init(viewModel: AppViewModel) { self.viewModel = viewModel; super.init() }
     var isVisible: Bool { panel?.isVisible == true }
 
     func toggle(filter: OmniFilter) {
-        if isVisible && viewModel.omniFilter == filter { hide() } else { show(filter: filter) }
+        if isVisible && viewModel.omniFilter == filter { hide(restorePreviousApp: true) } else { show(filter: filter) }
     }
 
     func show(filter: OmniFilter) {
         idleTeardownTask?.cancel(); idleTeardownTask = nil
-        viewModel.prepareOverlay(filter: filter)
         let panel = ensurePanel()
         let wasVisible = panel.isVisible
+        if !wasVisible {
+            let front = NSWorkspace.shared.frontmostApplication
+            if let front, front.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+                previousFrontmostApp = front
+            } else {
+                previousFrontmostApp = nil
+            }
+        }
+        viewModel.prepareOverlay(filter: filter)
         positionPanel(panel, width: panelWidth, height: panelHeight)
         NSApp.activate(ignoringOtherApps: true)
         if !wasVisible && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
@@ -165,10 +174,15 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         viewModel.bumpFocusToken()
     }
 
-    func hide() {
+    func hide(restorePreviousApp: Bool = true) {
         guard let panel, panel.isVisible else { return }
+        let targetApp = previousFrontmostApp
+        previousFrontmostApp = nil
         panel.orderOut(nil); panel.alphaValue = 1.0
         viewModel.handleOverlayHidden()
+        if restorePreviousApp, let targetApp, !targetApp.isTerminated {
+            targetApp.activate()
+        }
         scheduleIdlePanelTeardown()
     }
 
@@ -180,7 +194,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
 
     func windowDidResignKey(_ notification: Notification) {
         guard !viewModel.isOverlayPinned && !viewModel.isCapturingScreen else { return }
-        hide()
+        hide(restorePreviousApp: false)
     }
 
     func windowDidMove(_ notification: Notification) {

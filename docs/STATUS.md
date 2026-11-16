@@ -2,8 +2,37 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.9.1)
+
+- **示例与模板插件去重清理与精品化重写 + LumaLink 全功能商店化 (`plugin-demo/`, `PluginHostBridgeLumaLink`, `PluginStarterNetDiagTemplate`, `PluginStarterPortManagerTemplate`, `PluginStarterInboxNoteTemplate`)**：
+  - **删除重复玩具模板并深度重写非重复扩展**：移除与 `DevToolkitEngine` 100% 重复的 `quick-hash-uuid` 及与远控/遥测重叠的 `host-snapshot`；将保留的 3 款正交扩展全面升级为 Python 3 + View v2 + 双语 `locales` 生产级插件——`sys-ip-dns`（多网卡 IPv4/IPv6、VPN `utun`、默认网关、系统代理与一键刷新 DNS）、`port-killer`（全量 `LISTEN` 端口表、内存/时长解析与带二次确认弹窗的 `SIGTERM`/`SIGKILL`）以及 `shell-note`（结构化 Markdown 速记收件箱、`#标签` 过滤、置顶/完成/确认删除、自动同步 `search-index.json` 与原生阅读窗深链）；
+  - **全功能版 `plugin-demo/` 官方示例插件商店（`browser-hub` + `lumalink-companion` v2.0 + `notion-bookmarks`）**：新增 `plugin-demo/browser-hub` 三端浏览器书签与历史中枢（无锁 WAL 临时快照直连 Microsoft Edge / Google Chrome 多配置档与 Apple Safari 二进制 `Bookmarks.plist` / 阅读列表 / `History.db`，支持 `@edge`/`@chrome`/`@safari`/`@bm`/`@his`/`#目录` 过滤、自动同步 `⌥Space` 零延迟 `search-index.json`、一键唤起原浏览器与 Safari 完全磁盘访问权限友好引导）；同时将 `LumaLink` 剥离至 `plugin-demo/lumalink-companion` v2.0，三款插件统一由 `lumakey-mcp` 打包生成 `plugin-demo/lumakey-registry.json` 与 `dist/*.zip`；
+  - **配对防爆破锁定与设备 Token 保险箱密封**：`LumaLinkServer` 改用 `SecRandomCopyBytes` 生成 CSPRNG 6 位配对码与 192-bit 设备令牌，连续 5 次输错自动锁定 60 秒并强制轮换新 PIN；`LumaLinkConfig` 将 `pairedDevices[].token` 迁入 `LocalSecretVault` 加密托管（磁盘 `lumalink-config.json` 与 `.lumakeybackup` 归档均不再留存明文 Token，旧配置读取时自动无感迁移擦除）。
+- **子进程双管道无死锁重构、沙箱交互闭环与状态/网络边界加固 (`ProcessSupervisor`, `AppViewModel+Overlay`, `PluginDedicatedSettingsView`, `PluginInspectorCardsView`, `PluginCenterController`, `ClipboardPersistenceStore`, `WebDAVClient`, `PluginViewActions`)**：
+  - **消除大载荷死锁、`SIGPIPE` 与浮窗隐藏全局误杀**：`ProcessSupervisor.run` 启用 `F_SETNOSIGPIPE`，先并发启动 `stdout`/`stderr` 有界截取与持续排空（Drain to EOF）再异步分块写入 `stdin`；移除 `handleOverlayHidden()` 中的全局 `terminateAll()`，仅随 `pluginRunTask?.cancel()` 精确回收前台浮窗子进程，保护后台商店安装、`nettop` 采样与视频重封装不被 `Esc` 误杀；
+  - **插件沙箱设置 UI / MCP 闭环与防抖自动保存**：修复插件独立设置页 `if/else` 遮蔽问题（同时声明 `capabilities` 与 `resourceScopes` 时完整并列展示两张权限卡片），为 `PluginSandboxPermissionCard` 补齐 `network`/`filesystem`/`subprocess` 实时 Seatbelt 拦截开关并在 `lumakey-mcp` 同步暴露 `grantedResourceScopes`/`revokedResourceScopes`；`PluginCenterController` 在切换插件、运行测试或关闭窗口前自动 `flushPendingSaveIfNeeded()` 落盘未满 550ms 的防抖编辑；
+  - **收藏剪贴板持久化、公网 WebDAV 强制 HTTPS 与深链临时文件隔离**：新增 `ClipboardPersistenceStore` 将已收藏剪贴板记录及临时媒体持久化至 `0600` `pinned-clipboard.json` 与 `0700` `ClipboardPinned/` 目录，重启自动恢复；`WebDAVClient` 拦截面向公网域名的明文 `http://` 连接及跨主机/降级重定向防止 Basic 凭证泄露（仅本机与 RFC1918/Tailscale/`.local` 局域网允许 `http://`）；`PluginDeepLinkParser` 对 `lumakey://reader?markdown=...` 实施严格文件名过滤、`SHA-256` 摘要防碰撞与 `0700`/`0600` 权限保护。
+
+## 已完成与已验证 (v0.9.0)
+
+- **安全模型加固：双轨高熵随机密钥保险箱 (`LMKYVLT2`) 与外部插件 OS 级沙箱隔离 (`LocalSecretMasterKeyStore`, `LocalSecretVault`, `PluginSandboxProfileBuilder`, `ProcessSupervisor`, `PluginPermissionAudit`)**：
+  - **消除纯硬件标识低熵派生风险**：重构 `LocalSecretVault` 至 `LMKYVLT2`，新增 `LocalSecretMasterKeyStore`——在稳定签名 `.app` 构建下优先将 256-bit CSPRNG 随机主密钥存入系统 Keychain（零弹窗静默读取），在社区 Ad-hoc 构建或隔离测试环境下采用 `SecRandomCopyBytes` 生成 32 字节真随机种子（`0600` + `UF_HIDDEN` + 排除备份）叠加硬件绑定 `HKDF-SHA256` 信封派生；读取历史 `LMKYVLT1` 密文时自动无感升级为 `LMKYVLT2` 并移除旧文件，同时彻底消除非默认服务向 `/tmp` 散落密文的路径隐患；
+  - **外部插件 `sandbox-exec` 系统级强制隔离与环境变量净化**：`ProcessSupervisor.run` 支持 `inheritHostEnvironment: false`，为外部脚本构造仅含安全基础变量与隔离 `TMPDIR` 的白名单环境（阻断宿主 Shell 令牌外泄）；新增 `PluginSandboxProfileBuilder` 将 `plugin.json` 的 `resourceScopes`（`network` / `filesystem` / `subprocess`）编译为 Apple Seatbelt 策略并支持用户级撤销（`setPluginResourceScopeGranted`），在内核层拦截未授权 IP 网络、越权磁盘写入与外部工具调用，并在策略末尾无条件封锁宿主 `.vault` 与 `~/Library/Keychains`。
+- **索引快照完整性自愈 (`LMKYIDX3`)、核心模块五域无环拆分与标准测试/CI 体系 (`EverythingSnapshotStore`, `Package.swift`, `LumakeyTests`, `verify-macos.sh`, `.github/workflows/ci.yml`, `LICENSE`, `CONTRIBUTING.md`)**：
+  - **`LMKYIDX3` 二进制快照防损坏加固**：在 `.lmkyidx` 快照尾部追加 32 字节 `SHA-256` 摘要，并在 `mmap` 加载期同时校验哈希摘要、节点计数边界与 BFS 父指针拓扑无环不变量（`parentID < currentIdx`），遇到断电截断或字节翻转时安全返回 `nil` 触发后台重扫；
+  - **`LumakeyCore` 物理分层解耦与依赖门禁**：将原百余文件的单一核心模块拆分为 `LumakeyFoundation`、`LumakeySearch`、`LumakeyMedia`、`LumakeySystem` 与 `LumakeyCore` 五个单向无环 Swift 6 模块（`verify-macos.sh` 新增跨模块反向依赖静态审计）；
+  - **双轨自动化测试、性能基准、PR CI 与开源合规文件**：新增基于 Swift 6 原生 `Testing` 框架的 `.testTarget(name: "LumakeyTests")`（兼容 CommandLineTools 与 Xcode，覆盖密钥迁移、Seatbelt 沙箱、快照防篡改、文件工作台异常护栏与 5,000 节点毫秒级检索/启动性能基线），配置 `.github/workflows/ci.yml` 自动门禁，并补齐根目录 [LICENSE](../LICENSE)（MIT）与 [CONTRIBUTING.md](../CONTRIBUTING.md)。
+
 ## 已完成与已验证 (v0.8.9)
 
+- **剪贴板富媒体（图片 / GIF / 视频 / 多文件）快照固化、全格式写回与跨窗口无缝粘贴修复 (`ClipboardMonitor`, `ClipboardPasteboardIO`, `ClipboardPasteboardIO+Capture`, `FloatingPanelController`, `AppViewModel+Services`, `AppViewModel+WorkspaceOps`, `OverlayClipboardMediaLensCard`, `CheckClipboardMediaPaste`)**：
+  - **容器与瞬态临时文件自动固化 + 视频专属分类预览**：针对从微信 (`RWTemp`/`MessageTemp`)、相册、Telegram 等沙盒容器或系统临时目录复制的图片与视频，捕获时即在 `lumakey-clipboard` 下按原文件名落盘快照，避免 `clearContents()` 后容器访问令牌失效或原临时文件被清理；新增剪贴板「视频」分类标签与异步首帧/分辨率/时长预览卡片 (`VideoClipboardLensCard`) 及多文件完整路径列表保留；
+  - **全应用兼容双通道粘贴板写回**：图片写回时同时注入 `NSURL` (`public.file-url` 沙盒文件扩展)、`NSFilenamesPboardType` 以及真实重编码 `.png`（修复 JPEG/HEIC/WebP 误标 `.png` 头问题）、`public.jpeg`、`com.compuserve.gif` 与 `.tiff`，同时打通访达/桌面/终端、微信/Electron IM 以及浏览器/富文本编辑器粘贴；视频与多文件同步注入 `NSURL` 与 `NSFilenamesPboardType`；
+  - **前序应用焦点自动归还、一键直粘 (`⇧↩`) 与文件工作台联动**：悬浮面板通过 `↩` / 点击条目 / `Esc` 收起时自动激活唤起前的前台应用窗口，确保紧接着按 `⌘V` 直接送达目标窗口，并支持 `⇧↩` /「直接粘贴」一键发送粘贴（同步剪贴板 `changeCount` 防止自捕获重复项）；文件工作台 (`⌥E`) `⌘V` 与右键菜单打通读取 `NSPasteboard.general` 中的文件、视频与原始位图。
+- **双栏文件工作台排版舒展化、全应用页面单真源去重收敛与 AI Agent 一键接入 MCP 提示词 (`FileWorkspaceViews`, `FileWorkspaceToolbarViews`, `WorkspaceContentViews`, `AppNavigationState`, `MenuBarAndWindowCoordinator`, `WelcomeAndSettingsView`, `SettingsDetailSectionsView`, `AppCacheSettingsView`, `NetworkMonitorWindowView`, `PluginCenterView`, `PluginMCPSetupView`, `MCPAgentPromptBuilder`, `PluginDedicatedSettingsView`, `HotKeySettingsView`)**：
+  - **文件工作台双栏模式重构**：双栏未选中文件时自动收起空态右侧预览栏（并在顶栏与预览栏提供一键切换开关），分栏头部拆分为「标签 + 完整路径胶囊」与「导航 + 自适应过滤框 + 视图/排序」双层布局，双栏列表精简冗余「类型」文字列并采用紧凑日期格式，彻底消除文件名被挤压成 `...`、分类筛选条硬截断与底栏文字碰撞；
+  - **全应用页面去重（单页真源 + 直接跳转）**：全面收敛 5 处重复页面与窗口——合并独立「欢迎引导」窗口至「关于流光」页、移除设置内嵌双份「网络流量」页并统一路由至 `⌥N` 独立监控窗 (`NetworkMonitorWindowView`)、将单一检索范围选择器并入「通用与检索」（同步移除首页重复的插件开关与内存指标卡）、将零配置项的「剪贴板隐私」并入「存储与缓存」(`AppCacheSettingsView`)、移除插件中心与左侧边栏重复的「已装插件」列表页与右侧窄检查器栏（左侧「插件独立设置」统一挂载全部内置与外置插件，单页补齐导出/卸载闭环，市场/权限清单/全局热键页均一键直跳对应独立设置页）；
+  - **MCP 页面整套 AI Agent 接入提示词生成 (`MCPAgentPromptBuilder` + `PluginMCPSetupView`)**：自动探测本机 `lumakey-mcp` 真实可执行路径与插件热重载目录，生成可直接复制发给 Claude Code / Cursor / Codex / Gemini CLI / Windsurf / Claude Desktop 等任意 AI Agent 的完整中英双语接入提示词（涵盖 CLI 一键注册命令、防覆盖合并的 `mcpServers` JSON、`lumakey_list_plugins` 连通性自检与 `lumakey://specs/plugin-v3` 开发规范指引，并支持可选附加一句话顺带开发任务与纯 JSON 复制）。
 - **自定义插件商店入驻、单输入框智能地址识别与 `lumakey-mcp` 商店打包闭环 (`PluginStoreModels`, `PluginStoreSniffer`, `PluginStoreService`, `PluginStorePackager`, `PluginStoreSpecs`, `PluginStoreController`, `PluginStoreMarketplaceView`, `PluginStoreSheetsView`, `MCPStoreHandlers`, `CheckPluginStore`)**：
   - **单一地址栏自动识别（商店源 vs 单插件）**：在「精选市场」顶部提供统一的智能地址输入框（及一键粘贴与内置「入驻规范」速查弹窗），自动按「`.zip`/`.lumakeyplugin` 直链 -> GitHub 仓库主页探测 -> `.json` 顶层字段嗅探 -> 站点目录约定路径补全」分流为**自定义插件商店 (`lumakey-registry.json`)** 或**独立单插件**；
   - **多源入驻管理、SHA-256 防伪装校验与无损版本升级**：自定义商店订阅源持久化于 `plugin-registries.json`（自动纳入 `.lumakeybackup` 备份恢复），自动识别已装状态与语义化版本更新（`一键安装 / 更新 / 重装`）；安装时强制校验 `CryptoKit` `SHA-256`、通过私密 `0700` 沙盒 `ditto` 解压拦截软链接与路径逃逸，并比对包内真实 `plugin.json` 防止夹带商店词条未声明的权限；覆盖升级时无损保留用户自定义触发词、快捷键与密封密钥；

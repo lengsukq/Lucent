@@ -1,0 +1,38 @@
+name: CI (macOS arm64)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-arm64:
+    name: Docs, Module Audit, Unit Tests & Bundle Build
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Apple Silicon toolchain
+        run: |
+          uname -m
+          swift --version
+
+      - name: Check documentation links & index coverage
+        run: python3 -B scripts/check-docs.py
+
+      - name: Run verify-macos.sh (Module DAG + Clean Code + LumakeyTests + LumakeyCheck)
+        run: bash scripts/verify-macos.sh
+
+      - name: Verify Release .app bundle packaging & codesign
+        run: bash scripts/build-macos.sh

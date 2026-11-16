@@ -2,7 +2,7 @@
 
 **专为 macOS Apple Silicon (`arm64`) 原生打造的轻量快捷效率中枢：菜单栏常驻、全局热键秒呼，以单一统一全搜栏整合应用、全盘文件、剪贴板、计算换算、物理鼠标平滑滚轮与深度融合插件系统，并配备零 WebKit 的 Markdown/文本/图像/视频独立阅读窗口与自动内存回收架构。**
 
-`Lumakey` 是一个完全独立、零第三方依赖的 Swift 6 + SwiftUI/AppKit 原生桌面应用（`app.lumakey.macos`），内置中英双语系统（首次打开自动跟随 macOS 系统语言，后续可在设置中心、菜单栏或 `⌥Space` 搜索指令中免重启实时切换「简体中文 / English」）以及「凝霜留白 (`Pure Frost`)」与「霓彩流光 (`Prism Pulse`)」双视觉主题。设计原则是：**优先复用 macOS 系统原生能力，保持干净可维护的 Clean Code，让高频效率指令零延迟触达且空闲占用极低。**
+`Lumakey` 是一个完全独立、零第三方依赖的 Swift 6 + SwiftUI/AppKit 原生桌面应用（`app.lumakey.macos`），内置中英双语系统（首次打开自动跟随 macOS 系统语言，后续可在设置中心、菜单栏或 `⌥Space` 搜索指令中免重启实时切换「简体中文 / English」）以及「凝霜留白 (`Pure Frost`)」与「霓彩流光 (`Prism Pulse`)」双视觉主题。设计原则是：**优先复用 macOS 系统原生能力，保持干净可维护的分层模块化 Clean Code，让高频效率指令零延迟触达且空闲占用极低。**
 
 ## 核心能力
 
@@ -10,11 +10,11 @@
   - 采用 AppKit `.popover` 自适应浅/深色 `9-slice NSVisualEffectView.maskImage` 严格裁剪连续曲率大圆角，禁用搜索框模糊透明混叠（`CrispSearchTextField` + 动态高对比文字/边框令牌），保证浅色与深色壁纸下文字同样锐利清晰；
   - 主悬浮窗锁定 `880 × 544` 恒定尺寸，并将子过滤条移入左侧列表栏内部（主分割线不动、`Tab` 切换无动画），配合 `LauncherSelectionAnchor` 锚定选中项 ID，后台索引更新不会打断当前选中位置；
   - **一个搜索栏搜遍一切**：基于前台活跃时长/频次 `log2` 加权、近度衰减与图钉常驻智能排序常用应用；默认即开启 `全盘 + 外置盘` 索引作用域，单框同时支持汉字/拼音、算式/进制/单位换算、离线开发工具箱（时间戳/UUID/随机密码/Base64/URL/JWT/JSON/MD5/SHA-256/`#HEX` 色板/高清二维码）、快捷短语（`;` 前缀）、端口占用、全盘文件（免前缀）、剪贴板历史以及插件与插件子功能直达。
-- **深度融合插件系统 v3、自定义商店智能入驻、独立插件设置页、本地备份 & 原生 WebDAV 云同步**：
+- **深度融合插件系统 v3、系统级 Seatbelt 沙箱隔离、自定义商店智能入驻、本地备份 & 原生 WebDAV 云同步**：
   - 「精选市场」内置单一智能地址框，粘贴任意 HTTPS 地址或 GitHub 仓库即可自动识别为**自定义插件商店 (`lumakey-registry.json`)** 或**单个外部插件**，支持多商店订阅切换、SHA-256 与权限防伪装核验及无损版本升级；
+  - 外部脚本运行期由 `PluginSandboxProfileBuilder`（`/usr/bin/sandbox-exec` Seatbelt 策略）与纯净环境变量白名单强制管控网络、磁盘写与外部子进程作用域，并采用双轨 256-bit 随机主密钥 `AES-GCM` 保险箱（`LMKYVLT2`）加密保护插件密钥；
   - 全部 10 项核心快捷键与外部插件热键支持可视化按键录制与三层冲突检测（应用内/插件互斥、系统符号热键与 `Carbon` 外部占用探测）；
-  - 每个插件拥有独立设置页（自适应流式触发词管理、独立全局热键重录、子功能全局搜索注册、默认全部关闭的按需快捷按钮、钥匙串安全配置表单与 `PluginData` 索引治理），配套 `lumakey-mcp` 服务（内置商店规范与一键打包工具）；
-  - 支持打包带顶层 SHA-256 完整性校验的 `.lumakeybackup` 归档（含主题、配置、自定义插件与已收藏剪贴板条目），并通过 Keychain 存密 + 原生 RFC 4918 WebDAV 同步至云盘或私有 NAS。
+  - 支持打包带顶层 SHA-256 完整性校验的 `.lumakeybackup` 归档（含主题、配置、自定义插件与已收藏剪贴板条目），并通过原生 RFC 4918 WebDAV 同步至云盘或私有 NAS。
 - **内置系统脉搏监控悬浮窗 (`⌥M`) & 多视图文件与外置磁盘工作台 (`⌥E`)**：
   - 基于 Darwin Mach、`IOKit` 与 `getifaddrs` 零子进程采样 CPU P/E 核负载、动态等效频率 (`GHz`)、GPU 利用率、内存/Swap、实时整机功耗 (`W`) 与网速（新装默认关闭）；
   - 按需工作台 (`⌥E`) 支持单双栏自适应并排、`⌘`/区间多选与矩形拖动框选、跨目录拖拽与复制粘贴、新建文件夹、单文件改名与批量重命名预检、系统废纸篓安全删除、6 种排序、7 类媒体筛选、右侧居中图文视频预览与只读 NTFS 护航。
@@ -31,7 +31,7 @@
   - 打开独立窗口时自动在程序坞显示图标，关闭所有标准窗口后自动恢复轻量菜单栏驻留；
   - 支持本地 TCC 稳定开发签名（`scripts/setup-local-signing.sh`）以及面向对外分发的 `Hardened Runtime` + `Developer ID Application` + Apple `notarytool` / `stapler` 一键公证装订流水线（`scripts/release-macos.sh`）。
 - **最优内存与子进程自洁架构 (`ProcessSupervisor` & `MemoryStats`)**：
-  - 全部外部子进程通过 `ProcessSupervisor` 托管（8s 超时强杀 + 有界读取 + 隐藏/退出即清理）；浮窗隐藏 `30s` 自动销毁视图树，文件索引空闲 `90s` 或收到内存压力告警时自动卸载并归还堆页。
+  - 全部外部子进程通过 `ProcessSupervisor` 托管（8s 超时强杀 + 有界读取 + 隐藏/退出即清理）；浮窗隐藏 `30s` 自动销毁视图树，文件索引采用带 `SHA-256` 校验的 `LMKYIDX3` `mmap` 快照并在空闲 `90s` 或收到内存压力告警时自动卸载归还堆页。
 
 ## 明确的产品界限
 
@@ -46,18 +46,25 @@
 # 1. 文档与链接自检
 python3 -B scripts/check-docs.py
 
-# 2. 代码规范（<=300行/文件）、编译、单测与 MCP 真实子进程联调校验
+# 2. 标准 Swift Testing 单元测试与性能延迟基准
+swift test --arch arm64
+
+# 3. 模块单向依赖边界、Clean Code（<=300行/文件）、编译与 MCP 真实子进程联调校验
 bash scripts/verify-macos.sh
 
-# 3. 本地构建独立 macOS arm64 .app 产物 (dist/Lumakey.app)
+# 4. 本地构建独立 macOS arm64 .app 产物 (dist/Lumakey.app)
 bash scripts/build-macos.sh
 
-# 4. 打包 dist/Lumakey.dmg 并同步安装到本机 /Applications/Lumakey.app
+# 5. 打包 dist/Lumakey.dmg 并同步安装到本机 /Applications/Lumakey.app
 bash scripts/install-macos.sh
 
-# 5. 构建面向他人的公开发行版（自动启用 Hardened Runtime，支持 Developer ID 签名与 Apple 公证装订）
+# 6. 构建面向他人的公开发行版（自动启用 Hardened Runtime，支持 Developer ID 签名与 Apple 公证装订）
 # APPLE_NOTARY_PROFILE="lumakey-notary" bash scripts/release-macos.sh
 bash scripts/release-macos.sh
 ```
 
-更多说明请从 [文档总览](docs/INDEX.md) 开始。
+更多说明请从 [文档总览](docs/INDEX.md) 开始，参与共建请参阅 [贡献指南](CONTRIBUTING.md)。
+
+## 开源许可
+
+本项目采用 [MIT License](LICENSE) 开源发布。

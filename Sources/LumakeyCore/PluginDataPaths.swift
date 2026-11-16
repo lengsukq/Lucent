@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Darwin
 import Foundation
 
@@ -24,6 +25,18 @@ public enum PluginDataPaths {
         return "\(PluginKeychainStore.defaultService).sandbox.\(String(hash, radix: 16))"
     }
 
+    public static func scopedVaultFileURL(forPluginsRoot pluginsRoot: URL) -> URL? {
+        let defaultPath = PluginSystem.defaultPluginsDirectory().standardizedFileURL.path
+        let standardized = pluginsRoot.standardizedFileURL
+        if standardized.path == defaultPath {
+            return nil
+        }
+        let baseDir = standardized.lastPathComponent == "Plugins"
+            ? standardized.deletingLastPathComponent()
+            : standardized
+        return LocalSecretVault.defaultVaultFileURL(in: baseDir)
+    }
+
     public static func dataDirectory(for pluginID: String, pluginsRoot: URL) -> URL? {
         guard PluginSystem.isSafePluginID(pluginID) else { return nil }
         return dataRoot(forPluginsRoot: pluginsRoot).appendingPathComponent(pluginID, isDirectory: true)
@@ -38,6 +51,14 @@ public enum PluginDataPaths {
         guard let dir = dataDirectory(for: pluginID, pluginsRoot: pluginsRoot) else { return nil }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
+    }
+
+    public static func ensureIsolatedTmpDirectory(for pluginID: String, pluginsRoot: URL) -> URL {
+        let base = ensureDataDirectory(for: pluginID, pluginsRoot: pluginsRoot)
+            ?? FileManager.default.temporaryDirectory.appendingPathComponent("lumakey-plug-\(getuid())", isDirectory: true)
+        let tmp = base.appendingPathComponent(".tmp-\(UUID().uuidString.prefix(8))", isDirectory: true)
+        ensurePrivateDirectory(tmp)
+        return tmp
     }
 
     public static func removeDataDirectory(for pluginID: String, pluginsRoot: URL) {

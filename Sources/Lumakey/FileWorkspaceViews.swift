@@ -4,11 +4,19 @@ import SwiftUI
 struct FileWorkspaceView: View {
     @ObservedObject var viewModel: AppViewModel
 
+    private var shouldShowPreviewSidebar: Bool {
+        guard viewModel.showWorkspacePreview else { return false }
+        if viewModel.layoutMode == .dual {
+            return viewModel.selectedEntry != nil
+        }
+        return true
+    }
+
     var body: some View {
         let isDual = viewModel.layoutMode == .dual
         HStack(spacing: isDual ? 8 : 10) {
             LocationSidebarView(viewModel: viewModel)
-                .frame(width: isDual ? 174 : 196)
+                .frame(width: isDual ? 172 : 194)
 
             VStack(spacing: 10) {
                 WorkspaceTopToolbar(viewModel: viewModel)
@@ -23,9 +31,12 @@ struct FileWorkspaceView: View {
             }
             .frame(minWidth: 0, maxWidth: .infinity)
 
-            SidePreviewPanelView(viewModel: viewModel)
-                .frame(width: isDual ? 282 : 332)
+            if shouldShowPreviewSidebar {
+                SidePreviewPanelView(viewModel: viewModel)
+                    .frame(width: isDual ? 276 : 320)
+            }
         }
+        .frame(minWidth: 980, minHeight: 560)
     }
 }
 
@@ -34,41 +45,48 @@ private struct LocationSidebarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("位置与磁盘").font(.headline)
-                Spacer()
+            HStack(spacing: 6) {
+                Text("位置与磁盘")
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(1)
+                Spacer(minLength: 4)
                 Button { viewModel.refreshLocations() } label: {
                     Image(systemName: "arrow.clockwise")
+                        .font(.caption.weight(.semibold))
                 }
                 .buttonStyle(.borderless)
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 5) {
                     ForEach(viewModel.locations) { item in
                         let isActive = viewModel.activePaneState.currentDirectory.standardizedFileURL.path == item.url.standardizedFileURL.path
                         Button {
                             viewModel.navigate(pane: viewModel.activePane, to: item.url)
                         } label: {
-                            HStack(alignment: .center, spacing: 10) {
+                            HStack(alignment: .center, spacing: 9) {
                                 SquircleBadge(
                                     symbol: item.kind.symbolName,
                                     topColor: item.kind == .external ? .orange : .cyan,
                                     bottomColor: item.kind == .external ? .red : .blue,
-                                    size: 28
+                                    size: 26
                                 )
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name).font(.callout.weight(.medium)).foregroundStyle(LiquidColors.textPrimary).lineLimit(1)
+                                VStack(alignment: .leading, spacing: 1.5) {
+                                    Text(item.name)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(LiquidColors.textPrimary)
+                                        .lineLimit(1)
                                     if let vol = item.volumeSummary {
                                         Text(vol.formatKind.badgeText)
-                                            .font(.caption2)
+                                            .font(.system(size: 10))
                                             .foregroundStyle(vol.formatKind == .ntfsReadOnly ? .orange : .secondary)
+                                            .lineLimit(1)
                                     }
                                 }
-                                Spacer()
+                                Spacer(minLength: 2)
                             }
                             .padding(.horizontal, 8).padding(.vertical, 6)
-                            .background(isActive ? LiquidColors.highlightGlow : Color.clear, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-                            .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                            .background(isActive ? LiquidColors.highlightGlow : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }
@@ -76,13 +94,16 @@ private struct LocationSidebarView: View {
             }
             Divider()
             VStack(alignment: .leading, spacing: 4) {
-                Text("宿主机工具链").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Text("宿主机工具链")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 ToolRow(label: "ntfs-3g", available: viewModel.toolingStatus.ntfs3gPath != nil)
                 ToolRow(label: "ffmpeg", available: viewModel.toolingStatus.ffmpegPath != nil)
                 ToolRow(label: "ffprobe", available: viewModel.toolingStatus.ffprobePath != nil)
             }
         }
-        .padding(12)
+        .padding(11)
         .liquidGlassCard(cornerRadius: LiquidRadii.bento)
     }
 }
@@ -92,12 +113,14 @@ private struct ToolRow: View {
     let available: Bool
 
     var body: some View {
-        HStack {
-            Text(label).font(.caption)
-            Spacer()
+        HStack(spacing: 4) {
+            Text(label).font(.caption2.monospaced()).lineLimit(1)
+            Spacer(minLength: 4)
             Text(available ? "已就绪" : "未安装")
-                .font(.caption2)
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(available ? .green : .secondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
     }
 }
@@ -109,14 +132,15 @@ private struct FilePaneView: View {
 
     var body: some View {
         let visible = state.visibleEntries
-        return VStack(spacing: 8) {
+        return VStack(spacing: 7) {
             WorkspacePaneHeaderToolbar(viewModel: viewModel, pane: pane, state: state)
             categoryFilterStrip
             if let summary = state.volumeSummary, summary.formatKind == .ntfsReadOnly {
                 HStack(spacing: 8) {
                     Image(systemName: "lock.shield.fill").foregroundStyle(.orange)
                     Text("NTFS 只读卷（\(summary.capacityText)）：仅开放浏览、播放、OCR 与校验，已保护禁止写入。")
-                        .font(.caption)
+                        .font(.caption2)
+                        .lineLimit(2)
                     Spacer()
                 }
                 .padding(8)
@@ -124,13 +148,14 @@ private struct FilePaneView: View {
             }
             if let diag = state.diagnostic {
                 Text("\(diag.title)：\(diag.reason) \(diag.nextStep)")
-                    .font(.caption).foregroundStyle(.red).padding(8)
+                    .font(.caption2).foregroundStyle(.red).padding(6)
             }
             WorkspaceEntriesContentView(viewModel: viewModel, pane: pane, state: state, entries: visible)
             WorkspaceFloatingActionBar(viewModel: viewModel, pane: pane)
             Divider().opacity(0.22)
             WorkspacePaneFooterStatusBar(
                 state: state,
+                isDual: viewModel.layoutMode == .dual,
                 visibleCount: visible.count,
                 selectionSummary: viewModel.selectionSummaryText(in: pane),
                 serviceMessage: viewModel.activePane == pane ? viewModel.serviceMessage : nil
@@ -141,30 +166,42 @@ private struct FilePaneView: View {
         .overlay {
             if viewModel.activePane == pane && viewModel.layoutMode == .dual {
                 RoundedRectangle(cornerRadius: LiquidRadii.bento, style: .continuous)
-                    .strokeBorder(Color.accentColor.opacity(0.45), lineWidth: 1.5)
+                    .strokeBorder(Color.accentColor.opacity(0.48), lineWidth: 1.4)
             }
         }
     }
 
     private var categoryFilterStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 ForEach(WorkspaceMediaFilter.allCases) { filter in
                     let count = state.categoryCount(for: filter)
                     Button("\(filter.title) (\(count))") {
                         viewModel.activePane = pane
                         viewModel.mutatePane(pane) { $0.mediaFilter = filter }
                     }
-                    .buttonStyle(GlassPillButtonStyle(prominent: state.mediaFilter == filter))
+                    .buttonStyle(GlassPillButtonStyle(prominent: state.mediaFilter == filter, compact: true))
                 }
                 if state.mediaFilter != .all || !state.filterText.isEmpty {
                     Button("重置筛选") {
                         viewModel.activePane = pane
                         viewModel.mutatePane(pane) { $0.mediaFilter = .all; $0.filterText = "" }
                     }
-                    .buttonStyle(GlassPillButtonStyle())
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
                 }
             }
+            .padding(.trailing, 16)
         }
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: 0.94),
+                    .init(color: .clear, location: 1.0)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
     }
 }

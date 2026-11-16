@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import AppKit
 import CoreGraphics
 import Foundation
@@ -69,18 +70,7 @@ public extension ScreenshotCompositor {
     @MainActor
     @discardableResult
     static func copyImageFileToPasteboard(at url: URL, to pasteboard: NSPasteboard = .general) -> Bool {
-        pasteboard.clearContents()
-        if let pngData = try? Data(contentsOf: url), !pngData.isEmpty,
-           let rep = NSBitmapImageRep(data: pngData) {
-            let item = NSPasteboardItem()
-            item.setData(pngData, forType: .png)
-            if let tiffData = rep.tiffRepresentation { item.setData(tiffData, forType: .tiff) }
-            return pasteboard.writeObjects([item])
-        }
-        if let img = NSImage(contentsOf: url) {
-            return pasteboard.writeObjects([img])
-        }
-        return false
+        ClipboardPasteboardIO.writeImageFileToPasteboard(at: url, to: pasteboard)
     }
 
     static func saveTempCapture(_ cgImage: CGImage) throws -> URL {

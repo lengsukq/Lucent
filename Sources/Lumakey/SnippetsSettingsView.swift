@@ -132,9 +132,9 @@ struct SnippetsSettingsView: View {
 
             HStack(spacing: 12) {
                 snippetListPane
-                    .frame(minWidth: 0, maxWidth: .infinity)
+                    .frame(minWidth: 260, maxWidth: .infinity)
                 editorPane
-                    .frame(width: 344)
+                    .frame(width: 320)
             }
         }
     }
@@ -197,7 +197,7 @@ struct SnippetsSettingsView: View {
             }
             GlassInputField(symbol: "tag", placeholder: "短语显示名称", text: $ctrl.draftTitle)
 
-            HStack(spacing: 4) {
+            FlowWrapLayout(horizontalSpacing: 5, verticalSpacing: 5) {
                 Text("变量").font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textSecondary)
                     .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                 ForEach(placeholders, id: \.self) { token in
@@ -207,7 +207,7 @@ struct SnippetsSettingsView: View {
                             .foregroundStyle(LiquidColors.textPrimary)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
-                            .padding(.horizontal, 5)
+                            .padding(.horizontal, 6.5)
                             .padding(.vertical, 3.5)
                             .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
                             .overlay { Capsule(style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.75) }

@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public struct InstalledAppItem: Identifiable, Sendable, Hashable {

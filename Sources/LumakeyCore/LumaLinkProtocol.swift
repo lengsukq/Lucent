@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public struct LumaLinkPairedDevice: Codable, Sendable, Hashable, Identifiable {
@@ -7,10 +8,7 @@ public struct LumaLinkPairedDevice: Codable, Sendable, Hashable, Identifiable {
     public var pairedAt: TimeInterval
 
     public init(id: String = UUID().uuidString, name: String, token: String, pairedAt: TimeInterval = Date().timeIntervalSince1970) {
-        self.id = id
-        self.name = name
-        self.token = token
-        self.pairedAt = pairedAt
+        self.id = id; self.name = name; self.token = token; self.pairedAt = pairedAt
     }
 }
 
@@ -32,22 +30,16 @@ public struct LumaLinkConfig: Codable, Sendable, Hashable {
     }
 
     public init(
-        enabled: Bool = false,
-        preferredPort: UInt16 = 59480,
-        autoRestoreDisplayOnDisconnect: Bool = true,
-        muteMacWhenCurtainEnabled: Bool = true,
-        rdpEnabled: Bool = false,
-        rdpPort: UInt16 = 3389,
-        rdpLocalAudioEnabled: Bool = true,
-        preferredVirtualMicName: String = "",
+        enabled: Bool = false, preferredPort: UInt16 = 59480,
+        autoRestoreDisplayOnDisconnect: Bool = true, muteMacWhenCurtainEnabled: Bool = true,
+        rdpEnabled: Bool = false, rdpPort: UInt16 = 3389,
+        rdpLocalAudioEnabled: Bool = true, preferredVirtualMicName: String = "",
         pairedDevices: [LumaLinkPairedDevice] = []
     ) {
-        self.enabled = enabled
-        self.preferredPort = preferredPort
+        self.enabled = enabled; self.preferredPort = preferredPort
         self.autoRestoreDisplayOnDisconnect = autoRestoreDisplayOnDisconnect
         self.muteMacWhenCurtainEnabled = muteMacWhenCurtainEnabled
-        self.rdpEnabled = rdpEnabled
-        self.rdpPort = rdpPort
+        self.rdpEnabled = rdpEnabled; self.rdpPort = rdpPort
         self.rdpLocalAudioEnabled = rdpLocalAudioEnabled
         self.preferredVirtualMicName = preferredVirtualMicName
         self.pairedDevices = pairedDevices
@@ -67,24 +59,62 @@ public struct LumaLinkConfig: Codable, Sendable, Hashable {
     }
 
     public static func defaultConfigURL() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
-        return base.appendingPathComponent("Lumakey", isDirectory: true).appendingPathComponent("lumalink-config.json")
+        LumakeyAppPaths.defaultAppSupportDirectory().appendingPathComponent("lumalink-config.json")
     }
 
-    public static func load(from url: URL = defaultConfigURL()) -> LumaLinkConfig {
+    private static func resolvedVaultURL(forConfigURL url: URL, vaultDirectory: URL?) -> URL? {
+        if let vaultDirectory {
+            return vaultDirectory.appendingPathComponent(LocalSecretVault.vaultFileName, isDirectory: false)
+        }
+        let std = url.standardizedFileURL
+        return std.path == defaultConfigURL().standardizedFileURL.path
+            ? nil
+            : LocalSecretVault.defaultVaultFileURL(in: std.deletingLastPathComponent())
+    }
+
+    public static func load(from url: URL = defaultConfigURL(), vaultDirectory: URL? = nil) -> LumaLinkConfig {
         guard let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode(LumaLinkConfig.self, from: data)
+              var decoded = try? JSONDecoder().decode(LumaLinkConfig.self, from: data)
         else { return LumaLinkConfig() }
+        let vaultURL = resolvedVaultURL(forConfigURL: url, vaultDirectory: vaultDirectory)
+        var migratedPlaintext = false
+        for idx in decoded.pairedDevices.indices {
+            let devID = decoded.pairedDevices[idx].id
+            let inlineToken = decoded.pairedDevices[idx].token
+            if let vaulted = try? LocalSecretVault.loadValue(
+                service: LumakeyAppPaths.lumaLinkKeychainService, account: devID, customVaultURL: vaultURL
+            ), !vaulted.isEmpty {
+                decoded.pairedDevices[idx].token = vaulted
+                if !inlineToken.isEmpty { migratedPlaintext = true }
+            } else if !inlineToken.isEmpty {
+                try? LocalSecretVault.saveValue(
+                    inlineToken, service: LumakeyAppPaths.lumaLinkKeychainService, account: devID, customVaultURL: vaultURL
+                )
+                migratedPlaintext = true
+            }
+        }
+        if migratedPlaintext { decoded.writeScrubbedJSON(to: url) }
         return decoded
     }
 
-    public func save(to url: URL = defaultConfigURL()) {
+    public func save(to url: URL = defaultConfigURL(), vaultDirectory: URL? = nil) {
+        let vaultURL = Self.resolvedVaultURL(forConfigURL: url, vaultDirectory: vaultDirectory)
+        for dev in pairedDevices where !dev.token.isEmpty {
+            try? LocalSecretVault.saveValue(
+                dev.token, service: LumakeyAppPaths.lumaLinkKeychainService, account: dev.id, customVaultURL: vaultURL
+            )
+        }
+        writeScrubbedJSON(to: url)
+    }
+
+    private func writeScrubbedJSON(to url: URL) {
         let dir = url.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var scrubbed = self
+        for idx in scrubbed.pairedDevices.indices { scrubbed.pairedDevices[idx].token = "" }
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? enc.encode(self) {
+        if let data = try? enc.encode(scrubbed) {
             try? data.write(to: url, options: .atomic)
         }
     }
@@ -102,25 +132,13 @@ public struct LumaLinkDisplayModeInfo: Codable, Sendable, Hashable {
     public var isCurrent: Bool
 
     public init(
-        modeKey: String,
-        label: String,
-        pixelWidth: Int,
-        pixelHeight: Int,
-        pointWidth: Int,
-        pointHeight: Int,
-        refreshHz: Int,
-        isHiDPI: Bool,
-        isCurrent: Bool
+        modeKey: String, label: String, pixelWidth: Int, pixelHeight: Int,
+        pointWidth: Int, pointHeight: Int, refreshHz: Int, isHiDPI: Bool, isCurrent: Bool
     ) {
-        self.modeKey = modeKey
-        self.label = label
-        self.pixelWidth = pixelWidth
-        self.pixelHeight = pixelHeight
-        self.pointWidth = pointWidth
-        self.pointHeight = pointHeight
-        self.refreshHz = refreshHz
-        self.isHiDPI = isHiDPI
-        self.isCurrent = isCurrent
+        self.modeKey = modeKey; self.label = label
+        self.pixelWidth = pixelWidth; self.pixelHeight = pixelHeight
+        self.pointWidth = pointWidth; self.pointHeight = pointHeight
+        self.refreshHz = refreshHz; self.isHiDPI = isHiDPI; self.isCurrent = isCurrent
     }
 }
 
@@ -132,11 +150,8 @@ public struct LumaLinkDisplayInfo: Codable, Sendable, Hashable {
     public var modes: [LumaLinkDisplayModeInfo]
 
     public init(displayID: UInt32, name: String, isMain: Bool, currentModeKey: String, modes: [LumaLinkDisplayModeInfo]) {
-        self.displayID = displayID
-        self.name = name
-        self.isMain = isMain
-        self.currentModeKey = currentModeKey
-        self.modes = modes
+        self.displayID = displayID; self.name = name; self.isMain = isMain
+        self.currentModeKey = currentModeKey; self.modes = modes
     }
 }
 
@@ -157,35 +172,17 @@ public struct LumaLinkTelemetry: Codable, Sendable, Hashable {
     public var caffeineActive: Bool
 
     public init(
-        cpuPercent: Double = 0,
-        memoryUsedGB: Double = 0,
-        memoryTotalGB: Double = 0,
-        memoryPercent: Double = 0,
-        systemWatts: Double = 0,
-        batteryPercent: Int = -1,
-        isCharging: Bool = false,
-        netDownBytesPerSec: Double = 0,
-        netUpBytesPerSec: Double = 0,
-        thermalState: String = "正常",
-        volumePercent: Int = 50,
-        isMuted: Bool = false,
-        privacyCurtainActive: Bool = false,
-        caffeineActive: Bool = false
+        cpuPercent: Double = 0, memoryUsedGB: Double = 0, memoryTotalGB: Double = 0, memoryPercent: Double = 0,
+        systemWatts: Double = 0, batteryPercent: Int = -1, isCharging: Bool = false,
+        netDownBytesPerSec: Double = 0, netUpBytesPerSec: Double = 0, thermalState: String = "正常",
+        volumePercent: Int = 50, isMuted: Bool = false, privacyCurtainActive: Bool = false, caffeineActive: Bool = false
     ) {
-        self.cpuPercent = cpuPercent
-        self.memoryUsedGB = memoryUsedGB
-        self.memoryTotalGB = memoryTotalGB
-        self.memoryPercent = memoryPercent
-        self.systemWatts = systemWatts
-        self.batteryPercent = batteryPercent
-        self.isCharging = isCharging
-        self.netDownBytesPerSec = netDownBytesPerSec
-        self.netUpBytesPerSec = netUpBytesPerSec
-        self.thermalState = thermalState
-        self.volumePercent = volumePercent
-        self.isMuted = isMuted
-        self.privacyCurtainActive = privacyCurtainActive
-        self.caffeineActive = caffeineActive
+        self.cpuPercent = cpuPercent; self.memoryUsedGB = memoryUsedGB
+        self.memoryTotalGB = memoryTotalGB; self.memoryPercent = memoryPercent
+        self.systemWatts = systemWatts; self.batteryPercent = batteryPercent; self.isCharging = isCharging
+        self.netDownBytesPerSec = netDownBytesPerSec; self.netUpBytesPerSec = netUpBytesPerSec
+        self.thermalState = thermalState; self.volumePercent = volumePercent; self.isMuted = isMuted
+        self.privacyCurtainActive = privacyCurtainActive; self.caffeineActive = caffeineActive
     }
 }
 
@@ -202,27 +199,13 @@ public struct LumaLinkRequest: Codable, Sendable {
     public var text: String?
 
     public init(
-        id: String = UUID().uuidString,
-        action: String,
-        token: String? = nil,
-        pin: String? = nil,
-        deviceName: String? = nil,
-        displayID: UInt32? = nil,
-        modeKey: String? = nil,
-        command: String? = nil,
-        percent: Int? = nil,
-        text: String? = nil
+        id: String = UUID().uuidString, action: String, token: String? = nil, pin: String? = nil,
+        deviceName: String? = nil, displayID: UInt32? = nil, modeKey: String? = nil,
+        command: String? = nil, percent: Int? = nil, text: String? = nil
     ) {
-        self.id = id
-        self.action = action
-        self.token = token
-        self.pin = pin
-        self.deviceName = deviceName
-        self.displayID = displayID
-        self.modeKey = modeKey
-        self.command = command
-        self.percent = percent
-        self.text = text
+        self.id = id; self.action = action; self.token = token; self.pin = pin
+        self.deviceName = deviceName; self.displayID = displayID; self.modeKey = modeKey
+        self.command = command; self.percent = percent; self.text = text
     }
 }
 
@@ -244,36 +227,16 @@ public struct LumaLinkResponse: Codable, Sendable {
     public var audio: LumaLinkAudioStatus?
 
     public init(
-        id: String,
-        type: String = "response",
-        ok: Bool,
-        error: String? = nil,
-        hostName: String? = nil,
-        protocolVersion: Int? = nil,
-        requiresPairing: Bool? = nil,
-        token: String? = nil,
-        deviceId: String? = nil,
-        displays: [LumaLinkDisplayInfo]? = nil,
-        telemetry: LumaLinkTelemetry? = nil,
-        clipboardText: String? = nil,
-        rdpEnabled: Bool? = nil,
-        rdpPort: Int? = nil,
-        audio: LumaLinkAudioStatus? = nil
+        id: String, type: String = "response", ok: Bool, error: String? = nil,
+        hostName: String? = nil, protocolVersion: Int? = nil, requiresPairing: Bool? = nil,
+        token: String? = nil, deviceId: String? = nil, displays: [LumaLinkDisplayInfo]? = nil,
+        telemetry: LumaLinkTelemetry? = nil, clipboardText: String? = nil,
+        rdpEnabled: Bool? = nil, rdpPort: Int? = nil, audio: LumaLinkAudioStatus? = nil
     ) {
-        self.id = id
-        self.type = type
-        self.ok = ok
-        self.error = error
-        self.hostName = hostName
-        self.protocolVersion = protocolVersion
-        self.requiresPairing = requiresPairing
-        self.token = token
-        self.deviceId = deviceId
-        self.displays = displays
-        self.telemetry = telemetry
-        self.clipboardText = clipboardText
-        self.rdpEnabled = rdpEnabled
-        self.rdpPort = rdpPort
-        self.audio = audio
+        self.id = id; self.type = type; self.ok = ok; self.error = error
+        self.hostName = hostName; self.protocolVersion = protocolVersion
+        self.requiresPairing = requiresPairing; self.token = token; self.deviceId = deviceId
+        self.displays = displays; self.telemetry = telemetry; self.clipboardText = clipboardText
+        self.rdpEnabled = rdpEnabled; self.rdpPort = rdpPort; self.audio = audio
     }
 }

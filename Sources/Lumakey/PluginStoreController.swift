@@ -87,7 +87,7 @@ final class PluginStoreController: ObservableObject {
             let installed = try PluginStoreService.installSingleCandidate(candidate)
             smartURLInput = ""
             viewModel.reloadPluginsAndHotKeys()
-            centerCtrl.select(installed, switchTab: true)
+            centerCtrl.select(installed)
             let msg = L10n.pick(
                 "已安装插件：\(installed.displayName) v\(installed.manifest.version)",
                 "Installed plugin: \(installed.displayName) v\(installed.manifest.version)"
@@ -95,6 +95,7 @@ final class PluginStoreController: ObservableObject {
             showBanner(msg, isError: false)
             centerCtrl.statusNote = msg
             viewModel.serviceMessage = msg
+            viewModel.openPluginSettings(id: installed.id)
         } catch {
             let reason = (error as? LumakeyError)?.diagnostic.reason ?? error.localizedDescription
             showBanner(reason, isError: true)
@@ -122,7 +123,7 @@ final class PluginStoreController: ObservableObject {
                 guard let self else { return }
                 self.installingPluginID = nil
                 viewModel?.reloadPluginsAndHotKeys()
-                centerCtrl?.select(installed, switchTab: false)
+                centerCtrl?.select(installed)
                 let msg = L10n.pick(
                     "已安装「\(installed.displayName)」v\(installed.manifest.version)",
                     "Installed '\(installed.displayName)' v\(installed.manifest.version)"

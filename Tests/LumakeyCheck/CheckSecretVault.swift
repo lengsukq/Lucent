@@ -6,33 +6,65 @@ func testV087LocalSecretVaultAndLazyLoading() throws {
     let tmp = try makeTempDir("v087-vault")
     defer { try? FileManager.default.removeItem(at: tmp) }
 
-    // 1. Verify 0700 directory + 0600 file permissions + AES-GCM ciphertext opacity + tamper detection
+    // 1. Verify 0700 directory + 0600 file permissions + CSPRNG master key + AES-GCM v2 ciphertext opacity + tamper detection
     let vaultDir = tmp.appendingPathComponent(".vault", isDirectory: true)
-    let vaultURL = vaultDir.appendingPathComponent("secrets.v1.enc", isDirectory: false)
+    let vaultURL = vaultDir.appendingPathComponent("secrets.v2.enc", isDirectory: false)
+    let masterKeyURL = vaultDir.appendingPathComponent(LocalSecretMasterKeyStore.masterKeyFileName, isDirectory: false)
     let rawSecret = "ntn_super_secret_token_987654321"
 
     try LocalSecretVault.saveValue(rawSecret, service: "test.svc", account: "notion:token", customVaultURL: vaultURL)
-    check(FileManager.default.fileExists(atPath: vaultURL.path), "vault file written on disk")
+    check(FileManager.default.fileExists(atPath: vaultURL.path), "vault v2 file written on disk")
+    check(FileManager.default.fileExists(atPath: masterKeyURL.path), "CSPRNG master.v2.key seed written on disk")
 
     let dirPerms = ((try FileManager.default.attributesOfItem(atPath: vaultDir.path)[.posixPermissions]) as? Int) ?? 0
     let filePerms = ((try FileManager.default.attributesOfItem(atPath: vaultURL.path)[.posixPermissions]) as? Int) ?? 0
+    let seedPerms = ((try FileManager.default.attributesOfItem(atPath: masterKeyURL.path)[.posixPermissions]) as? Int) ?? 0
     check((dirPerms & 0o777) == 0o700, "vault directory permissions strictly 0700 (got \(String(dirPerms & 0o777, radix: 8)))")
     check((filePerms & 0o777) == 0o600, "vault file permissions strictly 0600 (got \(String(filePerms & 0o777, radix: 8)))")
+    check((seedPerms & 0o777) == 0o600, "master key seed permissions strictly 0600 (got \(String(seedPerms & 0o777, radix: 8)))")
 
     let onDiskBytes = try Data(contentsOf: vaultURL)
-    check(onDiskBytes.prefix(LocalSecretVault.magicHeader.count) == LocalSecretVault.magicHeader, "vault starts with LMKYVLT1 header")
+    check(onDiskBytes.prefix(LocalSecretVault.magicHeader.count) == LocalSecretVault.magicHeader, "vault starts with LMKYVLT2 header")
     check(onDiskBytes.range(of: Data(rawSecret.utf8)) == nil, "plaintext secret never appears in on-disk vault bytes")
     check(onDiskBytes.range(of: Data("notion:token".utf8)) == nil, "account identifiers encrypted inside AES-GCM payload")
+
+    // Verify deterministic legacy v1 key CANNOT decrypt v2 ciphertext (proves high-entropy CSPRNG seed is required)
+    var rejectedLegacyDeterministicKey = false
+    do {
+        _ = try LocalSecretVault.openPayloadData(onDiskBytes, vaultDirectory: vaultDir, keyOverride: LocalSecretMasterKeyStore.deriveLegacyV1Key())
+    } catch LocalSecretVaultError.invalidCiphertext {
+        rejectedLegacyDeterministicKey = true
+    }
+    check(rejectedLegacyDeterministicKey, "deterministic UUID+UID key cannot decrypt v2 CSPRNG-protected vault")
 
     LocalSecretVault.clearMemoryCache()
     let reloaded = try LocalSecretVault.loadValue(service: "test.svc", account: "notion:token", customVaultURL: vaultURL)
     check(reloaded == rawSecret, "cold reload from disk decrypts exact secret")
 
+    // Verify transparent LMKYVLT1 -> LMKYVLT2 migration
+    let migSupportDir = tmp.appendingPathComponent("LegacyMigrate", isDirectory: true)
+    let migVaultDir = migSupportDir.appendingPathComponent(".vault", isDirectory: true)
+    try FileManager.default.createDirectory(at: migVaultDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+    let legacyV1URL = migVaultDir.appendingPathComponent(LocalSecretVault.legacyVaultFileName, isDirectory: false)
+    let legacyPlain = Data(#"{"schemaVersion":1,"services":{"app.lumakey.macos.plugins":{"p1:tok":"legacy-v1-secret-88"}}}"#.utf8)
+    let v1Key = LocalSecretMasterKeyStore.deriveLegacyV1Key()
+    let v1Sealed = try AES.GCM.seal(legacyPlain, using: v1Key, nonce: AES.GCM.Nonce(), authenticating: LocalSecretVault.legacyV1MagicHeader)
+    var v1Blob = Data(LocalSecretVault.legacyV1MagicHeader)
+    v1Blob.append(v1Sealed.combined!)
+    try v1Blob.write(to: legacyV1URL, options: .atomic)
+    LocalSecretVault.clearMemoryCache()
+
+    let targetV2URL = LocalSecretVault.defaultVaultFileURL(in: migSupportDir)
+    let migratedVal = try LocalSecretVault.loadValue(service: "app.lumakey.macos.plugins", account: "p1:tok", customVaultURL: targetV2URL)
+    check(migratedVal == "legacy-v1-secret-88", "legacy LMKYVLT1 vault transparently decrypted")
+    check(FileManager.default.fileExists(atPath: targetV2URL.path) && !FileManager.default.fileExists(atPath: legacyV1URL.path),
+          "legacy secrets.v1.enc upgraded in-place to secrets.v2.enc and old file removed")
+
     // Verify wrong symmetric key fails authentication
     let foreignKey = SymmetricKey(size: .bits256)
     var rejectedForeignKey = false
     do {
-        _ = try LocalSecretVault.openPayloadData(onDiskBytes, keyOverride: foreignKey)
+        _ = try LocalSecretVault.openPayloadData(onDiskBytes, vaultDirectory: vaultDir, keyOverride: foreignKey)
     } catch LocalSecretVaultError.invalidCiphertext {
         rejectedForeignKey = true
     }
@@ -59,11 +91,15 @@ func testV087LocalSecretVaultAndLazyLoading() throws {
 
     let backupData = try BackupArchiveService.exportBackupData(appSupportDirectory: supportDir, appVersion: "0.8.7")
     let backupText = String(data: backupData, encoding: .utf8) ?? ""
-    check(!backupText.contains("do-not-export-me-ever") && !backupText.contains("secrets.v1.enc") && !backupText.contains("LMKYVLT1"), "BackupArchiveService completely excludes .vault encrypted file")
+    check(!backupText.contains("do-not-export-me-ever")
+          && !backupText.contains("secrets.v2.enc")
+          && !backupText.contains("master.v2.key")
+          && !backupText.contains("LMKYVLT2"),
+          "BackupArchiveService completely excludes .vault encrypted file and master key")
     check(!BackupArchiveService.isSafeConfigFileName("secrets.json"), "BackupArchiveService rejects secrets.json")
     check(!BackupArchiveService.isSafeConfigFileName("local-vault.json"), "BackupArchiveService rejects *vault*.json")
 
-    // 3. Verify lazy loading: listPlugins(includeSecrets: false) keeps userConfig secret-free, while resolvedUserConfigWithSecrets & runScriptPlugin load on demand
+    // 3. Verify lazy loading + environment scrubbing + Seatbelt profile generation
     let pluginsDir = supportDir.appendingPathComponent("Plugins", isDirectory: true)
     let pluginDir = pluginsDir.appendingPathComponent("lazy-sec-demo", isDirectory: true)
     try FileManager.default.createDirectory(at: pluginDir, withIntermediateDirectories: true)
@@ -89,14 +125,24 @@ func testV087LocalSecretVaultAndLazyLoading() throws {
     try manifestJSON.write(to: pluginDir.appendingPathComponent("plugin.json"), atomically: true, encoding: .utf8)
     let scriptBody = """
     #!/bin/sh
+    echo "HOST_LEAK=${LUMAKEY_TEST_HOST_SECRET:-NONE}"
     cat
     """
     let scriptURL = pluginDir.appendingPathComponent("run.sh")
     try scriptBody.write(to: scriptURL, atomically: true, encoding: .utf8)
     try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
 
+    setenv("LUMAKEY_TEST_HOST_SECRET", "TOP_SECRET_ENV_DO_NOT_LEAK", 1)
+    defer { unsetenv("LUMAKEY_TEST_HOST_SECRET") }
+
     let sandboxService = PluginDataPaths.keychainService(forPluginsRoot: pluginsDir)
-    defer { PluginKeychainStore.deleteSecrets(pluginID: "lazy-sec-demo", fieldKeys: ["api_key"], service: sandboxService) }
+    let scopedVault = PluginDataPaths.scopedVaultFileURL(forPluginsRoot: pluginsDir)
+    defer {
+        PluginKeychainStore.deleteSecrets(
+            pluginID: "lazy-sec-demo", fieldKeys: ["api_key"],
+            service: sandboxService, customVaultURL: scopedVault
+        )
+    }
 
     try PluginSystem.updatePluginConfig(
         id: "lazy-sec-demo",
@@ -104,7 +150,6 @@ func testV087LocalSecretVaultAndLazyLoading() throws {
         in: pluginsDir
     )
 
-    // Cold startup / list refresh path: includeSecrets: false
     let coldList = PluginSystem.listPlugins(in: pluginsDir, includeBuiltin: false, includeSecrets: false)
     guard let coldPlugin = coldList.first(where: { $0.id == "lazy-sec-demo" }) else {
         check(false, "lazy-sec-demo listed")
@@ -113,13 +158,25 @@ func testV087LocalSecretVaultAndLazyLoading() throws {
     check(coldPlugin.userConfig["endpoint"] == "https://custom.example.com", "non-secret config loaded on startup")
     check(coldPlugin.userConfig["api_key"] == nil, "secret NOT loaded into memory when includeSecrets == false")
 
-    // Settings inspector path: resolvedUserConfigWithSecrets loads on demand
     let inspectorConfig = PluginSystem.resolvedUserConfigWithSecrets(for: coldPlugin, in: pluginsDir)
     check(inspectorConfig["api_key"] == "sk-lazy-vault-777", "resolvedUserConfigWithSecrets lazily loads secret for settings view")
 
-    // Execution path: running coldPlugin (even though coldPlugin.userConfig had no secret) injects secret into stdin on demand!
     let execRes = try PluginSystem.runScriptPlugin(coldPlugin, query: "ping", in: pluginsDir)
     check(execRes.exitCode == 0 && execRes.stdout.contains("sk-lazy-vault-777"), "runScriptPlugin lazily resolves secret from 0600 vault on execution")
+    check(execRes.stdout.contains("HOST_LEAK=NONE"), "external plugin does NOT inherit host environment secrets")
 
-    print("[ok] v0.8.7 LocalSecretVault (0700/0600 AES-GCM + Tamper Guard + Backup Isolation) & Lazy Secret Loading")
+    let sampleProfile = PluginSandboxProfileBuilder.buildProfile(
+        pluginDirectory: pluginDir,
+        dataDirectory: PluginDataPaths.dataDirectory(for: "lazy-sec-demo", pluginsRoot: pluginsDir),
+        isolatedTmpDirectory: tmp,
+        vaultDirectories: [prodLikeVault.deletingLastPathComponent()],
+        bridgeSocketPath: "/tmp/lk-test.sock",
+        allowedScopes: []
+    )
+    check(sampleProfile.contains("(deny network-outbound (remote ip))")
+          && sampleProfile.contains("(deny file-write*")
+          && sampleProfile.contains("(deny file-read* file-write* (subpath \"\(prodLikeVault.deletingLastPathComponent().standardizedFileURL.path)\"))"),
+          "PluginSandboxProfileBuilder enforces network/file-write/vault isolation rules")
+
+    print("[ok] v0.8.8 LocalSecretVault v2 (CSPRNG + v1 Migration) & Plugin Sandbox / Env Scrubbing")
 }

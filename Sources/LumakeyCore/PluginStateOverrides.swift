@@ -1,8 +1,51 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 extension PluginSystem {
     public static func isValidAnyPluginID(_ id: String) -> Bool {
         PluginBuiltinRegistry.isBuiltin(id: id) || isSafePluginID(id)
+    }
+
+    public static func grantedCapabilities(id: String, in rootDir: URL = defaultPluginsDirectory()) -> Set<PluginCapability> {
+        let raw = loadStateSnapshot(in: rootDir).plugins[id]?.grantedCapabilities ?? []
+        return Set(raw.compactMap { PluginCapability(rawValue: $0) })
+    }
+
+    public static func setPluginCapabilityGranted(
+        id: String, capability: PluginCapability, granted: Bool, in rootDir: URL = defaultPluginsDirectory()
+    ) throws {
+        var current = grantedCapabilities(id: id, in: rootDir)
+        if granted { current.insert(capability) } else { current.remove(capability) }
+        try setPluginCapabilities(id: id, capabilities: current, in: rootDir)
+    }
+
+    public static func setPluginCapabilities(
+        id: String, capabilities: Set<PluginCapability>, in rootDir: URL = defaultPluginsDirectory()
+    ) throws {
+        guard isSafePluginID(id) else { throw LumakeyError.pluginInvalid("插件 id '\(id)' 不合法") }
+        var snap = loadStateSnapshot(in: rootDir)
+        var inst = snap.plugins[id] ?? PluginInstanceState()
+        inst.grantedCapabilities = capabilities.map(\.rawValue).sorted()
+        snap.plugins[id] = inst
+        try saveStateSnapshot(snap, in: rootDir)
+    }
+
+    public static func revokedResourceScopes(id: String, in rootDir: URL = defaultPluginsDirectory()) -> Set<PluginResourceScope> {
+        let raw = loadStateSnapshot(in: rootDir).plugins[id]?.revokedResourceScopes ?? []
+        return Set(raw.compactMap { PluginResourceScope(rawValue: $0) })
+    }
+
+    public static func setPluginResourceScopeGranted(
+        id: String, scope: PluginResourceScope, granted: Bool, in rootDir: URL = defaultPluginsDirectory()
+    ) throws {
+        guard isSafePluginID(id) else { throw LumakeyError.pluginInvalid("插件 id '\(id)' 不合法") }
+        var revoked = revokedResourceScopes(id: id, in: rootDir)
+        if granted { revoked.remove(scope) } else { revoked.insert(scope) }
+        var snap = loadStateSnapshot(in: rootDir)
+        var inst = snap.plugins[id] ?? PluginInstanceState()
+        inst.revokedResourceScopes = revoked.map(\.rawValue).sorted()
+        snap.plugins[id] = inst
+        try saveStateSnapshot(snap, in: rootDir)
     }
 
     public static func pluginOverrides(

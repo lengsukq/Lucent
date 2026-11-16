@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum PluginSystem {
@@ -91,12 +92,13 @@ public enum PluginSystem {
             allowKeychainInteraction: allowKeychainInteraction
         )
         let granted = Set(inst.grantedCapabilities.compactMap { PluginCapability(rawValue: $0) })
+        let revokedScopes = Set(inst.revokedResourceScopes.compactMap { PluginResourceScope(rawValue: $0) })
         let rtStatus = PluginDataInspector.readRuntimeStatus(for: manifest.id, in: resolvedRoot)
         return PluginDescriptor(
             id: manifest.id, directoryURL: directoryURL, manifest: manifest,
             validationIssues: issues, isEnabled: inst.isEnabled, userConfig: config,
-            kind: .external, grantedCapabilities: granted, overrides: inst.overrides,
-            runtimeStatus: rtStatus
+            kind: .external, grantedCapabilities: granted, revokedResourceScopes: revokedScopes,
+            overrides: inst.overrides, runtimeStatus: rtStatus
         )
     }
 
@@ -109,17 +111,22 @@ public enum PluginSystem {
     ) -> [String: String] {
         var merged: [String: String] = [:]
         let service = pluginsRoot.map { PluginDataPaths.keychainService(forPluginsRoot: $0) } ?? PluginKeychainStore.defaultService
+        let scopedVault = pluginsRoot.flatMap { PluginDataPaths.scopedVaultFileURL(forPluginsRoot: $0) }
         var migratedLegacySecret = false
         for field in manifest.config ?? [] {
             if field.type == .secret {
                 guard includeSecrets else { continue }
                 if let kcValue = try? PluginKeychainStore.loadSecret(
                     pluginID: manifest.id, fieldKey: field.key,
-                    service: service, allowInteraction: allowKeychainInteraction
+                    service: service, allowInteraction: allowKeychainInteraction,
+                    customVaultURL: scopedVault
                 ), !kcValue.isEmpty {
                     merged[field.key] = kcValue
                 } else if let legacy = stored[field.key], !legacy.isEmpty {
-                    try? PluginKeychainStore.saveSecret(legacy, pluginID: manifest.id, fieldKey: field.key, service: service)
+                    try? PluginKeychainStore.saveSecret(
+                        legacy, pluginID: manifest.id, fieldKey: field.key,
+                        service: service, customVaultURL: scopedVault
+                    )
                     merged[field.key] = legacy
                     migratedLegacySecret = true
                 } else if let def = field.defaultValue {

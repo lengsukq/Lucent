@@ -1,8 +1,8 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum BuiltinPluginID: String, CaseIterable, Sendable {
     case mos = "builtin-mos"
-    case lumaLink = "builtin-lumalink"
     case systemPulse = "builtin-system-pulse"
 }
 
@@ -31,12 +31,10 @@ public enum PluginBuiltinRegistry {
 
     public static func descriptors(
         mosConfig: MosConfig? = nil,
-        lumaLinkConfig: LumaLinkConfig? = nil,
         monitorConfig: SystemMonitorConfig? = nil,
         configPaths: BuiltinPluginConfigPaths = .default,
         mosTapActive: Bool = MosEngine.shared.isTapActive,
         mosAccessibilityTrusted: Bool = MosEngine.shared.isAccessibilityTrusted,
-        lumaLinkSnapshot: LumaLinkRuntimeSnapshot = LumaLinkServer.shared.currentSnapshot(),
         overridesByID: [String: PluginUserOverrides] = [:]
     ) -> [PluginDescriptor] {
         [
@@ -44,11 +42,6 @@ public enum PluginBuiltinRegistry {
                 config: mosConfig ?? MosConfig.load(from: configPaths.mosURL),
                 tapActive: mosTapActive, trusted: mosAccessibilityTrusted,
                 overrides: overridesByID[BuiltinPluginID.mos.rawValue] ?? PluginUserOverrides()
-            ),
-            makeLumaLinkDescriptor(
-                config: lumaLinkConfig ?? LumaLinkConfig.load(from: configPaths.lumaLinkURL),
-                snapshot: lumaLinkSnapshot, trusted: mosAccessibilityTrusted,
-                overrides: overridesByID[BuiltinPluginID.lumaLink.rawValue] ?? PluginUserOverrides()
             ),
             makeSystemPulseDescriptor(
                 config: monitorConfig ?? SystemMonitorConfig.load(from: configPaths.monitorURL),
@@ -70,11 +63,6 @@ public enum PluginBuiltinRegistry {
             cfg.enabled = isEnabled
             MosEngine.shared.apply(config: cfg, persist: false)
             cfg.save(to: configPaths.mosURL)
-        case .lumaLink:
-            var cfg = LumaLinkConfig.load(from: configPaths.lumaLinkURL)
-            cfg.enabled = isEnabled
-            LumaLinkServer.shared.apply(config: cfg, persist: false)
-            cfg.save(to: configPaths.lumaLinkURL)
         case .systemPulse:
             var cfg = SystemMonitorConfig.load(from: configPaths.monitorURL)
             cfg.floatingEnabled = isEnabled
@@ -146,57 +134,6 @@ public enum PluginBuiltinRegistry {
                 categoryBadge: "BUILTIN",
                 requiredPermissions: [.accessibility],
                 settingsTarget: "mos",
-                statusSummary: status
-            )
-        )
-    }
-
-    private static func makeLumaLinkDescriptor(
-        config: LumaLinkConfig,
-        snapshot: LumaLinkRuntimeSnapshot,
-        trusted: Bool,
-        overrides: PluginUserOverrides
-    ) -> PluginDescriptor {
-        let ip = LumaLinkServer.localIPv4Address() ?? L10n.pick("局域网", "LAN")
-        let status: String = if !config.enabled {
-            L10n.pick("已关闭 · 零网络监听、零 RDP 子进程、零内存驻留", "Off · Zero network listeners, RDP helpers, or memory")
-        } else if let err = snapshot.lastError, !err.isEmpty {
-            L10n.pick("监听异常：\(err)", "Listener error: \(err)")
-        } else if snapshot.isListening {
-            L10n.pick("广播 _lumakey-remote._tcp · \(ip):\(snapshot.port) · 已连 \(snapshot.connectedDeviceCount) 台", "Advertising _lumakey-remote._tcp · \(ip):\(snapshot.port) · \(snapshot.connectedDeviceCount) connected")
-        } else {
-            L10n.pick("正在启动 Bonjour 监听…", "Starting Bonjour listener…")
-        }
-        let manifest = PluginManifest(
-            id: BuiltinPluginID.lumaLink.rawValue,
-            name: L10n.pick("流光随行 · LumaLink 远控伴侣", "LumaLink Remote Companion"),
-            version: "3.0.0",
-            description: L10n.pick("提供真·分辨率切换、隐私黑屏、中文直发、音频透传与 RDP 加速；关闭即刻回收所有监听与助手进程。", "Native resolution switch, privacy curtain, CJK input, audio & RDP acceleration; zero background processes when off."),
-            mode: .view,
-            keywords: ["lumalink", "remote", "rdp", "流光随行", "远控"],
-            entry: "builtin://lumalink",
-            author: "Lumakey Native",
-            icon: "ipad.and.iphone",
-            commands: PluginBuiltinCommands.lumaLinkCommands
-        )
-        return PluginDescriptor(
-            id: manifest.id,
-            directoryURL: URL(fileURLWithPath: "/Lumakey/Builtin/lumalink"),
-            manifest: manifest,
-            validationIssues: [],
-            isEnabled: config.enabled,
-            userConfig: [
-                "rdpEnabled": String(config.rdpEnabled),
-                "rdpPort": String(config.rdpPort),
-                "pairedDeviceCount": String(config.pairedDevices.count),
-                "accessibilityTrusted": String(trusted)
-            ],
-            kind: .builtin,
-            overrides: overrides,
-            builtinMetadata: BuiltinPluginMetadata(
-                categoryBadge: "BUILTIN",
-                requiredPermissions: [.accessibility, .screenRecording, .localNetwork, .microphoneAndAudio, .displayInfo],
-                settingsTarget: "lumaLink",
                 statusSummary: status
             )
         )

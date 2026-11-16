@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 extension PluginSystem {
@@ -34,14 +35,25 @@ extension PluginSystem {
         inst.isEnabled = isEnabled
         snap.plugins[id] = inst
         try saveStateSnapshot(snap, in: rootDir)
+        if !isEnabled, id == LumaLinkServer.companionPluginID,
+           rootDir.standardizedFileURL.path == defaultPluginsDirectory().standardizedFileURL.path {
+            var cfg = LumaLinkServer.shared.currentConfig()
+            if cfg.enabled {
+                cfg.enabled = false
+                LumaLinkServer.shared.apply(config: cfg, persist: true)
+            }
+        }
     }
 
     public static func pluginConfig(id: String, in rootDir: URL = defaultPluginsDirectory()) -> [String: String] {
         var result = loadStateSnapshot(in: rootDir).plugins[id]?.configValues ?? [:]
         if let secretKeys = secretFieldKeys(id: id, in: rootDir), !secretKeys.isEmpty {
             let service = PluginDataPaths.keychainService(forPluginsRoot: rootDir)
+            let scopedVault = PluginDataPaths.scopedVaultFileURL(forPluginsRoot: rootDir)
             for key in secretKeys {
-                if let sec = try? PluginKeychainStore.loadSecret(pluginID: id, fieldKey: key, service: service) {
+                if let sec = try? PluginKeychainStore.loadSecret(
+                    pluginID: id, fieldKey: key, service: service, customVaultURL: scopedVault
+                ) {
                     result[key] = sec
                 }
             }
@@ -53,10 +65,13 @@ extension PluginSystem {
         guard isSafePluginID(id) else { throw LumakeyError.pluginInvalid("插件 id '\(id)' 不合法") }
         let secretKeys = secretFieldKeys(id: id, in: rootDir) ?? []
         let service = PluginDataPaths.keychainService(forPluginsRoot: rootDir)
+        let scopedVault = PluginDataPaths.scopedVaultFileURL(forPluginsRoot: rootDir)
         var nonSecretValues: [String: String] = [:]
         for (k, v) in values {
             if secretKeys.contains(k) {
-                try PluginKeychainStore.saveSecret(v, pluginID: id, fieldKey: k, service: service)
+                try PluginKeychainStore.saveSecret(
+                    v, pluginID: id, fieldKey: k, service: service, customVaultURL: scopedVault
+                )
             } else {
                 nonSecretValues[k] = v
             }
@@ -75,30 +90,6 @@ extension PluginSystem {
               let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data)
         else { return nil }
         return Set((manifest.config ?? []).filter { $0.type == .secret }.map(\.key))
-    }
-
-    public static func grantedCapabilities(id: String, in rootDir: URL = defaultPluginsDirectory()) -> Set<PluginCapability> {
-        let raw = loadStateSnapshot(in: rootDir).plugins[id]?.grantedCapabilities ?? []
-        return Set(raw.compactMap { PluginCapability(rawValue: $0) })
-    }
-
-    public static func setPluginCapabilityGranted(
-        id: String, capability: PluginCapability, granted: Bool, in rootDir: URL = defaultPluginsDirectory()
-    ) throws {
-        var current = grantedCapabilities(id: id, in: rootDir)
-        if granted { current.insert(capability) } else { current.remove(capability) }
-        try setPluginCapabilities(id: id, capabilities: current, in: rootDir)
-    }
-
-    public static func setPluginCapabilities(
-        id: String, capabilities: Set<PluginCapability>, in rootDir: URL = defaultPluginsDirectory()
-    ) throws {
-        guard isSafePluginID(id) else { throw LumakeyError.pluginInvalid("插件 id '\(id)' 不合法") }
-        var snap = loadStateSnapshot(in: rootDir)
-        var inst = snap.plugins[id] ?? PluginInstanceState()
-        inst.grantedCapabilities = capabilities.map(\.rawValue).sorted()
-        snap.plugins[id] = inst
-        try saveStateSnapshot(snap, in: rootDir)
     }
 
     public static func buildStdinContextData(
@@ -180,26 +171,30 @@ extension PluginSystem {
         }
         let latestGrants = descriptor.grantedCapabilities.union(grantedCapabilities(id: descriptor.id, in: stateRoot))
             .intersection(Set(descriptor.declaredCapabilities))
+        let latestRevokedScopes = descriptor.revokedResourceScopes.union(revokedResourceScopes(id: descriptor.id, in: stateRoot))
+        let effectiveScopes = Set(descriptor.declaredResourceScopes).subtracting(latestRevokedScopes)
+
         var bridgeServer: PluginHostBridgeServer?
         let activeLocale = L10n.current
         let activeTheme = AppThemeConfig.load().selectedTheme
-        var env: [String: String] = [
+        let dataDir = PluginDataPaths.ensureDataDirectory(for: descriptor.id, pluginsRoot: stateRoot)
+        let isolatedTmpDir = PluginDataPaths.ensureIsolatedTmpDirectory(for: descriptor.id, pluginsRoot: stateRoot)
+        defer { try? FileManager.default.removeItem(at: isolatedTmpDir) }
+
+        var pluginVars: [String: String] = [
             "LUMAKEY_LOCALE": activeLocale.rawValue,
             "LUMAKEY_THEME": activeTheme.rawValue
         ]
-        if let dataDir = PluginDataPaths.ensureDataDirectory(for: descriptor.id, pluginsRoot: stateRoot) {
-            env["LUMAKEY_DATA_DIR"] = dataDir.path
-        }
+        if let dataDir { pluginVars["LUMAKEY_DATA_DIR"] = dataDir.path }
         if !descriptor.declaredCapabilities.isEmpty {
             let server = try PluginHostBridgeServer(descriptor: descriptor, grantedCapabilities: latestGrants, hostContext: context.hostContext)
             bridgeServer = server
-            env["LUMAKEY_BRIDGE_SOCK"] = server.socketPath
-            env["LUMAKEY_BRIDGE_TOKEN"] = server.token
+            pluginVars["LUMAKEY_BRIDGE_SOCK"] = server.socketPath
+            pluginVars["LUMAKEY_BRIDGE_TOKEN"] = server.token
         }
         defer { bridgeServer?.stop() }
 
         let entryURL = descriptor.directoryURL.appendingPathComponent(descriptor.manifest.entry).standardizedFileURL
-        let dataDir = PluginDataPaths.dataDirectory(for: descriptor.id, pluginsRoot: stateRoot)
         let inputData = try buildStdinContextData(
             for: descriptor, query: context.query, clipboardText: context.clipboardText,
             contextPayload: context.contextPayload, bridgeSocketPath: bridgeServer?.socketPath,
@@ -207,11 +202,20 @@ extension PluginSystem {
             dataDirectoryURL: dataDir, configOverrides: context.configOverrides,
             locale: activeLocale, theme: activeTheme, in: stateRoot
         )
+        let cleanEnv = PluginSandboxProfileBuilder.sanitizedEnvironment(
+            pluginVariables: pluginVars, isolatedTmpDirectory: isolatedTmpDir
+        )
+        let execCmd = PluginSandboxProfileBuilder.prepareExecutionCommand(
+            entryURL: entryURL, arguments: context.arguments, descriptor: descriptor,
+            grantedScopes: effectiveScopes, dataDirectory: dataDir, isolatedTmpDirectory: isolatedTmpDir,
+            stateRoot: stateRoot, bridgeSocketPath: bridgeServer?.socketPath
+        )
         let result = try ProcessSupervisor.shared.run(
-            executableURL: entryURL, arguments: context.arguments,
-            currentDirectoryURL: descriptor.directoryURL, environment: env,
-            stdinData: inputData, timeoutSeconds: context.timeoutSeconds,
-            maxOutputBytes: 131_072, cancellationHandle: context.cancellationHandle
+            executableURL: execCmd.executableURL, arguments: execCmd.arguments,
+            currentDirectoryURL: descriptor.directoryURL, environment: cleanEnv,
+            inheritHostEnvironment: false, stdinData: inputData,
+            timeoutSeconds: context.timeoutSeconds, maxOutputBytes: 131_072,
+            cancellationHandle: context.cancellationHandle
         )
         if result.wasCancelled {
             if descriptor.declaredCapabilities.contains(.audio) { _ = PluginAudioBridgePlayer.shared.stop() }

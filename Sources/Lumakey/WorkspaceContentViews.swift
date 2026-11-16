@@ -11,6 +11,7 @@ struct WorkspaceEntriesContentView: View {
     @StateObject private var canvas = WorkspaceCanvasController()
 
     private var spaceName: String { "workspace-canvas-\(pane.rawValue)" }
+    private var isDual: Bool { viewModel.layoutMode == .dual }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,10 +46,12 @@ struct WorkspaceEntriesContentView: View {
     private var listHeaderRow: some View {
         HStack(spacing: 8) {
             sortHeaderButton("名称", field: .name)
-            Spacer()
-            sortHeaderButton("类型", field: .kind).frame(width: 68, alignment: .trailing)
-            sortHeaderButton("大小", field: .size).frame(width: 76, alignment: .trailing)
-            sortHeaderButton("修改时间", field: .modifiedAt).frame(width: 116, alignment: .trailing)
+            Spacer(minLength: 8)
+            if !isDual {
+                sortHeaderButton("类型", field: .kind).frame(width: 68, alignment: .trailing)
+            }
+            sortHeaderButton("大小", field: .size).frame(width: isDual ? 64 : 76, alignment: .trailing)
+            sortHeaderButton("修改时间", field: .modifiedAt).frame(width: isDual ? 88 : 116, alignment: .trailing)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
@@ -82,6 +85,11 @@ struct WorkspaceEntriesContentView: View {
         .buttonStyle(.plain)
     }
 
+    private func compactDateString(_ full: String) -> String {
+        guard isDual, full.count >= 16 else { return full }
+        return String(full.dropFirst(5))
+    }
+
     private var listRowsStack: some View {
         LazyVStack(spacing: 2) {
             ForEach(entries) { entry in
@@ -96,25 +104,31 @@ struct WorkspaceEntriesContentView: View {
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                                 .foregroundStyle(LiquidColors.textPrimary)
+                                .layoutPriority(1)
                         }
+                        .frame(minWidth: 110, maxWidth: .infinity, alignment: .leading)
                         .onDrag { startDragSession(for: entry) }
 
-                        Spacer(minLength: 8)
-                        Text(entry.mediaKind.badgeTitle)
-                            .font(.caption2)
-                            .foregroundStyle(LiquidColors.textSecondary)
-                            .frame(width: 68, alignment: .trailing)
+                        if !isDual {
+                            Text(entry.mediaKind.badgeTitle)
+                                .font(.caption2)
+                                .foregroundStyle(LiquidColors.textSecondary)
+                                .lineLimit(1)
+                                .frame(width: 68, alignment: .trailing)
+                        }
                         Text(entry.formattedSize)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(LiquidColors.textSecondary)
-                            .frame(width: 76, alignment: .trailing)
-                        Text(entry.formattedDate)
+                            .lineLimit(1)
+                            .frame(width: isDual ? 64 : 76, alignment: .trailing)
+                        Text(compactDateString(entry.formattedDate))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(LiquidColors.textSecondary)
-                            .frame(width: 116, alignment: .trailing)
+                            .lineLimit(1)
+                            .frame(width: isDual ? 88 : 116, alignment: .trailing)
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 5.5)
                 }
             }
         }
@@ -123,12 +137,12 @@ struct WorkspaceEntriesContentView: View {
     }
 
     private var gridCardsStack: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 118, maximum: 152), spacing: 10)], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: isDual ? 104 : 118, maximum: 152), spacing: 10)], spacing: 10) {
             ForEach(entries) { entry in
                 decorateEntryView(entry: entry, cornerRadius: LiquidRadii.control) {
                     VStack(spacing: 6) {
                         VStack(spacing: 6) {
-                            WorkspaceThumbStage(entry: entry, size: 84)
+                            WorkspaceThumbStage(entry: entry, size: isDual ? 74 : 84)
                             Text(entry.name)
                                 .font(.caption.weight(.medium)).foregroundStyle(LiquidColors.textPrimary)
                                 .multilineTextAlignment(.center).lineLimit(2).frame(height: 30, alignment: .top)

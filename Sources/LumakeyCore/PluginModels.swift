@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum PluginMode: String, Codable, Sendable, Hashable, CaseIterable {
@@ -180,16 +181,21 @@ public struct PluginInstanceState: Codable, Sendable, Hashable, Equatable {
     public var isEnabled: Bool
     public var configValues: [String: String]
     public var grantedCapabilities: [String]
+    public var revokedResourceScopes: [String]
     public var overrides: PluginUserOverrides
 
-    enum CodingKeys: String, CodingKey { case isEnabled, configValues, grantedCapabilities, overrides }
+    enum CodingKeys: String, CodingKey {
+        case isEnabled, configValues, grantedCapabilities, revokedResourceScopes, overrides
+    }
 
     public init(
         isEnabled: Bool = true, configValues: [String: String] = [:],
-        grantedCapabilities: [String] = [], overrides: PluginUserOverrides = PluginUserOverrides()
+        grantedCapabilities: [String] = [], revokedResourceScopes: [String] = [],
+        overrides: PluginUserOverrides = PluginUserOverrides()
     ) {
         self.isEnabled = isEnabled; self.configValues = configValues
-        self.grantedCapabilities = grantedCapabilities; self.overrides = overrides
+        self.grantedCapabilities = grantedCapabilities; self.revokedResourceScopes = revokedResourceScopes
+        self.overrides = overrides
     }
 
     public init(from decoder: Decoder) throws {
@@ -197,6 +203,7 @@ public struct PluginInstanceState: Codable, Sendable, Hashable, Equatable {
         self.isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         self.configValues = try c.decodeIfPresent([String: String].self, forKey: .configValues) ?? [:]
         self.grantedCapabilities = try c.decodeIfPresent([String].self, forKey: .grantedCapabilities) ?? []
+        self.revokedResourceScopes = try c.decodeIfPresent([String].self, forKey: .revokedResourceScopes) ?? []
         self.overrides = try c.decodeIfPresent(PluginUserOverrides.self, forKey: .overrides) ?? PluginUserOverrides()
     }
 }
@@ -225,6 +232,7 @@ public struct PluginDescriptor: Identifiable, Sendable, Hashable {
     public let userConfig: [String: String]
     public let kind: PluginKind
     public let grantedCapabilities: Set<PluginCapability>
+    public let revokedResourceScopes: Set<PluginResourceScope>
     public let overrides: PluginUserOverrides
     public let builtinMetadata: BuiltinPluginMetadata?
     public let runtimeStatus: PluginRuntimeStatus?
@@ -233,6 +241,9 @@ public struct PluginDescriptor: Identifiable, Sendable, Hashable {
     public var isBuiltin: Bool { kind == .builtin }
     public var declaredCapabilities: [PluginCapability] { manifest.declaredCapabilities }
     public var declaredResourceScopes: [PluginResourceScope] { manifest.declaredResourceScopes }
+    public var grantedResourceScopes: Set<PluginResourceScope> {
+        Set(declaredResourceScopes).subtracting(revokedResourceScopes)
+    }
     public var declaredContextKinds: [PluginContextKind] { manifest.declaredContextKinds }
     public var declaredCommands: [PluginCommandSpec] { manifest.commands ?? [] }
     public var declaredPermissions: [LumakeyPermission] { PluginPermissionAudit.declaredPermissions(for: self) }
@@ -248,11 +259,15 @@ public struct PluginDescriptor: Identifiable, Sendable, Hashable {
     public func isCapabilityGranted(_ capability: PluginCapability) -> Bool {
         declaredCapabilities.contains(capability) && grantedCapabilities.contains(capability)
     }
+    public func isResourceScopeGranted(_ scope: PluginResourceScope) -> Bool {
+        declaredResourceScopes.contains(scope) && !revokedResourceScopes.contains(scope)
+    }
 
     public init(
         id: String, directoryURL: URL, manifest: PluginManifest, validationIssues: [String],
         isEnabled: Bool = true, userConfig: [String: String] = [:], kind: PluginKind = .external,
-        grantedCapabilities: Set<PluginCapability> = [], overrides: PluginUserOverrides = PluginUserOverrides(),
+        grantedCapabilities: Set<PluginCapability> = [], revokedResourceScopes: Set<PluginResourceScope> = [],
+        overrides: PluginUserOverrides = PluginUserOverrides(),
         builtinMetadata: BuiltinPluginMetadata? = nil, runtimeStatus: PluginRuntimeStatus? = nil
     ) {
         let resolvedKws = (overrides.customKeywords?.filter { !$0.isEmpty }).flatMap { $0.isEmpty ? nil : $0 } ?? manifest.keywords
@@ -263,8 +278,8 @@ public struct PluginDescriptor: Identifiable, Sendable, Hashable {
         self.keywordsLowercased = manifest.keywords.map { $0.lowercased() }
         self.effectiveKeywords = resolvedKws; self.effectiveKeywordsLowercased = resolvedKws.map { $0.lowercased() }
         self.isEnabled = isEnabled; self.userConfig = userConfig; self.kind = kind
-        self.grantedCapabilities = grantedCapabilities; self.overrides = overrides
-        self.builtinMetadata = builtinMetadata; self.runtimeStatus = runtimeStatus
+        self.grantedCapabilities = grantedCapabilities; self.revokedResourceScopes = revokedResourceScopes
+        self.overrides = overrides; self.builtinMetadata = builtinMetadata; self.runtimeStatus = runtimeStatus
     }
 }
 

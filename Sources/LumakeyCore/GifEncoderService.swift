@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import AppKit
 import CoreGraphics
 import Foundation
@@ -190,11 +191,7 @@ public final class GifStreamEncoder: @unchecked Sendable {
     @discardableResult
     public static func copyGifToPasteboard(at url: URL, to pasteboard: NSPasteboard = .general) -> Bool {
         guard let gifData = try? Data(contentsOf: url), gifData.count >= 6 else { return false }
-        pasteboard.clearContents()
-        let item = NSPasteboardItem()
-        item.setData(gifData, forType: gifPasteboardType)
-        item.setString(url.standardizedFileURL.absoluteString, forType: .fileURL)
-        return pasteboard.writeObjects([item])
+        return ClipboardPasteboardIO.writeImageFileToPasteboard(at: url, to: pasteboard)
     }
 
     public static func scaledDimensions(width: Int, height: Int, maxDimension: Int) -> (Int, Int) {

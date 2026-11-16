@@ -54,7 +54,8 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
     private func wireCallbacks() {
         viewModel.hotKeyManager = hotKeyManager
         viewModel.onRouteRequest = { [weak self] route in self?.open(route: route) }
-        viewModel.onHideOverlayRequest = { [weak self] in self?.panelController.hide() }
+        viewModel.onHideOverlayRequest = { [weak self] in self?.panelController.hide(restorePreviousApp: true) }
+        viewModel.resolveOverlayTargetApp = { [weak self] in self?.panelController.previousFrontmostApp }
         viewModel.onShowOverlayRequest = { [weak self] filter in self?.panelController.show(filter: filter) }
         viewModel.onRecenterFloatingPanel = { [weak self] in self?.panelController.resetPositionToCenter() }
         viewModel.onDockVisibilityChanged = { [weak self] _ in self?.syncDockPolicy() }
@@ -167,7 +168,6 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         addMenuItem(to: menu, rawTitle: "文件与外置磁盘工作台 · 附加", key: "⌥E") { [weak self] in self?.open(route: .workspace) }
         let langLabel = L10n.pick("切换界面语言：English", "Switch Language: 简体中文")
         addMenuItem(to: menu, rawTitle: langLabel, key: "", translate: false) { [weak self] in self?.viewModel.cycleAppLanguage() }
-        addMenuItem(to: menu, rawTitle: "欢迎引导", key: "") { [weak self] in self?.open(route: .welcome) }
         addMenuItem(to: menu, rawTitle: "设置与插件 MCP 中心", key: "⌘,") { [weak self] in self?.open(route: .settings(.general)) }
         menu.addItem(.separator())
         addMenuItem(to: menu, rawTitle: "退出 流光 Lumakey", key: "⌘Q") { NSApp.terminate(nil) }
@@ -187,17 +187,19 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
 
     func open(route: WindowRoute) {
         if case .workspace = route {} else { PreviewPlaybackRegistry.shared.pauseAll() }
-        panelController.hide(); NSApp.activate(ignoringOtherApps: true)
+        panelController.hide(restorePreviousApp: false); NSApp.activate(ignoringOtherApps: true)
         switch route {
-        case .welcome:
-            presentWindow(key: "welcome", title: "欢迎使用 流光 Lumakey", size: NSSize(width: 820, height: 580)) { WelcomeGuideView(viewModel: viewModel) }
         case .workspace:
             viewModel.ensureWorkspaceLoaded()
-            presentWindow(key: "workspace", title: "文件与外置磁盘工作台 · 附加", size: NSSize(width: 1320, height: 760)) { WorkspaceHostView(viewModel: viewModel) }
+            presentWindow(key: "workspace", title: "文件与外置磁盘工作台 · 附加", size: NSSize(width: 1360, height: 780)) { WorkspaceHostView(viewModel: viewModel) }
         case .networkMonitor:
             presentWindow(key: "networkMonitor", title: "本机网络流量与去向监控", size: NSSize(width: 1020, height: 660)) { NetworkMonitorWindowView() }
         case .settings(let section):
-            viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = section; presentSettingsWindow()
+            if section == .network {
+                presentWindow(key: "networkMonitor", title: "本机网络流量与去向监控", size: NSSize(width: 1020, height: 660)) { NetworkMonitorWindowView() }
+                return
+            }
+            viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = section.canonicalSection; presentSettingsWindow()
         case .pluginSettings(let pluginID):
             viewModel.activePluginSettingsID = pluginID; viewModel.activeSettingsSection = .pluginDetail; presentSettingsWindow()
         case .documentReader(let url, let siblings):

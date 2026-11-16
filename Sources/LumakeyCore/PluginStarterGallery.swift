@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public struct PluginStarterTemplate: Identifiable, Sendable, Hashable, Equatable {
@@ -7,28 +8,30 @@ public struct PluginStarterTemplate: Identifiable, Sendable, Hashable, Equatable
     public let description: String
     public let mode: PluginMode
     public let icon: String
+    public let accentColor: String?
+    public let categoryTag: String?
     public let keywords: [String]
     public let config: [PluginConfigField]
     public let capabilities: [PluginCapability]
     public let resourceScopes: [PluginResourceScope]
     public let accepts: [PluginContextKind]
     public let commands: [PluginCommandSpec]
+    public let locales: [String: PluginLocaleStrings]
     public let scriptBody: String
 
     public init(
         id: String, name: String, subtitle: String, description: String,
-        mode: PluginMode, icon: String, keywords: [String],
-        config: [PluginConfigField], capabilities: [PluginCapability] = [],
-        resourceScopes: [PluginResourceScope] = [],
-        accepts: [PluginContextKind] = [],
-        commands: [PluginCommandSpec] = [],
+        mode: PluginMode, icon: String, accentColor: String? = nil, categoryTag: String? = nil,
+        keywords: [String], config: [PluginConfigField], capabilities: [PluginCapability] = [],
+        resourceScopes: [PluginResourceScope] = [], accepts: [PluginContextKind] = [],
+        commands: [PluginCommandSpec] = [], locales: [String: PluginLocaleStrings] = [:],
         scriptBody: String
     ) {
         self.id = id; self.name = name; self.subtitle = subtitle; self.description = description
-        self.mode = mode; self.icon = icon; self.keywords = keywords
-        self.config = config; self.capabilities = capabilities
-        self.resourceScopes = resourceScopes; self.accepts = accepts
-        self.commands = commands; self.scriptBody = scriptBody
+        self.mode = mode; self.icon = icon; self.accentColor = accentColor; self.categoryTag = categoryTag
+        self.keywords = keywords; self.config = config; self.capabilities = capabilities
+        self.resourceScopes = resourceScopes; self.accepts = accepts; self.commands = commands
+        self.locales = locales; self.scriptBody = scriptBody
     }
 }
 
@@ -64,13 +67,16 @@ public enum PluginStarterGallery {
 
         let manifest = PluginManifest(
             schemaVersion: 3,
-            id: tpl.id, name: tpl.name, version: "1.0.0", description: tpl.description,
+            id: tpl.id, name: tpl.name, version: "2.0.0", description: tpl.description,
             mode: tpl.mode, keywords: tpl.keywords, entry: entryName,
-            author: "Lumakey Official", icon: tpl.icon, config: tpl.config,
+            author: "Lumakey Official", icon: tpl.icon,
+            accentColor: tpl.accentColor, categoryTag: tpl.categoryTag,
+            config: tpl.config,
             capabilities: tpl.capabilities.map(\.rawValue),
             resourceScopes: tpl.resourceScopes.map(\.rawValue),
             accepts: tpl.accepts.isEmpty ? nil : tpl.accepts.map(\.rawValue),
-            commands: tpl.commands.isEmpty ? nil : tpl.commands
+            commands: tpl.commands.isEmpty ? nil : tpl.commands,
+            locales: tpl.locales.isEmpty ? nil : tpl.locales
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

@@ -11,9 +11,9 @@ func testV081PluginV3AndMCP() throws {
 
 private func verifyBuiltinRegistryAndLifecycle() throws {
     let builtins = PluginBuiltinRegistry.descriptors()
-    check(builtins.count == 3, "3 builtin native plugins registered")
+    check(builtins.count == 2, "2 builtin native plugins registered (LumaLink moved to starter store)")
     let ids = Set(builtins.map(\.id))
-    check(ids == ["builtin-mos", "builtin-lumalink", "builtin-system-pulse"], "expected builtin plugin IDs")
+    check(ids == ["builtin-mos", "builtin-system-pulse"], "expected builtin plugin IDs")
     check(builtins.allSatisfy { $0.isBuiltin && $0.builtinMetadata?.categoryBadge == "BUILTIN" && !$0.declaredPermissions.isEmpty },
           "every builtin plugin declares BUILTIN badge & requiredPermissions")
 
@@ -21,7 +21,7 @@ private func verifyBuiltinRegistryAndLifecycle() throws {
     let tmp = try makeTempDir("v081-builtin")
     defer { try? FileManager.default.removeItem(at: tmp) }
     check(PluginSystem.listPlugins(in: tmp, includeBuiltin: false).isEmpty, "includeBuiltin=false excludes builtins")
-    check(PluginSystem.listPlugins(in: tmp, includeBuiltin: true).count == 3, "includeBuiltin=true includes builtins")
+    check(PluginSystem.listPlugins(in: tmp, includeBuiltin: true).count == 2, "includeBuiltin=true includes builtins")
 
     // Stopping builtins turns off listeners/taps safely without touching real user Application Support configs
     let cfgPaths = BuiltinPluginConfigPaths(
@@ -35,8 +35,13 @@ private func verifyBuiltinRegistryAndLifecycle() throws {
     }
     check(PluginBuiltinRegistry.setBuiltinEnabled(id: "builtin-mos", isEnabled: false, configPaths: cfgPaths), "disable builtin-mos")
     check(!MosEngine.shared.isTapActive, "disabling builtin-mos stops CGEventTap")
-    check(PluginBuiltinRegistry.setBuiltinEnabled(id: "builtin-lumalink", isEnabled: false, configPaths: cfgPaths), "disable builtin-lumalink")
-    check(!LumaLinkServer.shared.currentSnapshot().isListening, "disabling builtin-lumalink stops listener")
+    let repoRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    let demoPluginDir = repoRoot.appendingPathComponent("plugin-demo/lumalink-companion", isDirectory: true)
+    let importedCompanion = try PluginSystem.importPluginDirectory(from: demoPluginDir, in: tmp, overwrite: true)
+    check(importedCompanion.isValid && importedCompanion.declaredCapabilities == [.lumaLinkStatus] && importedCompanion.isPureSandbox == false,
+          "plugin-demo/lumalink-companion imports & validates cleanly")
+    try PluginSystem.setPluginEnabled(id: LumaLinkServer.companionPluginID, isEnabled: false, in: tmp)
+    check(!LumaLinkServer.shared.currentSnapshot().isListening, "disabling lumalink-companion stops listener")
 
     let runOut = PluginBuiltinRegistry.runBuiltin(id: "builtin-mos", query: "wheel", configPaths: cfgPaths)
     check(runOut?.isStructuredView == true && runOut?.viewPayload?.items?.first?.openURL == "lumakey://settings/mos",
@@ -89,9 +94,8 @@ private func verifyPermissionDeclarationAndAuditMatrix() throws {
     let allPlugins = PluginSystem.listPlugins(in: pluginsRoot, includeDisabled: true, includeBuiltin: true)
     let audit = PluginPermissionAudit.buildAudit(plugins: allPlugins, accessibilityGranted: false)
     let accEntry = audit.first(where: { $0.permission == .accessibility })
-    check(accEntry?.plugins.map(\.pluginID).contains("builtin-mos") == true
-          && accEntry?.plugins.map(\.pluginID).contains("builtin-lumalink") == true,
-          "accessibility audit entry lists both builtin-mos and builtin-lumalink")
+    check(accEntry?.plugins.map(\.pluginID).contains("builtin-mos") == true,
+          "accessibility audit entry lists builtin-mos")
 
     let clipEntry = audit.first(where: { $0.permission == .clipboard })
     check(clipEntry?.plugins.first?.pluginID == "clip-disp" && clipEntry?.plugins.first?.isAuthorized == false,
@@ -251,8 +255,8 @@ private func verifyMCPServerV3Subprocess() throws {
     check(lines[1].contains("Host Bridge") && lines[1].contains("capabilities"), "plugin-v3 spec returned")
     check(lines[2].contains(#""isError":true"#), "scaffold without capabilities fails")
     check(lines[3].contains("v3-demo") && lines[3].contains("displayInfo"), "scaffold with capabilities succeeds")
-    check(lines[4].contains("builtin-mos") && lines[4].contains("builtin-lumalink") && lines[4].contains("v3-demo"),
-          "list_plugins exposes builtin + external plugins")
+    check(lines[4].contains("builtin-mos") && lines[4].contains("builtin-system-pulse") && lines[4].contains("v3-demo") && lines[4].contains("grantedResourceScopes"),
+          "list_plugins exposes builtin + external plugins + grantedResourceScopes")
     check(lines[5].contains("accessibility") && lines[5].contains("displayInfo") && lines[5].contains("v3-demo"),
           "app_permissions exposes full permission matrix")
     let valObj = parseToolJSON(6)

@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 extension PluginSystem {
@@ -117,7 +118,8 @@ extension PluginSystem {
             PluginKeychainStore.deleteSecrets(
                 pluginID: id,
                 fieldKeys: Array(secretKeys),
-                service: PluginDataPaths.keychainService(forPluginsRoot: rootDir)
+                service: PluginDataPaths.keychainService(forPluginsRoot: rootDir),
+                customVaultURL: PluginDataPaths.scopedVaultFileURL(forPluginsRoot: rootDir)
             )
         }
         try FileManager.default.removeItem(at: pluginDir)
@@ -125,6 +127,12 @@ extension PluginSystem {
         var snap = loadStateSnapshot(in: rootDir)
         if snap.plugins.removeValue(forKey: id) != nil {
             try? saveStateSnapshot(snap, in: rootDir)
+        }
+        if id == LumaLinkServer.companionPluginID,
+           rootDir.standardizedFileURL.path == defaultPluginsDirectory().standardizedFileURL.path {
+            var cfg = LumaLinkServer.shared.currentConfig()
+            cfg.enabled = false
+            LumaLinkServer.shared.apply(config: cfg, persist: true)
         }
     }
 

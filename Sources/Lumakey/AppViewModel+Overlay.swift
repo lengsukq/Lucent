@@ -72,7 +72,6 @@ extension AppViewModel {
         scopedPluginID = nil
         inlinePluginViewPayload = nil; activeInlinePlugin = nil
         lastCapturedSelection = nil
-        ProcessSupervisor.shared.terminateAll()
 
         indexUnloadTask?.cancel()
         indexUnloadTask = Task { [weak self] in
@@ -200,6 +199,13 @@ extension AppViewModel {
         case .submit:
             guard let candidate = selectedCandidate else { return }
             executeCandidate(candidate)
+        case .pasteSubmit:
+            guard let candidate = selectedCandidate else { return }
+            if case .clipboard(let entry) = candidate.kind {
+                executeClipboardEntry(entry, autoPaste: true)
+            } else {
+                executeCandidate(candidate)
+            }
         case .deleteBackwardWhenEmpty:
             if scopedPluginID != nil {
                 scopedPluginID = nil

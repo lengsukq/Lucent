@@ -14,9 +14,15 @@ struct LumaLinkSettingsView: View {
                     title: "流光随行 · LumaLink 远控伴侣",
                     subtitle: "为手机端解锁真·分辨率切换、隐私黑屏防窥、中文直发、音量/媒体/防休眠与性能遥测；关闭即零后台驻留。"
                 ) {
-                    Toggle("", isOn: configBinding(\.enabled))
-                        .toggleStyle(.switch)
-                        .labelsHidden()
+                    HStack(spacing: 10) {
+                        Button(L10n.pick("所有插件", "All Plugins")) {
+                            viewModel.activeSettingsSection = .plugins
+                        }
+                        .buttonStyle(GlassPillButtonStyle(compact: true))
+                        Toggle("", isOn: configBinding(\.enabled))
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                    }
                 }
                 statusRow
                 if viewModel.lumaLinkConfig.enabled {
@@ -24,8 +30,12 @@ struct LumaLinkSettingsView: View {
                     rdpEngineCard
                 }
                 behaviorCard
+                if let companion = viewModel.plugins.first(where: { $0.id == LumaLinkServer.companionPluginID }) {
+                    PluginCommandSettingsCard(plugin: companion, viewModel: viewModel)
+                }
                 pairedDevicesCard
             }
+            .padding(.trailing, 4)
         }
         .onAppear {
             viewModel.refreshLumaLinkStatus()

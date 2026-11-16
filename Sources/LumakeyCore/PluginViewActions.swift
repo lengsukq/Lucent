@@ -1,3 +1,5 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
+import CryptoKit
 import Foundation
 
 public enum PluginActionStyle: String, Codable, Sendable, Hashable {
@@ -125,13 +127,22 @@ public enum PluginDeepLinkParser {
                 return .documentReader(target)
             }
             if let md = queryMap["markdown"], !md.isEmpty {
-                let rawTitle = (queryMap["title"] ?? "plugin-note")
-                    .replacingOccurrences(of: "/", with: "-")
-                    .replacingOccurrences(of: "..", with: "")
-                let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent("lumakey-plugin-docs", isDirectory: true)
-                try? FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
-                let fileURL = tmpDir.appendingPathComponent("\(rawTitle).md")
-                try? Data(md.utf8).write(to: fileURL, options: .atomic)
+                let filtered = (queryMap["title"] ?? "plugin-note").unicodeScalars.filter {
+                    CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_"
+                }
+                let safeStem = String(String.UnicodeScalarView(filtered).prefix(48))
+                let stem = safeStem.isEmpty ? "plugin-note" : safeStem
+                let digest = SHA256.hash(data: Data(md.utf8)).prefix(4).map { String(format: "%02x", $0) }.joined()
+                let fm = FileManager.default
+                let tmpDir = fm.temporaryDirectory.appendingPathComponent("lumakey-plugin-docs", isDirectory: true)
+                if let vals = try? tmpDir.resourceValues(forKeys: [.isSymbolicLinkKey]), vals.isSymbolicLink == true {
+                    return nil
+                }
+                try? fm.createDirectory(at: tmpDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                try? fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: tmpDir.path)
+                let fileURL = tmpDir.appendingPathComponent("\(stem)-\(digest).md", isDirectory: false)
+                guard (try? Data(md.utf8).write(to: fileURL, options: .atomic)) != nil else { return nil }
+                try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
                 return .documentReader(fileURL)
             }
             return nil

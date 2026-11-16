@@ -110,50 +110,59 @@ struct PluginCommandSettingsCard: View {
             ? (spec.icon ?? plugin.symbolIconName)
             : plugin.symbolIconName
 
-        return HStack(alignment: .center, spacing: 10) {
+        return HStack(alignment: .center, spacing: 12) {
             PluginIconBadge(
                 symbol: sym, customIconURL: customIcon,
                 accentColor: isQuickOn ? "orange" : plugin.manifest.accentColor,
-                isBuiltin: plugin.isBuiltin, mode: plugin.manifest.mode, size: 30
+                isBuiltin: plugin.isBuiltin, mode: plugin.manifest.mode, size: 32
             )
-            VStack(alignment: .leading, spacing: 2.5) {
-                HStack(spacing: 5) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
                     Text(cmdTitle)
-                        .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary).lineLimit(1)
-                    ForEach(spec.keywords.prefix(2), id: \.self) { kw in
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(LiquidColors.textPrimary)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                    ForEach(spec.keywords.prefix(3), id: \.self) { kw in
                         Text(kw)
-                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundStyle(LiquidColors.accentPrimary)
                             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                            .padding(.horizontal, 5.5).padding(.vertical, 1)
+                            .padding(.horizontal, 6).padding(.vertical, 1.5)
                             .background(LiquidColors.pillSurface, in: Capsule())
                     }
                 }
-                Text(cmdSub).font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
+                Text(cmdSub)
+                    .font(.caption2)
+                    .foregroundStyle(LiquidColors.textSecondary)
+                    .lineLimit(1)
             }
-            Spacer(minLength: 4)
+            .frame(minWidth: 160, maxWidth: .infinity, alignment: .leading)
 
-            commandHotKeyButton(spec: spec, currentHotKey: cmdHK, isRecording: isRecording)
+            HStack(spacing: 10) {
+                commandHotKeyButton(spec: spec, currentHotKey: cmdHK, isRecording: isRecording)
 
-            Toggle(L10n.pick("搜索", "Search"), isOn: Binding(
-                get: { isSearchOn },
-                set: { viewModel.setPluginCommandSearchEnabled(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
-            ))
-            .font(.caption2).fixedSize(horizontal: true, vertical: false).disabled(!plugin.includeInGlobalSearch)
+                Toggle(L10n.pick("搜索", "Search"), isOn: Binding(
+                    get: { isSearchOn },
+                    set: { viewModel.setPluginCommandSearchEnabled(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
+                ))
+                .font(.caption2).fixedSize(horizontal: true, vertical: false).disabled(!plugin.includeInGlobalSearch)
 
-            Toggle(L10n.pick("快捷按钮", "Quick"), isOn: Binding(
-                get: { isQuickOn },
-                set: { viewModel.setPluginCommandQuickButton(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
-            ))
-            .font(.caption2.weight(.semibold)).fixedSize(horizontal: true, vertical: false).tint(.orange)
+                Toggle(L10n.pick("快捷按钮", "Quick"), isOn: Binding(
+                    get: { isQuickOn },
+                    set: { viewModel.setPluginCommandQuickButton(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
+                ))
+                .font(.caption2.weight(.semibold)).fixedSize(horizontal: true, vertical: false).tint(.orange)
 
-            Button(L10n.pick("运行", "Run")) {
-                viewModel.runPlugin(plugin, query: "", arguments: spec.arguments, showInline: false)
+                Button(L10n.pick("运行", "Run")) {
+                    viewModel.runPlugin(plugin, query: "", arguments: spec.arguments, showInline: false)
+                }
+                .buttonStyle(GlassPillButtonStyle(compact: true))
+                .disabled(!plugin.isBuiltin && (!plugin.isEnabled || !plugin.isValid))
             }
-            .buttonStyle(GlassPillButtonStyle(compact: true))
-            .disabled(!plugin.isBuiltin && (!plugin.isEnabled || !plugin.isValid))
+            .fixedSize(horizontal: true, vertical: false)
         }
-        .padding(.horizontal, 10).padding(.vertical, 7.5)
+        .padding(.horizontal, 12).padding(.vertical, 9)
         .background(
             isQuickOn ? Color.orange.opacity(0.08) : LiquidColors.pillSurface.opacity(0.55),
             in: RoundedRectangle(cornerRadius: LiquidRadii.row, style: .continuous)

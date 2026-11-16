@@ -22,7 +22,7 @@ final class PluginDedicatedSettingsState: ObservableObject {
             boundPluginID = plugin.id
             keywordDraft = ""
             bannerMessage = nil
-            ctrl.select(plugin, switchTab: false)
+            ctrl.select(plugin)
         }
         refreshDataStatus(for: plugin)
     }

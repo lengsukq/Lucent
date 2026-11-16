@@ -55,7 +55,7 @@ extension AppViewModel {
             }
         case .snippet(let match): copyPlainText(match.expandedText, message: "已复制展开短语：\(match.snippet.title)")
         case .clipboard(let entry):
-            ClipboardService.copyToPasteboard(entry)
+            _ = ClipboardService.copyToPasteboard(entry); lastPasteboardChangeCount = NSPasteboard.general.changeCount
             serviceMessage = L10n.translate("已复制剪贴板项：\(entry.title)")
         case .fileHit(let hit): copyPlainText(hit.url.path, message: "已复制路径：\(hit.name)")
         case .app(let app): copyPlainText(app.url.path, message: "已复制应用路径：\(app.displayName)")
@@ -79,13 +79,10 @@ extension AppViewModel {
                 openMediaWindow(for: hit.url, kind: hit.mediaKind)
             }
         case .clipboard(let clip):
-            if case .image(let url, _) = clip.payloadKind {
-                openMediaWindow(for: url, kind: .image, pinOnTop: true)
-            } else if let url = clip.fileURL {
-                NSWorkspace.shared.activateFileViewerSelecting([url])
-            } else {
-                executeClipboardEntry(clip)
-            }
+            if case .image(let url, _) = clip.payloadKind { openMediaWindow(for: url, kind: .image, pinOnTop: true) }
+            else if case .video(let url) = clip.payloadKind { openMediaWindow(for: url, kind: .video, pinOnTop: true) }
+            else if !clip.fileURLs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(clip.fileURLs) }
+            else { executeClipboardEntry(clip) }
         case .devTool(let tool):
             if let url = tool.previewImageURL { openMediaWindow(for: url, kind: .image, pinOnTop: true) }
             else { copyPlainText(tool.copyText, message: "已复制 \(tool.badge)") }
@@ -146,7 +143,7 @@ extension AppViewModel {
         switch selected.kind {
         case .fileHit(let hit): NSWorkspace.shared.activateFileViewerSelecting([hit.url])
         case .app(let app): NSWorkspace.shared.activateFileViewerSelecting([app.url])
-        case .clipboard(let clip): if let url = clip.fileURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+        case .clipboard(let clip): if !clip.fileURLs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(clip.fileURLs) }
         case .devTool(let tool): if let url = tool.previewImageURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         case .plugin(let plugin): NSWorkspace.shared.activateFileViewerSelecting([plugin.directoryURL])
         case .pluginCommand(let regCmd):
@@ -163,7 +160,7 @@ extension AppViewModel {
 
     func executeSystemCommand(_ command: SystemCommandKind) {
         switch command {
-        case .openWelcome: openRoute(.welcome)
+        case .openWelcome: openRoute(.settings(.about))
         case .openWorkspace: openRoute(.workspace)
         case .openSettings: openRoute(.settings(.general))
         case .openClipboard: prepareOverlay(filter: .clipboard)

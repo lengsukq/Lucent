@@ -57,8 +57,8 @@ struct AppCacheSettingsView: View {
                 symbol: "internaldrive.fill",
                 topColor: .orange,
                 bottomColor: .indigo,
-                title: "应用缓存与存储管理",
-                subtitle: "分类统计 Lumakey 临时缓存（剪贴板图片、钉图、GIF 录屏、抠图、影院转封装），配置与插件受保护不会被误删。"
+                title: "存储、剪贴板与内存管理",
+                subtitle: "统一治理剪贴板媒体（自动跳过密码管理器隐私项 · 未收藏上限 80 条）、截图/GIF 缓存与全盘索引快照。"
             ) {
                 HStack(spacing: 8) {
                     Button { cacheState.refresh(viewModel: viewModel) } label: {
@@ -66,8 +66,18 @@ struct AppCacheSettingsView: View {
                     }
                     .buttonStyle(GlassPillButtonStyle())
 
+                    Button {
+                        ClipboardService.removeTempFiles(for: viewModel.clipboardItems)
+                        viewModel.clipboardItems.removeAll()
+                        cacheState.statusBanner = L10n.pick("已清空全部剪贴板历史与对应媒体缓存", "Cleared all clipboard history & cached media")
+                        cacheState.refresh(viewModel: viewModel)
+                    } label: {
+                        Label("清空全部剪贴板", systemImage: "doc.on.clipboard")
+                    }
+                    .buttonStyle(GlassPillButtonStyle())
+
                     Button { cacheState.clearAll(viewModel: viewModel) } label: {
-                        Label("一键清理全部缓存", systemImage: "trash.fill")
+                        Label("一键清理缓存", systemImage: "trash.fill")
                     }
                     .buttonStyle(GlassPillButtonStyle(prominent: true))
                 }

@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 3,
+  "id": "lumalink-companion",
+  "name": "流光随行 · LumaLink 远控伴侣",
+  "version": "2.0.0",
+  "description": "免开设置窗的全功能手机局域网远控台：支持一键弹出扫码二维码、HiDPI 分辨率切换、物理隐私黑屏、防休眠、RDP 硬编加速与已配对手机解绑",
+  "mode": "view",
+  "keywords": ["lumalink", "remote", "rdp", "流光随行", "远控"],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "icon.svg",
+  "accentColor": "cyan",
+  "categoryTag": "远控伴侣",
+  "capabilities": ["lumaLinkStatus"],
+  "resourceScopes": [],
+  "commands": [
+    {
+      "id": "lumalink-toggle",
+      "title": "开关流光随行远控服务",
+      "subtitle": "经 Host Bridge 一键启停局域网 Bonjour 广播与远控监听",
+      "keywords": ["远控开关", "流光开关", "togglelumalink", "remote toggle"],
+      "icon": "power",
+      "arguments": ["--toggle"],
+      "passQuery": false
+    },
+    {
+      "id": "lumalink-qr",
+      "title": "弹出 LumaLink 扫码配对二维码",
+      "subtitle": "自动启动监听并在独立看图窗弹出高清扫码配对二维码",
+      "keywords": ["远控二维码", "扫码配对", "lumalinkqr", "pair qr"],
+      "icon": "qrcode.viewfinder",
+      "arguments": ["--qr"],
+      "passQuery": false
+    },
+    {
+      "id": "lumalink-displays",
+      "title": "切换远控护眼 HiDPI 分辨率",
+      "subtitle": "在主浮窗直接浏览并切换主副屏 HiDPI 分辨率或一键恢复原生模式",
+      "keywords": ["远控分辨率", "切换分辨率", "hidpi", "lumalink display"],
+      "icon": "display",
+      "arguments": ["--displays"],
+      "passQuery": false
+    },
+    {
+      "id": "lumalink-curtain",
+      "title": "切换 Mac 物理屏幕隐私黑屏",
+      "subtitle": "远控期间关闭物理屏幕显示防窥，不影响远端画面传输",
+      "keywords": ["隐私黑屏", "防窥幕布", "curtain", "privacy screen"],
+      "icon": "eye.slash.fill",
+      "arguments": ["--curtain"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "lumalink-caffeine",
+      "title": "切换 Mac 防休眠常亮保护",
+      "subtitle": "阻止空闲睡眠以保持局域网远控连接不断线",
+      "keywords": ["防休眠", "保持唤醒", "caffeine", "keep awake"],
+      "icon": "cup.and.saucer.fill",
+      "arguments": ["--caffeine"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "lumalink-devices",
+      "title": "管理已配对手机与解绑凭证",
+      "subtitle": "查看已授权手机列表并支持二次确认安全吊销单台设备 Token",
+      "keywords": ["已配对手机", "解绑手机", "paired devices", "revoke phone"],
+      "icon": "iphone.gen3.radiowaves.left.and.right",
+      "arguments": ["--devices"],
+      "passQuery": false
+    },
+    {
+      "id": "lumalink-rdp",
+      "title": "切换 VideoToolbox RDP 硬件加速",
+      "subtitle": "启停 H.264 硬件编码高帧率远程桌面侧车服务",
+      "keywords": ["rdp开关", "远控rdp", "togglerdp", "rdp engine"],
+      "icon": "bolt.horizontal.circle",
+      "arguments": ["--toggle-rdp"],
+      "passQuery": false
+    }
+  ],
+  "config": [
+    {
+      "key": "showPairURIInCard",
+      "label": "在主控台直接展示配对码与二维码入口",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "主控台显示偏好"
+    },
+    {
+      "key": "pinQRWindowOnTop",
+      "label": "弹出扫码二维码窗口时默认置顶悬浮",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "主控台显示偏好"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "LumaLink Remote Companion",
+      "description": "Full LAN remote console: instant QR pairing, live HiDPI display switching, privacy curtain, sleep guard, RDP engine & paired device revocation",
+      "categoryTag": "Remote",
+      "commands": {
+        "lumalink-toggle": {
+          "title": "Toggle LumaLink Remote Service",
+          "subtitle": "Start or stop LAN Bonjour discovery & remote listener"
+        },
+        "lumalink-qr": {
+          "title": "Pop Up LumaLink Pairing QR Code",
+          "subtitle": "Ensure listener is active and open crisp QR code viewer"
+        },
+        "lumalink-displays": {
+          "title": "Switch HiDPI Display Resolution",
+          "subtitle": "Switch Mac display resolution or restore native mode inline"
+        },
+        "lumalink-curtain": {
+          "title": "Toggle Physical Screen Privacy Curtain",
+          "subtitle": "Blank physical Mac displays during remote sessions"
+        },
+        "lumalink-caffeine": {
+          "title": "Toggle Sleep Prevention (Caffeine)",
+          "subtitle": "Keep Mac awake while remote session is active"
+        },
+        "lumalink-devices": {
+          "title": "Manage & Revoke Paired Phones",
+          "subtitle": "Inspect paired mobile devices and revoke encrypted tokens"
+        },
+        "lumalink-rdp": {
+          "title": "Toggle VideoToolbox RDP Engine",
+          "subtitle": "Switch hardware-accelerated H.264 remote desktop sidecar"
+        }
+      },
+      "config": {
+        "showPairURIInCard": {
+          "label": "Show pairing PIN & QR launcher in main console",
+          "section": "Console Preferences"
+        },
+        "pinQRWindowOnTop": {
+          "label": "Float QR code window on top when opened",
+          "section": "Console Preferences"
+        }
+      }
+    }
+  }
+}

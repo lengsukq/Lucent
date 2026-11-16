@@ -48,15 +48,20 @@ struct WorkspaceEntryContextMenu: View {
             viewModel.duplicateEntriesInPlace(targets, in: pane)
         }
 
-        if !isBatch && entry.isDirectory && !entry.isPackage, let clip = viewModel.workspaceClipboard, !clip.isEmpty {
+        if !isBatch && entry.isDirectory && !entry.isPackage, let clip = viewModel.effectiveWorkspacePasteClipboard(), !clip.isEmpty {
             let verb = clip.mode == .cutMove ? "移动" : "粘贴"
             Button("\(verb) \(clip.urls.count) 项到此文件夹") {
                 viewModel.pasteWorkspaceClipboard(to: entry.url, in: pane, forceMove: false)
             }
-        } else if let clip = viewModel.workspaceClipboard, !clip.isEmpty {
+        } else if let clip = viewModel.effectiveWorkspacePasteClipboard(), !clip.isEmpty {
             let verb = clip.mode == .cutMove ? "移动" : "粘贴"
             Button("\(verb) \(clip.urls.count) 项到当前目录 (⌘V)") {
                 viewModel.pasteWorkspaceClipboard(in: pane, forceMove: false)
+            }
+        } else if viewModel.canPasteRawImageInWorkspace {
+            let targetURL = (!isBatch && entry.isDirectory && !entry.isPackage) ? entry.url : nil
+            Button(targetURL != nil ? "粘贴剪贴板图片到此文件夹" : "粘贴剪贴板图片到当前目录 (⌘V)") {
+                viewModel.pasteWorkspaceClipboard(to: targetURL, in: pane, forceMove: false)
             }
         }
 
@@ -149,7 +154,7 @@ struct WorkspaceCanvasContextMenu: View {
     var body: some View {
         Button("新建文件夹… (⇧⌘N)") { viewModel.beginCreateFolder(in: pane) }
 
-        if let clip = viewModel.workspaceClipboard, !clip.isEmpty {
+        if let clip = viewModel.effectiveWorkspacePasteClipboard(), !clip.isEmpty {
             Divider()
             let verb = clip.mode == .cutMove ? "移动" : "粘贴"
             Button("\(verb) \(clip.urls.count) 项到此处 (⌘V)") {
@@ -159,6 +164,11 @@ struct WorkspaceCanvasContextMenu: View {
                 Button("移动 \(clip.urls.count) 项到此处 (⌘⌥V)") {
                     viewModel.pasteWorkspaceClipboard(to: state.currentDirectory, in: pane, forceMove: true)
                 }
+            }
+        } else if viewModel.canPasteRawImageInWorkspace {
+            Divider()
+            Button("粘贴剪贴板图片到此处 (⌘V)") {
+                viewModel.pasteWorkspaceClipboard(to: state.currentDirectory, in: pane, forceMove: false)
             }
         }
 

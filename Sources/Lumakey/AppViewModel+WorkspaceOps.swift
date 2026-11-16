@@ -78,9 +78,10 @@ extension AppViewModel {
     func copyEntriesToWorkspaceClipboard(_ entries: [FileEntry], cut: Bool) {
         guard !entries.isEmpty else { return }
         let urls = entries.map(\.url)
-        workspaceClipboard = WorkspaceClipboardState(urls: urls, mode: cut ? .cutMove : .copy)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.writeObjects(urls as [NSURL])
+        _ = ClipboardPasteboardIO.writeFileURLsToPasteboard(urls)
+        let changeCount = NSPasteboard.general.changeCount
+        lastPasteboardChangeCount = changeCount
+        workspaceClipboard = WorkspaceClipboardState(urls: urls, mode: cut ? .cutMove : .copy, pasteboardChangeCount: changeCount)
         serviceMessage = cut ? "已剪切 \(urls.count) 项，按 ⌘V 移动到目标目录" : "已复制 \(urls.count) 项，按 ⌘V 粘贴（⌘⌥V 移动）"
     }
 
@@ -89,28 +90,63 @@ extension AppViewModel {
         copyEntriesToWorkspaceClipboard(picked, cut: cut)
     }
 
+    func effectiveWorkspacePasteClipboard() -> WorkspaceClipboardState? {
+        let currentCount = NSPasteboard.general.changeCount
+        if let clip = workspaceClipboard, !clip.isEmpty,
+           clip.pasteboardChangeCount == nil || clip.pasteboardChangeCount == currentCount {
+            return clip
+        }
+        let pbURLs = ClipboardPasteboardIO.readFileURLs(from: .general)
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+        if !pbURLs.isEmpty {
+            return WorkspaceClipboardState(urls: pbURLs, mode: .copy, pasteboardChangeCount: currentCount)
+        }
+        return nil
+    }
+
+    var canPasteRawImageInWorkspace: Bool {
+        let types = Set((NSPasteboard.general.types ?? []).map(\.rawValue))
+        return types.contains(NSPasteboard.PasteboardType.png.rawValue)
+            || types.contains(NSPasteboard.PasteboardType.tiff.rawValue)
+            || types.contains(ClipboardPasteboardIO.gifPasteboardType.rawValue)
+    }
+
     func pasteWorkspaceClipboard(to explicitDir: URL? = nil, in pane: PaneSide? = nil, forceMove: Bool = false) {
-        guard let clip = workspaceClipboard, !clip.isEmpty else { return }
         let targetPane = pane ?? activePane
         activePane = targetPane
         let dstDir = explicitDir ?? (targetPane == .left ? leftPane : rightPane).currentDirectory
-        let shouldMove = forceMove || clip.mode == .cutMove
-        do {
-            let sourceDirs = clip.urls.map { $0.deletingLastPathComponent() }
-            let resulting: [URL]
-            if shouldMove {
-                resulting = try WorkspaceFileOperations.moveItems(clip.urls, to: dstDir)
-                workspaceClipboard = nil
-            } else {
-                resulting = try WorkspaceFileOperations.copyItems(clip.urls, to: dstDir)
+        if let clip = effectiveWorkspacePasteClipboard(), !clip.isEmpty {
+            let shouldMove = forceMove || clip.mode == .cutMove
+            do {
+                let sourceDirs = clip.urls.map { $0.deletingLastPathComponent() }
+                let resulting: [URL]
+                if shouldMove {
+                    resulting = try WorkspaceFileOperations.moveItems(clip.urls, to: dstDir)
+                    workspaceClipboard = nil
+                } else {
+                    resulting = try WorkspaceFileOperations.copyItems(clip.urls, to: dstDir)
+                }
+                let verb = shouldMove ? "已移动" : "已粘贴"
+                invalidateAndRefreshAfterFileOp(
+                    affectedDirs: sourceDirs + [dstDir],
+                    highlightURLs: resulting,
+                    in: targetPane,
+                    message: "\(verb) \(resulting.count) 项至“\(dstDir.lastPathComponent)”"
+                )
+            } catch {
+                presentWorkspaceError(error)
             }
-            let verb = shouldMove ? "已移动" : "已粘贴"
-            invalidateAndRefreshAfterFileOp(
-                affectedDirs: sourceDirs + [dstDir],
-                highlightURLs: resulting,
-                in: targetPane,
-                message: "\(verb) \(resulting.count) 项至“\(dstDir.lastPathComponent)”"
-            )
+            return
+        }
+        guard !forceMove, canPasteRawImageInWorkspace else { return }
+        do {
+            try WorkspaceFileOperations.checkWritableDirectory(dstDir)
+            if let saved = ClipboardPasteboardIO.materializePasteboardImageIfNeeded(from: .general, into: dstDir) {
+                invalidateAndRefreshAfterFileOp(
+                    affectedDirs: [dstDir], highlightURLs: [saved], in: targetPane,
+                    message: "已粘贴剪贴板图片“\(saved.lastPathComponent)”"
+                )
+            }
         } catch {
             presentWorkspaceError(error)
         }

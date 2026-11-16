@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public typealias PluginURLFetcher = @Sendable (URL) async throws -> (Data, HTTPURLResponse?)
@@ -125,9 +126,7 @@ public enum PluginStoreSniffer {
     // MARK: - Helpers
 
     struct GitHubRepoCoords {
-        let owner: String
-        let repo: String
-        let explicitBranch: String?
+        let owner: String; let repo: String; let explicitBranch: String?; let subpath: String?
     }
 
     static func parseGitHubRepoCoordinates(_ url: URL) -> GitHubRepoCoords? {
@@ -136,30 +135,28 @@ public enum PluginStoreSniffer {
         guard parts.count >= 2 else { return nil }
         let owner = parts[0]
         let repo = parts[1].hasSuffix(".git") ? String(parts[1].dropLast(4)) : parts[1]
-        if parts.count == 2 {
-            return GitHubRepoCoords(owner: owner, repo: repo, explicitBranch: nil)
-        }
+        if parts.count == 2 { return GitHubRepoCoords(owner: owner, repo: repo, explicitBranch: nil, subpath: nil) }
         if parts.count >= 4, parts[2] == "tree" {
-            return GitHubRepoCoords(owner: owner, repo: repo, explicitBranch: parts[3])
+            let sub = parts.count > 4 ? parts[4...].joined(separator: "/") : nil
+            return GitHubRepoCoords(owner: owner, repo: repo, explicitBranch: parts[3], subpath: sub)
         }
         return nil
     }
 
     private static func probeGitHubRepository(
-        _ coords: GitHubRepoCoords,
-        rawInput: String,
-        fetcher: PluginURLFetcher
+        _ coords: GitHubRepoCoords, rawInput: String, fetcher: PluginURLFetcher
     ) async throws -> DiscoveredPluginSource {
         let branches = coords.explicitBranch.map { [$0] } ?? ["main", "master"]
+        let prefix = coords.subpath.map { "\($0)/" } ?? ""
         for branch in branches {
-            let rawReg = URL(string: "https://raw.githubusercontent.com/\(coords.owner)/\(coords.repo)/\(branch)/\(PluginStoreRegistryManifest.defaultFileName)")!
+            let rawReg = URL(string: "https://raw.githubusercontent.com/\(coords.owner)/\(coords.repo)/\(branch)/\(prefix)\(PluginStoreRegistryManifest.defaultFileName)")!
             if let (data, _) = try? await fetcher(rawReg),
                let store = try? decodeStoreSubscription(data: data, resolvedURL: rawReg, sourceInput: rawInput) {
                 return .storeRegistry(store)
             }
         }
         for branch in branches {
-            let rawPlug = URL(string: "https://raw.githubusercontent.com/\(coords.owner)/\(coords.repo)/\(branch)/plugin.json")!
+            let rawPlug = URL(string: "https://raw.githubusercontent.com/\(coords.owner)/\(coords.repo)/\(branch)/\(prefix)plugin.json")!
             if let (data, _) = try? await fetcher(rawPlug) {
                 return try await resolveRemoteSingleManifest(
                     data: data, manifestURL: rawPlug, sourceInput: rawInput,

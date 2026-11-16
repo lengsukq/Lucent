@@ -19,12 +19,21 @@ struct MosPluginSettingsView: View {
                     title: "物理鼠标平滑滚动与滚轮方向",
                     subtitle: "自动区分物理鼠标滚轮与触控板，提供滚轮反转与 120Hz 平滑插值；闲置时零后台消耗。"
                 ) {
-                    Toggle("", isOn: binding(\.enabled))
-                        .toggleStyle(.switch)
-                        .labelsHidden()
+                    HStack(spacing: 10) {
+                        Button(L10n.pick("所有插件", "All Plugins")) {
+                            viewModel.activeSettingsSection = .plugins
+                        }
+                        .buttonStyle(GlassPillButtonStyle(compact: true))
+                        Toggle("", isOn: binding(\.enabled))
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                    }
                 }
                 permissionStatusRow
                 behaviorCard
+                if let builtin = viewModel.plugins.first(where: { $0.id == BuiltinPluginID.mos.rawValue }) {
+                    PluginCommandSettingsCard(plugin: builtin, viewModel: viewModel)
+                }
                 exclusionsCard
             }
             .padding(.trailing, 4)

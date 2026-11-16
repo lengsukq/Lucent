@@ -41,8 +41,6 @@ extension AppViewModel {
             switch builtin {
             case .mos:
                 var next = mosConfig; next.enabled = isEnabled; applyMosConfig(next)
-            case .lumaLink:
-                var next = lumaLinkConfig; next.enabled = isEnabled; applyLumaLinkConfig(next)
             case .systemPulse:
                 SystemPulseWindowController.shared.setFloatingEnabled(isEnabled)
                 if !isEnabled { SystemPulseWindowController.shared.setMenuBarEnabled(false) }
@@ -51,6 +49,9 @@ extension AppViewModel {
             return
         }
         try PluginSystem.setPluginEnabled(id: plugin.id, isEnabled: isEnabled)
+        if plugin.id == LumaLinkServer.companionPluginID {
+            refreshLumaLinkStatus(refreshPermissions: false)
+        }
         if !isEnabled && scopedPluginID == plugin.id { scopedPluginID = nil }
         reloadPluginsAndHotKeys()
     }
@@ -64,6 +65,11 @@ extension AppViewModel {
 
     func setPluginCapabilityGranted(_ plugin: PluginDescriptor, capability: PluginCapability, granted: Bool) throws {
         try PluginSystem.setPluginCapabilityGranted(id: plugin.id, capability: capability, granted: granted)
+        reloadPlugins()
+    }
+
+    func setPluginResourceScopeGranted(_ plugin: PluginDescriptor, scope: PluginResourceScope, granted: Bool) throws {
+        try PluginSystem.setPluginResourceScopeGranted(id: plugin.id, scope: scope, granted: granted)
         reloadPlugins()
     }
 
@@ -125,6 +131,8 @@ extension AppViewModel {
                 case "mos": openRoute(.settings(.mos))
                 case "lumaLink": openRoute(.settings(.lumaLink))
                 case "monitor": openRoute(.settings(.monitor))
+                case "network": openRoute(.networkMonitor)
+                case "cache": openRoute(.settings(.cache))
                 case "plugins": openRoute(.settings(.plugins))
                 default:
                     if plugins.contains(where: { $0.id == target }) { openPluginSettings(id: target) }
@@ -167,6 +175,8 @@ extension AppViewModel {
                 self.pluginOutputText = resolved.plainText
                 if plugin.isBuiltin, resolved.execution.exitCode == 0 {
                     self.syncBuiltinControllerState(id: plugin.id)
+                } else if plugin.id == LumaLinkServer.companionPluginID, resolved.execution.exitCode == 0 {
+                    self.refreshLumaLinkStatus(refreshPermissions: false)
                 }
                 if resolved.execution.exitCode == 0 {
                     self.reloadPlugins()
@@ -241,7 +251,6 @@ extension AppViewModel {
     private func syncBuiltinControllerState(id: String) {
         switch BuiltinPluginID(rawValue: id) {
         case .mos: mosConfig = MosConfig.load(); refreshMosStatus()
-        case .lumaLink: lumaLinkConfig = LumaLinkConfig.load(); refreshLumaLinkStatus(refreshPermissions: false)
         case .systemPulse:
             let cfg = SystemMonitorConfig.load()
             SystemPulseWindowController.shared.setFloatingEnabled(cfg.floatingEnabled)

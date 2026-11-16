@@ -80,17 +80,18 @@ struct BackupSettingsView: View {
             }
             .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
 
-            HStack(spacing: 16) {
-                Toggle("恢复配置", isOn: pendingOptionBinding(\.restoreConfigs))
-                Toggle("恢复收藏剪贴板", isOn: pendingOptionBinding(\.restoreClipboard))
-                Toggle("恢复外部插件包", isOn: pendingOptionBinding(\.restorePlugins))
-                Spacer()
-                Button("取消") { state.pendingRestore = nil }
-                    .buttonStyle(GlassPillButtonStyle())
-                Button("确认恢复此快照") { state.confirmPendingRestore(viewModel: viewModel) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
+            FlowWrapLayout(horizontalSpacing: 16, verticalSpacing: 8) {
+                Toggle("恢复配置", isOn: pendingOptionBinding(\.restoreConfigs)).fixedSize()
+                Toggle("恢复收藏剪贴板", isOn: pendingOptionBinding(\.restoreClipboard)).fixedSize()
+                Toggle("恢复外部插件包", isOn: pendingOptionBinding(\.restorePlugins)).fixedSize()
             }
             .font(.caption)
+
+            HStack(spacing: 8) {
+                Spacer()
+                Button("取消") { state.pendingRestore = nil }.buttonStyle(GlassPillButtonStyle())
+                Button("确认恢复此快照") { state.confirmPendingRestore(viewModel: viewModel) }.buttonStyle(GlassPillButtonStyle(prominent: true))
+            }
         }
         .padding(14)
         .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
@@ -127,23 +128,27 @@ struct BackupSettingsView: View {
 
     private var webdavConfigCard: some View {
         VStack(alignment: .leading, spacing: 11) {
-            HStack {
+            HStack(spacing: 8) {
                 Label("WebDAV 云端自动轮转同步", systemImage: "icloud.and.arrow.up.fill")
                     .font(.callout.weight(.semibold))
-                Spacer()
-                ForEach(WebDAVProviderPreset.allPresets) { preset in
-                    let selected = state.selectedPresetID == preset.id
-                    Button { state.selectPreset(preset) } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: preset.symbol).font(.system(size: 10))
-                            Text(preset.name).font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                FlowWrapLayout(horizontalSpacing: 5, verticalSpacing: 5) {
+                    ForEach(WebDAVProviderPreset.allPresets) { preset in
+                        let selected = state.selectedPresetID == preset.id
+                        Button { state.selectPreset(preset) } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: preset.symbol).font(.system(size: 10))
+                                Text(preset.name).font(.caption2.weight(.semibold)).lineLimit(1)
+                            }
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 9).padding(.vertical, 4)
+                            .foregroundStyle(selected ? Color.white : LiquidColors.textPrimary)
+                            .background(selected ? Color.accentColor : LiquidColors.pillSurface, in: Capsule())
+                            .overlay { Capsule().strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
                         }
-                        .padding(.horizontal, 9).padding(.vertical, 4)
-                        .foregroundStyle(selected ? Color.white : LiquidColors.textPrimary)
-                        .background(selected ? Color.accentColor : LiquidColors.pillSurface, in: Capsule())
-                        .overlay { Capsule().strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
 

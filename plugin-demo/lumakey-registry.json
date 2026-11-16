@@ -1,0 +1,251 @@
+{
+  "maintainer" : "Lumakey Official",
+  "plugins" : [
+    {
+      "accentColor" : "indigo",
+      "author" : "Lumakey Official",
+      "capabilities" : [
+
+      ],
+      "categoryTag" : "浏览器中枢",
+      "description" : "直连 Microsoft Edge、Google Chrome（支持多配置档）与 Safari 的本地书签、阅读列表和历史记录，无锁拷贝秒搜并同步 ⌥Space 免前缀检索索引",
+      "downloadURL" : "./dist/browser-hub.zip",
+      "id" : "browser-hub",
+      "keywords" : [
+        "bh",
+        "browser",
+        "history",
+        "edge",
+        "chrome",
+        "safari",
+        "书签",
+        "历史记录",
+        "浏览器"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Browsers",
+          "commands" : {
+            "chrome-hub" : {
+              "subtitle" : "Filter bookmarks and history from Google Chrome profiles",
+              "title" : "Search Google Chrome Only"
+            },
+            "edge-hub" : {
+              "subtitle" : "Filter bookmarks and history from Microsoft Edge profiles",
+              "title" : "Search Microsoft Edge Only"
+            },
+            "recent-history" : {
+              "subtitle" : "Lock-free WAL query of recent visits & frequent sites",
+              "title" : "Search Recent Browser History"
+            },
+            "safari-hub" : {
+              "subtitle" : "Filter Safari bookmarks, Reading List & history",
+              "title" : "Search Safari Bookmarks & History Only"
+            },
+            "search-bookmarks" : {
+              "subtitle" : "Search bookmark folders & Safari Reading List across all profiles",
+              "title" : "Search Edge / Chrome / Safari Bookmarks"
+            },
+            "sync-browser-index" : {
+              "subtitle" : "Force rescan of Edge, Chrome & Safari into 0ms launcher index",
+              "title" : "Sync Browser Instant-Search Index Now"
+            }
+          },
+          "config" : {
+            "cacheTtlSeconds" : {
+              "label" : "Local Snapshot Cache TTL (seconds)",
+              "section" : "Open Behavior & Cache"
+            },
+            "enabledBrowsers" : {
+              "helpText" : "Include any of Edge, Chrome, Safari. Reading ~/Library/Safari requires Full Disk Access for Lumakey.",
+              "label" : "Enabled Browser Sources",
+              "section" : "Sources & Scope"
+            },
+            "historyDays" : {
+              "label" : "History Lookback Window (Days)",
+              "section" : "Sources & Scope"
+            },
+            "maxCardItems" : {
+              "label" : "Max Displayed Card Rows",
+              "section" : "Open Behavior & Cache"
+            },
+            "openInSourceBrowser" : {
+              "helpText" : "When enabled, Edge entries open in Edge, Chrome in Chrome, and Safari in Safari.",
+              "label" : "Open entries in their source browser by default",
+              "section" : "Open Behavior & Cache"
+            }
+          },
+          "description" : "Direct lock-free search across Microsoft Edge, Google Chrome (multi-profile) & Safari bookmarks, Reading List, and history with 0ms launcher indexing",
+          "name" : "Browser Bookmarks & History Hub"
+        }
+      },
+      "mode" : "view",
+      "name" : "三端浏览器书签与历史中枢",
+      "resourceScopes" : [
+        "filesystem",
+        "subprocess"
+      ],
+      "sha256" : "88b23b235deecc2ff3eca2927787d9526ab8a39235239267ca4a0731eb5e7c8a",
+      "sizeBytes" : 19891,
+      "version" : "1.0.0"
+    },
+    {
+      "accentColor" : "cyan",
+      "author" : "Lumakey Official",
+      "capabilities" : [
+        "lumaLinkStatus"
+      ],
+      "categoryTag" : "远控伴侣",
+      "description" : "免开设置窗的全功能手机局域网远控台：支持一键弹出扫码二维码、HiDPI 分辨率切换、物理隐私黑屏、防休眠、RDP 硬编加速与已配对手机解绑",
+      "downloadURL" : "./dist/lumalink-companion.zip",
+      "id" : "lumalink-companion",
+      "keywords" : [
+        "lumalink",
+        "remote",
+        "rdp",
+        "流光随行",
+        "远控"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Remote",
+          "commands" : {
+            "lumalink-caffeine" : {
+              "subtitle" : "Keep Mac awake while remote session is active",
+              "title" : "Toggle Sleep Prevention (Caffeine)"
+            },
+            "lumalink-curtain" : {
+              "subtitle" : "Blank physical Mac displays during remote sessions",
+              "title" : "Toggle Physical Screen Privacy Curtain"
+            },
+            "lumalink-devices" : {
+              "subtitle" : "Inspect paired mobile devices and revoke encrypted tokens",
+              "title" : "Manage & Revoke Paired Phones"
+            },
+            "lumalink-displays" : {
+              "subtitle" : "Switch Mac display resolution or restore native mode inline",
+              "title" : "Switch HiDPI Display Resolution"
+            },
+            "lumalink-qr" : {
+              "subtitle" : "Ensure listener is active and open crisp QR code viewer",
+              "title" : "Pop Up LumaLink Pairing QR Code"
+            },
+            "lumalink-rdp" : {
+              "subtitle" : "Switch hardware-accelerated H.264 remote desktop sidecar",
+              "title" : "Toggle VideoToolbox RDP Engine"
+            },
+            "lumalink-toggle" : {
+              "subtitle" : "Start or stop LAN Bonjour discovery & remote listener",
+              "title" : "Toggle LumaLink Remote Service"
+            }
+          },
+          "config" : {
+            "pinQRWindowOnTop" : {
+              "label" : "Float QR code window on top when opened",
+              "section" : "Console Preferences"
+            },
+            "showPairURIInCard" : {
+              "label" : "Show pairing PIN & QR launcher in main console",
+              "section" : "Console Preferences"
+            }
+          },
+          "description" : "Full LAN remote console: instant QR pairing, live HiDPI display switching, privacy curtain, sleep guard, RDP engine & paired device revocation",
+          "name" : "LumaLink Remote Companion"
+        }
+      },
+      "mode" : "view",
+      "name" : "流光随行 · LumaLink 远控伴侣",
+      "resourceScopes" : [
+
+      ],
+      "sha256" : "f8c110047cd15c9100bf855167223d8a50b813eb2115420a6c18da2c1d5ae986",
+      "sizeBytes" : 15232,
+      "version" : "2.0.0"
+    },
+    {
+      "accentColor" : "teal",
+      "accepts" : [
+        "url",
+        "text"
+      ],
+      "author" : "Lumakey Official",
+      "capabilities" : [
+        "clipboard"
+      ],
+      "categoryTag" : "书签",
+      "description" : "支持包内图标、中英双语、子功能独立快捷键、滑块缓存配置与免前缀检索",
+      "downloadURL" : "./dist/notion-bookmarks.zip",
+      "id" : "notion-bookmarks",
+      "keywords" : [
+        "bm",
+        "bookmark",
+        "notion",
+        "nav"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Bookmarks",
+          "commands" : {
+            "add-clipboard" : {
+              "subtitle" : "Read the current clipboard URL and save it to your Notion database",
+              "title" : "Save Clipboard URL to Notion"
+            },
+            "list-bookmarks" : {
+              "subtitle" : "Open structured bookmark card to pin or archive items",
+              "title" : "Browse All Notion Bookmarks"
+            },
+            "refresh-bookmarks" : {
+              "subtitle" : "Fetch latest Notion bookmarks and rebuild local instant-search index",
+              "title" : "Sync Notion Bookmark Index"
+            }
+          },
+          "config" : {
+            "autoFetchMeta" : {
+              "label" : "Auto-fetch page title & description",
+              "section" : "Capture & Cache"
+            },
+            "cacheTtlSeconds" : {
+              "label" : "Local Cache TTL (seconds)",
+              "section" : "Capture & Cache"
+            },
+            "databaseId" : {
+              "label" : "Notion Database ID / URL",
+              "placeholder" : "32-char ID or full notion.so URL",
+              "section" : "Notion Auth & Database"
+            },
+            "defaultTags" : {
+              "label" : "Default Tags",
+              "placeholder" : "Press Return to add tags",
+              "section" : "Capture & Cache"
+            },
+            "maxItems" : {
+              "label" : "Max Card Items",
+              "section" : "Capture & Cache"
+            },
+            "notionToken" : {
+              "helpText" : "Encrypted locally; never written in plaintext to plugin-state.json",
+              "label" : "Notion Secret Token",
+              "placeholder" : "ntn_... or secret_...",
+              "section" : "Notion Auth & Database"
+            }
+          },
+          "description" : "Zero-prefix Notion bookmark search, sub-command hotkeys, clip saving & pin management",
+          "name" : "Notion Bookmarks"
+        }
+      },
+      "mode" : "view",
+      "name" : "Notion 书签收藏",
+      "resourceScopes" : [
+        "network",
+        "filesystem"
+      ],
+      "sha256" : "822653fcfb893e497c54531570e24b9d41e31f4cf109aad826cd65f99c33b17a",
+      "sizeBytes" : 24971,
+      "version" : "1.4.0"
+    }
+  ],
+  "schemaVersion" : 1,
+  "storeId" : "lumakey-demo-store",
+  "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
+  "updatedAt" : "2026-11-16T10:02:12Z"
+}

@@ -28,7 +28,7 @@ def collect_anchors(md_path: Path) -> set[str]:
 
 def main() -> int:
     issues: list[str] = []
-    md_files = [ROOT / "README.md", ROOT / "AGENTS.md", *sorted(DOCS.glob("*.md"))]
+    md_files = [ROOT / "README.md", ROOT / "AGENTS.md", ROOT / "CONTRIBUTING.md", *sorted(DOCS.glob("*.md"))]
     anchor_cache = {p: collect_anchors(p) for p in md_files if p.exists()}
 
     index_text = INDEX.read_text(encoding="utf-8") if INDEX.exists() else ""

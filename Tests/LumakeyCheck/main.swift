@@ -755,11 +755,17 @@ func testV065PerformanceCompactIndexHeaderAndFormatters() throws {
     check(idx.search(queryText: "ext:pdf;md !pdf").count == 1, "ext + negated DSL works without stored ext strings")
 
     let saved = EverythingSnapshotStore.save(idx, scopeKey: "v065-perf", cacheDirectory: cacheDir)
-    check(saved != nil, "LMKYIDX2 snapshot saves cleanly")
+    check(saved != nil, "LMKYIDX3 snapshot saves cleanly")
     let header = EverythingSnapshotStore.readHeaderMetadata(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir)
     check(header?.nodeCount == 2, "O(1) readHeaderMetadata reads exact nodeCount without full load")
     let reloaded = EverythingSnapshotStore.load(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir)
-    check(reloaded?.search(queryText: "report").count == 1, "LMKYIDX2 load preserves search fidelity")
+    check(reloaded?.search(queryText: "report").count == 1, "LMKYIDX3 load preserves search fidelity")
+    if let snapURL = saved, var rawSnap = try? Data(contentsOf: snapURL), rawSnap.count > 40 {
+        rawSnap[rawSnap.count - 36] ^= 0xFF
+        try? rawSnap.write(to: snapURL, options: .atomic)
+        check(EverythingSnapshotStore.load(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir) == nil,
+              "LMKYIDX3 SHA-256 digest rejects corrupted snapshot bytes")
+    }
 
     check(FastFormatters.formatFileBytes(512) == "512 B", "FastFormatters formats sub-KB bytes")
     check(FastFormatters.formatFileBytes(2_500_000) == "2.5 MB", "FastFormatters formats MB")
@@ -777,6 +783,7 @@ func testV065PerformanceCompactIndexHeaderAndFormatters() throws {
 do {
     L10n.setCurrent(.zhHans)
     if CommandLine.arguments.contains("--sandbox-safe") {
+        try testClipboardMediaCaptureAndPasteModel()
         try testV089PluginStoreAndSmartSniffer()
         try testV088PluginNativeExperience()
         try testV087LocalSecretVaultAndLazyLoading()
@@ -827,6 +834,8 @@ do {
     try testV087LocalSecretVaultAndLazyLoading()
     try testV088PluginNativeExperience()
     try testV089PluginStoreAndSmartSniffer()
+    try testClipboardMediaCaptureAndPasteModel()
+    try testLivePasteboardImageAndVideoRoundtrip()
     try testV070Wave2Integration()
     try testV071WorkspaceOperations()
     try testV080LumaLink()

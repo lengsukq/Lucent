@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import AppKit
 import CoreGraphics
 import Foundation
@@ -6,6 +7,7 @@ public enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
     case all = "全部"
     case text = "文本"
     case image = "图片"
+    case video = "视频"
     case file = "文件"
     case pinned = "收藏"
 
@@ -16,6 +18,7 @@ public enum ClipboardCategory: String, CaseIterable, Identifiable, Sendable {
         case .all: L10n.pick("全部", "All")
         case .text: L10n.pick("文本", "Text")
         case .image: L10n.pick("图片", "Images")
+        case .video: L10n.pick("视频", "Videos")
         case .file: L10n.pick("文件", "Files")
         case .pinned: L10n.pick("收藏", "Pinned")
         }
@@ -26,6 +29,7 @@ public enum ClipboardPayloadKind: Sendable, Hashable {
     case text
     case colorHex(String)
     case image(URL, CGSize)
+    case video(URL)
     case file(URL)
 
     public var badgeTitle: String {
@@ -33,6 +37,7 @@ public enum ClipboardPayloadKind: Sendable, Hashable {
         case .text: L10n.pick("文本", "Text")
         case .colorHex: L10n.pick("色值", "Color")
         case .image: L10n.pick("图片", "Image")
+        case .video: L10n.pick("视频", "Video")
         case .file: L10n.pick("文件", "File")
         }
     }
@@ -44,6 +49,7 @@ public struct ClipboardEntry: Identifiable, Sendable, Hashable {
     public let subtitle: String
     public let textValue: String?
     public let fileURL: URL?
+    public let fileURLs: [URL]
     public let capturedAt: Date
     public var isPinned: Bool
     public let payloadKind: ClipboardPayloadKind
@@ -54,15 +60,30 @@ public struct ClipboardEntry: Identifiable, Sendable, Hashable {
         subtitle: String,
         textValue: String? = nil,
         fileURL: URL? = nil,
+        fileURLs: [URL]? = nil,
         capturedAt: Date = Date(),
         isPinned: Bool = false,
         payloadKind: ClipboardPayloadKind
     ) {
+        let resolvedURLs: [URL]
+        if let fileURLs, !fileURLs.isEmpty {
+            resolvedURLs = fileURLs.map(\.standardizedFileURL)
+        } else if let fileURL {
+            resolvedURLs = [fileURL.standardizedFileURL]
+        } else {
+            switch payloadKind {
+            case .image(let u, _), .video(let u), .file(let u):
+                resolvedURLs = [u.standardizedFileURL]
+            case .text, .colorHex:
+                resolvedURLs = []
+            }
+        }
         self.id = id
         self.title = title
         self.subtitle = subtitle
         self.textValue = textValue
-        self.fileURL = fileURL
+        self.fileURL = resolvedURLs.first
+        self.fileURLs = resolvedURLs
         self.capturedAt = capturedAt
         self.isPinned = isPinned
         self.payloadKind = payloadKind
@@ -78,78 +99,20 @@ public enum ClipboardService {
 
     @MainActor
     public static func captureCurrent(from pasteboard: NSPasteboard = .general) -> ClipboardEntry? {
-        let types = Set((pasteboard.types ?? []).map(\.rawValue))
-        guard types.isDisjoint(with: concealedTypes) else { return nil }
-
-        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
-           let first = urls.first {
-            return ClipboardEntry(
-                title: first.lastPathComponent,
-                subtitle: first.deletingLastPathComponent().path,
-                fileURL: first,
-                payloadKind: .file(first)
-            )
-        }
-
-        if let str = pasteboard.string(forType: .string) {
-            let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-            let firstLine = trimmed.components(separatedBy: .newlines).first ?? trimmed
-            if let hex = parseHexColor(trimmed) {
-                return ClipboardEntry(title: hex, subtitle: "颜色 HEX · \(trimmed.count) 字符", textValue: str, payloadKind: .colorHex(hex))
-            }
-            return ClipboardEntry(
-                title: String(firstLine.prefix(90)),
-                subtitle: "文本 · \(trimmed.count) 字",
-                textValue: str,
-                payloadKind: .text
-            )
-        }
-
-        if let rawPNG = pasteboard.data(forType: .png), !rawPNG.isEmpty {
-            let dir = FileManager.default.temporaryDirectory.appendingPathComponent("lumakey-clipboard", isDirectory: true)
-            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let url = dir.appendingPathComponent("clip-\(UUID().uuidString).png")
-            if (try? rawPNG.write(to: url)) != nil {
-                let dims = MediaClassifier.readImageDimensions(at: url) ?? .zero
-                return ClipboardEntry(
-                    title: "剪贴板图片 \(Int(dims.width))×\(Int(dims.height))",
-                    subtitle: url.lastPathComponent,
-                    fileURL: url,
-                    payloadKind: .image(url, dims)
-                )
-            }
-        }
-
-        if let image = NSImage(pasteboard: pasteboard),
-           let tiff = image.tiffRepresentation,
-           let rep = NSBitmapImageRep(data: tiff),
-           let png = rep.representation(using: .png, properties: [:]) {
-            let dir = FileManager.default.temporaryDirectory.appendingPathComponent("lumakey-clipboard", isDirectory: true)
-            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let url = dir.appendingPathComponent("clip-\(UUID().uuidString).png")
-            if (try? png.write(to: url)) != nil {
-                let dims = MediaClassifier.readImageDimensions(at: url) ?? image.size
-                return ClipboardEntry(
-                    title: "剪贴板图片 \(Int(dims.width))×\(Int(dims.height))",
-                    subtitle: url.lastPathComponent,
-                    fileURL: url,
-                    payloadKind: .image(url, dims)
-                )
-            }
-        }
-        return nil
+        ClipboardPasteboardIO.captureCurrent(from: pasteboard)
     }
 
     public static func insert(_ entry: ClipboardEntry, into list: [ClipboardEntry], maxUnpinned: Int = 80) -> [ClipboardEntry] {
         var next = list
         var preservedPin = entry.isPinned
         var removed: [ClipboardEntry] = []
+        let entryPaths = entry.fileURLs.map(\.path)
         next.removeAll { existing in
+            let existingPaths = existing.fileURLs.map(\.path)
             let match = (entry.textValue != nil && existing.textValue == entry.textValue)
-                || (entry.fileURL != nil && existing.fileURL?.path == entry.fileURL?.path)
+                || (!entryPaths.isEmpty && existingPaths == entryPaths)
             if match && existing.isPinned { preservedPin = true }
-            if match && existing.fileURL?.path != entry.fileURL?.path {
+            if match && Set(existingPaths) != Set(entryPaths) {
                 removed.append(existing)
             }
             return match
@@ -173,15 +136,36 @@ public enum ClipboardService {
                 }
             }
         }
-        removeTempFiles(for: removed)
+        let activePaths = Set(kept.flatMap { $0.fileURLs.map(\.path) })
+        let safeToRemove = removed.filter { candidate in
+            candidate.fileURLs.allSatisfy { !activePaths.contains($0.path) }
+        }
+        removeTempFiles(for: safeToRemove)
         return kept
     }
 
+    public static func promote(_ entry: ClipboardEntry, in list: [ClipboardEntry]) -> [ClipboardEntry] {
+        guard let idx = list.firstIndex(where: { $0.id == entry.id }), idx > 0 else { return list }
+        var next = list
+        let picked = next.remove(at: idx)
+        next.insert(picked, at: 0)
+        return next
+    }
+
     public static func removeTempFiles(for entries: [ClipboardEntry]) {
+        let clipRoot = ClipboardPasteboardIO.clipboardTempDirectory().standardizedFileURL.path
+        let fm = FileManager.default
         for item in entries {
-            if case .image(let url, _) = item.payloadKind,
-               url.path.contains("lumakey-clipboard") {
-                try? FileManager.default.removeItem(at: url)
+            for url in item.fileURLs {
+                let std = url.standardizedFileURL
+                guard std.path.hasPrefix(clipRoot + "/") else { continue }
+                try? fm.removeItem(at: std)
+                let parent = std.deletingLastPathComponent()
+                if parent.path != clipRoot && parent.path.hasPrefix(clipRoot + "/") {
+                    if ((try? fm.contentsOfDirectory(atPath: parent.path)) ?? []).isEmpty {
+                        try? fm.removeItem(at: parent)
+                    }
+                }
             }
         }
     }
@@ -195,6 +179,8 @@ public enum ClipboardService {
             case .text: catOK = item.textValue != nil
             case .image:
                 if case .image = item.payloadKind { catOK = true } else { catOK = false }
+            case .video:
+                if case .video = item.payloadKind { catOK = true } else { catOK = false }
             case .file:
                 if case .file = item.payloadKind { catOK = true } else { catOK = false }
             case .pinned: catOK = item.isPinned
@@ -208,17 +194,9 @@ public enum ClipboardService {
     }
 
     @MainActor
-    public static func copyToPasteboard(_ entry: ClipboardEntry) {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        switch entry.payloadKind {
-        case .text, .colorHex:
-            if let text = entry.textValue { pb.setString(text, forType: .string) }
-        case .file(let url):
-            pb.writeObjects([url as NSURL])
-        case .image(let url, _):
-            _ = ScreenshotCompositor.copyImageFileToPasteboard(at: url, to: pb)
-        }
+    @discardableResult
+    public static func copyToPasteboard(_ entry: ClipboardEntry, pasteboard: NSPasteboard = .general) -> Bool {
+        ClipboardPasteboardIO.writeToPasteboard(entry, pasteboard: pasteboard)
     }
 
     public static func parseHexColor(_ raw: String) -> String? {

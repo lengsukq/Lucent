@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import CoreGraphics
 import Foundation
 
@@ -85,7 +86,8 @@ extension BackupArchiveService {
     }
 
     static func sanitizeConfigTextIfNeeded(fileName: String, rawText: String) -> String {
-        guard fileName.lowercased().contains("webdav"),
+        let lower = fileName.lowercased()
+        guard (lower.contains("webdav") || lower.contains("lumalink")),
               let obj = try? JSONSerialization.jsonObject(with: Data(rawText.utf8)) as? [String: Any] else {
             return rawText
         }
@@ -99,9 +101,11 @@ extension BackupArchiveService {
 
     private static func stripRedactedKeys(in dict: [String: Any]) -> [String: Any] {
         var next: [String: Any] = [:]
-        for (k, v) in dict where !redactedWebDAVKeys.contains(k.lowercased()) {
+        for (k, v) in dict where !redactedWebDAVKeys.contains(k.lowercased()) && k.lowercased() != "pin" {
             if let sub = v as? [String: Any] {
                 next[k] = stripRedactedKeys(in: sub)
+            } else if let arr = v as? [[String: Any]] {
+                next[k] = arr.map { stripRedactedKeys(in: $0) }
             } else {
                 next[k] = v
             }
@@ -118,7 +122,7 @@ extension BackupArchiveService {
                 return BackupClipboardRecord(id: item.id.uuidString, title: item.title, subtitle: item.subtitle, kind: .text, capturedAtISO8601: ts, textValue: item.textValue)
             case .colorHex(let hex):
                 return BackupClipboardRecord(id: item.id.uuidString, title: item.title, subtitle: item.subtitle, kind: .colorHex, capturedAtISO8601: ts, textValue: item.textValue ?? hex, colorHex: hex)
-            case .file(let url):
+            case .video(let url), .file(let url):
                 return BackupClipboardRecord(id: item.id.uuidString, title: item.title, subtitle: item.subtitle, kind: .file, capturedAtISO8601: ts, filePath: url.path)
             case .image(let url, let dims):
                 guard let imgData = try? Data(contentsOf: url), !imgData.isEmpty else { return nil }
@@ -160,7 +164,9 @@ extension BackupArchiveService {
             case .file:
                 if let p = rec.filePath, !p.isEmpty {
                     let u = URL(fileURLWithPath: p)
-                    entries.append(ClipboardEntry(id: uuid, title: rec.title, subtitle: rec.subtitle, fileURL: u, capturedAt: date, isPinned: true, payloadKind: .file(u)))
+                    let isVideo = MediaClassifier.classifyExtension(u.pathExtension.lowercased(), isDirectory: false) == .video
+                    let payload: ClipboardPayloadKind = isVideo ? .video(u) : .file(u)
+                    entries.append(ClipboardEntry(id: uuid, title: rec.title, subtitle: rec.subtitle, fileURL: u, capturedAt: date, isPinned: true, payloadKind: payload))
                 } else { skipped += 1 }
             case .image:
                 guard !rec.skippedLargeImage, let b64 = rec.imageBase64, let imgData = Data(base64Encoded: b64) else {

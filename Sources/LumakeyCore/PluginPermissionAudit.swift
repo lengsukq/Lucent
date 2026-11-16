@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum LumakeyPermissionCategory: String, Codable, Sendable, Hashable, CaseIterable {
@@ -17,41 +18,23 @@ public enum LumakeyPermissionCategory: String, Codable, Sendable, Hashable, Case
 }
 
 public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
-    case accessibility
-    case screenRecording
-    case localNetwork
-    case microphoneAndAudio
+    case accessibility, screenRecording, localNetwork, microphoneAndAudio
     case telemetrySampling
-    case clipboard
-    case selection
-    case audio
-    case ocr
-    case everythingSearch
-    case displayInfo
-    case systemControl
-    case lumaLinkStatus
-    case networkAccess
-    case filesystemWrite
-    case subprocessExec
+    case clipboard, selection, audio, ocr, everythingSearch, displayInfo, systemControl, lumaLinkStatus
+    case networkAccess, filesystemWrite, subprocessExec
 
     public var id: String { rawValue }
 
     public var category: LumakeyPermissionCategory {
         switch self {
-        case .accessibility, .screenRecording, .localNetwork, .microphoneAndAudio:
-            .systemTCC
-        case .telemetrySampling:
-            .systemKernel
-        case .clipboard, .selection, .audio, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus:
-            .hostBridge
-        case .networkAccess, .filesystemWrite, .subprocessExec:
-            .resourceScope
+        case .accessibility, .screenRecording, .localNetwork, .microphoneAndAudio: .systemTCC
+        case .telemetrySampling: .systemKernel
+        case .clipboard, .selection, .audio, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus: .hostBridge
+        case .networkAccess, .filesystemWrite, .subprocessExec: .resourceScope
         }
     }
 
-    public var capability: PluginCapability? {
-        PluginCapability(rawValue: rawValue)
-    }
+    public var capability: PluginCapability? { PluginCapability(rawValue: rawValue) }
 
     public var resourceScope: PluginResourceScope? {
         switch self {
@@ -124,14 +107,10 @@ public enum LumakeyPermission: String, Codable, Sendable, Hashable, CaseIterable
 
     public var systemPreferencesURL: String? {
         switch self {
-        case .accessibility:
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-        case .screenRecording:
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
-        case .microphoneAndAudio:
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
-        default:
-            nil
+        case .accessibility: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        case .screenRecording: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+        case .microphoneAndAudio: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+        default: nil
         }
     }
 }
@@ -147,20 +126,11 @@ public struct PluginPermissionUsage: Identifiable, Sendable, Hashable {
     public let roleNote: String
 
     public init(
-        permissionRaw: String,
-        pluginID: String,
-        pluginName: String,
-        kind: PluginKind,
-        isPluginEnabled: Bool,
-        isAuthorized: Bool,
-        roleNote: String
+        permissionRaw: String, pluginID: String, pluginName: String,
+        kind: PluginKind, isPluginEnabled: Bool, isAuthorized: Bool, roleNote: String
     ) {
-        self.permissionRaw = permissionRaw
-        self.pluginID = pluginID
-        self.pluginName = pluginName
-        self.kind = kind
-        self.isPluginEnabled = isPluginEnabled
-        self.isAuthorized = isAuthorized
+        self.permissionRaw = permissionRaw; self.pluginID = pluginID; self.pluginName = pluginName
+        self.kind = kind; self.isPluginEnabled = isPluginEnabled; self.isAuthorized = isAuthorized
         self.roleNote = roleNote
     }
 }
@@ -174,8 +144,7 @@ public struct AppPermissionAuditEntry: Identifiable, Sendable, Hashable {
     public var activePluginCount: Int { plugins.filter { $0.isPluginEnabled && $0.isAuthorized }.count }
 
     public init(permission: LumakeyPermission, plugins: [PluginPermissionUsage]) {
-        self.permission = permission
-        self.plugins = plugins
+        self.permission = permission; self.plugins = plugins
     }
 }
 
@@ -207,21 +176,18 @@ public enum PluginPermissionAudit {
                 } else if let cap = permission.capability {
                     authorized = plugin.isCapabilityGranted(cap)
                     note = authorized ? L10n.pick("Host Bridge · 已授权", "Host Bridge · Granted") : L10n.pick("Host Bridge · 默认关闭（未授权）", "Host Bridge · Denied")
-                } else if permission.resourceScope != nil {
-                    authorized = true
-                    note = L10n.pick("注册声明作用域（审计可见）", "Declared Scope (Audited)")
+                } else if let scope = permission.resourceScope {
+                    authorized = plugin.isResourceScopeGranted(scope)
+                    note = authorized
+                        ? L10n.pick("OS 沙箱 · 已按声明放行", "OS Sandbox · Allowed")
+                        : L10n.pick("OS 沙箱 · 已强制拦截", "OS Sandbox · Blocked")
                 } else {
                     authorized = false
                     note = L10n.pick("声明权限", "Declared")
                 }
                 usages.append(PluginPermissionUsage(
-                    permissionRaw: permission.rawValue,
-                    pluginID: plugin.id,
-                    pluginName: plugin.manifest.name,
-                    kind: plugin.kind,
-                    isPluginEnabled: plugin.isEnabled,
-                    isAuthorized: authorized,
-                    roleNote: note
+                    permissionRaw: permission.rawValue, pluginID: plugin.id, pluginName: plugin.manifest.name,
+                    kind: plugin.kind, isPluginEnabled: plugin.isEnabled, isAuthorized: authorized, roleNote: note
                 ))
             }
             usages.sort { lhs, rhs in

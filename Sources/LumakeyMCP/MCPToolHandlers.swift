@@ -68,7 +68,7 @@ extension MCPServer {
                    "Enable or disable an external or BUILTIN plugin. Disabling BUILTIN plugins stops their listeners/timers immediately.",
                    ["id": ["type": "string"], "enabled": ["type": "boolean"]], ["id", "enabled"]),
             schema("lumakey_update_plugin_overrides",
-                   "Configure user-level overrides for a plugin (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs`, `includeInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) without modifying plugin.json.",
+                   "Configure user-level overrides for a plugin (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs`, `revokedResourceScopes`, `includeInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) without modifying plugin.json.",
                    [
                        "id": ["type": "string"],
                        "customKeywords": ["type": "array", "items": ["type": "string"]],
@@ -77,6 +77,7 @@ extension MCPServer {
                        "pinnedInOverlay": ["type": "boolean"],
                        "quickButtonCommandIDs": ["type": "array", "items": ["type": "string"], "description": "Sub-command IDs enabled as Quick Buttons (default [])."],
                        "disabledCommandIDs": ["type": "array", "items": ["type": "string"], "description": "Sub-command IDs hidden from Global Search (default [])."],
+                       "revokedResourceScopes": ["type": "array", "items": ["type": "string", "enum": scopeIDs], "description": "Declared resource scopes revoked via Seatbelt sandbox."],
                        "includeInGlobalSearch": ["type": "boolean"],
                        "showInSettingsSidebar": ["type": "boolean"],
                        "priorityBoost": ["type": "integer"]
@@ -125,6 +126,8 @@ extension MCPServer {
                     },
                     "declaredCapabilities": desc.declaredCapabilities.map(\.rawValue),
                     "declaredResourceScopes": desc.declaredResourceScopes.map(\.rawValue),
+                    "grantedResourceScopes": desc.grantedResourceScopes.map(\.rawValue).sorted(),
+                    "revokedResourceScopes": desc.revokedResourceScopes.map(\.rawValue).sorted(),
                     "declaredContextKinds": desc.declaredContextKinds.map(\.rawValue),
                     "grantedCapabilities": desc.grantedCapabilities.map(\.rawValue).sorted(),
                     "declaredPermissions": desc.declaredPermissions.map(\.rawValue)

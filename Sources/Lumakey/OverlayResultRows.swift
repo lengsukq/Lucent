@@ -103,6 +103,7 @@ struct OverlayUnifiedRowsView: View {
         switch entry.payloadKind {
         case .colorHex(let hex): colorSwatchIcon(hex)
         case .image: SquircleBadge(symbol: "photo.fill", topColor: .pink, bottomColor: .purple, size: 32)
+        case .video: SquircleBadge(symbol: "film.stack.fill", topColor: .indigo, bottomColor: .cyan, size: 32)
         case .file(let url): frostedIconBox(IconCache.shared.fileIcon(isDirectory: false, extensionLowercased: url.pathExtension.lowercased()))
         case .text: SquircleBadge(symbol: "doc.text.fill", topColor: .cyan, bottomColor: .blue, size: 32)
         }
@@ -197,6 +198,9 @@ struct OverlayUnifiedRowsView: View {
             Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(hit.url.path, forType: .string) } label: { Label("复制完整路径", systemImage: "doc.on.doc") }
             if let ctx = PluginContextMatcher.payloadFromFiles([hit.url], source: "everything") { contextPluginSubmenu(ctx) }
         case .clipboard(let entry):
+            Button { viewModel.executeClipboardEntry(entry) } label: { Label("复制到剪贴板 (↩)", systemImage: "doc.on.doc") }
+            Button { viewModel.executeClipboardEntry(entry, autoPaste: true) } label: { Label("直接粘贴到原窗口 (⇧↩)", systemImage: "arrow.turn.down.left") }
+            if !entry.fileURLs.isEmpty { Button { NSWorkspace.shared.activateFileViewerSelecting(entry.fileURLs) } label: { Label("在访达中显示 (⌘R)", systemImage: "folder") } }
             Button { viewModel.toggleClipboardPin(entry) } label: { Label(entry.isPinned ? "取消收藏" : "永久收藏", systemImage: entry.isPinned ? "pin.slash" : "pin.fill") }
             if let ctx = PluginContextMatcher.payloadFromClipboard(entry) { contextPluginSubmenu(ctx) }
         case .plugin(let plugin):

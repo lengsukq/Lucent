@@ -117,16 +117,22 @@ final class HotKeySettingsViewState: ObservableObject {
 struct HotKeySettingsView: View {
     @StateObject private var state: HotKeySettingsViewState
     private let pluginHotKeys: [ExternalPluginHotKey]
-    private let externalPlugins: [PluginDescriptor]
+    private let plugins: [PluginDescriptor]
     private let onOpenPluginSettings: ((String) -> Void)?
 
     init(
         hotKeyManager: GlobalHotKeyManager? = nil, pluginHotKeys: [ExternalPluginHotKey] = [],
-        externalPlugins: [PluginDescriptor] = [], onOpenPluginSettings: ((String) -> Void)? = nil,
+        plugins: [PluginDescriptor] = [], onOpenPluginSettings: ((String) -> Void)? = nil,
         onConfigChanged: ((HotKeyBindingConfig) -> Void)? = nil
     ) {
-        self.pluginHotKeys = pluginHotKeys; self.externalPlugins = externalPlugins; self.onOpenPluginSettings = onOpenPluginSettings
+        self.pluginHotKeys = pluginHotKeys; self.plugins = plugins; self.onOpenPluginSettings = onOpenPluginSettings
         _state = StateObject(wrappedValue: HotKeySettingsViewState(hotKeyManager: hotKeyManager, pluginHotKeys: pluginHotKeys, onConfigChanged: onConfigChanged))
+    }
+
+    private var displayedPlugins: [PluginDescriptor] {
+        plugins.filter { plugin in
+            !plugin.isBuiltin || pluginHotKeys.contains(where: { $0.pluginID == plugin.id })
+        }
     }
 
     var body: some View {
@@ -156,7 +162,7 @@ struct HotKeySettingsView: View {
                     .padding(.horizontal, 12).padding(.vertical, 8).liquidGlassCard(cornerRadius: LiquidRadii.row)
                 }
                 VStack(spacing: 9) { ForEach(HotKeyActionID.allCases) { hotKeyRow($0) } }
-                if !externalPlugins.isEmpty || !pluginHotKeys.isEmpty { pluginHotKeySection }
+                if !displayedPlugins.isEmpty { pluginHotKeySection }
             }.padding(.trailing, 4)
         }
         .onAppear { state.onViewAppear(latestPluginHotKeys: pluginHotKeys) }
@@ -166,9 +172,9 @@ struct HotKeySettingsView: View {
 
     private var pluginHotKeySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("插件与子功能全局热键（支持在插件独立设置页自定义重录）")
+            Text("插件与子功能全局热键（点击右侧直接跳转对应插件独立设置页重录）")
                 .font(.caption.weight(.bold)).foregroundStyle(LiquidColors.textSecondary).padding(.top, 4)
-            ForEach(externalPlugins) { plugin in
+            ForEach(displayedPlugins) { plugin in
                 let cmdBindings = pluginHotKeys.filter { $0.pluginID == plugin.id && $0.commandID != nil }
                 HStack(spacing: 10) {
                     PluginIconBadge(plugin: plugin, size: 30)
@@ -185,7 +191,7 @@ struct HotKeySettingsView: View {
                         .foregroundStyle((plugin.effectiveHotKey != nil || !cmdBindings.isEmpty) ? .cyan : LiquidColors.textSecondary)
                         .padding(.horizontal, 10).padding(.vertical, 4).background(LiquidColors.pillSurface, in: Capsule())
                     if let onOpenPluginSettings {
-                        Button("改绑热键 →") { onOpenPluginSettings(plugin.id) }.buttonStyle(GlassPillButtonStyle(compact: true))
+                        Button("前往设置 →") { onOpenPluginSettings(plugin.id) }.buttonStyle(GlassPillButtonStyle(compact: true))
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 9).liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)

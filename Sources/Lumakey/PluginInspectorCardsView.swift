@@ -2,87 +2,19 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
-struct PluginBuiltinInspectorCard: View {
+struct PluginPermissionsAndSandboxSection: View {
     let plugin: PluginDescriptor
     @ObservedObject var ctrl: PluginCenterController
     @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
-        let meta = plugin.builtinMetadata
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                SquircleBadge(symbol: plugin.manifest.icon ?? "sparkles", topColor: .cyan, bottomColor: .indigo, size: 36)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(plugin.manifest.name).font(.callout.weight(.bold)).lineLimit(1)
-                        Text("BUILTIN")
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
-                            .foregroundStyle(.mint)
-                            .padding(.horizontal, 6).padding(.vertical, 1.5)
-                            .background(LiquidColors.pillSurface, in: Capsule())
-                    }
-                    Text(meta?.statusSummary ?? plugin.manifest.description)
-                        .font(.caption2)
-                        .foregroundStyle(LiquidColors.textSecondary)
-                }
-                Spacer(minLength: 4)
-                Toggle("", isOn: Binding(
-                    get: { plugin.isEnabled },
-                    set: { ctrl.setEnabled(plugin, isEnabled: $0, viewModel: viewModel) }
-                ))
-                .toggleStyle(.switch)
-                .labelsHidden()
+        VStack(alignment: .leading, spacing: 12) {
+            if !plugin.declaredCapabilities.isEmpty {
+                PluginCapabilitiesCard(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
             }
-
-            if let tcc = meta?.requiredTCCPermissions, !tcc.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("复用 Lumakey 宿主权限（免重复授权与重签名）")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(LiquidColors.textSecondary)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 6)], spacing: 6) {
-                        ForEach(tcc, id: \.self) { perm in
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.shield.fill").font(.system(size: 10)).foregroundStyle(.mint)
-                                Text(perm).font(.caption2).lineLimit(1)
-                            }
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(LiquidColors.pillSurface, in: Capsule())
-                        }
-                    }
-                }
+            if !plugin.declaredResourceScopes.isEmpty || plugin.declaredCapabilities.isEmpty {
+                PluginSandboxPermissionCard(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
             }
-
-            HStack(spacing: 6) {
-                Button("打开完整原生设置 →") { viewModel.openBuiltinPluginSettings(plugin) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
-                Button(ctrl.showEmbeddedBuiltinSettings ? "收起内嵌视图" : "内嵌设置视图") {
-                    ctrl.showEmbeddedBuiltinSettings.toggle()
-                }
-                .buttonStyle(GlassPillButtonStyle())
-            }
-
-            if ctrl.showEmbeddedBuiltinSettings {
-                Divider().opacity(0.25)
-                embeddedNativeView
-                    .frame(maxHeight: 360)
-            }
-        }
-        .padding(10)
-        .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
-    }
-
-    @ViewBuilder
-    private var embeddedNativeView: some View {
-        switch BuiltinPluginID(rawValue: plugin.id) {
-        case .mos:
-            MosPluginSettingsView(viewModel: viewModel)
-        case .lumaLink:
-            LumaLinkSettingsView(viewModel: viewModel)
-        case .systemPulse:
-            TelemetrySettingsView()
-        case nil:
-            EmptyView()
         }
     }
 }
@@ -145,13 +77,15 @@ struct PluginCapabilitiesCard: View {
                 }
             }
         }
-        .padding(10)
-        .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
+        .padding(12)
+        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
     }
 }
 
 struct PluginSandboxPermissionCard: View {
     let plugin: PluginDescriptor
+    @ObservedObject var ctrl: PluginCenterController
+    @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
         let hasCaps = plugin.manifest.capabilities != nil
@@ -159,20 +93,20 @@ struct PluginSandboxPermissionCard: View {
         let fullyDeclared = hasCaps && hasScopes
         let pure = plugin.isPureSandbox && fullyDeclared
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: pure ? "checkmark.shield.fill" : (fullyDeclared ? "network.badge.shield.half.filled" : "exclamationmark.triangle.fill"))
                     .foregroundStyle(pure ? .mint : (fullyDeclared ? .purple : .orange))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(
-                        pure ? "注册权限声明：纯沙盒（capabilities: [] · resourceScopes: []）" :
-                        (fullyDeclared ? "已声明外部资源作用域（无 Host Bridge 能力）" : "未完整声明 capabilities / resourceScopes")
+                        pure ? L10n.pick("系统级沙箱：零特权纯沙盒（capabilities: [] · resourceScopes: []）", "OS Sandbox: Pure Zero-Privilege Sandbox") :
+                        (fullyDeclared ? L10n.pick("外部资源作用域管控 (macOS Seatbelt 沙箱)", "External Resource Scopes (macOS Seatbelt Sandbox)") : L10n.pick("未完整声明 capabilities / resourceScopes", "Missing capabilities / resourceScopes declaration"))
                     )
                     .font(.caption.weight(.semibold))
                     Text(
                         pure
-                        ? "该插件明确声明不需要宿主 TCC、Host Bridge 或外部网络/文件写盘。"
-                        : (fullyDeclared ? "已显式披露下列外部资源访问作用域，并纳入权限审计矩阵。" : "Plugin v3.1 强校验要求在 plugin.json 显式声明 capabilities 与 resourceScopes。")
+                        ? L10n.pick("该插件已被 OS 沙箱封锁外网连接、用户主目录写操作与密钥库访问。", "Outbound IP, user home writes, and secret vault access are blocked by OS sandbox.")
+                        : (fullyDeclared ? L10n.pick("可随时关闭下方作用域，由系统内核 Seatbelt 沙箱强制拦截对应网络、写盘或外部子进程。", "Toggle scopes below to block network, disk writes, or subprocesses at the OS kernel level.") : L10n.pick("Plugin v3.1 强校验要求在 plugin.json 显式声明 capabilities 与 resourceScopes。", "Plugin v3.1 requires explicit capabilities and resourceScopes in plugin.json."))
                     )
                     .font(.caption2)
                     .foregroundStyle(LiquidColors.textSecondary)
@@ -180,20 +114,45 @@ struct PluginSandboxPermissionCard: View {
                 Spacer(minLength: 0)
             }
             if !plugin.declaredResourceScopes.isEmpty {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 95), spacing: 5)], spacing: 5) {
-                    ForEach(plugin.declaredResourceScopes) { scope in
-                        Label(scope.shortLabel, systemImage: scope.symbolName)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.purple)
-                            .lineLimit(1)
-                            .padding(.horizontal, 7).padding(.vertical, 3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(LiquidColors.pillSurface, in: Capsule())
+                ForEach(plugin.declaredResourceScopes) { scope in
+                    let granted = plugin.isResourceScopeGranted(scope)
+                    HStack(spacing: 9) {
+                        Image(systemName: scope.symbolName)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(granted ? .purple : LiquidColors.textSecondary)
+                            .frame(width: 26, height: 26)
+                            .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 5) {
+                                Text(scope.title).font(.caption.weight(.semibold))
+                                Text(scope.rawValue)
+                                    .font(.system(size: 9.5, design: .monospaced))
+                                    .foregroundStyle(LiquidColors.textSecondary)
+                            }
+                            Text(scope.summary)
+                                .font(.caption2)
+                                .foregroundStyle(LiquidColors.textSecondary)
+                                .lineLimit(2)
+                        }
+                        Spacer(minLength: 4)
+                        Toggle("", isOn: Binding(
+                            get: { granted },
+                            set: { ctrl.setResourceScopeGranted(plugin, scope: scope, granted: $0, viewModel: viewModel) }
+                        ))
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .controlSize(.small)
+                    }
+                    .padding(.horizontal, 9).padding(.vertical, 6)
+                    .background(LiquidColors.pillSurface.opacity(0.75), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
+                            .strokeBorder(granted ? Color.purple.opacity(0.38) : Color.orange.opacity(0.45), lineWidth: 0.7)
                     }
                 }
             }
         }
-        .padding(10)
-        .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
+        .padding(12)
+        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
     }
 }

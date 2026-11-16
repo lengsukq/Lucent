@@ -2,6 +2,7 @@ import LumakeyCore
 import SwiftUI
 
 struct TelemetrySettingsView: View {
+    var viewModel: AppViewModel? = nil
     @ObservedObject var pulseState = SystemPulseWindowController.shared.state
 
     private var config: SystemMonitorConfig { pulseState.config }
@@ -15,10 +16,16 @@ struct TelemetrySettingsView: View {
                     title: "系统监控悬浮窗与顶部状态栏",
                     subtitle: "刚安装默认关闭桌面悬浮窗与菜单栏读数（0 后台采样），开启后支持拖拽贴边隐藏与顶部精简展开。"
                 ) {
-                    Button("立即刷一次快照") {
-                        SystemPulseWindowController.shared.refreshOnceForSettings()
+                    HStack(spacing: 8) {
+                        if let vm = viewModel {
+                            Button(L10n.pick("所有插件", "All Plugins")) { vm.activeSettingsSection = .plugins }
+                                .buttonStyle(GlassPillButtonStyle(compact: true))
+                        }
+                        Button("立即刷一次快照") {
+                            SystemPulseWindowController.shared.refreshOnceForSettings()
+                        }
+                        .buttonStyle(GlassPillButtonStyle())
                     }
-                    .buttonStyle(GlassPillButtonStyle())
                 }
 
                 SettingsToggleCardRow(
@@ -44,8 +51,13 @@ struct TelemetrySettingsView: View {
                 )
 
                 menuMetricsCard
+                if let vm = viewModel,
+                   let builtin = vm.plugins.first(where: { $0.id == BuiltinPluginID.systemPulse.rawValue }) {
+                    PluginCommandSettingsCard(plugin: builtin, viewModel: vm)
+                }
                 liveSnapshotCard
             }
+            .padding(.trailing, 4)
         }
         .onAppear {
             SystemPulseWindowController.shared.refreshOnceForSettings()
@@ -109,7 +121,7 @@ struct TelemetrySettingsView: View {
             Text("顶部菜单栏显示项（点击切换，推荐勾选 2~4 项适配刘海屏）")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-            HStack(spacing: 8) {
+            FlowWrapLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                 metricChip("CPU 负载", keyPath: \.menuShowCPU)
                 metricChip("CPU 频率", keyPath: \.menuShowFreq)
                 metricChip("内存占用", keyPath: \.menuShowMemory)

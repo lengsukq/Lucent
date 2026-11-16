@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 3,
+  "id": "browser-hub",
+  "name": "三端浏览器书签与历史中枢",
+  "version": "1.0.0",
+  "description": "直连 Microsoft Edge、Google Chrome（支持多配置档）与 Safari 的本地书签、阅读列表和历史记录，无锁拷贝秒搜并同步 ⌥Space 免前缀检索索引",
+  "mode": "view",
+  "keywords": ["bh", "browser", "history", "edge", "chrome", "safari", "书签", "历史记录", "浏览器"],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "icon.svg",
+  "accentColor": "indigo",
+  "categoryTag": "浏览器中枢",
+  "capabilities": [],
+  "resourceScopes": ["filesystem", "subprocess"],
+  "refreshIntervalSeconds": 300,
+  "commands": [
+    {
+      "id": "search-bookmarks",
+      "title": "搜索 Edge / Chrome / Safari 全部书签",
+      "subtitle": "跨浏览器与多 Profile 检索收藏夹与 Safari 阅读列表（支持 #目录 过滤）",
+      "keywords": ["bmarks", "查书签", "浏览器书签", "收藏夹"],
+      "icon": "book.fill",
+      "arguments": ["--kind", "bookmarks"],
+      "passQuery": true
+    },
+    {
+      "id": "recent-history",
+      "title": "搜索三端浏览器最近历史记录",
+      "subtitle": "无锁读取运行中浏览器的最近访问记录与高频站点",
+      "keywords": ["bhis", "查历史", "浏览历史", "最近访问"],
+      "icon": "clock.arrow.circlepath",
+      "arguments": ["--kind", "history"],
+      "passQuery": true
+    },
+    {
+      "id": "edge-hub",
+      "title": "仅搜 Microsoft Edge 书签与历史",
+      "subtitle": "聚焦检索 Edge 全部配置档下的收藏夹与浏览记录",
+      "keywords": ["edgebm", "edge历史", "edge书签"],
+      "icon": "globe",
+      "arguments": ["--browser", "edge"],
+      "passQuery": true
+    },
+    {
+      "id": "chrome-hub",
+      "title": "仅搜 Google Chrome 书签与历史",
+      "subtitle": "聚焦检索 Chrome 全部配置档下的收藏夹与浏览记录",
+      "keywords": ["chromebm", "chrome历史", "chrome书签"],
+      "icon": "globe.americas.fill",
+      "arguments": ["--browser", "chrome"],
+      "passQuery": true
+    },
+    {
+      "id": "safari-hub",
+      "title": "仅搜 Safari 书签、阅读列表与历史",
+      "subtitle": "聚焦检索 Safari 书签栏、Reading List 与历史记录",
+      "keywords": ["safaribm", "safari历史", "safari书签", "阅读列表"],
+      "icon": "safari.fill",
+      "arguments": ["--browser", "safari"],
+      "passQuery": true
+    },
+    {
+      "id": "sync-browser-index",
+      "title": "立即同步浏览器免前缀搜索索引",
+      "subtitle": "强制重扫 Edge / Chrome / Safari 并更新 ⌥Space 零延迟索引",
+      "keywords": ["bhsync", "同步书签索引", "刷新浏览器索引"],
+      "icon": "arrow.triangle.2.circlepath",
+      "arguments": ["--sync"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    }
+  ],
+  "config": [
+    {
+      "key": "enabledBrowsers",
+      "label": "启用扫描的浏览器数据源",
+      "type": "tags",
+      "defaultValue": "Edge, Chrome, Safari",
+      "placeholder": "Edge, Chrome, Safari",
+      "section": "数据源与隐私范围",
+      "helpText": "支持自由保留常用的浏览器（如仅填 Edge, Chrome）；Safari 读取需在系统设置授予 Lumakey 完全磁盘访问权限"
+    },
+    {
+      "key": "historyDays",
+      "label": "历史记录回溯天数",
+      "type": "number",
+      "control": "slider",
+      "defaultValue": "14",
+      "minValue": 1,
+      "maxValue": 90,
+      "stepValue": 1,
+      "section": "数据源与隐私范围"
+    },
+    {
+      "key": "openInSourceBrowser",
+      "label": "点击主动作时优先用来源浏览器打开",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "打开行为与缓存",
+      "helpText": "关闭时使用系统默认浏览器秒开；开启后 Edge 条目自动调起 Edge、Chrome 条目调起 Chrome、Safari 条目调起 Safari"
+    },
+    {
+      "key": "cacheTtlSeconds",
+      "label": "索引快照缓存有效期 (秒)",
+      "type": "number",
+      "control": "slider",
+      "defaultValue": "120",
+      "minValue": 0,
+      "maxValue": 1800,
+      "stepValue": 30,
+      "section": "打开行为与缓存"
+    },
+    {
+      "key": "maxCardItems",
+      "label": "面板单次最多展示条数",
+      "type": "select",
+      "defaultValue": "25",
+      "options": ["15", "25", "40"],
+      "section": "打开行为与缓存"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Browser Bookmarks & History Hub",
+      "description": "Direct lock-free search across Microsoft Edge, Google Chrome (multi-profile) & Safari bookmarks, Reading List, and history with 0ms launcher indexing",
+      "categoryTag": "Browsers",
+      "commands": {
+        "search-bookmarks": {
+          "title": "Search Edge / Chrome / Safari Bookmarks",
+          "subtitle": "Search bookmark folders & Safari Reading List across all profiles"
+        },
+        "recent-history": {
+          "title": "Search Recent Browser History",
+          "subtitle": "Lock-free WAL query of recent visits & frequent sites"
+        },
+        "edge-hub": {
+          "title": "Search Microsoft Edge Only",
+          "subtitle": "Filter bookmarks and history from Microsoft Edge profiles"
+        },
+        "chrome-hub": {
+          "title": "Search Google Chrome Only",
+          "subtitle": "Filter bookmarks and history from Google Chrome profiles"
+        },
+        "safari-hub": {
+          "title": "Search Safari Bookmarks & History Only",
+          "subtitle": "Filter Safari bookmarks, Reading List & history"
+        },
+        "sync-browser-index": {
+          "title": "Sync Browser Instant-Search Index Now",
+          "subtitle": "Force rescan of Edge, Chrome & Safari into 0ms launcher index"
+        }
+      },
+      "config": {
+        "enabledBrowsers": {
+          "label": "Enabled Browser Sources",
+          "section": "Sources & Scope",
+          "helpText": "Include any of Edge, Chrome, Safari. Reading ~/Library/Safari requires Full Disk Access for Lumakey."
+        },
+        "historyDays": {
+          "label": "History Lookback Window (Days)",
+          "section": "Sources & Scope"
+        },
+        "openInSourceBrowser": {
+          "label": "Open entries in their source browser by default",
+          "section": "Open Behavior & Cache",
+          "helpText": "When enabled, Edge entries open in Edge, Chrome in Chrome, and Safari in Safari."
+        },
+        "cacheTtlSeconds": {
+          "label": "Local Snapshot Cache TTL (seconds)",
+          "section": "Open Behavior & Cache"
+        },
+        "maxCardItems": {
+          "label": "Max Displayed Card Rows",
+          "section": "Open Behavior & Cache"
+        }
+      }
+    }
+  }
+}

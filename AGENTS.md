@@ -8,11 +8,12 @@
    - 架构、规范、路线图和当前状态各归其位，不要制造带日期的重复报告文档。
    - 新增或重命名 `docs/` 下的文档时，必须同步更新 [docs/INDEX.md](docs/INDEX.md)。
    - 修改文档后必须执行 `python3 -B scripts/check-docs.py`，保持 `0 issue(s)`。
-2. **严守 Clean Code 硬门槛**：
-   - `Sources/` 下每个 `.swift` 文件必须职责单一，且行数严格 **<= 300 行**（由 `scripts/verify-macos.sh` 自动检查拦截）。
+2. **严守架构模块隔离与 Clean Code 硬门槛**：
+   - 保持 `LumakeyFoundation` -> `LumakeySearch` / `LumakeySystem` / `LumakeyMedia` -> `LumakeyCore` -> `Lumakey` / `LumakeyMCP` 的单向无环模块依赖，严禁下层模块反向导入上层模块（由 `scripts/verify-macos.sh` 自动检查拦截）。
+   - `Sources/` 下每个 `.swift` 文件必须职责单一、状态所有权清晰，且行数严格 **<= 300 行**（优先按独立类型与业务域解耦，避免机械横向共享可变状态）。
    - 不引入任何第三方 SwiftPM / CocoaPods 依赖。
    - 禁止重复逻辑、投机性预留死代码（`TODO`/未接入函数）与未清理的后台任务或播放器句柄。
-   - 严禁向 `NSExpression(format:)` 传入未过滤用户输入，防止抛出 Swift `do/catch` 无法捕获的 Objective-C 异常崩溃。
+   - 外部脚本插件必须经 `PluginSandboxProfileBuilder` 隔离环境变量并执行作用域管控，严禁向 `NSExpression(format:)` 传入未过滤用户输入。
 3. **macOS 原生服务优先与产品边界**：
    - 截图、悬浮置顶、OCR、条码识别、抠图、缩略图、音视频与 PDF 预览必须优先复用系统框架（包括 `ScreenCaptureKit` 截图标注合成、`Vision` 与 `AVKit`）。
    - 严禁在文件工作台中加入图像/视频批量剪辑工程、后台常驻守护进程或破坏性的 NTFS 强行读写挂载逻辑。

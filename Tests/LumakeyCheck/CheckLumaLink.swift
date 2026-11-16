@@ -23,9 +23,20 @@ func testV080LumaLink() throws {
         rdpPort: 3399,
         pairedDevices: [LumaLinkPairedDevice(name: "Pixel 9", token: "tok123")]
     )
-    cfg.save(to: cfgURL)
-    let loaded = LumaLinkConfig.load(from: cfgURL)
-    check(loaded == cfg, "LumaLinkConfig round-trip persistence")
+    let vaultDir = dir.appendingPathComponent(".vault", isDirectory: true)
+    cfg.save(to: cfgURL, vaultDirectory: vaultDir)
+    let rawSavedJSON = (try? String(contentsOf: cfgURL, encoding: .utf8)) ?? ""
+    check(!rawSavedJSON.contains("tok123"), "LumaLinkConfig scrubs plaintext paired device token from JSON")
+    let loaded = LumaLinkConfig.load(from: cfgURL, vaultDirectory: vaultDir)
+    check(loaded == cfg, "LumaLinkConfig encrypted vault round-trip persistence")
+
+    let expectedPin = LumaLinkServer.shared.regeneratePin()
+    for _ in 0..<5 {
+        check(LumaLinkServer.shared.verifyAndConsumePairPin("000000") != nil, "Wrong PIN rejected")
+    }
+    check(LumaLinkServer.shared.verifyAndConsumePairPin(expectedPin) != nil, "PIN locked out and rotated after 5 failed attempts")
+    let freshPin = LumaLinkServer.shared.regeneratePin()
+    check(LumaLinkServer.shared.verifyAndConsumePairPin(freshPin) == nil, "Regenerated CSPRNG PIN succeeds and resets lockout")
 
     // 2. Binary framing + partial chunk accumulator
     let req = LumaLinkRequest(id: "r1", action: "display.set", token: "tok123", displayID: 1, modeKey: "1280x720@2x_60")

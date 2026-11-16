@@ -6,6 +6,7 @@ enum OverlayKeyAction: Sendable {
     case moveUp
     case moveDown
     case submit
+    case pasteSubmit
     case escape
     case cycleMode
     case deleteBackwardWhenEmpty
@@ -122,6 +123,10 @@ struct AutoFocusSearchField: NSViewRepresentable {
             window: NSWindow
         ) -> NSEvent? {
             let cleanFlags = flags.subtracting([.numericPad, .function])
+            if cleanFlags == .shift && (event.keyCode == 36 || event.keyCode == 76) {
+                parent.onAction(.pasteSubmit)
+                return nil
+            }
             if cleanFlags == .command && (event.keyCode == 36 || event.keyCode == 76) {
                 if let onSecondarySubmit = parent.onSecondarySubmit {
                     onSecondarySubmit()

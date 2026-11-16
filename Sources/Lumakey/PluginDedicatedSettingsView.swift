@@ -39,9 +39,7 @@ struct PluginDedicatedSettingsView: View {
                     PluginCommandSettingsCard(plugin: plugin, viewModel: viewModel, settingsState: state)
                     customizationCard(for: plugin)
                     if !plugin.isBuiltin {
-                        if !plugin.declaredCapabilities.isEmpty {
-                            PluginCapabilitiesCard(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
-                        }
+                        PluginPermissionsAndSandboxSection(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
                         PluginDedicatedDataAndContextCard(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
                         PluginDeveloperDiagnosticsSection(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
                     }
@@ -114,11 +112,27 @@ struct PluginDedicatedSettingsView: View {
                     Button(L10n.pick("在快捷台打开 ↩", "Open in Launcher ↩")) { viewModel.enterPluginScopedOverlay(plugin) }
                         .buttonStyle(GlassPillButtonStyle(prominent: true))
                         .disabled(!plugin.isEnabled || !plugin.isValid)
-                    Button(L10n.pick("所有插件列表", "All Plugins")) {
+                    Button(L10n.pick("插件市场 →", "Plugin Store →")) {
                         viewModel.activePluginSettingsID = nil
                         viewModel.activeSettingsSection = .plugins
                     }
                     .buttonStyle(GlassPillButtonStyle())
+                    if !plugin.isBuiltin {
+                        Button(L10n.pick("访达目录", "Show in Finder")) {
+                            NSWorkspace.shared.activateFileViewerSelecting([plugin.directoryURL])
+                        }
+                        .buttonStyle(GlassPillButtonStyle())
+                        Button(L10n.pick("导出插件包", "Export Plugin")) {
+                            ctrl.exportToFinder(plugin)
+                        }
+                        .buttonStyle(GlassPillButtonStyle())
+                        Button(L10n.pick("卸载插件", "Uninstall")) {
+                            ctrl.remove(plugin, viewModel: viewModel)
+                            viewModel.activePluginSettingsID = nil
+                            viewModel.activeSettingsSection = .plugins
+                        }
+                        .buttonStyle(GlassPillButtonStyle())
+                    }
                     if plugin.overrides.hasCustomizations {
                         Button(L10n.pick("重置个性化项", "Reset Customizations")) { state.resetAllOverrides(for: plugin, viewModel: viewModel) }
                             .buttonStyle(GlassPillButtonStyle())
@@ -221,12 +235,6 @@ struct PluginDedicatedSettingsView: View {
                     Toggle(L10n.pick("混入全局搜索", "Show in Global Search"), isOn: Binding(
                         get: { plugin.includeInGlobalSearch },
                         set: { val in state.mutateOverrides(for: plugin, viewModel: viewModel) { $0.includeInGlobalSearch = val } }
-                    ))
-                    .fixedSize(horizontal: true, vertical: false)
-
-                    Toggle(L10n.pick("在设置侧边栏常驻", "Pin to Settings Sidebar"), isOn: Binding(
-                        get: { plugin.showInSettingsSidebar },
-                        set: { val in state.mutateOverrides(for: plugin, viewModel: viewModel) { $0.showInSettingsSidebar = val } }
                     ))
                     .fixedSize(horizontal: true, vertical: false)
                 }

@@ -198,10 +198,47 @@ extension AppViewModel {
         mosAccessibilityTrusted = MosEngine.shared.isAccessibilityTrusted
     }
 
-    func executeClipboardEntry(_ entry: ClipboardEntry) {
-        ClipboardService.copyToPasteboard(entry)
-        serviceMessage = "已复制：\(entry.title)"
+    func executeClipboardEntry(_ entry: ClipboardEntry, autoPaste: Bool = false) {
+        let targetApp = resolveOverlayTargetApp?()
+        guard ClipboardService.copyToPasteboard(entry) else {
+            serviceMessage = L10n.pick("源媒体文件已被移除，无法写入剪贴板", "Source media file no longer exists")
+            return
+        }
+        let changeCount = NSPasteboard.general.changeCount
+        lastPasteboardChangeCount = changeCount
+        clipboardItems = ClipboardService.promote(entry, in: clipboardItems)
+        if !entry.fileURLs.isEmpty {
+            workspaceClipboard = WorkspaceClipboardState(urls: entry.fileURLs, mode: .copy, pasteboardChangeCount: changeCount)
+        }
+        if !autoPaste {
+            serviceMessage = "已复制：\(entry.title)"
+            if !isOverlayPinned { onHideOverlayRequest?() }
+            return
+        }
+        if targetApp == nil && hasLoadedWorkspace && !entry.fileURLs.isEmpty {
+            if !isOverlayPinned { onHideOverlayRequest?() }
+            pasteWorkspaceClipboard()
+            return
+        }
         if !isOverlayPinned { onHideOverlayRequest?() }
+        if AXIsProcessTrusted() {
+            serviceMessage = L10n.pick("已粘贴：\(entry.title)", "Pasted: \(entry.title)")
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(75)) {
+                Self.postCommandVPasteKeystroke()
+            }
+        } else {
+            serviceMessage = L10n.pick("已复制并切回原窗口，按 ⌘V 即可粘贴", "Copied & refocused target window — press ⌘V to paste")
+        }
+    }
+
+    private static func postCommandVPasteKeystroke() {
+        let src = CGEventSource(stateID: .hidSystemState)
+        if let down = CGEvent(keyboardEventSource: src, virtualKey: 9, keyDown: true) {
+            down.flags = .maskCommand; down.post(tap: .cghidEventTap)
+        }
+        if let up = CGEvent(keyboardEventSource: src, virtualKey: 9, keyDown: false) {
+            up.flags = .maskCommand; up.post(tap: .cghidEventTap)
+        }
     }
 
     func toggleClipboardPin(_ entry: ClipboardEntry) {
@@ -240,5 +277,21 @@ extension AppViewModel {
     func stopClipboardMonitor() {
         clipboardTask?.cancel()
         clipboardTask = nil
+    }
+
+    func loadPersistedPinnedClipboard() {
+        let saved = ClipboardPersistenceStore.loadPinnedEntries()
+        guard !saved.isEmpty else { return }
+        isSyncingPinnedClipboardStore = true
+        defer { isSyncingPinnedClipboardStore = false }
+        clipboardItems = saved
+    }
+
+    func persistPinnedClipboardIfNeeded(previous: [ClipboardEntry]) {
+        guard !isSyncingPinnedClipboardStore, clipboardItems.filter(\.isPinned) != previous.filter(\.isPinned) else { return }
+        isSyncingPinnedClipboardStore = true
+        defer { isSyncingPinnedClipboardStore = false }
+        let migrated = ClipboardPersistenceStore.savePinnedEntries(clipboardItems)
+        if migrated != clipboardItems { clipboardItems = migrated }
     }
 }

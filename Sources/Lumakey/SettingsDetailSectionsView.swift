@@ -5,181 +5,50 @@ import SwiftUI
 struct SettingsDetailSectionsView: View {
     @ObservedObject var viewModel: AppViewModel
     let section: SettingsSection
+    @StateObject private var pluginCenterCtrl = PluginCenterController()
 
     var body: some View {
         switch section {
-        case .search: searchSection
-        case .clipboard: clipboardSection
         case .plugins: pluginsSection
         case .about: aboutSection
         default: EmptyView()
         }
     }
 
-    private var searchSection: some View {
-        let dslExamples: [(token: String, desc: String)] = [
-            ("ext:swift;md", "同时按多个扩展名精确过滤"),
-            ("pic:", "一键列出全盘与外置盘图片"),
-            ("video:", "快速查找视频与影片文件"),
-            ("folder:", "仅筛选目录文件夹（排除普通文件）"),
-            ("path:Documents", "限制在包含指定目录或卷名下检索"),
-            ("report !tmp | ext:pdf", "空格表“与”、!表“排除”、|表“或”")
-        ]
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                SettingsSectionHeroHeader(
-                    symbol: "magnifyingglass.circle.fill", topColor: .teal, bottomColor: .blue,
-                    title: "全盘文件检索引擎与范围",
-                    subtitle: "基于 POSIX opendir/readdir 与多卷轮询队列，开箱自动索引本机主目录与全部已挂载外置磁盘。"
-                ) {
-                    Text(viewModel.isIndexingEverything ? L10n.pick("索引中…", "Indexing…") : L10n.pick("\(viewModel.everythingNodeCount) 节点", "\(viewModel.everythingNodeCount) nodes"))
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(LinearGradient(colors: [.teal, .blue], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("默认检索作用域（点击即刻切换并重建）").font(.callout.weight(.semibold))
-                        Spacer()
-                        Button("重建磁盘缓存") { viewModel.forceRebuildEverythingIndex() }
-                            .buttonStyle(GlassPillButtonStyle())
-                        Button("立即呼出搜文件 (⌥F)") { viewModel.showOverlay(filter: .files) }
-                            .buttonStyle(GlassPillButtonStyle(prominent: true))
-                    }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 195), spacing: 8)], spacing: 8) {
-                        ForEach(viewModel.availableEverythingScopes) { scope in
-                            let active = viewModel.everythingScope == scope
-                            Button { viewModel.rebuildEverythingIndex(scope: scope) } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: scopeIcon(scope))
-                                        .foregroundStyle(active ? Color.white : LiquidColors.accentPrimary)
-                                    Text(scope.title).font(.caption.weight(.semibold)).lineLimit(1)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 10).padding(.vertical, 8)
-                                .foregroundStyle(active ? Color.white : LiquidColors.textPrimary)
-                                .background(active ? Color.accentColor : LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
-                                .overlay { RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("文件检索语法速查（点击自动填入搜索框试用）").font(.callout.weight(.semibold))
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                        ForEach(dslExamples, id: \.token) { item in
-                            Button {
-                                viewModel.overlayQuery = item.token
-                                viewModel.showOverlay(filter: .files)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(item.token).font(.caption.monospaced().weight(.bold)).foregroundStyle(LiquidColors.accentPrimary)
-                                    Text(L10n.translate(item.desc)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                                }
-                                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                                .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
-                                .overlay { RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-            }
-            .padding(.trailing, 4)
-        }
-    }
-
-    private func scopeIcon(_ scope: EverythingScope) -> String {
-        switch scope {
-        case .allVolumes: "externaldrive.fill.badge.checkmark"
-        case .quickUserFolders: "folder.fill"
-        case .home: "house.fill"
-        case .volume: "externaldrive.fill"
-        }
-    }
-
-    private var clipboardSection: some View {
-        let pinnedCount = viewModel.clipboardItems.filter(\.isPinned).count
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                SettingsSectionHeroHeader(
-                    symbol: "doc.on.clipboard.fill", topColor: .orange, bottomColor: .pink,
-                    title: "智能剪贴板库与隐私防护",
-                    subtitle: "本地内存与有界临时文件储存，退出或清空即同步回收 PNG 缓存，绝不上传云端。"
-                ) {
-                    Button("打开剪贴板 (⌥C)") { viewModel.showOverlay(filter: .clipboard) }
-                        .buttonStyle(GlassPillButtonStyle(prominent: true))
-                }
-
-                HStack(spacing: 10) {
-                    statBox("当前历史条目", value: L10n.pick("\(viewModel.clipboardItems.count) 条", "\(viewModel.clipboardItems.count) items"), sub: "未收藏上限 80 条", tint: .orange)
-                    statBox("永久收藏条目", value: L10n.pick("\(pinnedCount) 条", "\(pinnedCount) items"), sub: "不受 FIFO 淘汰清理", tint: .pink)
-                    statBox("隐私过滤模式", value: "已启用", sub: "自动绕过密码管理器", tint: .green)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("安全采集与内存回收机制").font(.callout.weight(.semibold))
-                    privacyRuleRow("lock.shield.fill", .green, "自动过滤密码管理器敏感内容", "遇到 org.nspasteboard.ConcealedType、TransientType 等密码管理器隐私标记项立即跳过记录。")
-                    privacyRuleRow("paintpalette.fill", .purple, "支持文本、#HEX 色块、图片与文件路径", "识别颜色值后可直接在右侧预览色块并一键复制。")
-                    privacyRuleRow("trash.circle.fill", .orange, "临时图片引用随记录淘汰自动删除", "点击“清空未收藏条目”会同时从磁盘删除对应剪贴板临时 PNG。")
-                }
-                .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-
-                HStack(spacing: 10) {
-                    Button("清空未收藏条目") { viewModel.clearUnpinnedClipboard() }
-                        .buttonStyle(GlassPillButtonStyle())
-                    Button("清空全部剪贴板") { viewModel.clipboardItems.removeAll() }
-                        .buttonStyle(GlassPillButtonStyle())
-                }
-            }
-            .padding(.trailing, 4)
-        }
-    }
-
-    private func statBox(_ title: String, value: String, sub: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.translate(title)).font(.caption2).foregroundStyle(.secondary)
-            Text(L10n.translate(value)).font(.title3.weight(.bold).monospacedDigit()).foregroundStyle(tint)
-            Text(L10n.translate(sub)).font(.caption2).foregroundStyle(.secondary)
-        }
-        .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-        .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
-    }
-
-    private func privacyRuleRow(_ symbol: String, _ color: Color, _ title: String, _ desc: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: symbol).foregroundStyle(color).frame(width: 20, height: 20)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(L10n.translate(title)).font(.caption.weight(.semibold))
-                Text(L10n.translate(desc)).font(.caption2).foregroundStyle(.secondary)
-            }
-        }
-        .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-        .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
-    }
-
     private var pluginsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SettingsSectionHeroHeader(
                 symbol: "puzzlepiece.extension.fill", topColor: .purple, bottomColor: .indigo,
-                title: "插件生态 v3 与原生 MCP Server",
-                subtitle: "内置原生插件 (BUILTIN) 与外部扩展均随开关按需启停；外部脚本通过临时 Host Bridge 零弹窗复用宿主权限。"
+                title: "插件市场、权限全景与原生 MCP",
+                subtitle: "已安装的内置与外部插件均挂载于左侧「插件独立设置」栏；点击右侧可一键复制完整 AI Agent 接入提示词。"
             ) {
-                Button("复制 MCP JSON 配置") {
-                    let mcpPath = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/lumakey-mcp").path
-                    let snippet = "{\n  \"mcpServers\": {\n    \"lumakey\": {\n      \"command\": \"\(mcpPath)\",\n      \"args\": []\n    }\n  }\n}"
-                    NSPasteboard.general.clearContents(); NSPasteboard.general.setString(snippet, forType: .string)
-                    viewModel.serviceMessage = L10n.pick("已复制 lumakey-mcp 配置 JSON", "Copied lumakey-mcp JSON configuration")
+                HStack(spacing: 8) {
+                    if pluginCenterCtrl.activeTab != .mcp {
+                        Button("查看 MCP 提示词") {
+                            pluginCenterCtrl.activeTab = .mcp
+                        }
+                        .buttonStyle(GlassPillButtonStyle())
+                    }
+                    Button("复制 Agent 接入提示词") {
+                        let bin = MCPAgentPromptBuilder.resolveExecutablePath()
+                        let prompt = MCPAgentPromptBuilder.buildAgentPrompt(
+                            executablePath: bin.path,
+                            extraTask: pluginCenterCtrl.mcpExtraTask,
+                            language: LanguageManager.shared.current
+                        )
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(prompt, forType: .string)
+                        let msg = L10n.pick(
+                            "✓ 已复制完整 Agent 接入提示词，可直接粘贴发送给 AI 助手",
+                            "✓ Copied full Agent setup prompt to clipboard"
+                        )
+                        pluginCenterCtrl.statusNote = msg
+                        viewModel.serviceMessage = msg
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: true))
                 }
-                .buttonStyle(GlassPillButtonStyle(prominent: true))
             }
-            PluginCenterView(viewModel: viewModel)
+            PluginCenterView(viewModel: viewModel, ctrl: pluginCenterCtrl)
         }
     }
 
@@ -188,8 +57,8 @@ struct SettingsDetailSectionsView: View {
             VStack(spacing: 14) {
                 VStack(spacing: 10) {
                     SquircleBadge(symbol: "sparkles", topColor: .cyan, bottomColor: .indigo, size: 60)
-                    Text(L10n.pick("流光 Lumakey 0.8.7", "Lumakey 0.8.7")).font(.title2.weight(.bold))
-                    Text(L10n.pick("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 24", "Apple Silicon (arm64) Native Swift 6 · Zero Third-Party Dependencies · Build 24"))
+                    Text(L10n.pick("流光 Lumakey 0.8.9", "Lumakey 0.8.9")).font(.title2.weight(.bold))
+                    Text(L10n.pick("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 26", "Apple Silicon (arm64) Native Swift 6 · Zero Third-Party Dependencies · Build 26"))
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
                     Text(
                         L10n.pick(
@@ -198,6 +67,18 @@ struct SettingsDetailSectionsView: View {
                         )
                     )
                     .font(.callout).multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 540)
+
+                    FlowWrapLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                        Button("立即呼出快捷台 (⌥Space)") { viewModel.showOverlay(filter: .all) }
+                            .buttonStyle(GlassPillButtonStyle(prominent: true))
+                        Button("文件工作台 (⌥E)") { viewModel.openRoute(.workspace) }
+                            .buttonStyle(GlassPillButtonStyle())
+                        Button("网络流量监控 (⌥N)") { viewModel.openRoute(.networkMonitor) }
+                            .buttonStyle(GlassPillButtonStyle())
+                        Button("GIF 动图录制 (⌥G)") { viewModel.startGifRecording() }
+                            .buttonStyle(GlassPillButtonStyle())
+                    }
+                    .padding(.top, 4)
                 }
                 .padding(20).frame(maxWidth: .infinity)
                 .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)

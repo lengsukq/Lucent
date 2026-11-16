@@ -110,9 +110,7 @@ struct PluginPermissionsMatrixView: View {
     private func usageRow(_ usage: PluginPermissionUsage) -> some View {
         let dotColor: Color = !usage.isPluginEnabled ? .gray : (usage.isAuthorized ? .green : .orange)
         return Button {
-            if let matched = viewModel.plugins.first(where: { $0.id == usage.pluginID }) {
-                ctrl.select(matched, switchTab: true)
-            }
+            viewModel.openPluginSettings(id: usage.pluginID)
         } label: {
             HStack(spacing: 6) {
                 Circle().fill(dotColor).frame(width: 6, height: 6)
@@ -145,7 +143,7 @@ struct PluginPermissionsMatrixView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 5)], spacing: 5) {
                 ForEach(sandboxPlugins) { plugin in
                     Button {
-                        ctrl.select(plugin, switchTab: true)
+                        viewModel.openPluginSettings(id: plugin.id)
                     } label: {
                         Text(plugin.manifest.name)
                             .font(.caption2.weight(.medium))

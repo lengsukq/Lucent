@@ -1,37 +1,33 @@
-# Lumakey 官方插件示例 (`plugin-demo`)
+# Lumakey 官方插件商店与扩展示例 (`plugin-demo`)
 
-本目录存放面向 **Lumakey Plugin v3** 架构的官方外置插件示例，演示如何在「零常驻守护进程、零第三方依赖、显式声明 `capabilities`」原则下，结合 `mode: "view"` 液态玻璃卡片与 `commandArgs` 交互闭环构建实用效率扩展。
+本目录既是仓库自带的**完整自定义插件商店示例（含 `lumakey-registry.json` 与 `dist/*.zip` 校验归档包）**，也是面向 **Lumakey Plugin v3** 架构的三款旗舰外置插件源码：
 
-## 包含示例
-
-- [`notion-bookmarks/`](notion-bookmarks/README.md)：**Notion 书签收藏插件**
-  - 参考开源项目 [`lengsukq/nav-notion-lime`](https://github.com/lengsukq/nav-notion-lime) 的 Notion 数据库字段模型、网页元信息抓取（Title / Description）及增删改查逻辑。
-  - 纯沙盒运行（`"capabilities": []`），无需申请宿主 TCC 权限，直接调用 macOS 内置 `/usr/bin/python3` 与标准库访问 Notion API。
+- [`browser-hub/`](browser-hub/README.md)：**三端浏览器书签与历史中枢**（本地文件与 SQLite WAL 无锁直连 Microsoft Edge、Google Chrome 多 Profile 与 Apple Safari 书签、阅读列表及历史记录，自动同步 `⌥Space` 免前缀索引并支持按来源浏览器打开）。
+- [`lumalink-companion/`](lumalink-companion/README.md)：**流光随行 · LumaLink 远控伴侣**（纯外部沙盒 `resourceScopes: []` + 受控宿主桥接 `capabilities: ["lumaLinkStatus"]` 全功能远控台，支持置顶配对二维码、多屏 HiDPI 切换、防窥黑屏、防休眠与设备解绑）。
+- [`notion-bookmarks/`](notion-bookmarks/README.md)：**Notion 书签收藏插件**（云端 REST API + 本地免前缀检索索引示例，声明 `capabilities: ["clipboard"]`、`resourceScopes: ["network", "filesystem"]`）。
 
 ## 快速使用
 
-### 方式一：在 Lumakey 界面导入（推荐）
+### 方式一：作为插件商店一键入驻（推荐）
 
-1. 打开 **Lumakey → 设置 → 插件中心**。
-2. 点击「**导入插件目录**」，选择本仓库下的 `plugin-demo/notion-bookmarks` 文件夹。
-3. 在右侧参数表单填入 **Notion Secret Token** 与 **Notion Database ID**，点击「**保存配置**」。
-4. 呼出 `⌥Space`，输入 `bm`（或 `bookmark` / `notion` / `nav`）即可检索、一键收藏剪贴板链接、置顶或归档书签。
+1. 打开 **Lumakey → 设置 → 插件中心 → 精选市场**。
+2. 在顶部「**智能入驻 / 直装地址**」输入框粘贴本目录的本地路径（如 `/Volumes/lightlsle/Code/Lumakey/plugin-demo`）或远端仓库的 `/tree/main/plugin-demo` 子目录地址，点击 **「识别」**。
+3. 自动入驻 **「Lumakey 官方示例商店 (plugin-demo)」** 后，即可在商店列表中带 `SHA-256` 校验一键安装 `三端浏览器书签与历史中枢`、`流光随行 · LumaLink 远控伴侣` 或 `Notion 书签收藏`。
 
-### 方式二：一键安装到本地插件目录
+### 方式二：命令行安装到本地插件目录
 
 ```bash
+# 安装全部三款商店插件（browser-hub + lumalink-companion + notion-bookmarks）
 bash plugin-demo/install.sh
+
+# 或单独安装三端浏览器书签与历史中枢
+bash plugin-demo/install.sh browser-hub
 ```
 
-脚本会将 `plugin-demo/notion-bookmarks` 复制到 `~/Library/Application Support/Lumakey/Plugins/notion-bookmarks` 并赋予 `run.sh` 可执行权限，Lumakey 将通过 `FSEvents` 在 350ms 内自动热重载。
+### 方式三：重新打包商店归档与 `lumakey-registry.json`
 
-### 方式三：使用 `lumakey-mcp` 本地校验与联调
+修改插件源码后，执行以下命令即可调用 `lumakey-mcp` 自动完成 v3 校验、生成 `dist/*.zip` 并更新 `lumakey-registry.json` 中的 64 位 `SHA-256`：
 
 ```bash
-swift build -c debug --arch arm64 --product lumakey-mcp
-BIN_DIR="$(swift build -c debug --arch arm64 --show-bin-path)"
-printf '%s\n' \
-  '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"lumakey_validate_plugin","arguments":{"id":"notion-bookmarks"}}}' \
-  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"notion-bookmarks","query":"","clipboardText":"https://github.com/lengsukq/Lumakey"}}}' \
-  | "$BIN_DIR/lumakey-mcp" --plugins-dir ./plugin-demo
+bash plugin-demo/package-store.sh
 ```

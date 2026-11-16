@@ -28,10 +28,12 @@ final class AppViewModel: ObservableObject {
         }
     }
     @Published var everythingScope: EverythingScope = .allVolumes
+    var isSyncingPinnedClipboardStore: Bool = false
     @Published var clipboardItems: [ClipboardEntry] = [] {
         didSet {
             guard clipboardItems != oldValue else { return }
             if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
+            persistPinnedClipboardIfNeeded(previous: oldValue)
         }
     }
     @Published var clipboardCategory: ClipboardCategory = .all {
@@ -62,6 +64,7 @@ final class AppViewModel: ObservableObject {
     @Published var lumaLinkRdpStatus: LumaLinkRdpStatus = LumaLinkRdpStatus()
 
     @Published var layoutMode: ExplorerLayoutMode = .single
+    @Published var showWorkspacePreview: Bool = true
     @Published var activePane: PaneSide = .left
     @Published var leftPane: PaneState
     @Published var rightPane: PaneState
@@ -152,6 +155,7 @@ final class AppViewModel: ObservableObject {
 
     var onRouteRequest: ((WindowRoute) -> Void)?
     var onHideOverlayRequest: (() -> Void)?
+    var resolveOverlayTargetApp: (() -> NSRunningApplication?)?
     var onShowOverlayRequest: ((OmniFilter) -> Void)?
     var onRecenterFloatingPanel: (() -> Void)?
     var onDockVisibilityChanged: ((Bool) -> Void)?
@@ -180,8 +184,17 @@ final class AppViewModel: ObservableObject {
         LumaLinkRdpSidecarService.shared.onStatusChanged = { [weak self] in
             self?.refreshLumaLinkStatus(refreshPermissions: false)
         }
-        LumaLinkServer.shared.apply(config: lumaLinkConfig, persist: false)
-        refreshLumaLinkStatus(refreshPermissions: lumaLinkConfig.rdpEnabled)
+        let hasCompanionInstalledAndEnabled = plugins.contains {
+            $0.id == LumaLinkServer.companionPluginID && $0.isEnabled && $0.isValid
+        }
+        if hasCompanionInstalledAndEnabled && lumaLinkConfig.enabled {
+            LumaLinkServer.shared.apply(config: lumaLinkConfig, persist: false)
+            refreshLumaLinkStatus(refreshPermissions: lumaLinkConfig.rdpEnabled)
+        } else if lumaLinkConfig.enabled {
+            lumaLinkConfig.enabled = false
+            LumaLinkServer.shared.stopAll()
+        }
+        loadPersistedPinnedClipboard()
         startClipboardMonitor()
         BackupCoordinator.triggerAutoBackupOnLaunchIfNeeded(viewModel: self)
         Task { [weak self] in

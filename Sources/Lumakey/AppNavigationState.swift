@@ -42,26 +42,33 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
 
     static let coreSidebarSections: [SettingsSection] = [
-        .general, .search, .clipboard, .snippets, .shortcuts,
-        .plugins, .network, .cache, .backup, .about
+        .general, .snippets, .shortcuts, .plugins, .cache, .backup, .about
     ]
 
     static let builtinPluginSections: [SettingsSection] = [
-        .mos, .lumaLink, .monitor
+        .mos, .monitor
     ]
+
+    var canonicalSection: SettingsSection {
+        switch self {
+        case .search: .general
+        case .clipboard: .cache
+        default: self
+        }
+    }
 
     var title: String {
         let raw = switch self {
-        case .general: "通用与内存"
+        case .general: "通用与检索"
         case .monitor: "系统脉搏监控"
         case .network: "网络流量"
-        case .cache: "应用缓存"
+        case .cache: "存储与缓存"
         case .search: "检索范围"
         case .mos: "鼠标滚轮"
         case .lumaLink: "流光随行"
         case .clipboard: "剪贴板隐私"
         case .snippets: "快捷短语"
-        case .plugins: "插件管理与 MCP"
+        case .plugins: "插件与 MCP"
         case .pluginDetail: "插件独立设置"
         case .shortcuts: "全局热键"
         case .backup: "导出与备份"
@@ -110,7 +117,6 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
 }
 
 enum WindowRoute: Hashable {
-    case welcome
     case workspace
     case networkMonitor
     case settings(SettingsSection)

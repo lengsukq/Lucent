@@ -1,6 +1,8 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import AppKit
 import Foundation
 import Network
+import Security
 
 extension LumaLinkServer {
     func handleFrame(_ data: Data, from session: LumaLinkClientSession) {
@@ -39,21 +41,54 @@ extension LumaLinkServer {
         dispatchAction(req, session: session)
     }
 
+    public static let maxFailedPairAttempts = 5
+    public static let pairLockoutDurationSeconds: CFAbsoluteTime = 60.0
+
+    public func verifyAndConsumePairPin(_ candidatePin: String, now: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()) -> String? {
+        let trimmed = candidatePin.trimmingCharacters(in: .whitespacesAndNewlines)
+        return lock.withLock {
+            if now < pairLockoutUntil {
+                let remain = max(1, Int(ceil(pairLockoutUntil - now)))
+                return "配对尝试过于频繁，已临时锁定（请 \(remain) 秒后使用新配对码重试）"
+            }
+            guard !trimmed.isEmpty, trimmed == _pin else {
+                failedPairAttempts += 1
+                if failedPairAttempts >= Self.maxFailedPairAttempts {
+                    failedPairAttempts = 0
+                    pairLockoutUntil = now + Self.pairLockoutDurationSeconds
+                    _pin = Self.generatePin()
+                    notifyStatusChanged()
+                    return "连续配对失败已达 \(Self.maxFailedPairAttempts) 次，配对码已自动轮换并锁定 60 秒"
+                }
+                return "配对码错误（剩余 \(Self.maxFailedPairAttempts - failedPairAttempts) 次尝试机会）"
+            }
+            failedPairAttempts = 0
+            pairLockoutUntil = 0
+            _pin = Self.generatePin()
+            return nil
+        }
+    }
+
+    private static func generateSecureDeviceToken() -> String {
+        var bytes = [UInt8](repeating: 0, count: 24)
+        if SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess {
+            return bytes.map { String(format: "%02x", $0) }.joined()
+        }
+        return UUID().uuidString.replacingOccurrences(of: "-", with: "") + UUID().uuidString.replacingOccurrences(of: "-", with: "")
+    }
+
     private func handlePair(_ req: LumaLinkRequest, session: LumaLinkClientSession) {
-        let pin = (req.pin ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let valid = lock.withLock { pin == _pin && !pin.isEmpty }
-        guard valid else {
-            send(LumaLinkResponse(id: req.id, ok: false, error: "配对码错误"), to: session)
+        if let reason = verifyAndConsumePairPin(req.pin ?? "") {
+            send(LumaLinkResponse(id: req.id, ok: false, error: reason), to: session)
             return
         }
         let devName = (req.deviceName ?? "").isEmpty ? "Android 手机" : req.deviceName!
-        let newDevice = LumaLinkPairedDevice(name: devName, token: UUID().uuidString.replacingOccurrences(of: "-", with: ""))
+        let newDevice = LumaLinkPairedDevice(name: devName, token: Self.generateSecureDeviceToken())
         var cfg = currentConfig()
         cfg.pairedDevices.append(newDevice)
         cfg.save()
         lock.withLock {
             _config = cfg
-            _pin = Self.generatePin()
             session.authenticatedDeviceName = devName
         }
         startClipboardWatcherIfNeededOnQueue()

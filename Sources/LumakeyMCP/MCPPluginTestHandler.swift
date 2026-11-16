@@ -28,6 +28,8 @@ extension MCPServer {
             "declaredCommands": desc.declaredCommands.map(\.id),
             "declaredCapabilities": desc.declaredCapabilities.map(\.rawValue),
             "declaredResourceScopes": desc.declaredResourceScopes.map(\.rawValue),
+            "grantedResourceScopes": desc.grantedResourceScopes.map(\.rawValue).sorted(),
+            "revokedResourceScopes": desc.revokedResourceScopes.map(\.rawValue).sorted(),
             "declaredContextKinds": desc.declaredContextKinds.map(\.rawValue),
             "effectiveKeywords": desc.effectiveKeywords,
             "commandHotKeys": desc.overrides.commandHotKeys,
@@ -57,7 +59,14 @@ extension MCPServer {
                 if let side = arguments["showInSettingsSidebar"] as? Bool { ov.showInSettingsSidebar = side }
                 if let boost = arguments["priorityBoost"] as? Int { ov.priorityBoost = boost }
             }
+            if let revRaw = arguments["revokedResourceScopes"] as? [String], !PluginBuiltinRegistry.isBuiltin(id: id) {
+                let desiredRevoked = Set(revRaw.compactMap(PluginResourceScope.init(rawValue:)))
+                for scope in PluginResourceScope.allCases {
+                    try PluginSystem.setPluginResourceScopeGranted(id: id, scope: scope, granted: !desiredRevoked.contains(scope), in: pluginsDirectory)
+                }
+            }
             let updated = PluginSystem.pluginOverrides(id: id, in: pluginsDirectory)
+            let revokedNow = PluginSystem.revokedResourceScopes(id: id, in: pluginsDirectory).map(\.rawValue).sorted()
             return textResult(prettyJSON([
                 "id": id,
                 "customKeywords": updated.customKeywords ?? NSNull(),
@@ -66,6 +75,7 @@ extension MCPServer {
                 "pinnedInOverlay": updated.pinnedInOverlay,
                 "quickButtonCommandIDs": updated.quickButtonCommandIDs,
                 "disabledCommandIDs": updated.disabledCommandIDs,
+                "revokedResourceScopes": revokedNow,
                 "includeInGlobalSearch": updated.includeInGlobalSearch,
                 "showInSettingsSidebar": updated.showInSettingsSidebar,
                 "priorityBoost": updated.priorityBoost

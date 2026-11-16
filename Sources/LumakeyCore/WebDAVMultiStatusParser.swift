@@ -1,7 +1,9 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum WebDAVError: Error, LocalizedError, Sendable, Equatable {
     case invalidServerURL(String)
+    case insecureCleartextHTTP(String)
     case invalidRemotePath(String)
     case unauthorized(Int)
     case notFound(String)
@@ -13,7 +15,9 @@ public enum WebDAVError: Error, LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .invalidServerURL(let raw):
-            "WebDAV 服务器地址无效：\(raw)（需以 https:// 或 http:// 开头）"
+            "WebDAV 服务器地址无效：\(raw)（公网服务器请使用 https://）"
+        case .insecureCleartextHTTP(let host):
+            "已拦截明文 HTTP 公网 WebDAV 连接（\(host)）：为防止 Basic 凭证泄露，公网地址必须使用 https://（仅本机或局域网 NAS 允许 http://）"
         case .invalidRemotePath(let path):
             "远端目录或文件名不合法：\(path)"
         case .unauthorized(let code):

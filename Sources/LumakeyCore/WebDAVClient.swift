@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public final class WebDAVClient: Sendable {
@@ -27,7 +28,26 @@ public final class WebDAVClient: Sendable {
             cfg.timeoutIntervalForResource = 120
         }
         cfg.requestCachePolicy = .reloadIgnoringLocalCacheData
-        self.session = URLSession(configuration: cfg)
+        self.session = URLSession(configuration: cfg, delegate: WebDAVRedirectGuardDelegate.shared, delegateQueue: nil)
+    }
+
+    public static func isAllowedCleartextHTTPHost(_ rawHost: String) -> Bool {
+        let host = rawHost.trimmingCharacters(in: CharacterSet(charactersIn: "[]")).lowercased()
+        guard !host.isEmpty else { return false }
+        if host == "localhost" || host == "::1" || host == "0:0:0:0:0:0:0:1" { return true }
+        if host.hasSuffix(".local") || host.hasSuffix(".lan") || host.hasSuffix(".home.arpa") { return true }
+        if !host.contains(".") && !host.contains(":") { return true }
+        if host.hasPrefix("fe80:") || host.hasPrefix("fc") || host.hasPrefix("fd") { return true }
+        let octets = host.split(separator: ".", omittingEmptySubsequences: false).compactMap { UInt8($0) }
+        if octets.count == 4 {
+            let a = octets[0], b = octets[1]
+            if a == 127 || a == 10 { return true }
+            if a == 192 && b == 168 { return true }
+            if a == 172 && (16...31).contains(b) { return true }
+            if a == 169 && b == 254 { return true }
+            if a == 100 && (64...127).contains(b) { return true }
+        }
+        return false
     }
 
     public func normalizedServerBaseURL() throws -> URL {
@@ -36,6 +56,9 @@ public final class WebDAVClient: Sendable {
               let scheme = comps.scheme?.lowercased(), (scheme == "https" || scheme == "http"),
               let host = comps.host, !host.isEmpty else {
             throw WebDAVError.invalidServerURL(config.serverURL)
+        }
+        if scheme == "http" && !Self.isAllowedCleartextHTTPHost(host) {
+            throw WebDAVError.insecureCleartextHTTP(host)
         }
         if comps.path.isEmpty { comps.path = "/" }
         else if !comps.path.hasSuffix("/") { comps.path += "/" }
@@ -70,15 +93,13 @@ public final class WebDAVClient: Sendable {
     public func testConnection() async throws -> String {
         let baseURL = try normalizedServerBaseURL()
         let (_, resp) = try await perform(
-            method: "PROPFIND",
-            url: baseURL,
+            method: "PROPFIND", url: baseURL,
             headers: ["Depth": "0", "Content-Type": "application/xml; charset=utf-8"],
             body: Self.propfindDepthZeroXML
         )
         switch resp.statusCode {
         case 200, 207:
-            let host = baseURL.host ?? baseURL.absoluteString
-            return "WebDAV 连接与鉴权正常（HTTP \(resp.statusCode) · \(host)）"
+            return "WebDAV 连接与鉴权正常（HTTP \(resp.statusCode) · \(baseURL.host ?? baseURL.absoluteString)）"
         case 401, 403:
             throw WebDAVError.unauthorized(resp.statusCode)
         case 404:
@@ -90,22 +111,17 @@ public final class WebDAVClient: Sendable {
 
     public func ensureRemoteDirectory() async throws {
         var current = try normalizedServerBaseURL()
-        let segments = try validatedDirectorySegments()
-        for seg in segments {
+        for seg in try validatedDirectorySegments() {
             current.appendPathComponent(seg, isDirectory: true)
             if !current.absoluteString.hasSuffix("/") {
                 current = URL(string: current.absoluteString + "/") ?? current
             }
             let (_, resp) = try await perform(method: "MKCOL", url: current)
             switch resp.statusCode {
-            case 200, 201, 204, 405:
-                continue
-            case 401, 403:
-                throw WebDAVError.unauthorized(resp.statusCode)
-            case 404, 409:
-                throw WebDAVError.notFound(current.deletingLastPathComponent().absoluteString)
-            default:
-                throw WebDAVError.unexpectedStatus(method: "MKCOL", statusCode: resp.statusCode, detail: seg)
+            case 200, 201, 204, 405: continue
+            case 401, 403: throw WebDAVError.unauthorized(resp.statusCode)
+            case 404, 409: throw WebDAVError.notFound(current.deletingLastPathComponent().absoluteString)
+            default: throw WebDAVError.unexpectedStatus(method: "MKCOL", statusCode: resp.statusCode, detail: seg)
             }
         }
     }
@@ -118,32 +134,22 @@ public final class WebDAVClient: Sendable {
         let targetURL = dirURL.appendingPathComponent(resolvedName, isDirectory: false)
 
         let (_, resp) = try await perform(
-            method: "PUT",
-            url: targetURL,
-            headers: ["Content-Type": "application/octet-stream"],
-            body: data
+            method: "PUT", url: targetURL,
+            headers: ["Content-Type": "application/octet-stream"], body: data
         )
         switch resp.statusCode {
-        case 200, 201, 204:
-            break
-        case 401, 403:
-            throw WebDAVError.unauthorized(resp.statusCode)
-        case 404, 409:
-            throw WebDAVError.notFound(dirURL.absoluteString)
-        default:
-            throw WebDAVError.unexpectedStatus(method: "PUT", statusCode: resp.statusCode, detail: resolvedName)
+        case 200, 201, 204: break
+        case 401, 403: throw WebDAVError.unauthorized(resp.statusCode)
+        case 404, 409: throw WebDAVError.notFound(dirURL.absoluteString)
+        default: throw WebDAVError.unexpectedStatus(method: "PUT", statusCode: resp.statusCode, detail: resolvedName)
         }
 
         let listed = try await listBackups()
         let keep = max(1, config.keepLatestCount)
         if listed.count > keep {
-            for stale in listed.dropFirst(keep) {
-                try? await deleteBackup(item: stale)
-            }
+            for stale in listed.dropFirst(keep) { try? await deleteBackup(item: stale) }
         }
-        if let matched = listed.first(where: { $0.fileName == resolvedName }) {
-            return matched
-        }
+        if let matched = listed.first(where: { $0.fileName == resolvedName }) { return matched }
         return WebDAVRemoteItem(
             fileName: resolvedName, href: targetURL.path, url: targetURL,
             sizeBytes: Int64(data.count), lastModified: Date()
@@ -153,20 +159,15 @@ public final class WebDAVClient: Sendable {
     public func listBackups() async throws -> [WebDAVRemoteItem] {
         let dirURL = try remoteDirectoryURL()
         let (data, resp) = try await perform(
-            method: "PROPFIND",
-            url: dirURL,
+            method: "PROPFIND", url: dirURL,
             headers: ["Depth": "1", "Content-Type": "application/xml; charset=utf-8"],
             body: Self.propfindListXML
         )
         switch resp.statusCode {
-        case 200, 207:
-            return try WebDAVMultiStatusParser.parse(xmlData: data, baseURL: dirURL)
-        case 401, 403:
-            throw WebDAVError.unauthorized(resp.statusCode)
-        case 404:
-            throw WebDAVError.notFound(dirURL.absoluteString)
-        default:
-            throw WebDAVError.unexpectedStatus(method: "PROPFIND", statusCode: resp.statusCode, detail: "")
+        case 200, 207: return try WebDAVMultiStatusParser.parse(xmlData: data, baseURL: dirURL)
+        case 401, 403: throw WebDAVError.unauthorized(resp.statusCode)
+        case 404: throw WebDAVError.notFound(dirURL.absoluteString)
+        default: throw WebDAVError.unexpectedStatus(method: "PROPFIND", statusCode: resp.statusCode, detail: "")
         }
     }
 
@@ -201,11 +202,11 @@ public final class WebDAVClient: Sendable {
     }
 
     private func perform(
-        method: String,
-        url: URL,
-        headers: [String: String] = [:],
-        body: Data? = nil
+        method: String, url: URL, headers: [String: String] = [:], body: Data? = nil
     ) async throws -> (Data, HTTPURLResponse) {
+        if url.scheme?.lowercased() == "http", let host = url.host, !Self.isAllowedCleartextHTTPHost(host) {
+            throw WebDAVError.insecureCleartextHTTP(host)
+        }
         var req = URLRequest(url: url)
         req.httpMethod = method
         let token = Data("\(config.username):\(password)".utf8).base64EncodedString()
@@ -233,12 +234,39 @@ public final class WebDAVClient: Sendable {
         switch err.code {
         case .secureConnectionFailed, .serverCertificateHasBadDate, .serverCertificateUntrusted,
              .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid,
-             .clientCertificateRejected, .clientCertificateRequired:
+             .clientCertificateRejected, .clientCertificateRequired, .appTransportSecurityRequiresSecureConnection:
             return .tlsError(err.localizedDescription)
         case .userAuthenticationRequired, .userCancelledAuthentication:
             return .unauthorized(401)
         default:
             return .networkError(err.localizedDescription)
         }
+    }
+}
+
+private final class WebDAVRedirectGuardDelegate: NSObject, URLSessionTaskDelegate, Sendable {
+    static let shared = WebDAVRedirectGuardDelegate()
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        guard let nextURL = request.url, let scheme = nextURL.scheme?.lowercased(), let host = nextURL.host else {
+            completionHandler(nil)
+            return
+        }
+        let origHost = task.originalRequest?.url?.host?.lowercased()
+        if scheme == "http" && !WebDAVClient.isAllowedCleartextHTTPHost(host) {
+            completionHandler(nil)
+            return
+        }
+        var sanitized = request
+        if origHost != host.lowercased() {
+            sanitized.setValue(nil, forHTTPHeaderField: "Authorization")
+        }
+        completionHandler(sanitized)
     }
 }

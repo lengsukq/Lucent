@@ -10,20 +10,18 @@ struct NetworkMonitorWindowView: View {
             symbol: "network",
             pinWindowKey: "networkMonitor"
         ) {
-            NetworkMonitorCoreView(embeddedInSettings: false)
+            NetworkMonitorCoreView()
         }
         .frame(minWidth: 920, minHeight: 580)
     }
 }
 
 struct NetworkMonitorCoreView: View {
-    let embeddedInSettings: Bool
-    var onOpenStandaloneWindow: (() -> Void)? = nil
     @StateObject private var controller = NetworkMonitorController()
 
     var body: some View {
         VStack(spacing: 12) {
-            if !embeddedInSettings { headerHeroBar }
+            headerHeroBar
             controlsAndKPIStrip
             splitBody
         }
@@ -61,20 +59,14 @@ struct NetworkMonitorCoreView: View {
                 kpiPill(title: "总上行 ↑", value: NetworkTrafficParser.formatRate(s.totalUpBytesPerSec), accent: .orange)
                 kpiPill(title: "活跃进程", value: "\(s.processes.count)", accent: .indigo)
                 kpiPill(title: "外网目标 IP", value: "\(s.externalHostCount)", accent: .mint)
-                if let openStandalone = onOpenStandaloneWindow {
-                    Button(action: openStandalone) {
-                        Label("独立窗口 (⌥N)", systemImage: "arrow.up.forward.app")
-                    }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
-                }
             }
             HStack(spacing: 5) {
                 GlassInputField(
                     symbol: "magnifyingglass",
-                    placeholder: embeddedInSettings ? "搜索应用 / PID / IP / 域名…" : "过滤应用名 / PID / 远端 IP / 域名 / 协议…",
+                    placeholder: "过滤应用名 / PID / 远端 IP / 域名 / 协议…",
                     text: $controller.searchText
                 )
-                .frame(minWidth: 136, maxWidth: .infinity)
+                .frame(minWidth: 160, maxWidth: .infinity)
                 .layoutPriority(-1)
 
                 ForEach(NetworkFilterMode.allCases) { mode in
@@ -127,7 +119,7 @@ struct NetworkMonitorCoreView: View {
                 }
                 .liquidGlassCard(cornerRadius: LiquidRadii.bento)
             }
-            .frame(width: embeddedInSettings ? 276 : 344)
+            .frame(width: 344)
             .frame(maxHeight: .infinity)
 
             VStack(alignment: .leading, spacing: 6) {

@@ -56,24 +56,39 @@ struct OverlaySideLensView: View {
                 hex: hex, clip: clip,
                 onCopyText: { value, toast in copyString(value, toast: toast) },
                 onCopyClipboard: { viewModel.executeClipboardEntry(clip) },
+                onPasteClipboard: { viewModel.executeClipboardEntry(clip, autoPaste: true) },
                 onTogglePin: { viewModel.toggleClipboardPin(clip) }
             )
         case .image(let url, let dims):
             ImageClipboardLensCard(
                 url: url, dimensions: dims, clip: clip,
-                onCopyImage: {
-                    _ = ScreenshotCompositor.copyImageFileToPasteboard(at: url)
-                    viewModel.serviceMessage = "图片已复制到剪贴板"
-                },
+                onCopyImage: { viewModel.executeClipboardEntry(clip) },
+                onPasteImage: { viewModel.executeClipboardEntry(clip, autoPaste: true) },
                 onPinOverlay: { PinWindowController.shared.pinImage(at: url) },
                 onOpenViewer: { viewModel.openMediaWindow(for: url, kind: .image, pinOnTop: true) },
                 onTogglePin: { viewModel.toggleClipboardPin(clip) },
                 onCopyText: { value, toast in copyString(value, toast: toast) }
             )
-        case .text, .file:
+        case .video(let url):
+            VideoClipboardLensCard(
+                url: url, clip: clip,
+                onCopyVideo: { viewModel.executeClipboardEntry(clip) },
+                onPasteVideo: { viewModel.executeClipboardEntry(clip, autoPaste: true) },
+                onOpenPlayer: { viewModel.openMediaWindow(for: url, kind: .video, pinOnTop: true) },
+                onTogglePin: { viewModel.toggleClipboardPin(clip) }
+            )
+        case .file(let url):
+            FileClipboardLensCard(
+                url: url, clip: clip,
+                onCopyFile: { viewModel.executeClipboardEntry(clip) },
+                onPasteFile: { viewModel.executeClipboardEntry(clip, autoPaste: true) },
+                onTogglePin: { viewModel.toggleClipboardPin(clip) }
+            )
+        case .text:
             TextClipboardLensCard(
                 clip: clip,
                 onCopyClipboard: { viewModel.executeClipboardEntry(clip) },
+                onPasteClipboard: { viewModel.executeClipboardEntry(clip, autoPaste: true) },
                 onTogglePin: { viewModel.toggleClipboardPin(clip) }
             )
         }

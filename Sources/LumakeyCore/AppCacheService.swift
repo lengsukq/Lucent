@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum AppCacheBucketKind: String, CaseIterable, Identifiable, Sendable {
@@ -217,11 +218,21 @@ public enum AppCacheService {
 
     private static func removeFiles(in dir: URL, excluding protectedPaths: Set<String>) -> Int64 {
         let fm = FileManager.default
-        guard let items = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.fileSizeKey], options: []) else { return 0 }
+        guard let items = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey], options: []) else { return 0 }
         var freed: Int64 = 0
-        for item in items where !protectedPaths.contains(item.standardizedFileURL.path) {
-            let sz = fileSize(item)
-            if (try? fm.removeItem(at: item)) != nil { freed += sz }
+        for item in items {
+            let stdPath = item.standardizedFileURL.path
+            if protectedPaths.contains(stdPath) { continue }
+            var isSubDir: ObjCBool = false
+            if fm.fileExists(atPath: stdPath, isDirectory: &isSubDir), isSubDir.boolValue {
+                freed += removeFiles(in: item, excluding: protectedPaths)
+                if ((try? fm.contentsOfDirectory(atPath: stdPath)) ?? []).isEmpty {
+                    try? fm.removeItem(at: item)
+                }
+            } else {
+                let sz = fileSize(item)
+                if (try? fm.removeItem(at: item)) != nil { freed += sz }
+            }
         }
         return freed
     }

@@ -1,19 +1,18 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import CryptoKit
 import Foundation
 
 public enum BackupArchiveService {
     public static let defaultMaxEmbeddedImageBytes: Int = 2 * 1024 * 1024
     static let typedConfigReservedNames: Set<String> = [
-        "mos-config.json", "telemetry-v2.json", "telemetry-config.json"
+        "mos-config.json", "telemetry-v2.json", "telemetry-config.json", "pinned-clipboard.json"
     ]
     static let redactedWebDAVKeys: Set<String> = [
         "password", "passwd", "apppassword", "webdavpassword", "authpassword", "secret", "token"
     ]
 
     public static func defaultAppSupportDirectory() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
-        return base.appendingPathComponent("Lumakey", isDirectory: true)
+        LumakeyAppPaths.defaultAppSupportDirectory()
     }
 
     public static func defaultBackupFileName(date: Date = Date()) -> String {
@@ -148,7 +147,9 @@ public enum BackupArchiveService {
         var skippedClip = 0
         if options.restoreClipboard {
             let decoded = try restorePinnedClipboard(payload.pinnedClipboardItems, imageDir: resolvedClipDir)
-            restoredClip = decoded.entries
+            restoredClip = ClipboardPersistenceStore.savePinnedEntries(
+                decoded.entries, appSupportDirectory: appSupportDirectory, mediaDirectory: resolvedClipDir
+            )
             skippedClip = decoded.skippedCount
         }
 

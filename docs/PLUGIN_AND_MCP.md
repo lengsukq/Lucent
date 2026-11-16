@@ -8,13 +8,12 @@
 
 1. **内置原生插件 (`PluginBuiltinRegistry` · `BUILTIN`)**：
    - 与 `Lumakey.app` 同进程运行，直接复用宿主已授 TCC 权限（无需单独签名或重复弹窗），关闭开关即停止监听、`CGEventTap`、定时器与助手子进程（零空闲消耗）。
-   - 当前内置注册表及内置子功能（均已自动注册到全局搜索，支持在主浮窗按 `Tab` 展开子功能列表，默认无快捷按钮）：
+   - 当前内置注册表及内置子功能（精简为两项高频桌面基础能力；「流光随行 · LumaLink 远控伴侣」已从主程序剥离至仓库 `plugin-demo/` 示例商店目录作为独立官方 Demo 插件 `lumalink-companion`，未安装时零常驻、零侧边栏占用）：
      - `builtin-mos`（鼠标平滑与滚轮反转）：声明 `[accessibility]`；内置子功能含 `切换鼠标平滑总开关`、`切换鼠标滚轮反转方向`、`切换 120Hz 平滑滚动插值`
-     - `builtin-lumalink`（流光随行 · LumaLink 远控伴侣）：声明 `[accessibility, screenRecording, localNetwork, microphoneAndAudio, displayInfo]`；内置子功能含 `开关流光随行远控服务`、`切换流光随行 RDP 加速引擎`
      - `builtin-system-pulse`（系统脉搏桌面监控悬浮窗）：声明 `[telemetrySampling]`；内置子功能含 `开关系统脉搏桌面悬浮窗`、`开关菜单栏实时性能读数`
 2. **外部扩展插件 (`plugin.json` 契约 · `EXT`)**：
-   - 插件包目录 `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json` 保持代码与静态资源不可变；可写缓存、免前缀检索索引 `search-index.json` 与零子进程轻量状态摘要 `status.json` 写入隔离目录 `PluginData/<id>/`（通过 `LUMAKEY_DATA_DIR` 与 `stdin.dataDir` 注入）；普通配置、授权与用户覆盖项持久化于 `plugin-state.json`，`.secret` 密钥字段由本机 `0600` `AES-GCM` 保险箱加密托管。
-   - **`capabilities` 与 `resourceScopes` 双必选强校验**：注册时必须在 `plugin.json` 同时显式写出 `"capabilities"` 与 `"resourceScopes"`（`network` / `filesystem` / `subprocess`）数组；无宿主桥接且无外部网络/写盘/子进程访问才可均声明为 `[]`（纯沙盒）。
+   - 插件包目录 `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json` 保持代码与静态资源不可变；可写缓存、免前缀检索索引 `search-index.json` 与零子进程轻量状态摘要 `status.json` 写入隔离目录 `PluginData/<id>/`（通过 `LUMAKEY_DATA_DIR` 与 `stdin.dataDir` 注入）；普通配置、授权与用户覆盖项持久化于 `plugin-state.json`，`.secret` 密钥字段由基于双轨 256-bit 随机主密钥的本机 `0600` `AES-GCM` 保险箱（`LMKYVLT2`）加密托管。
+   - **`capabilities` 与 `resourceScopes` 双必选强校验 + OS 级 Seatbelt 强制隔离 (`PluginSandboxProfileBuilder`)**：注册时必须在 `plugin.json` 同时显式写出 `"capabilities"` 与 `"resourceScopes"`（`network` / `filesystem` / `subprocess`）数组；运行期由 `ProcessSupervisor` 切断宿主环境变量继承（仅注入纯净白名单与隔离 `TMPDIR`），并通过 `/usr/bin/sandbox-exec` 动态生成 Seatbelt 规则强制拦截未授权网络、用户目录写操作与越权子进程执行，同时无条件拉黑宿主 `.vault` 与 `~/Library/Keychains`。
    - **包内自定义图标、品牌色与自然分类标签 (`icon` / `accentColor` / `categoryTag`)**：
      - `icon` 既支持 SF Symbol（如 `"bookmark.fill"`），也支持插件包内的相对图像路径（如 `"icon.svg"`、`"assets/icon.png"`，严格拦截路径逃逸并经 `IconCache` 缓存渲染）；`PluginViewItem` 与 `search-index.json` 词条同样支持包内或 `PluginData` 下的自定义图标与 `tintColor` 色值；
      - 可选声明 `"accentColor"`（如 `"teal"`、`"#14B8A6"`）与 `"categoryTag"`（如 `"书签"`，未声明时展示为「扩展 / Extension」而非生硬的 `VIEW` / `SCRIPT`）。
@@ -106,7 +105,7 @@
 | `everythingSearch` | `search` (`{"query":"...","limit":20}`) | 复用 `EverythingIndex` 内存树按 DSL 检索文件 |
 | `displayInfo` | `list` (`{}`) | 返回活跃显示器 `displayID`、当前模式与可用分辨率 |
 | `systemControl` | `status`、`setVolume`、`setMute`、`setCaffeine` | 查询与安全调节系统音量/静音/防休眠状态 |
-| `lumaLinkStatus` | `status` (`{}`) | 读取 LumaLink 监听状态（已脱敏，不含 PIN/Token） |
+| `lumaLinkStatus` | `status`、`toggle`、`setEnabled`、`toggleRdp`、`regeneratePin`、`toggleCurtain`、`toggleCaffeine`、`setDisplayMode`、`restoreDisplays`、`revokeDevice` | 全闭环受控管理 LumaLink 监听、高清配对二维码生成、多屏 HiDPI 切换、物理防窥黑屏、防休眠及已配对设备解绑（绝不暴露设备 Token） |
 
 ## 三、全 App 权限审计矩阵与开发者套件
 
@@ -119,10 +118,10 @@
 
 | 工具名 | 必选 / 关键参数 | 作用 |
 | --- | --- | --- |
-| `lumakey_list_plugins` | `includeBuiltin`（可选，默认 `true`） | 返回内置与外部插件的启用、包内图标/品牌色、多语言标题、已声明子功能 (`declaredCommands`)、子功能热键 (`commandHotKeys`)、已开启快捷按钮 (`quickButtonCommandIDs`)、运行态摘要 (`statusSummary`) 与授权状态 |
+| `lumakey_list_plugins` | `includeBuiltin`（可选，默认 `true`） | 返回内置与外部插件的启用、包内图标/品牌色、多语言标题、已声明子功能 (`declaredCommands`)、子功能热键 (`commandHotKeys`)、已开启快捷按钮 (`quickButtonCommandIDs`)、运行态摘要 (`statusSummary`)、宿主能力与 Seatbelt 资源域 (`grantedResourceScopes`/`revokedResourceScopes`) 状态 |
 | `lumakey_app_permissions` | `onlyUsed`（可选） | 返回全 App 权限审计矩阵及纯沙盒 (`[]`) 插件列表 |
 | `lumakey_scaffold_plugin` | `id`, `name`, `keywords`, `capabilities`, `resourceScopes`（必选），`accepts`（可选） | 安全生成 `plugin.json` 与可执行 `run.sh` |
-| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装官方脚手架模板（`sys-ip-dns`、`quick-hash-uuid`、`port-killer`、`shell-note`、`host-snapshot`） |
+| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `browser-hub`、`lumalink-companion` 与 `notion-bookmarks` 三款旗舰插件） |
 | `lumakey_validate_plugin` | `id` | 校验 `capabilities`、`resourceScopes`、包内图标安全边界、滑块数值范围、`commands`、`accepts` 与脚本权限 |
 | `lumakey_run_plugin_test` | `id`, `query`, `arguments`, `context`, `clipboardText`（可选） | 执行内置或外部插件测试（自动注入 `locale`/`theme`、模拟子功能 `arguments`、跨模块 `context` 与临时 Host Bridge） |
 | `lumakey_set_plugin_enabled` | `id`, `enabled` | 启停外部或 `BUILTIN` 插件 |

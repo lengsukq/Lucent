@@ -7,16 +7,28 @@ struct SidePreviewPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("侧边实时预览").font(.headline)
-                Spacer()
+            HStack(spacing: 6) {
+                Text("侧边实时预览").font(.subheadline.weight(.bold)).lineLimit(1)
+                Spacer(minLength: 4)
                 if let entry = viewModel.selectedEntry {
                     Text(entry.mediaKind.badgeTitle)
                         .font(.caption2.weight(.semibold))
+                        .lineLimit(1)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(.ultraThinMaterial, in: Capsule())
                 }
+                Button {
+                    viewModel.showWorkspacePreview = false
+                } label: {
+                    Image(systemName: "sidebar.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(LiquidColors.textSecondary)
+                        .frame(width: 24, height: 24)
+                        .background(LiquidColors.pillSurface, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help("收起右侧预览栏")
             }
 
             SideLivePreviewCard(previewState: viewModel.previewState)

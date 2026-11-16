@@ -230,6 +230,7 @@ struct PluginStructuredViewCard: View {
 struct PluginStarterGalleryListView: View {
     let installedIDs: Set<String>
     let onInstall: (PluginStarterTemplate) -> Void
+    var onOpenSettings: ((String) -> Void)? = nil
 
     var body: some View {
         ScrollView {
@@ -263,8 +264,12 @@ struct PluginStarterGalleryListView: View {
                                 .foregroundStyle(LiquidColors.textSecondary)
                         }
                         Spacer(minLength: 6)
-                        Button(installed ? "重装/预览" : "一键安装") { onInstall(tpl) }
-                            .buttonStyle(GlassPillButtonStyle(prominent: !installed))
+                        if installed, let onOpenSettings {
+                            Button(L10n.pick("打开设置 →", "Settings →")) { onOpenSettings(tpl.id) }
+                                .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                        }
+                        Button(installed ? L10n.pick("重装", "Reinstall") : L10n.pick("一键安装", "Install")) { onInstall(tpl) }
+                            .buttonStyle(GlassPillButtonStyle(prominent: !installed, compact: installed))
                     }
                     .padding(10)
                     .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)

@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum PluginContextKind: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
@@ -86,13 +87,18 @@ public enum PluginContextMatcher {
     public static func payloadFromClipboard(_ entry: ClipboardEntry) -> PluginContextPayload? {
         switch entry.payloadKind {
         case .image(let url, _):
-            return PluginContextPayload(kind: .image, filePaths: [url.path], source: "clipboard")
+            let paths = entry.fileURLs.isEmpty ? [url.path] : entry.fileURLs.map(\.path)
+            return PluginContextPayload(kind: .image, filePaths: paths, source: "clipboard")
+        case .video(let url):
+            let paths = entry.fileURLs.isEmpty ? [url.path] : entry.fileURLs.map(\.path)
+            return PluginContextPayload(kind: .file, filePaths: paths, source: "clipboard")
         case .file(let url):
+            let paths = entry.fileURLs.isEmpty ? [url.path] : entry.fileURLs.map(\.path)
             let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            if !isDir && MediaClassifier.classify(url: url, isDirectory: false) == .image {
-                return PluginContextPayload(kind: .image, filePaths: [url.path], source: "clipboard")
+            if paths.count == 1 && !isDir && MediaClassifier.classify(url: url, isDirectory: false) == .image {
+                return PluginContextPayload(kind: .image, filePaths: paths, source: "clipboard")
             }
-            return PluginContextPayload(kind: isDir ? .directory : .file, filePaths: [url.path], source: "clipboard")
+            return PluginContextPayload(kind: (paths.count == 1 && isDir) ? .directory : .file, filePaths: paths, source: "clipboard")
         case .colorHex(let hex):
             return PluginContextPayload(kind: .text, text: hex, source: "clipboard")
         case .text:

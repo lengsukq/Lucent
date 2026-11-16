@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
 
 public enum PluginBuiltinCommands {
@@ -28,29 +29,6 @@ public enum PluginBuiltinCommands {
                 keywords: ["平滑滚动", "120hz滚动", "smoothscroll", "smooth wheel"],
                 icon: "waveform.path",
                 arguments: ["--toggle-smooth"],
-                passQuery: false
-            )
-        ]
-    }
-
-    public static var lumaLinkCommands: [PluginCommandSpec] {
-        [
-            PluginCommandSpec(
-                id: "lumalink-toggle",
-                title: L10n.pick("开关流光随行远控服务", "Toggle LumaLink Remote Companion"),
-                subtitle: L10n.pick("一键启停局域网 Bonjour 广播与远控伴侣监听", "Start or stop LAN Bonjour discovery & remote companion listener"),
-                keywords: ["远控开关", "流光开关", "togglelumalink", "remote toggle"],
-                icon: "power",
-                arguments: ["--toggle-enabled"],
-                passQuery: false
-            ),
-            PluginCommandSpec(
-                id: "lumalink-rdp",
-                title: L10n.pick("切换流光随行 RDP 加速引擎", "Toggle LumaLink RDP Acceleration"),
-                subtitle: L10n.pick("切换局域网远程桌面高帧率 RDP 加速开关", "Enable or disable VideoToolbox H.264 RDP acceleration"),
-                keywords: ["rdp开关", "远控rdp", "togglerdp", "rdp engine"],
-                icon: "bolt.horizontal.circle",
-                arguments: ["--toggle-rdp"],
                 passQuery: false
             )
         ]
@@ -102,11 +80,6 @@ public enum PluginBuiltinCommands {
             cfg.smoothScroll.toggle()
             MosEngine.shared.apply(config: cfg, persist: false)
             cfg.save(to: configPaths.mosURL)
-        case "--toggle-rdp" where pluginID == BuiltinPluginID.lumaLink.rawValue:
-            var cfg = LumaLinkConfig.load(from: configPaths.lumaLinkURL)
-            cfg.rdpEnabled.toggle()
-            LumaLinkServer.shared.apply(config: cfg, persist: false)
-            cfg.save(to: configPaths.lumaLinkURL)
         case "--toggle-floating" where pluginID == BuiltinPluginID.systemPulse.rawValue:
             var cfg = SystemMonitorConfig.load(from: configPaths.monitorURL)
             cfg.floatingEnabled.toggle()

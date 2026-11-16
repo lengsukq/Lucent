@@ -15,9 +15,11 @@ struct PluginStoreMarketplaceView: View {
                 customStoreHeaderBar(activeStore)
                 customStorePluginList(activeStore)
             } else {
-                PluginStarterGalleryListView(installedIDs: Set(viewModel.plugins.map(\.id))) { tpl in
-                    centerCtrl.installStarter(tpl, viewModel: viewModel)
-                }
+                PluginStarterGalleryListView(
+                    installedIDs: Set(viewModel.plugins.map(\.id)),
+                    onInstall: { tpl in centerCtrl.installStarter(tpl, viewModel: viewModel) },
+                    onOpenSettings: { id in viewModel.openPluginSettings(id: id) }
+                )
             }
         }
         .onAppear { storeCtrl.loadSavedStores() }
@@ -204,6 +206,12 @@ struct PluginStoreMarketplaceView: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
+            if state != .notInstalled {
+                Button(L10n.pick("打开设置 →", "Settings →")) {
+                    viewModel.openPluginSettings(id: item.id)
+                }
+                .buttonStyle(GlassPillButtonStyle(prominent: state == .installedUpToDate(version: item.version), compact: true))
+            }
             Button {
                 storeCtrl.installStorePlugin(item, from: store, viewModel: viewModel, centerCtrl: centerCtrl)
             } label: {

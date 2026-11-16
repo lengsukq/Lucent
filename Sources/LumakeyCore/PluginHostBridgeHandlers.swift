@@ -1,3 +1,4 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import AppKit
 import Foundation
 
@@ -136,16 +137,7 @@ enum PluginHostBridgeHandlers {
             return handleSystemControl(action: action, params: params)
 
         case .lumaLinkStatus:
-            guard action == "status" else { return errorJSON("invalid_action", "lumaLinkStatus 仅支持 status", capability: capability) }
-            let cfg = LumaLinkServer.shared.currentConfig()
-            let snap = LumaLinkServer.shared.currentSnapshot()
-            let rdp = LumaLinkRdpSidecarService.shared.currentStatus(refreshPermissions: false)
-            return okJSON(capability, action, [
-                "enabled": cfg.enabled, "isListening": snap.isListening, "port": Int(snap.port),
-                "connectedDeviceCount": snap.connectedDeviceCount, "pairedDeviceCount": cfg.pairedDevices.count,
-                "rdpEnabled": cfg.rdpEnabled, "rdpRunning": rdp.running,
-                "localIPv4": LumaLinkServer.localIPv4Address() ?? ""
-            ])
+            return handleLumaLinkBridge(action: action, params: params)
         }
     }
 

@@ -1,7 +1,9 @@
+import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import AppKit
 import Darwin
 import Foundation
 import Network
+import Security
 
 public struct LumaLinkRuntimeSnapshot: Sendable {
     public var isListening: Bool
@@ -11,11 +13,8 @@ public struct LumaLinkRuntimeSnapshot: Sendable {
     public var lastError: String?
 
     public init(isListening: Bool = false, port: UInt16 = 0, pairingPin: String = "", connectedDeviceCount: Int = 0, lastError: String? = nil) {
-        self.isListening = isListening
-        self.port = port
-        self.pairingPin = pairingPin
-        self.connectedDeviceCount = connectedDeviceCount
-        self.lastError = lastError
+        self.isListening = isListening; self.port = port; self.pairingPin = pairingPin
+        self.connectedDeviceCount = connectedDeviceCount; self.lastError = lastError
     }
 }
 
@@ -24,21 +23,21 @@ final class LumaLinkClientSession: @unchecked Sendable {
     let connection: NWConnection
     var accumulator = LumaLinkFrameAccumulator()
     var authenticatedDeviceName: String?
-
-    init(connection: NWConnection) {
-        self.connection = connection
-    }
+    init(connection: NWConnection) { self.connection = connection }
 }
 
 public final class LumaLinkServer: @unchecked Sendable {
     public static let shared = LumaLinkServer()
     public static let bonjourServiceType = "_lumakey-remote._tcp"
+    public static let companionPluginID = "lumalink-companion"
 
     let lock = NSLock()
     let queue = DispatchQueue(label: "app.lumakey.lumalink.server", qos: .userInitiated)
     let sampler = SystemMonitorSampler()
     var _config = LumaLinkConfig.load()
     var _pin: String = LumaLinkServer.generatePin()
+    var failedPairAttempts: Int = 0
+    var pairLockoutUntil: CFAbsoluteTime = 0
     private var _isListening = false
     private var _listeningPort: UInt16 = 0
     private var _lastError: String?
@@ -47,7 +46,6 @@ public final class LumaLinkServer: @unchecked Sendable {
     private var clipboardTimer: DispatchSourceTimer?
     private var lastObservedChangeCount: Int = -1
     var suppressClipboardPushUntil: CFAbsoluteTime = 0
-
     public var onStatusChanged: (@MainActor @Sendable () -> Void)?
 
     private init() {}
@@ -56,22 +54,17 @@ public final class LumaLinkServer: @unchecked Sendable {
         lock.withLock {
             let connected = sessions.values.filter { $0.authenticatedDeviceName != nil }.count
             return LumaLinkRuntimeSnapshot(
-                isListening: _isListening,
-                port: _listeningPort,
-                pairingPin: _pin,
-                connectedDeviceCount: connected,
-                lastError: _lastError
+                isListening: _isListening, port: _listeningPort, pairingPin: _pin,
+                connectedDeviceCount: connected, lastError: _lastError
             )
         }
     }
 
-    public func currentConfig() -> LumaLinkConfig {
-        lock.withLock { _config }
-    }
+    public func currentConfig() -> LumaLinkConfig { lock.withLock { _config } }
 
     public func regeneratePin() -> String {
         let next = Self.generatePin()
-        lock.withLock { _pin = next }
+        lock.withLock { _pin = next; failedPairAttempts = 0; pairLockoutUntil = 0 }
         notifyStatusChanged()
         return next
     }
@@ -82,9 +75,7 @@ public final class LumaLinkServer: @unchecked Sendable {
         if next.enabled {
             startIfNeeded(preferredPort: next.preferredPort)
             LumaLinkRdpSidecarService.shared.sync(
-                enabled: next.rdpEnabled,
-                port: next.rdpPort,
-                localAudioEnabled: next.rdpLocalAudioEnabled
+                enabled: next.rdpEnabled, port: next.rdpPort, localAudioEnabled: next.rdpLocalAudioEnabled
             )
         } else {
             stopAll()
@@ -92,6 +83,7 @@ public final class LumaLinkServer: @unchecked Sendable {
     }
 
     public func revokePairedDevice(id: String) {
+        try? LocalSecretVault.deleteValue(service: LumakeyAppPaths.lumaLinkKeychainService, account: id)
         var next = currentConfig()
         next.pairedDevices.removeAll { $0.id == id }
         apply(config: next, persist: true)
@@ -127,29 +119,23 @@ public final class LumaLinkServer: @unchecked Sendable {
 
     private func startIfNeeded(preferredPort: UInt16) {
         queue.async {
-            if self.listener != nil { return }
-            self.startListener(port: preferredPort, allowPortFallback: true)
+            if self.listener == nil { self.startListener(port: preferredPort, allowPortFallback: true) }
         }
     }
 
     private func startListener(port: UInt16, allowPortFallback: Bool) {
         do {
-            let nwPort: NWEndpoint.Port = (port > 0 && allowPortFallback)
-                ? (NWEndpoint.Port(rawValue: port) ?? .any)
-                : .any
+            let nwPort: NWEndpoint.Port = (port > 0 && allowPortFallback) ? (NWEndpoint.Port(rawValue: port) ?? .any) : .any
             let nwListener = try NWListener(using: .tcp, on: nwPort)
             let hostName = Host.current().localizedName ?? "Mac"
             nwListener.service = NWListener.Service(
-                name: hostName,
-                type: Self.bonjourServiceType,
+                name: hostName, type: Self.bonjourServiceType,
                 txtRecord: NWTXTRecord(["proto": "1", "host": hostName])
             )
             nwListener.stateUpdateHandler = { [weak self] state in
                 self?.handleListenerState(state, triedFixedPort: port > 0 && allowPortFallback)
             }
-            nwListener.newConnectionHandler = { [weak self] conn in
-                self?.acceptConnection(conn)
-            }
+            nwListener.newConnectionHandler = { [weak self] conn in self?.acceptConnection(conn) }
             listener = nwListener
             nwListener.start(queue: queue)
         } catch {
@@ -165,12 +151,8 @@ public final class LumaLinkServer: @unchecked Sendable {
             lock.withLock { _isListening = true; _listeningPort = portVal; _lastError = nil }
             notifyStatusChanged()
         case .failed(let err):
-            listener?.cancel()
-            listener = nil
-            if triedFixedPort {
-                startListener(port: 0, allowPortFallback: false)
-                return
-            }
+            listener?.cancel(); listener = nil
+            if triedFixedPort { startListener(port: 0, allowPortFallback: false); return }
             lock.withLock { _isListening = false; _listeningPort = 0; _lastError = err.localizedDescription }
             notifyStatusChanged()
         case .cancelled:
@@ -201,9 +183,7 @@ public final class LumaLinkServer: @unchecked Sendable {
             stopClipboardWatcherOnQueue()
             LumaLinkAudioBridgeService.shared.stopVirtualMic()
             LumaLinkSpeakerTapService.shared.stopAll()
-            if currentConfig().autoRestoreDisplayOnDisconnect {
-                _ = LumaLinkDisplayService.shared.restoreAll()
-            }
+            if currentConfig().autoRestoreDisplayOnDisconnect { _ = LumaLinkDisplayService.shared.restoreAll() }
             LumaLinkSystemControlService.shared.setCurtain(false, mute: false)
         }
         notifyStatusChanged()
@@ -214,19 +194,13 @@ public final class LumaLinkServer: @unchecked Sendable {
             guard let self else { return }
             if let data, !data.isEmpty {
                 do {
-                    for frame in try session.accumulator.append(data) {
-                        self.handleFrame(frame, from: session)
-                    }
+                    for frame in try session.accumulator.append(data) { self.handleFrame(frame, from: session) }
                 } catch {
-                    self.dropSession(session.id)
-                    return
+                    self.dropSession(session.id); return
                 }
             }
-            if isComplete || err != nil {
-                self.dropSession(session.id)
-            } else {
-                self.receiveLoop(session)
-            }
+            if isComplete || err != nil { self.dropSession(session.id) }
+            else { self.receiveLoop(session) }
         }
     }
 
@@ -235,17 +209,12 @@ public final class LumaLinkServer: @unchecked Sendable {
         DispatchQueue.main.async { self.lastObservedChangeCount = NSPasteboard.general.changeCount }
         let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now() + .seconds(1), repeating: .milliseconds(900), leeway: .milliseconds(150))
-        timer.setEventHandler { [weak self] in
-            Task { @MainActor [weak self] in self?.pollClipboardOnMain() }
-        }
+        timer.setEventHandler { [weak self] in Task { @MainActor [weak self] in self?.pollClipboardOnMain() } }
         timer.resume()
         clipboardTimer = timer
     }
 
-    private func stopClipboardWatcherOnQueue() {
-        clipboardTimer?.cancel()
-        clipboardTimer = nil
-    }
+    private func stopClipboardWatcherOnQueue() { clipboardTimer?.cancel(); clipboardTimer = nil }
 
     @MainActor
     private func pollClipboardOnMain() {
@@ -266,7 +235,10 @@ public final class LumaLinkServer: @unchecked Sendable {
     }
 
     static func generatePin() -> String {
-        String(format: "%06d", Int.random(in: 100_000...999_999))
+        var raw: UInt32 = 0
+        let status = withUnsafeMutableBytes(of: &raw) { SecRandomCopyBytes(kSecRandomDefault, 4, $0.baseAddress!) }
+        if status == errSecSuccess { return String(format: "%06d", 100_000 + Int(raw % 900_000)) }
+        return String(format: "%06d", Int.random(in: 100_000...999_999))
     }
 
     public static func localIPv4Address() -> String? {
