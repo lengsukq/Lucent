@@ -32,8 +32,8 @@
     "title": "AI Quota Glass HUD",
     "width": 412,
     "height": 514,
-    "minWidth": 340,
-    "minHeight": 176,
+    "minWidth": 300,
+    "minHeight": 120,
     "resizable": true,
     "chrome": "frameless",
     "transparent": true,
@@ -135,6 +135,14 @@
       "section": "采集源与显示偏好"
     },
     {
+      "key": "showUninstalledProviders",
+      "label": "显示未安装 / 未配置的监控源",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "采集源与显示偏好",
+      "helpText": "关闭时（默认）自动隐藏未在本机检测到 CLI 且未配置密钥的项目，悬浮窗更清爽；需要排查安装状态时再开启。"
+    },
+    {
       "key": "displayMode",
       "label": "窗口配额百分比口径",
       "type": "select",
@@ -231,6 +239,11 @@
           "label": "Enabled Providers",
           "placeholder": "codex, claude, agy, dsh, deepseek",
           "section": "Sources & Display"
+        },
+        "showUninstalledProviders": {
+          "label": "Show uninstalled / unconfigured providers",
+          "section": "Sources & Display",
+          "helpText": "Hidden by default so the widget only shows CLIs/keys active on this Mac."
         },
         "displayMode": {
           "label": "Quota Window Percentage Mode",

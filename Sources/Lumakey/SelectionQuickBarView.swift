@@ -188,7 +188,7 @@ struct SelectionQuickBarView: View {
                 .frame(maxHeight: 92)
             }
 
-            HStack(spacing: 6) {
+            FlowWrapLayout(horizontalSpacing: 6, verticalSpacing: 6) {
                 Button {
                     onCopyResult(title)
                 } label: {
@@ -197,12 +197,20 @@ struct SelectionQuickBarView: View {
                 .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
 
                 Button {
-                    _ = PluginAudioBridgePlayer.shared.speak(text: title)
+                    _ = PluginAudioBridgePlayer.shared.speak(text: state.selectedText)
                 } label: {
-                    Image(systemName: "speaker.wave.2.fill")
+                    Label(L10n.pick("读原文", "Source"), systemImage: "speaker.wave.2")
                 }
                 .buttonStyle(GlassPillButtonStyle(compact: true))
-                .help(L10n.pick("朗读译文", "Speak translation"))
+                .help(L10n.pick("朗读选中的原文", "Speak source text"))
+
+                Button {
+                    _ = PluginAudioBridgePlayer.shared.speak(text: title)
+                } label: {
+                    Label(L10n.pick("读译文", "Target"), systemImage: "speaker.wave.2.fill")
+                }
+                .buttonStyle(GlassPillButtonStyle(compact: true))
+                .help(L10n.pick("朗读翻译结果", "Speak translation"))
 
                 if let saveArgs, !saveArgs.isEmpty {
                     Button(state.savedToVocab ? L10n.pick("已收藏", "Saved") : L10n.pick("存生词本", "Save")) {
@@ -211,11 +219,10 @@ struct SelectionQuickBarView: View {
                     .buttonStyle(GlassPillButtonStyle(compact: true))
                     .disabled(state.savedToVocab)
                 }
-                Spacer()
             }
         }
         .padding(12)
-        .frame(width: 340)
+        .frame(width: 368)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
         .background {
             RoundedShapeOuterShadow(

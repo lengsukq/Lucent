@@ -9,6 +9,7 @@ struct PluginCenterView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             topNavigationBar
+            PythonRuntimeAdvisorCard(viewModel: viewModel)
             switch ctrl.activeTab {
             case .gallery:
                 PluginStoreMarketplaceView(viewModel: viewModel, centerCtrl: ctrl)

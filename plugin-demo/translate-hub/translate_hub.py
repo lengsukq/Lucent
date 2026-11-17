@@ -193,14 +193,20 @@ def build_vocab_or_history_card(
         eid = str(e.get("id") or "")
         src_txt = str(e.get("source") or "")
         dst_txt = str(e.get("translation") or "")
+        s_lang = str(e.get("sourceLang") or "en")
         t_lang = str(e.get("targetLang") or "en")
         saved = eid in vocab_ids
         actions = [
             {
+                "id": f"tts-src-{eid}",
+                "label": "Speak Src" if is_en else "朗读原文",
+                "commandArgs": ["--speak", TTS_VOICES.get(s_lang, "en-US"), src_txt, f"--{mode}"],
+            },
+            {
                 "id": f"tts-{eid}",
-                "label": "Speak" if is_en else "朗读",
+                "label": "Speak Dst" if is_en else "朗读译文",
                 "commandArgs": ["--speak", TTS_VOICES.get(t_lang, "en-US"), dst_txt, f"--{mode}"],
-            }
+            },
         ]
         if is_vocab or saved:
             actions.append({
@@ -429,8 +435,13 @@ def execute_plugin(
             "copyText": txt,
             "actions": [
                 {
+                    "id": f"speak-src-{idx}",
+                    "label": "Speak Src" if is_en else "朗读原文",
+                    "commandArgs": ["--speak", TTS_VOICES.get(src_lang, "en-US"), clean_text],
+                },
+                {
                     "id": f"speak-dst-{idx}",
-                    "label": "Speak" if is_en else "朗读译文",
+                    "label": "Speak Dst" if is_en else "朗读译文",
                     "commandArgs": ["--speak", TTS_VOICES.get(target_lang, "en-US"), txt],
                 },
                 {

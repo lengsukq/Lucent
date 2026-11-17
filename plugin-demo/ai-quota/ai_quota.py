@@ -321,6 +321,12 @@ def _format_deepseek_item(snap: dict[str, Any], is_en: bool) -> tuple[dict[str, 
     )
 
 
+def _is_provider_active(pid: str, snap: dict[str, Any]) -> bool:
+    if pid == "deepseek":
+        return bool(snap.get("configured") and snap.get("accounts"))
+    return bool(snap.get("installed"))
+
+
 def _build_hud_telemetry(
     target_providers: list[str],
     snapshots: dict[str, dict[str, Any]],
@@ -331,6 +337,7 @@ def _build_hud_telemetry(
     status_badge: str,
     cache_state: str,
     float_interval: int,
+    show_uninstalled: bool = False,
 ) -> dict[str, Any]:
     short_names = {
         "codex": "Codex",
@@ -341,6 +348,7 @@ def _build_hud_telemetry(
     }
     row_by_pid = {str(r.get("id") or "").split("-")[1]: r for r in rows if "-" in str(r.get("id") or "")}
     providers_out: list[dict[str, Any]] = []
+    hidden_count = 0
     for pid in target_providers:
         snap = snapshots.get(pid) or {}
         row = row_by_pid.get(pid) or {}
@@ -349,7 +357,10 @@ def _build_hud_telemetry(
         if wins:
             u = clamp_pct(float(wins[0]["used_pct"]))
             pct = (100.0 - u) if display_mode == "remaining" else u
-        active = bool(snap.get("installed")) if pid != "deepseek" else bool(snap.get("configured") and snap.get("accounts"))
+        active = _is_provider_active(pid, snap)
+        if not show_uninstalled and not active:
+            hidden_count += 1
+            continue
         providers_out.append(
             {
                 "id": pid,
@@ -370,6 +381,8 @@ def _build_hud_telemetry(
         "intervalSeconds": float_interval,
         "statusSummary": status_summary,
         "statusBadge": status_badge,
+        "showUninstalled": show_uninstalled,
+        "hiddenCount": hidden_count,
         "providers": providers_out,
     }
 
@@ -433,6 +446,7 @@ def dispatch(stdin_payload: dict[str, Any], argv: list[str], user_home: Path | N
     data_dir = Path(raw_dd) if raw_dd else None
 
     enabled = parse_enabled_providers(str(cfg.get("enabledProviders") or "codex, claude, agy, dsh, deepseek"))
+    show_uninstalled = str(cfg.get("showUninstalledProviders") or "false").strip().lower() in {"1", "true", "yes", "on"}
     display_mode = "used" if str(cfg.get("displayMode") or "remaining").lower() == "used" else "remaining"
     notify_on_refresh = str(cfg.get("notifyOnRefresh", "true")).lower() != "false"
     try:
@@ -521,53 +535,83 @@ def dispatch(stdin_payload: dict[str, Any], argv: list[str], user_home: Path | N
             status_badge=status_badge,
             cache_state=cache_state,
             float_interval=float_interval,
+            show_uninstalled=show_uninstalled,
         )
 
+    active_pids = {pid for pid in target_providers if _is_provider_active(pid, snapshots.get(pid) or {})}
     visible_rows = all_rows
     if provider_filter:
         allowed_prefixes = tuple(f"aq-{p}" for p in provider_filter)
         visible_rows = [r for r in all_rows if str(r.get("id") or "").startswith(allowed_prefixes)]
-    elif query:
-        visible_rows = [
-            r
-            for r in all_rows
-            if query in f"{r.get('title', '')} {r.get('subtitle', '')} {r.get('id', '')}".lower()
-        ] or all_rows
-    elif not open_custom_hud and not open_floating:
-        hud_row = {
-            "id": "aq-open-hud",
-            "title": "Open Desktop Floating Quota Widget →" if is_en else "打开桌面悬浮小窗挂件（置顶实时刷新）→",
-            "subtitle": (
-                "Launch a compact translucent HUD widget on your desktop with auto-refresh"
-                if is_en
-                else "在桌面置顶显示透明玻璃悬浮挂件，支持折叠小窗、透明度调节与自动刷新"
-            ),
-            "icon": "macwindow.on.rectangle",
-            "tintColor": "cyan",
-            "badge": "FLOATING HUD",
-            "commandArgs": ["--custom-hud"],
-            "actions": [
-                {
-                    "id": "launch-hud",
-                    "label": "Glass HUD" if is_en else "玻璃小挂件",
-                    "style": "primary",
-                    "commandArgs": ["--custom-hud"],
-                },
-                {
-                    "id": "launch-panel",
-                    "label": "Native Panel" if is_en else "原生悬浮窗",
-                    "commandArgs": ["--float-panel"],
-                },
-            ],
-        }
-        visible_rows = [hud_row, *visible_rows]
+    else:
+        if not show_uninstalled:
+            visible_rows = [
+                r for r in all_rows
+                if str(r.get("id") or "").removeprefix("aq-") in active_pids
+            ]
+        if query:
+            visible_rows = [
+                r
+                for r in visible_rows
+                if query in f"{r.get('title', '')} {r.get('subtitle', '')} {r.get('id', '')}".lower()
+            ] or visible_rows
+        if not visible_rows:
+            visible_rows = [{
+                "id": "aq-none-active",
+                "title": "No installed AI CLIs or configured keys found" if is_en else "暂未检测到本机 AI CLI 或已配置密钥",
+                "subtitle": "Open plugin settings to add DeepSeek API Key or enable 'Show uninstalled providers'" if is_en else "可在插件设置填入 DeepSeek Key，或开启「显示未安装/未配置的监控源」排查路径",
+                "icon": "slider.horizontal.3",
+                "tintColor": "slate",
+                "badge": "SETUP",
+                "commandArgs": ["--refresh"],
+            }]
+        if not open_custom_hud and not open_floating:
+            hud_row = {
+                "id": "aq-open-hud",
+                "title": "Open Desktop Floating Quota Widget →" if is_en else "打开桌面悬浮小窗挂件（置顶实时刷新）→",
+                "subtitle": (
+                    "Launch a compact translucent HUD widget on your desktop with auto-refresh"
+                    if is_en
+                    else "在桌面置顶显示透明玻璃悬浮挂件，支持折叠小窗、透明度调节与自动刷新"
+                ),
+                "icon": "macwindow.on.rectangle",
+                "tintColor": "cyan",
+                "badge": "FLOATING HUD",
+                "commandArgs": ["--custom-hud"],
+                "actions": [
+                    {
+                        "id": "launch-hud",
+                        "label": "Glass HUD" if is_en else "玻璃小挂件",
+                        "style": "primary",
+                        "commandArgs": ["--custom-hud"],
+                    },
+                    {
+                        "id": "launch-panel",
+                        "label": "Native Panel" if is_en else "原生悬浮窗",
+                        "commandArgs": ["--float-panel"],
+                    },
+                ],
+            }
+            visible_rows = [hud_row, *visible_rows]
 
-    metrics = [
-        {"key": "Codex CLI", "value": metric_map.get("codex", "—")},
-        {"key": "Claude Code", "value": metric_map.get("claude", "—")},
-        {"key": "AGY / DSH", "value": f"{metric_map.get('agy', '—')} | {metric_map.get('dsh', '—')}"},
-        {"key": "DeepSeek Balance" if is_en else "DeepSeek 余额", "value": metric_map.get("deepseek", "—")},
+    metric_specs = [
+        ("codex", "Codex CLI", metric_map.get("codex", "—")),
+        ("claude", "Claude Code", metric_map.get("claude", "—")),
+        ("agy", "AGY", metric_map.get("agy", "—")),
+        ("dsh", "DSH", metric_map.get("dsh", "—")),
+        ("deepseek", "DeepSeek Balance" if is_en else "DeepSeek 余额", metric_map.get("deepseek", "—")),
     ]
+    if show_uninstalled or provider_filter:
+        metrics = [
+            {"key": "Codex CLI", "value": metric_map.get("codex", "—")},
+            {"key": "Claude Code", "value": metric_map.get("claude", "—")},
+            {"key": "AGY / DSH", "value": f"{metric_map.get('agy', '—')} | {metric_map.get('dsh', '—')}"},
+            {"key": "DeepSeek Balance" if is_en else "DeepSeek 余额", "value": metric_map.get("deepseek", "—")},
+        ]
+    else:
+        metrics = [{"key": lbl, "value": val} for pid, lbl, val in metric_specs if pid in active_pids]
+        if not metrics:
+            metrics = [{"key": "Active CLIs" if is_en else "本机监控源", "value": "0"}]
 
     mode_desc = (
         ("Remaining %" if display_mode == "remaining" else "Used %")
@@ -595,8 +639,8 @@ def dispatch(stdin_payload: dict[str, Any], argv: list[str], user_home: Path | N
             "htmlPath": "ui/widget.html",
             "width": 412,
             "height": 514,
-            "minWidth": 340,
-            "minHeight": 176,
+            "minWidth": 300,
+            "minHeight": 120,
             "resizable": True,
             "chrome": "frameless",
             "transparent": True,

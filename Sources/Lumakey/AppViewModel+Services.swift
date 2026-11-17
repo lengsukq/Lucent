@@ -172,6 +172,42 @@ extension AppViewModel {
         mosTapActive = MosEngine.shared.isTapActive
     }
 
+    func refreshToolingStatus() {
+        Task { [weak self] in
+            let detected = await Task.detached(priority: .utility) { HostToolingStatus.detect() }.value
+            self?.toolingStatus = detected
+        }
+    }
+
+    func presentHotKeyBanner(
+        tone: SettingsHotKeyBanner.Tone,
+        message: String,
+        autoDismissSeconds: Double? = nil,
+        onCancel: (() -> Void)? = nil
+    ) {
+        hotKeyBannerDismissTask?.cancel()
+        hotKeyBannerDismissTask = nil
+        let banner = SettingsHotKeyBanner(tone: tone, message: message)
+        hotKeyBanner = banner
+        hotKeyBannerCancelAction = onCancel
+        serviceMessage = message
+        if let autoDismissSeconds, autoDismissSeconds > 0 {
+            let bannerID = banner.id
+            hotKeyBannerDismissTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(autoDismissSeconds))
+                guard !Task.isCancelled, let self, self.hotKeyBanner?.id == bannerID else { return }
+                self.dismissHotKeyBanner()
+            }
+        }
+    }
+
+    func dismissHotKeyBanner() {
+        hotKeyBannerDismissTask?.cancel()
+        hotKeyBannerDismissTask = nil
+        hotKeyBannerCancelAction = nil
+        hotKeyBanner = nil
+    }
+
     func handleAccessibilityTrustOrMosChanged() {
         let prevTrusted = mosAccessibilityTrusted
         let prevActive = mosTapActive

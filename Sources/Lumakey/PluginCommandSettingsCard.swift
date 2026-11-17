@@ -8,28 +8,77 @@ private final class LocalCommandHotKeyRecorder: ObservableObject {
     @Published var recordingCmdID: String?
     private var monitorToken: Any?
 
-    func toggle(for spec: PluginCommandSpec, pluginID: String, viewModel: AppViewModel) {
-        if recordingCmdID == spec.id { stop(); return }
+    func toggle(for spec: PluginCommandSpec, plugin: PluginDescriptor, viewModel: AppViewModel) {
+        if recordingCmdID == spec.id {
+            stop()
+            viewModel.presentHotKeyBanner(
+                tone: .neutral,
+                message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                autoDismissSeconds: 1.8
+            )
+            return
+        }
         stop()
         recordingCmdID = spec.id
+        let cmdTitle = plugin.manifest.localizedCommandTitle(spec)
+        let prompt = L10n.pick(
+            "正在录制子功能「\(cmdTitle)」全局热键 · 请按下组合键（需含 ⌘/⌥/⌃），按 ⌫ 清空，Esc 取消",
+            "Recording hotkey for \"\(cmdTitle)\" · Press shortcut, ⌫ to clear, Esc to cancel"
+        )
+        viewModel.presentHotKeyBanner(tone: .recording, message: prompt) { [weak self, weak viewModel] in
+            self?.stop()
+            viewModel?.presentHotKeyBanner(
+                tone: .neutral,
+                message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                autoDismissSeconds: 1.8
+            )
+        }
         monitorToken = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self, weak viewModel] event in
             let code = Int(event.keyCode)
             let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
             let consumed = MainActor.assumeIsolated {
-                guard let self else { return false }
+                guard let self, let viewModel else { return false }
                 if HotKeyChord(keyCode: code, carbonModifiers: 0).isPureModifierKey { return true }
-                if code == kVK_Escape && flags.isEmpty { self.stop(); return true }
+                if code == kVK_Escape && flags.isEmpty {
+                    self.stop()
+                    viewModel.presentHotKeyBanner(
+                        tone: .neutral,
+                        message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                        autoDismissSeconds: 1.8
+                    )
+                    return true
+                }
                 if (code == kVK_Delete || code == kVK_ForwardDelete) && flags.intersection([.command, .option, .control]).isEmpty {
                     self.stop()
-                    try? PluginSystem.setPluginCommandHotKey(pluginID: pluginID, commandID: spec.id, hotKey: "")
-                    viewModel?.reloadPluginsAndHotKeys()
+                    try? PluginSystem.setPluginCommandHotKey(pluginID: plugin.id, commandID: spec.id, hotKey: "")
+                    viewModel.reloadPluginsAndHotKeys()
+                    viewModel.presentHotKeyBanner(
+                        tone: .success,
+                        message: L10n.pick("已清空「\(cmdTitle)」热键", "Cleared hotkey"),
+                        autoDismissSeconds: 2.0
+                    )
                     return true
                 }
                 let chord = HotKeyChord(keyCode: code, modifierFlags: flags)
-                guard chord.validationError == nil else { return true }
+                if let err = chord.validationError {
+                    viewModel.presentHotKeyBanner(tone: .error, message: err) { [weak self, weak viewModel] in
+                        self?.stop()
+                        viewModel?.presentHotKeyBanner(
+                            tone: .neutral,
+                            message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                            autoDismissSeconds: 1.8
+                        )
+                    }
+                    return true
+                }
                 self.stop()
-                try? PluginSystem.setPluginCommandHotKey(pluginID: pluginID, commandID: spec.id, hotKey: chord.displayString)
-                viewModel?.reloadPluginsAndHotKeys()
+                try? PluginSystem.setPluginCommandHotKey(pluginID: plugin.id, commandID: spec.id, hotKey: chord.displayString)
+                viewModel.reloadPluginsAndHotKeys()
+                viewModel.presentHotKeyBanner(
+                    tone: .success,
+                    message: L10n.pick("已绑定「\(cmdTitle)」: \(chord.displayString)", "Bound \"\(cmdTitle)\": \(chord.displayString)"),
+                    autoDismissSeconds: 2.4
+                )
                 return true
             }
             return consumed ? nil : event
@@ -199,7 +248,7 @@ struct PluginCommandSettingsCard: View {
             if let settingsState {
                 settingsState.toggleCommandHotKeyRecording(command: spec, plugin: plugin, viewModel: viewModel)
             } else {
-                localRecorder.toggle(for: spec, pluginID: plugin.id, viewModel: viewModel)
+                localRecorder.toggle(for: spec, plugin: plugin, viewModel: viewModel)
             }
         } label: {
             Text(label)

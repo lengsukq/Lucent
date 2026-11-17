@@ -65,17 +65,22 @@ public struct HostToolingStatus: Sendable, Hashable {
     public let mountNtfsPath: String?
     public let ffmpegPath: String?
     public let ffprobePath: String?
+    public let python3Path: String?
+
+    public var hasPython3: Bool { python3Path != nil }
 
     public init(
         ntfs3gPath: String? = nil,
         mountNtfsPath: String? = nil,
         ffmpegPath: String? = nil,
-        ffprobePath: String? = nil
+        ffprobePath: String? = nil,
+        python3Path: String? = nil
     ) {
         self.ntfs3gPath = ntfs3gPath
         self.mountNtfsPath = mountNtfsPath
         self.ffmpegPath = ffmpegPath
         self.ffprobePath = ffprobePath
+        self.python3Path = python3Path
     }
 
     public static func detect() -> HostToolingStatus {
@@ -83,8 +88,20 @@ public struct HostToolingStatus: Sendable, Hashable {
             ntfs3gPath: firstExecutable(["/opt/homebrew/bin/ntfs-3g", "/usr/local/bin/ntfs-3g"]),
             mountNtfsPath: firstExecutable(["/opt/homebrew/sbin/mount_ntfs", "/usr/local/sbin/mount_ntfs"]),
             ffmpegPath: firstExecutable(["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"]),
-            ffprobePath: firstExecutable(["/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe"])
+            ffprobePath: firstExecutable(["/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe"]),
+            python3Path: detectPython3Path()
         )
+    }
+
+    /// Checks real non-shim Python 3 installations so clean macOS /usr/bin/python3 stub never causes a false positive.
+    public static func detectPython3Path() -> String? {
+        firstExecutable([
+            "/Library/Developer/CommandLineTools/usr/bin/python3",
+            "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+            "/opt/homebrew/bin/python3",
+            "/usr/local/bin/python3",
+            "/Library/Frameworks/Python.framework/Versions/Current/bin/python3"
+        ])
     }
 
     private static func firstExecutable(_ candidates: [String]) -> String? {

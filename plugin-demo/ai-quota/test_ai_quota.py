@@ -226,7 +226,14 @@ class AIQuotaPluginTests(unittest.TestCase):
             agy_bin.chmod(agy_bin.stat().st_mode | stat.S_IXUSR)
 
             payload = ai_quota.dispatch(
-                stdin_payload={"locale": "zh-Hans", "config": {"extraCliPaths": str(bin_dir), "enabledProviders": "claude, agy"}},
+                stdin_payload={
+                    "locale": "zh-Hans",
+                    "config": {
+                        "extraCliPaths": str(bin_dir),
+                        "enabledProviders": "claude, agy",
+                        "showUninstalledProviders": "true",
+                    },
+                },
                 argv=["--json"],
                 user_home=home,
             )
@@ -234,6 +241,20 @@ class AIQuotaPluginTests(unittest.TestCase):
             self.assertFalse(by_id["claude"]["active"])
             self.assertTrue(by_id["agy"]["active"])
             self.assertEqual(by_id["agy"]["primaryPercent"], None)
+
+            default_payload = ai_quota.dispatch(
+                stdin_payload={
+                    "locale": "zh-Hans",
+                    "config": {
+                        "extraCliPaths": str(bin_dir),
+                        "enabledProviders": "claude, agy",
+                    },
+                },
+                argv=["--json"],
+                user_home=home,
+            )
+            self.assertEqual([p["id"] for p in default_payload["providers"]], ["agy"])
+            self.assertEqual(default_payload["hiddenCount"], 1)
 
 
 if __name__ == "__main__":

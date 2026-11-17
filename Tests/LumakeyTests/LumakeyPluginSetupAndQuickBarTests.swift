@@ -75,6 +75,8 @@ struct LumakeyPluginSetupAndQuickBarTests {
 
         let readiness = PluginSetupReadiness.analyze(plugin: plugin, dataStatus: status, selectionQuickBarEnabled: true)
         #expect(readiness.hasBlockingIssues)
+        #expect(readiness.hasMissingPermissions)
+        #expect(readiness.missingPermissionCount >= 2)
         #expect(readiness.missingRequiredSecrets == ["apiKey"])
         #expect(readiness.ungrantedCapabilities == [.floatingWindow])
         #expect(readiness.disabledScopes == [.network])

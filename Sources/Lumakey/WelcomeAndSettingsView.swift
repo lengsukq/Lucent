@@ -138,8 +138,13 @@ struct SettingsCenterView: View {
                 PluginIconBadge(plugin: plugin, size: 24)
                 Text(plugin.displayName).font(.system(size: 12.5, weight: active ? .semibold : .regular)).lineLimit(1)
                 Spacer(minLength: 2)
+                let needsPerm = !plugin.isBuiltin && PluginSetupReadiness.analyze(plugin: plugin).hasMissingPermissions
                 Circle()
-                    .fill(plugin.isEnabled && plugin.isValid ? LiquidColors.accentPrimary : LiquidColors.textSecondary.opacity(0.35))
+                    .fill(
+                        (!plugin.isEnabled || !plugin.isValid)
+                            ? LiquidColors.textSecondary.opacity(0.35)
+                            : (needsPerm ? Color.orange : LiquidColors.accentPrimary)
+                    )
                     .frame(width: 6, height: 6)
             }
             .padding(.horizontal, 8).padding(.vertical, 5)
@@ -178,6 +183,62 @@ struct SettingsCenterView: View {
         .padding(16)
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .clipped().liquidGlassCard(cornerRadius: LiquidRadii.bento)
+        .overlay(alignment: .top) {
+            if let banner = viewModel.hotKeyBanner {
+                hotKeyBannerOverlay(banner)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(LiquidMotion.snappySpring, value: viewModel.hotKeyBanner?.id)
+    }
+
+    private func hotKeyBannerOverlay(_ banner: SettingsHotKeyBanner) -> some View {
+        let accentColor: Color = switch banner.tone {
+        case .recording: .cyan
+        case .success: .mint
+        case .error: .orange
+        case .neutral: .secondary
+        }
+        let iconName: String = switch banner.tone {
+        case .recording: "keyboard.badge.ellipsis"
+        case .success: "checkmark.circle.fill"
+        case .error: "exclamationmark.triangle.fill"
+        case .neutral: "xmark.circle.fill"
+        }
+        return HStack(spacing: 10) {
+            Image(systemName: iconName)
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(accentColor)
+            Text(banner.message)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(LiquidColors.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            if banner.tone == .recording, let cancelAction = viewModel.hotKeyBannerCancelAction {
+                Button(L10n.pick("取消录制", "Cancel")) {
+                    cancelAction()
+                }
+                .buttonStyle(GlassPillButtonStyle(compact: true))
+            } else {
+                Button {
+                    viewModel.dismissHotKeyBanner()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .buttonStyle(GlassPillButtonStyle(compact: true))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
+        .overlay {
+            RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
+                .strokeBorder(accentColor.opacity(0.55), lineWidth: 1.0)
+        }
     }
 
     private var generalSection: some View {

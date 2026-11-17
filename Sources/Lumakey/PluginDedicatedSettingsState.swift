@@ -43,30 +43,56 @@ final class PluginDedicatedSettingsState: ObservableObject {
     func toggleHotKeyRecording(for plugin: PluginDescriptor, viewModel: AppViewModel) {
         if isRecordingHotKey && recordingCommandID == nil {
             stopRecordingHotKey()
+            viewModel.presentHotKeyBanner(
+                tone: .neutral,
+                message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                autoDismissSeconds: 1.8
+            )
             return
         }
         stopRecordingHotKey()
         isRecordingHotKey = true
         recordingCommandID = nil
-        bannerMessage = L10n.pick(
-            "正在录制「\(plugin.displayName)」全局热键 · 按 Esc 取消，按 ⌫ 清空绑定",
-            "Recording hotkey for \"\(plugin.displayName)\" · Esc to cancel, ⌫ to clear"
+        let prompt = L10n.pick(
+            "正在录制「\(plugin.displayName)」全局热键 · 请按下组合键（需含 ⌘/⌥/⌃），按 ⌫ 清空，Esc 取消",
+            "Recording hotkey for \"\(plugin.displayName)\" · Press shortcut, ⌫ to clear, Esc to cancel"
         )
+        viewModel.presentHotKeyBanner(tone: .recording, message: prompt) { [weak self, weak viewModel] in
+            self?.stopRecordingHotKey()
+            viewModel?.presentHotKeyBanner(
+                tone: .neutral,
+                message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                autoDismissSeconds: 1.8
+            )
+        }
         installKeyMonitor(plugin: plugin, viewModel: viewModel)
     }
 
     func toggleCommandHotKeyRecording(command: PluginCommandSpec, plugin: PluginDescriptor, viewModel: AppViewModel) {
         if recordingCommandID == command.id {
             stopRecordingHotKey()
+            viewModel.presentHotKeyBanner(
+                tone: .neutral,
+                message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                autoDismissSeconds: 1.8
+            )
             return
         }
         stopRecordingHotKey()
         recordingCommandID = command.id
         let cmdTitle = plugin.manifest.localizedCommandTitle(command)
-        bannerMessage = L10n.pick(
-            "正在录制子功能「\(cmdTitle)」全局热键 · 按 Esc 取消，按 ⌫ 清空绑定",
-            "Recording hotkey for \"\(cmdTitle)\" · Esc to cancel, ⌫ to clear"
+        let prompt = L10n.pick(
+            "正在录制子功能「\(cmdTitle)」全局热键 · 请按下组合键（需含 ⌘/⌥/⌃），按 ⌫ 清空，Esc 取消",
+            "Recording hotkey for \"\(cmdTitle)\" · Press shortcut, ⌫ to clear, Esc to cancel"
         )
+        viewModel.presentHotKeyBanner(tone: .recording, message: prompt) { [weak self, weak viewModel] in
+            self?.stopRecordingHotKey()
+            viewModel?.presentHotKeyBanner(
+                tone: .neutral,
+                message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                autoDismissSeconds: 1.8
+            )
+        }
         installKeyMonitor(plugin: plugin, viewModel: viewModel)
     }
 
@@ -93,7 +119,11 @@ final class PluginDedicatedSettingsState: ObservableObject {
         let flags = rawFlags.intersection([.command, .option, .control, .shift])
         if code == kVK_Escape && flags.isEmpty {
             stopRecordingHotKey()
-            bannerMessage = L10n.pick("已取消热键录制", "Hotkey recording canceled")
+            viewModel.presentHotKeyBanner(
+                tone: .neutral,
+                message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                autoDismissSeconds: 1.8
+            )
             return true
         }
         let targetCmdID = recordingCommandID
@@ -108,7 +138,14 @@ final class PluginDedicatedSettingsState: ObservableObject {
         }
         let chord = HotKeyChord(keyCode: code, modifierFlags: flags)
         if let err = chord.validationError {
-            bannerMessage = err
+            viewModel.presentHotKeyBanner(tone: .error, message: err) { [weak self, weak viewModel] in
+                self?.stopRecordingHotKey()
+                viewModel?.presentHotKeyBanner(
+                    tone: .neutral,
+                    message: L10n.pick("已取消热键录制", "Hotkey recording canceled"),
+                    autoDismissSeconds: 1.8
+                )
+            }
             return true
         }
         stopRecordingHotKey()
@@ -116,12 +153,16 @@ final class PluginDedicatedSettingsState: ObservableObject {
             try? PluginSystem.setPluginCommandHotKey(pluginID: plugin.id, commandID: cmdID, hotKey: chord.displayString)
             viewModel.reloadPluginsAndHotKeys()
             let msg = L10n.pick("已绑定子功能热键：\(chord.displayString)", "Bound command hotkey: \(chord.displayString)")
-            bannerMessage = msg
-            viewModel.serviceMessage = msg
+            viewModel.presentHotKeyBanner(tone: .success, message: msg, autoDismissSeconds: 2.4)
         } else {
             mutateOverrides(for: plugin, viewModel: viewModel, note: "已绑定全局热键：\(chord.displayString)") {
                 $0.customHotKey = chord.displayString
             }
+            viewModel.presentHotKeyBanner(
+                tone: .success,
+                message: L10n.pick("已绑定全局热键：\(chord.displayString)", "Bound hotkey: \(chord.displayString)"),
+                autoDismissSeconds: 2.4
+            )
         }
         return true
     }
@@ -130,14 +171,18 @@ final class PluginDedicatedSettingsState: ObservableObject {
         try? PluginSystem.setPluginCommandHotKey(pluginID: plugin.id, commandID: commandID, hotKey: "")
         viewModel.reloadPluginsAndHotKeys()
         let msg = L10n.pick("已清空该子功能的全局热键", "Cleared command hotkey")
-        bannerMessage = msg
-        viewModel.serviceMessage = msg
+        viewModel.presentHotKeyBanner(tone: .success, message: msg, autoDismissSeconds: 2.0)
     }
 
     func clearHotKey(for plugin: PluginDescriptor, viewModel: AppViewModel) {
         mutateOverrides(for: plugin, viewModel: viewModel, note: "已清空该插件的全局热键") {
             $0.customHotKey = ""
         }
+        viewModel.presentHotKeyBanner(
+            tone: .success,
+            message: L10n.pick("已清空该插件的全局热键", "Cleared plugin hotkey"),
+            autoDismissSeconds: 2.0
+        )
     }
 
     func restoreDefaultHotKey(for plugin: PluginDescriptor, viewModel: AppViewModel) {

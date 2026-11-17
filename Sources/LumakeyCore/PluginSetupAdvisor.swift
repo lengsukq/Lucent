@@ -22,8 +22,16 @@ public struct PluginSetupReadiness: Sendable, Hashable {
     public let supportsSelection: Bool
     public let usageTips: [PluginUsageTip]
 
+    public var hasMissingPermissions: Bool {
+        !ungrantedCapabilities.isEmpty || !disabledScopes.isEmpty || !missingTCCPermissions.isEmpty
+    }
+
+    public var missingPermissionCount: Int {
+        ungrantedCapabilities.count + disabledScopes.count + missingTCCPermissions.count
+    }
+
     public var hasBlockingIssues: Bool {
-        !missingRequiredSecrets.isEmpty || !ungrantedCapabilities.isEmpty || !missingTCCPermissions.isEmpty
+        !missingRequiredSecrets.isEmpty || hasMissingPermissions
     }
 
     public static func analyze(

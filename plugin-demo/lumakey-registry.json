@@ -97,6 +97,11 @@
             "notifyOnRefresh" : {
               "label" : "Send native macOS notification banner on Force Refresh",
               "section" : "Floating Panel & Notifications"
+            },
+            "showUninstalledProviders" : {
+              "helpText" : "Hidden by default so the widget only shows CLIs/keys active on this Mac.",
+              "label" : "Show uninstalled / unconfigured providers",
+              "section" : "Sources & Display"
             }
           },
           "description" : "Custom frameless glass HUD, pinned floating quota panel & system notifications for local Codex, Claude Code, Antigravity (agy), DSH CLIs, and DeepSeek API balance",
@@ -110,8 +115,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "f5ce61cc4a2f5d920554bd2f6eac57229ee1c5c84f6cc7bd9e6bcfb8bd02e3e2",
-      "sizeBytes" : 93943,
+      "sha256" : "d0cce7ba962a5fee6d6128c179deff4f494cd13c814443c78bf42f5470f6569d",
+      "sizeBytes" : 97177,
       "version" : "1.2.0"
     },
     {
@@ -198,8 +203,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "68558db6734ab3aded2ca213c89d420439ca8dc9c0e0a70d6200da291e900ac6",
-      "sizeBytes" : 20333,
+      "sha256" : "5238cd065cbc35be848c95764cb047b0ba42572a3cee58ae46898118caf0d4d8",
+      "sizeBytes" : 20529,
       "version" : "1.0.0"
     },
     {
@@ -279,8 +284,8 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "37921538a503b89d540e434010fb6428345f6d22bc0c02ba8c9f9ff222e8aef4",
-      "sizeBytes" : 18291,
+      "sha256" : "fdabe91b2ef8c27802b0c5a6cbe09eaf05ba81e3eadd1c584a85dc4a531e5520",
+      "sizeBytes" : 18485,
       "version" : "2.2.0"
     },
     {
@@ -367,8 +372,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "75d0b05a505b63a7db7cc470fb00ae8b48361b07dda5c51b202cec69f2be66ef",
-      "sizeBytes" : 15739,
+      "sha256" : "a2eb5a60b42e3116498f767d9e2435bc117956d29f170bf39de6dbd5c886ad09",
+      "sizeBytes" : 15933,
       "version" : "1.0.0"
     },
     {
@@ -448,8 +453,8 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "de107cb5b1e0ee645e952ed664f4fbbce31d7eefc6437f10bed2d9525edadc13",
-      "sizeBytes" : 26475,
+      "sha256" : "548525808b6905eca53008ee3adb53180f4049b600416923c72d62d551688a87",
+      "sizeBytes" : 26669,
       "version" : "1.4.0"
     },
     {
@@ -521,8 +526,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "e369f2440482096f30cbee6b47b995bb7ac3c6b0c7e27797ee8a6fb9679bc8da",
-      "sizeBytes" : 12958,
+      "sha256" : "1958ce8872c6aaea30fd7e08f716ea24d02b5156df8e6f6f1046dfee8ffc8ffd",
+      "sizeBytes" : 13151,
       "version" : "1.0.0"
     },
     {
@@ -610,8 +615,8 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "7f6dbfa0771a17b0e4fe3b3e4c5824e9d5466b83f6a526e4914e3aae2f897954",
-      "sizeBytes" : 10694,
+      "sha256" : "13e68fd05209acd97d0bf0f8666b07ea5610a1af2c7ad2861a2004a29530872e",
+      "sizeBytes" : 10886,
       "version" : "1.0.0"
     },
     {
@@ -711,13 +716,13 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "4f6a9ee4d59768cdcdce9f5be73343c785447cb1419a7fc8c18ea3864950843e",
-      "sizeBytes" : 17945,
+      "sha256" : "0a7f52c815c00b2d6c72651e6f8eb683b932b06890296765e7d7c9410ebf8e24",
+      "sizeBytes" : 46114,
       "version" : "1.0.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lumakey-demo-store",
   "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-17T12:45:55Z"
+  "updatedAt" : "2026-11-17T13:22:46Z"
 }

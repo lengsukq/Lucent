@@ -4,6 +4,13 @@ import Foundation
 import LumakeyCore
 import SwiftUI
 
+struct SettingsHotKeyBanner: Equatable {
+    enum Tone: Equatable { case recording, success, error, neutral }
+    let id = UUID()
+    let tone: Tone
+    let message: String
+}
+
 @MainActor
 final class AppViewModel: ObservableObject {
     @Published var omniFilter: OmniFilter = .all
@@ -97,6 +104,9 @@ final class AppViewModel: ObservableObject {
     @Published var isIndexingEverything = false
 
     @Published var toolingStatus = HostToolingStatus()
+    @Published var hotKeyBanner: SettingsHotKeyBanner? = nil
+    var hotKeyBannerCancelAction: (() -> Void)? = nil
+    var hotKeyBannerDismissTask: Task<Void, Never>? = nil
     @Published var latestCaptureURL: URL?
     @Published var ocrResultText: String = ""
     @Published var barcodeResults: [String] = []

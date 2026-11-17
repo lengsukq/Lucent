@@ -19,6 +19,9 @@ struct LumaLinkDedicatedConsoleView<CustomCard: View>: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                PluginSetupReminderAndGuideSection(
+                    plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel, showUsageGuide: false
+                )
                 LumaLinkServiceControlCard(viewModel: viewModel, companionPlugin: plugin, ctrl: ctrl)
                 LumaLinkNetworkAndPairingCard(viewModel: viewModel)
                 LumaLinkSafetyAndDevicesCard(viewModel: viewModel)

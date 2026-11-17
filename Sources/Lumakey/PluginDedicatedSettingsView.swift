@@ -69,6 +69,7 @@ struct PluginDedicatedSettingsView: View {
 
     private func heroHeader(for plugin: PluginDescriptor) -> some View {
         let missingSecrets = state.dataStatus?.missingRequiredSecretKeys ?? []
+        let missingPerms = PluginSetupReadiness.analyze(plugin: plugin, dataStatus: state.dataStatus).missingPermissionCount
         let tint = PluginVisualPalette.tint(from: plugin.manifest.accentColor, fallback: plugin.isBuiltin ? .mint : LiquidColors.accentPrimary)
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 12) {
@@ -82,6 +83,14 @@ struct PluginDedicatedSettingsView: View {
                         Text(plugin.displayCategoryBadge).font(.system(size: 9.5, weight: .bold, design: .rounded)).foregroundStyle(tint)
                             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                             .padding(.horizontal, 7).padding(.vertical, 2).background(tint.opacity(0.12), in: Capsule())
+                        if !plugin.isBuiltin && missingPerms > 0 {
+                            Text(L10n.pick("缺 \(missingPerms) 项权限", "\(missingPerms) Perm Needed"))
+                                .font(.system(size: 9.5, weight: .bold))
+                                .foregroundStyle(.orange)
+                                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.14), in: Capsule())
+                        }
                     }
                     Text(plugin.effectiveStatusSummary).font(.caption).foregroundStyle(LiquidColors.textSecondary).lineLimit(2)
                 }

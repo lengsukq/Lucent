@@ -36,7 +36,7 @@
     return "#10b981";
   }
 
-  function renderRingCard(label, pct, centerText) {
+  function renderRingCard(label, pct, centerText, subValue) {
     const r = 18;
     const c = 2 * Math.PI * r;
     const safePct = pct === null ? 0 : Math.max(0, Math.min(100, pct));
@@ -48,26 +48,47 @@
           <circle class="ring-track" cx="23" cy="23" r="${r}"></circle>
           <circle class="ring-fill" cx="23" cy="23" r="${r}"
             stroke="${stroke}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"></circle>
-          <text class="ring-center" x="23" y="26.5" text-anchor="middle">${centerText}</text>
+          <text class="ring-center" x="23" y="26.5" text-anchor="middle">${escapeHTML(centerText)}</text>
         </svg>
-        <div class="ring-label">${label}</div>
+        <div class="ring-info">
+          <div class="ring-label">${escapeHTML(label)}</div>
+          <div class="ring-sub">${escapeHTML(subValue || centerText)}</div>
+        </div>
       </div>
     `;
+  }
+
+  let visibleProviderCount = 0;
+
+  async function syncWindowSizeForMode(animate) {
+    if (!sdk) return;
+    if (!isCompact) {
+      await sdk.window.resize(412, 514, animate);
+      return;
+    }
+    const targetW = visibleProviderCount <= 2 ? 336 : 412;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const measuredShellH = Math.ceil(shell.getBoundingClientRect().height);
+    const targetH = Math.max(128, Math.min(220, measuredShellH + 42));
+    await sdk.window.resize(targetW, targetH, animate);
   }
 
   function renderTelemetry(data) {
     if (!data || !Array.isArray(data.providers)) return;
     lastSummary = data.statusSummary || "";
-    subEl.textContent = `${data.updatedClock || ""} · ${data.cacheState || "live"} · ${data.intervalSeconds || 30}s`;
+    const hiddenNote = data.hiddenCount > 0 ? (isEn ? ` · ${data.hiddenCount} hidden` : ` · 已隐藏 ${data.hiddenCount} 项未安装`) : "";
+    subEl.textContent = `${data.updatedClock || ""} · ${data.cacheState || "live"}${hiddenNote}`;
 
     const ringItems = [];
     const rowHTML = [];
+    visibleProviderCount = data.providers.length;
 
     for (const p of data.providers) {
       const pct = typeof p.primaryPercent === "number" ? Math.round(p.primaryPercent) : null;
       if (ringItems.length < 4) {
         const center = pct !== null ? `${pct}%` : (p.shortValue || "—").slice(0, 5);
-        ringItems.push(renderRingCard(p.shortName, pct, center));
+        const subTxt = pct !== null ? `${pct}% · ${p.badge || ""}`.replace(/ · $/, "") : (p.shortValue || p.badge || "Ready");
+        ringItems.push(renderRingCard(p.shortName, pct, center, subTxt));
       }
 
       const badgeCls = !p.active ? "off" : (pct !== null && pct <= 30 ? "warn" : "");
@@ -87,11 +108,30 @@
       `);
     }
 
-    ringsEl.innerHTML = ringItems.join("");
-    listEl.innerHTML = rowHTML.join("");
-    listEl.querySelectorAll('[data-open-settings="1"]').forEach((el) => {
+    if (ringItems.length === 0) {
+      ringsEl.innerHTML = `<div class="rings-empty" data-open-settings="1">${
+        isEn ? "No active AI CLIs or keys found · Click to configure" : "暂未检测到本机 CLI 或密钥 · 点击去设置"
+      }</div>`;
+      listEl.innerHTML = `<div class="prov-row" data-open-settings="1" style="cursor:pointer">
+        <div class="prov-top">
+          <span class="prov-name">${isEn ? "Nothing installed yet" : "当前无已激活的监控源"}</span>
+          <span class="prov-badge off">SETUP</span>
+        </div>
+        <div class="prov-meta">${
+          isEn ? "Add DeepSeek API Key or turn on 'Show uninstalled providers' in Settings." : "可在设置填入 DeepSeek Key，或开启「显示未安装/未配置的监控源」。"
+        }</div>
+      </div>`;
+    } else {
+      ringsEl.innerHTML = ringItems.join("");
+      listEl.innerHTML = rowHTML.join("");
+    }
+    document.querySelectorAll('[data-open-settings="1"]').forEach((el) => {
       el.addEventListener("click", () => sdk && sdk.openExternal("lumakey://settings/plugin/ai-quota"));
     });
+
+    if (isCompact) {
+      syncWindowSizeForMode(false);
+    }
 
     const nextMs = Math.max(15000, Number(data.intervalSeconds || 30) * 1000);
     if (nextMs !== currentIntervalMs) {
@@ -128,7 +168,7 @@
   btnCompact.addEventListener("click", async () => {
     isCompact = !isCompact;
     shell.classList.toggle("compact", isCompact);
-    if (sdk) await sdk.window.resize(412, isCompact ? 184 : 514, true);
+    await syncWindowSizeForMode(true);
   });
 
   btnPin.addEventListener("click", async () => {

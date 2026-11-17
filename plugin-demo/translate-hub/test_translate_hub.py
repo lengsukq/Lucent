@@ -47,6 +47,9 @@ class TranslateHubTests(unittest.TestCase):
             )
             self.assertEqual(out["title"], "弹性架构")
             self.assertEqual(len(out["items"]), 3)
+            action_ids = [a["id"] for a in out["items"][0]["actions"]]
+            self.assertIn("speak-src-0", action_ids)
+            self.assertIn("speak-dst-0", action_ids)
             self.assertTrue((data_dir / "history.json").exists())
 
             hist = json.loads((data_dir / "history.json").read_text(encoding="utf-8"))

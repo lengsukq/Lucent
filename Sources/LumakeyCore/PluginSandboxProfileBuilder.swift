@@ -28,6 +28,9 @@ public enum PluginSandboxProfileBuilder {
                 env[key] = val
             }
         }
+        if let py3 = HostToolingStatus.detectPython3Path() {
+            env["LUMAKEY_PYTHON3"] = py3
+        }
         for (k, v) in pluginVariables {
             env[k] = v
         }
@@ -85,6 +88,7 @@ public enum PluginSandboxProfileBuilder {
                 let pyFw = "\(devDir)/Library/Frameworks/Python3.framework"
                 lines.append("(allow process-exec* (literal \"\(escapeSBPL(pyBin))\") (subpath \"\(escapeSBPL(pyFw))\"))")
             }
+            lines.append("(allow process-exec* (literal \"/opt/homebrew/bin/python3\") (literal \"/usr/local/bin/python3\") (subpath \"/opt/homebrew/Cellar\") (subpath \"/opt/homebrew/opt\") (subpath \"/Library/Frameworks/Python.framework\"))")
             lines.append("(allow process-exec* (subpath \"\(escapeSBPL(plugPath))\"))")
         }
 

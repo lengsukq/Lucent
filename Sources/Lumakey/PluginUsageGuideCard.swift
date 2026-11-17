@@ -7,9 +7,12 @@ struct PluginSetupReminderAndGuideSection: View {
     @ObservedObject var state: PluginDedicatedSettingsState
     @ObservedObject var ctrl: PluginCenterController
     @ObservedObject var viewModel: AppViewModel
+    var showUsageGuide: Bool = true
+    @State private var trustRefreshTick: Int = 0
 
     private var readiness: PluginSetupReadiness {
-        PluginSetupReadiness.analyze(
+        _ = trustRefreshTick
+        return PluginSetupReadiness.analyze(
             plugin: plugin,
             dataStatus: state.dataStatus,
             selectionQuickBarEnabled: viewModel.generalPreferences.enableSelectionQuickBar
@@ -18,44 +21,59 @@ struct PluginSetupReminderAndGuideSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if !plugin.isEnabled || readiness.hasBlockingIssues || !readiness.disabledScopes.isEmpty {
+            if !plugin.isBuiltin {
+                PythonRuntimeAdvisorCard(viewModel: viewModel)
+            }
+            if !plugin.isEnabled || readiness.hasBlockingIssues {
                 readinessBanner
             }
-            if !readiness.usageTips.isEmpty {
+            if showUsageGuide && !readiness.usageTips.isEmpty {
                 usageGuideCard
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            trustRefreshTick += 1
         }
     }
 
     private var readinessBanner: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let missingPermCount = readiness.missingPermissionCount
+        return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                Text(L10n.pick("使用前请先完成以下准备", "Setup Needed Before Use"))
-                    .font(.callout.weight(.semibold))
+                Text(
+                    missingPermCount > 0
+                    ? L10n.pick("待开启权限与配置（\(missingPermCount) 项）", "Setup & Permissions Needed (\(missingPermCount))")
+                    : L10n.pick("使用前请先完成以下准备", "Setup Needed Before Use")
+                )
+                .font(.callout.weight(.semibold))
                 Spacer()
                 if !plugin.isEnabled {
                     Button(L10n.pick("启用插件", "Enable")) {
                         ctrl.setEnabled(plugin, isEnabled: true, viewModel: viewModel)
                     }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
-                } else if !readiness.ungrantedCapabilities.isEmpty {
-                    Button(L10n.pick("一键开启所需权限", "Grant Required Permissions")) {
+                    .buttonStyle(GlassPillButtonStyle(prominent: !readiness.hasMissingPermissions, compact: true))
+                }
+                if !readiness.ungrantedCapabilities.isEmpty || !readiness.disabledScopes.isEmpty {
+                    Button(L10n.pick("一键开启全部插件权限", "Enable All Permissions")) {
                         for cap in readiness.ungrantedCapabilities {
                             try? viewModel.setPluginCapabilityGranted(plugin, capability: cap, granted: true)
                         }
-                        state.bannerMessage = L10n.pick("已开启「\(plugin.displayName)」所需插件权限", "Granted permissions for \(plugin.displayName)")
+                        for scope in readiness.disabledScopes {
+                            try? viewModel.setPluginResourceScopeGranted(plugin, scope: scope, granted: true)
+                        }
+                        state.bannerMessage = L10n.pick("已开启「\(plugin.displayName)」全部所需权限", "Enabled all required permissions for \(plugin.displayName)")
                     }
                     .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
                 }
             }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 6) {
                 if !plugin.isEnabled {
                     reminderRow(
                         icon: "power",
-                        text: L10n.pick("插件当前处于停用状态，开启右上角开关后才能唤起或运行。", "Plugin is currently disabled. Turn it on at top right to use it.")
+                        text: L10n.pick("插件当前处于停用状态，点击右侧「启用插件」或右上角开关后才能运行。", "Plugin is currently disabled. Enable it to use commands.")
                     )
                 }
                 if !readiness.missingRequiredSecrets.isEmpty {
@@ -67,23 +85,53 @@ struct PluginSetupReminderAndGuideSection: View {
                         )
                     )
                 }
-                if !readiness.ungrantedCapabilities.isEmpty {
-                    reminderRow(
-                        icon: "lock.open.fill",
-                        text: L10n.pick(
-                            "尚未开启插件能力：\(readiness.ungrantedCapabilities.map(\.title).joined(separator: "、"))",
-                            "Disabled capabilities: \(readiness.ungrantedCapabilities.map(\.title).joined(separator: ", "))"
-                        )
-                    )
+                ForEach(readiness.ungrantedCapabilities) { cap in
+                    HStack(spacing: 8) {
+                        Image(systemName: cap.symbolName)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(L10n.pick("缺少功能权限：\(cap.title)", "Missing capability: \(cap.title)"))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(LiquidColors.textPrimary)
+                            Text(cap.summary)
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(LiquidColors.textSecondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 4)
+                        Toggle("", isOn: Binding(
+                            get: { plugin.isCapabilityGranted(cap) },
+                            set: { ctrl.setCapabilityGranted(plugin, capability: cap, granted: $0, viewModel: viewModel) }
+                        ))
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .controlSize(.small)
+                    }
                 }
-                if !readiness.disabledScopes.isEmpty {
-                    reminderRow(
-                        icon: "network.slash",
-                        text: L10n.pick(
-                            "以下外部访问已关闭（可能影响部分功能）：\(readiness.disabledScopes.map(\.title).joined(separator: "、"))",
-                            "External access turned off: \(readiness.disabledScopes.map(\.title).joined(separator: ", "))"
-                        )
-                    )
+                ForEach(readiness.disabledScopes) { scope in
+                    HStack(spacing: 8) {
+                        Image(systemName: scope.symbolName)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(L10n.pick("缺少外部访问权限：\(scope.title)", "Blocked external access: \(scope.title)"))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(LiquidColors.textPrimary)
+                            Text(scope.summary)
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(LiquidColors.textSecondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 4)
+                        Toggle("", isOn: Binding(
+                            get: { plugin.isResourceScopeGranted(scope) },
+                            set: { ctrl.setResourceScopeGranted(plugin, scope: scope, granted: $0, viewModel: viewModel) }
+                        ))
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .controlSize(.small)
+                    }
                 }
                 ForEach(readiness.missingTCCPermissions, id: \.self) { tcc in
                     HStack(spacing: 8) {
@@ -94,7 +142,7 @@ struct PluginSetupReminderAndGuideSection: View {
                             "需要在 macOS 系统设置中为 Lumakey 勾选「\(tcc.title)」",
                             "Enable '\(tcc.title)' for Lumakey in macOS System Settings"
                         ))
-                        .font(.caption2)
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(LiquidColors.textPrimary)
                         Spacer(minLength: 4)
                         Button(L10n.pick("去授权…", "Authorize…")) {
