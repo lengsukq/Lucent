@@ -2,16 +2,21 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
+@MainActor
+private final class PluginGuideUIState: ObservableObject {
+    @Published var trustRefreshTick: Int = 0
+}
+
 struct PluginSetupReminderAndGuideSection: View {
     let plugin: PluginDescriptor
     @ObservedObject var state: PluginDedicatedSettingsState
     @ObservedObject var ctrl: PluginCenterController
     @ObservedObject var viewModel: AppViewModel
     var showUsageGuide: Bool = true
-    @State private var trustRefreshTick: Int = 0
+    @StateObject private var ui = PluginGuideUIState()
 
     private var readiness: PluginSetupReadiness {
-        _ = trustRefreshTick
+        _ = ui.trustRefreshTick
         return PluginSetupReadiness.analyze(
             plugin: plugin,
             dataStatus: state.dataStatus,
@@ -32,7 +37,7 @@ struct PluginSetupReminderAndGuideSection: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            trustRefreshTick += 1
+            ui.trustRefreshTick += 1
         }
     }
 

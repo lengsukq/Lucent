@@ -2,11 +2,16 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
+@MainActor
+private final class PluginPermUIState: ObservableObject {
+    @Published var showTechDetails: Bool = false
+}
+
 struct PluginPermissionsAndSandboxSection: View {
     let plugin: PluginDescriptor
     @ObservedObject var ctrl: PluginCenterController
     @ObservedObject var viewModel: AppViewModel
-    @State private var showTechDetails = false
+    @StateObject private var ui = PluginPermUIState()
 
     private var declaredCaps: [PluginCapability] { plugin.declaredCapabilities }
     private var declaredScopes: [PluginResourceScope] { plugin.declaredResourceScopes }
@@ -54,8 +59,8 @@ struct PluginPermissionsAndSandboxSection: View {
                 }
 
                 if totalCount > 0 {
-                    Button(showTechDetails ? L10n.pick("隐藏技术标识", "Hide IDs") : L10n.pick("技术标识", "Tech IDs")) {
-                        withAnimation(LiquidMotion.pressSpring) { showTechDetails.toggle() }
+                    Button(ui.showTechDetails ? L10n.pick("隐藏技术标识", "Hide IDs") : L10n.pick("技术标识", "Tech IDs")) {
+                        withAnimation(LiquidMotion.pressSpring) { ui.showTechDetails.toggle() }
                     }
                     .buttonStyle(GlassPillButtonStyle(compact: true))
                 }
@@ -102,7 +107,7 @@ struct PluginPermissionsAndSandboxSection: View {
             tint: granted ? .cyan : LiquidColors.textSecondary,
             activeBorder: granted ? Color.cyan.opacity(0.35) : LiquidColors.pillBorder,
             title: cap.title,
-            techID: showTechDetails ? cap.rawValue : nil,
+            techID: ui.showTechDetails ? cap.rawValue : nil,
             summary: cap.summary,
             badgeText: tccKind != nil ? (tccOK ? L10n.pick("系统已允许", "System OK") : L10n.pick("需系统授权", "Needs System Auth")) : nil,
             badgeColor: tccOK ? .mint : .orange,
@@ -125,7 +130,7 @@ struct PluginPermissionsAndSandboxSection: View {
             tint: granted ? .purple : LiquidColors.textSecondary,
             activeBorder: granted ? Color.purple.opacity(0.35) : Color.orange.opacity(0.45),
             title: scope.title,
-            techID: showTechDetails ? scope.rawValue : nil,
+            techID: ui.showTechDetails ? scope.rawValue : nil,
             summary: scope.summary,
             badgeText: granted ? nil : L10n.pick("已拦截", "Blocked"),
             badgeColor: .orange,

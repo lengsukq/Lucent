@@ -81,10 +81,15 @@ struct GeneralSearchScopeCardView: View {
     }
 }
 
+@MainActor
+private final class SigningCardUIState: ObservableObject {
+    @Published var actionFeedback: String? = nil
+}
+
 struct GeneralSigningStatusCardView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var updater = AppUpdateCoordinator.shared
-    @State private var actionFeedback: String?
+    @StateObject private var ui = SigningCardUIState()
 
     var body: some View {
         let sign = CodeSigningInspector.inspect()
@@ -169,7 +174,7 @@ struct GeneralSigningStatusCardView: View {
             HStack(spacing: 8) {
                 Button {
                     updater.runLocalResignCommandInTerminal(viewModel: viewModel)
-                    actionFeedback = L10n.pick(
+                    ui.actionFeedback = L10n.pick(
                         "已在终端启动重签命令，请按终端提示完成钥匙串信任确认。",
                         "Launched signing command in Terminal. Follow the prompts there to complete setup."
                     )
@@ -180,7 +185,7 @@ struct GeneralSigningStatusCardView: View {
 
                 Button {
                     updater.copyLocalResignCommand(viewModel: viewModel)
-                    actionFeedback = L10n.pick("已复制到剪贴板，可在终端粘贴运行。", "Copied command to clipboard.")
+                    ui.actionFeedback = L10n.pick("已复制到剪贴板，可在终端粘贴运行。", "Copied command to clipboard.")
                 } label: {
                     Label(L10n.pick("复制命令", "Copy Command"), systemImage: "doc.on.doc")
                 }
@@ -194,7 +199,7 @@ struct GeneralSigningStatusCardView: View {
                 .buttonStyle(GlassPillButtonStyle(compact: true))
             }
 
-            if let actionFeedback {
+            if let actionFeedback = ui.actionFeedback {
                 Text(actionFeedback)
                     .font(.caption2)
                     .foregroundStyle(.secondary)

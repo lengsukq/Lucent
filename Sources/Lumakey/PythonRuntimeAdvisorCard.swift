@@ -2,9 +2,14 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
+@MainActor
+private final class PythonAdvisorUIState: ObservableObject {
+    @Published var feedbackMessage: String? = nil
+}
+
 struct PythonRuntimeAdvisorCard: View {
     @ObservedObject var viewModel: AppViewModel
-    @State private var feedbackMessage: String?
+    @StateObject private var ui = PythonAdvisorUIState()
 
     var body: some View {
         if !viewModel.toolingStatus.hasPython3 {
@@ -17,7 +22,7 @@ struct PythonRuntimeAdvisorCard: View {
                     Spacer()
                     Button(L10n.pick("重新检测", "Re-check")) {
                         viewModel.refreshToolingStatus()
-                        feedbackMessage = viewModel.toolingStatus.hasPython3
+                        ui.feedbackMessage = viewModel.toolingStatus.hasPython3
                             ? L10n.pick("✓ 已检测到 Python 3 环境", "✓ Python 3 runtime detected")
                             : L10n.pick("仍未检测到可用 Python 3，请先完成安装。", "Python 3 still not found.")
                     }
@@ -50,7 +55,7 @@ struct PythonRuntimeAdvisorCard: View {
                     Spacer()
                 }
 
-                if let feedbackMessage {
+                if let feedbackMessage = ui.feedbackMessage {
                     Text(feedbackMessage)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -75,12 +80,12 @@ struct PythonRuntimeAdvisorCard: View {
         proc.arguments = ["--install"]
         do {
             try proc.run()
-            feedbackMessage = L10n.pick(
+            ui.feedbackMessage = L10n.pick(
                 "已弹出系统「安装命令行开发者工具」向导，按提示点击安装完成后点「重新检测」即可。",
                 "Triggered Apple's Command Line Tools installer dialog. Click Re-check once finished."
             )
         } catch {
-            feedbackMessage = L10n.pick(
+            ui.feedbackMessage = L10n.pick(
                 "无法自动拉起向导（\(error.localizedDescription)），请尝试右侧「终端用 Homebrew 安装」。",
                 "Could not launch xcode-select (\(error.localizedDescription)). Try Terminal install."
             )
@@ -109,9 +114,9 @@ struct PythonRuntimeAdvisorCard: View {
             } else {
                 NSWorkspace.shared.open(url)
             }
-            feedbackMessage = L10n.pick("已在终端打开安装脚本，完成后点击「重新检测」。", "Opened installer script in Terminal.")
+            ui.feedbackMessage = L10n.pick("已在终端打开安装脚本，完成后点击「重新检测」。", "Opened installer script in Terminal.")
         } catch {
-            feedbackMessage = error.localizedDescription
+            ui.feedbackMessage = error.localizedDescription
         }
     }
 }
