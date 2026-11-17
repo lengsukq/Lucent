@@ -3,7 +3,7 @@ import CoreGraphics
 import CoreMedia
 import Foundation
 import LumakeyCore
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 import SwiftUI
 import VideoToolbox
 

@@ -2,7 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 import LumakeyCore
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }

@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 import LumakeyCore
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 import SwiftUI
 import UniformTypeIdentifiers
 
