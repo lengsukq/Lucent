@@ -34,13 +34,35 @@ SYSTEM_KEYCHAIN="/Library/Keychains/System.keychain"
 CREATED_NEW_CERT=0
 
 pick_existing_identity() {
-  local identities
+  if [[ -n "${LUMAKEY_SIGN_IDENTITY:-}" ]]; then
+    echo "$LUMAKEY_SIGN_IDENTITY"
+    return 0
+  fi
+  local identities existing_auth pattern match count
   identities=$(security find-identity -v -p codesigning 2>/dev/null || true)
-  local pattern match
-  for pattern in '"Developer ID Application:[^"]*"' '"Apple Development:[^"]*"' '"Mac Developer:[^"]*"' "\"$CERT_NAME\""; do
-    match=$(printf '%s\n' "$identities" | grep -oE "$pattern" | head -n 1 | tr -d '"' || true)
-    if [[ -n "$match" ]]; then
-      echo "$match"
+
+  if [[ -d "$APP_PATH" ]]; then
+    local app_info
+    app_info=$(codesign -dvv "$APP_PATH" 2>&1 || true)
+    if ! printf '%s\n' "$app_info" | grep -q 'Signature=adhoc'; then
+      existing_auth=$(printf '%s\n' "$app_info" | sed -n 's/^Authority=//p' | head -n 1 || true)
+      if [[ -n "$existing_auth" ]] && printf '%s\n' "$identities" | grep -F "\"$existing_auth\"" >/dev/null 2>&1; then
+        echo "$existing_auth"
+        return 0
+      fi
+    fi
+  fi
+
+  if printf '%s\n' "$identities" | grep -F "\"$CERT_NAME\"" >/dev/null 2>&1; then
+    echo "$CERT_NAME"
+    return 0
+  fi
+
+  for pattern in '"Developer ID Application:[^"]*"' '"Apple Development:[^"]*"' '"Mac Developer:[^"]*"'; do
+    match=$(printf '%s\n' "$identities" | grep -oE "$pattern" | tr -d '"' || true)
+    count=$(printf '%s\n' "$match" | sed '/^$/d' | wc -l | tr -d ' ')
+    if [[ "$count" == "1" ]]; then
+      printf '%s\n' "$match" | head -n 1
       return 0
     fi
   done
