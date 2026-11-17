@@ -34,7 +34,7 @@ Lumakey/
 │   ├── check-docs.py                  # 文档索引覆盖与断链/锚点检查
 │   ├── verify-macos.sh                # arm64 环境、300 行 Clean Code、编译与校验总门禁
 │   ├── generate-icon.swift            # 生成 Retina 应用图标集
-│   ├── build-macos.sh                 # 构建 dist/Lumakey.app（支持本机开发与 --distribution 正式分发模式）
+│   ├── build-macos.sh                 # 构建 dist/Lumakey.app（默认分发/开源社区签名模式，支持 --local-dev 本机开发证书）
 │   ├── package-dmg.sh                 # 将 dist/Lumakey.app 封装为签名压缩 DMG 与 .sha256
 │   ├── release-macos.sh               # 一键对外分发构建 + Developer ID 签名 + notarytool 公证与 stapler 钉票
 │   ├── install-macos.sh               # 打包并部署到本机 /Applications/Lumakey.app（支持 --skip-build）

@@ -9,9 +9,11 @@ if [[ "$(uname -m)" != "arm64" ]]; then
   exit 1
 fi
 
-DISTRIBUTION_MODE="${LUMAKEY_DISTRIBUTION:-0}"
+DISTRIBUTION_MODE="${LUMAKEY_DISTRIBUTION:-1}"
 if [[ "${1:-}" == "--distribution" ]]; then
   DISTRIBUTION_MODE="1"
+elif [[ "${1:-}" == "--local-dev" ]]; then
+  DISTRIBUTION_MODE="0"
 fi
 
 EXTRA_SPM_ARGS=()
