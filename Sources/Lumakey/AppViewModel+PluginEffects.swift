@@ -43,6 +43,7 @@ extension AppViewModel {
                 case "cache": openRoute(.settings(.cache))
                 case "plugins": openRoute(.settings(.plugins))
                 case "home", "homeLayout": openRoute(.settings(.homeLayout))
+                case "capture": openRoute(.settings(.capture))
                 default:
                     if plugins.contains(where: { $0.id == target }) { openPluginSettings(id: target) }
                     else { openRoute(.settings(.general)) }

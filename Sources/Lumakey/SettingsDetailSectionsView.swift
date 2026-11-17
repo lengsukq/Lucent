@@ -84,6 +84,7 @@ struct SettingsDetailSectionsView: View {
                 .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
 
                 SoftwareAndPluginUpdateCardView(viewModel: viewModel)
+                GeneralSigningStatusCardView(viewModel: viewModel)
 
                 HStack(spacing: 10) {
                     aboutPillar("cpu", .cyan, "Native Services First", "完全基于 SwiftUI、AppKit、Vision 与 CoreGraphics 原生构建，无任何外部依赖或浏览器壳。")

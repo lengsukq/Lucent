@@ -162,6 +162,7 @@ struct SettingsCenterView: View {
                 switch viewModel.activeSettingsSection.canonicalSection {
                 case .general: generalSection
                 case .homeLayout: HomeCustomizationSettingsView(viewModel: viewModel)
+                case .capture: CaptureSettingsView(viewModel: viewModel)
                 case .monitor: TelemetrySettingsView(viewModel: viewModel)
                 case .cache: ScrollView { AppCacheSettingsView(viewModel: viewModel).padding(.trailing, 4) }
                 case .mos: MosPluginSettingsView(viewModel: viewModel)
@@ -247,28 +248,31 @@ struct SettingsCenterView: View {
             VStack(alignment: .leading, spacing: 12) {
                 SettingsSectionHeroHeader(
                     symbol: "slider.horizontal.3", topColor: .blue, bottomColor: .indigo,
-                    title: L10n.pick("通用启动、版本更新与检索范围", "General Startup, Updates & Search Scope"),
+                    title: L10n.pick("通用、快捷台与检索", "General, Launcher & Search"),
                     subtitle: L10n.pick(
-                        "统一配置开机自启、静默驻留、应用与插件自动更新、状态栏菜单、多屏唤起及索引范围。",
-                        "Configure Launch at Login, silent residence, app & plugin updates, status bar menu, launcher behavior, and search scope."
+                        "集中配置开机自启、状态栏菜单、快捷台交互、外观语言与全盘文件检索范围。",
+                        "Configure startup, status bar menu, launcher behavior, appearance, language, and file search scope."
                     )
                 ) {
-                    Button("关闭所有屏幕钉图") { PinWindowController.shared.closeAll() }
-                        .buttonStyle(GlassPillButtonStyle())
+                    if updater.hasAnyPendingUpdate {
+                        Button(L10n.pick("有可用更新 →", "Update Available →")) {
+                            withAnimation(LiquidMotion.snappySpring) {
+                                viewModel.activePluginSettingsID = nil
+                                viewModel.activeSettingsSection = .about
+                            }
+                        }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true))
+                    }
                 }
                 if !CodeSigningInspector.inspect().isStableForTCC {
                     GeneralSigningStatusCardView(viewModel: viewModel)
                 }
                 StartupAndResidenceCardView(viewModel: viewModel)
-                SoftwareAndPluginUpdateCardView(viewModel: viewModel)
-                LanguageSettingsCardView(viewModel: viewModel)
-                ThemeSettingsCardView(viewModel: viewModel)
+                LauncherBehaviorCardView(viewModel: viewModel)
                 MenuBarCustomizationCardView(viewModel: viewModel)
-                LauncherAndCaptureDefaultsCardView(viewModel: viewModel)
                 GeneralSearchScopeCardView(viewModel: viewModel)
-                if CodeSigningInspector.inspect().isStableForTCC {
-                    GeneralSigningStatusCardView(viewModel: viewModel)
-                }
+                ThemeSettingsCardView(viewModel: viewModel)
+                LanguageSettingsCardView(viewModel: viewModel)
             }
             .padding(.trailing, 4)
         }
