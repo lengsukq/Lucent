@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import LumakeyCore
+@testable import LumakeyFoundation
 
 @Suite("App Self-Update & Plugin Auto-Update Engine")
 struct LumakeyAppUpdateTests {
@@ -84,5 +85,86 @@ struct LumakeyAppUpdateTests {
         #expect(scriptBody.hasPrefix("#!/usr/bin/env bash\n"))
         #expect(scriptBody.contains(customCmd))
         #expect(scriptBody.contains("EXIT_CODE=$?"))
+    }
+
+    @Test("In-app auto-update identity resolution & atomic DMG installer script generation")
+    func autoUpdateIdentityResolutionAndInstallScript() throws {
+        let secOutput = """
+          1) 1111111111111111111111111111111111111111 "Apple Development: Teammate (TEAM1)"
+          2) 2222222222222222222222222222222222222222 "Apple Development: Personal (TEAM2)"
+          3) 3333333333333333333333333333333333333333 "Lumakey Local Signer"
+             3 valid identities found
+        """
+        let parsed = AppUpdateInstaller.parseCodesigningIdentityNames(fromSecurityOutput: secOutput)
+        #expect(parsed == [
+            "Apple Development: Teammate (TEAM1)",
+            "Apple Development: Personal (TEAM2)",
+            "Lumakey Local Signer"
+        ])
+
+        let adHocStatus = CodeSigningStatus(
+            mode: .adHoc(hardenedRuntime: false),
+            bundleIdentifier: "app.lumakey.macos",
+            isStableForTCC: false,
+            badgeTitle: "Ad-hoc",
+            explanation: "ad-hoc"
+        )
+        let personalStatus = CodeSigningStatus(
+            mode: .appleDevelopment(commonName: "Apple Development: Personal (TEAM2)", teamID: "TEAM2"),
+            bundleIdentifier: "app.lumakey.macos",
+            teamIdentifier: "TEAM2",
+            isStableForTCC: true,
+            badgeTitle: "Dev",
+            explanation: "dev"
+        )
+
+        #expect(
+            AppUpdateInstaller.resolveLocalSigningIdentity(currentStatus: personalStatus, availableIdentities: parsed)
+                == "Apple Development: Personal (TEAM2)"
+        )
+        #expect(
+            AppUpdateInstaller.resolveLocalSigningIdentity(currentStatus: adHocStatus, availableIdentities: parsed)
+                == "Lumakey Local Signer"
+        )
+        #expect(
+            AppUpdateInstaller.resolveLocalSigningIdentity(
+                currentStatus: adHocStatus,
+                availableIdentities: [
+                    "Apple Development: Teammate (TEAM1)",
+                    "Apple Development: Personal (TEAM2)"
+                ]
+            ) == nil
+        )
+        #expect(
+            AppUpdateInstaller.resolveLocalSigningIdentity(
+                currentStatus: adHocStatus,
+                availableIdentities: ["Apple Development: Personal (TEAM2)"]
+            ) == "Apple Development: Personal (TEAM2)"
+        )
+
+        let tmpDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lumakey-auto-upd-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let plan = AppInstallPlan(
+            dmgURL: URL(fileURLWithPath: "/Users/tester/Downloads/Lumakey-1.2.0.dmg"),
+            targetAppURL: URL(fileURLWithPath: "/Applications/Lumakey.app"),
+            preferredSignIdentity: "Lumakey Local Signer",
+            currentPID: 99999
+        )
+        let scriptURL = try AppUpdateInstaller.writeAutoUpdateInstallScript(plan: plan, directory: tmpDir)
+        let scriptText = try String(contentsOf: scriptURL, encoding: .utf8)
+        #expect(scriptText.contains("WAIT_PID=99999"))
+        #expect(scriptText.contains("PREFERRED_SIGN_ID='Lumakey Local Signer'"))
+        #expect(scriptText.contains("hdiutil attach -nobrowse -readonly"))
+        #expect(scriptText.contains("resign_stage"))
+        #expect(scriptText.contains("open \"$TARGET_APP\""))
+
+        let syntaxCheck = try ProcessSupervisor.shared.run(
+            executableURL: URL(fileURLWithPath: "/bin/bash"),
+            arguments: ["-n", scriptURL.path],
+            timeoutSeconds: 5
+        )
+        #expect(syntaxCheck.exitCode == 0)
     }
 }

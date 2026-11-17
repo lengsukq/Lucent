@@ -7,6 +7,17 @@ public enum CodeSignatureMode: Sendable, Equatable {
     case customCertificate(commonName: String)
     case adHoc(hardenedRuntime: Bool)
     case unsigned
+
+    public var authorityCommonName: String? {
+        switch self {
+        case .developerID(let commonName, _, _),
+             .appleDevelopment(let commonName, _),
+             .customCertificate(let commonName):
+            return commonName
+        case .adHoc, .unsigned:
+            return nil
+        }
+    }
 }
 
 public struct CodeSigningStatus: Sendable, Equatable {

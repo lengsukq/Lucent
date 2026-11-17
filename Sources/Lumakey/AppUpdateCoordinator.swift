@@ -8,6 +8,7 @@ final class AppUpdateCoordinator: ObservableObject {
 
     @Published private(set) var isCheckingUpdates: Bool = false
     @Published private(set) var isDownloadingDMG: Bool = false
+    @Published private(set) var isInstallingUpdate: Bool = false
     @Published private(set) var availableAppRelease: AppReleaseInfo? = nil
     @Published private(set) var downloadedDMGURL: URL? = nil
     @Published private(set) var pendingPluginUpdates: [PluginStoreAvailableUpdate] = []
@@ -138,13 +139,24 @@ final class AppUpdateCoordinator: ObservableObject {
     }
 
     func downloadAndOpenReleaseDMG() {
-        guard let release = availableAppRelease, !isDownloadingDMG else { return }
+        downloadReleaseDMG(autoInstall: false)
+    }
+
+    func downloadAndAutoInstallReleaseDMG() {
+        downloadReleaseDMG(autoInstall: true)
+    }
+
+    private func downloadReleaseDMG(autoInstall: Bool) {
+        guard let release = availableAppRelease, !isDownloadingDMG, !isInstallingUpdate else { return }
         if release.dmgDownloadURL == nil {
             if let webURL = URL(string: release.htmlURL) { NSWorkspace.shared.open(webURL) }
             return
         }
         isDownloadingDMG = true
-        statusBanner = L10n.pick("正在下载并校验 Lumakey v\(release.normalizedVersion) 安装包…", "Downloading & verifying Lumakey v\(release.normalizedVersion) DMG…")
+        statusBanner = L10n.pick(
+            "正在下载并校验 Lumakey v\(release.normalizedVersion) 安装包…",
+            "Downloading & verifying Lumakey v\(release.normalizedVersion) DMG…"
+        )
         isErrorBanner = false
 
         Task { [weak self] in
@@ -153,17 +165,50 @@ final class AppUpdateCoordinator: ObservableObject {
                 let dmgURL = try await AppUpdateService.downloadAndVerifyDMG(release)
                 self.isDownloadingDMG = false
                 self.downloadedDMGURL = dmgURL
-                self.statusBanner = L10n.pick(
-                    "✓ 已下载并通过 SHA-256 校验：\(dmgURL.lastPathComponent)，正在挂载安装包…",
-                    "✓ Verified SHA-256 & downloaded \(dmgURL.lastPathComponent). Opening installer…"
-                )
-                self.isErrorBanner = false
-                NSWorkspace.shared.open(dmgURL)
+                if autoInstall,
+                   Bundle.main.bundleURL.pathExtension == "app",
+                   AppUpdateInstaller.canInstallInPlace() {
+                    try self.launchDetachedAutoInstaller(dmgURL: dmgURL, version: release.normalizedVersion)
+                } else {
+                    self.statusBanner = L10n.pick(
+                        "✓ 已下载并通过 SHA-256 校验：\(dmgURL.lastPathComponent)，正在挂载安装包…",
+                        "✓ Verified SHA-256 & downloaded \(dmgURL.lastPathComponent). Opening installer…"
+                    )
+                    self.isErrorBanner = false
+                    NSWorkspace.shared.open(dmgURL)
+                }
             } catch {
                 self.isDownloadingDMG = false
+                self.isInstallingUpdate = false
                 self.statusBanner = error.localizedDescription
                 self.isErrorBanner = true
             }
+        }
+    }
+
+    private func launchDetachedAutoInstaller(dmgURL: URL, version: String) throws {
+        isInstallingUpdate = true
+        let signIdentity = AppUpdateInstaller.resolveLocalSigningIdentity()
+        let plan = AppInstallPlan(
+            dmgURL: dmgURL,
+            targetAppURL: AppUpdateInstaller.defaultTargetAppURL(),
+            preferredSignIdentity: signIdentity
+        )
+        try AppUpdateInstaller.launchDetachedAutoUpdate(plan: plan)
+
+        statusBanner = signIdentity != nil
+            ? L10n.pick(
+                "✓ 校验通过！正在安装 v\(version) 并自动复用本机证书「\(signIdentity!)」重签后重启…",
+                "✓ Verified! Installing v\(version), re-signing with '\(signIdentity!)', and relaunching…"
+            )
+            : L10n.pick(
+                "✓ 校验通过！正在替换 v\(version) 并重启 Lumakey…",
+                "✓ Verified! Installing v\(version) and relaunching Lumakey…"
+            )
+        isErrorBanner = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            NSApp.terminate(nil)
         }
     }
 

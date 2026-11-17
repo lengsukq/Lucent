@@ -134,6 +134,10 @@ struct SoftwareAndPluginUpdateCardView: View {
 
     private func appReleaseBanner(_ release: AppReleaseInfo) -> some View {
         let sign = CodeSigningInspector.inspect()
+        let localCert = AppUpdateInstaller.resolveLocalSigningIdentity(currentStatus: sign)
+        let supportsAutoInstall = release.dmgDownloadURL != nil
+            && Bundle.main.bundleURL.pathExtension == "app"
+            && AppUpdateInstaller.canInstallInPlace()
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles").foregroundStyle(.cyan)
@@ -153,27 +157,53 @@ struct SoftwareAndPluginUpdateCardView: View {
                 }
                 .buttonStyle(GlassPillButtonStyle(compact: true))
 
-                if !sign.isReadyForPublicDistribution {
-                    Button(L10n.pick("复制保权限重签命令", "Copy TCC Resign Cmd")) {
-                        updater.copyLocalResignCommand(viewModel: viewModel)
+                if release.dmgDownloadURL != nil {
+                    Button(L10n.pick("仅下载 DMG", "Download DMG")) {
+                        updater.downloadAndOpenReleaseDMG()
                     }
                     .buttonStyle(GlassPillButtonStyle(compact: true))
+                    .disabled(updater.isDownloadingDMG || updater.isInstallingUpdate)
                 }
 
                 Button {
-                    updater.downloadAndOpenReleaseDMG()
+                    if supportsAutoInstall {
+                        updater.downloadAndAutoInstallReleaseDMG()
+                    } else {
+                        updater.downloadAndOpenReleaseDMG()
+                    }
                 } label: {
                     HStack(spacing: 5) {
-                        if updater.isDownloadingDMG {
+                        if updater.isDownloadingDMG || updater.isInstallingUpdate {
                             ProgressView().controlSize(.mini)
                         } else {
-                            Image(systemName: "arrow.down.circle.fill")
+                            Image(systemName: supportsAutoInstall ? "arrow.triangle.2.circlepath.circle.fill" : "arrow.down.circle.fill")
                         }
-                        Text(release.dmgDownloadURL != nil ? L10n.pick("下载并打开 DMG", "Download & Open DMG") : L10n.pick("前往下载页", "Open Release"))
+                        Text(
+                            supportsAutoInstall
+                                ? L10n.pick("自动安装并重启", "Install & Relaunch")
+                                : (release.dmgDownloadURL != nil ? L10n.pick("下载并打开 DMG", "Download & Open DMG") : L10n.pick("前往下载页", "Open Release"))
+                        )
                     }
                 }
                 .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
-                .disabled(updater.isDownloadingDMG)
+                .disabled(updater.isDownloadingDMG || updater.isInstallingUpdate)
+            }
+
+            if supportsAutoInstall {
+                Text(
+                    localCert.map { cert in
+                        L10n.pick(
+                            "升级过程会自动用本机证书「\(cert)」原地重签并重启，无需手拖 DMG，既有「辅助功能 / 屏幕录制」权限直接保留。",
+                            "Auto-install will re-sign with local certificate '\(cert)' and relaunch so TCC permissions stay intact."
+                        )
+                    } ?? L10n.pick(
+                        "升级过程会自动替换应用并重启；若尚未在本机配置固定证书，重启后可在「通用设置」一键固定签名以保留权限。",
+                        "Auto-install replaces the app and relaunches automatically. Configure local signing in General to preserve TCC permissions."
+                    )
+                )
+                .font(.caption2)
+                .foregroundStyle(localCert != nil ? Color.mint : LiquidColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             if !release.releaseNotes.isEmpty {
