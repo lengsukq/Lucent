@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CERT_NAME="Lumakey Local Signer"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
+CREATED_CERT=0
 echo "==> 检查钥匙串中是否已存在 '$CERT_NAME' 代码签名证书..."
 if security find-identity -v -p codesigning "$KEYCHAIN" 2>/dev/null | grep -Fq "\"$CERT_NAME\""; then
   echo "✓ 已检测到有效证书 '$CERT_NAME'，跳过创建。"
@@ -55,11 +56,14 @@ EOF
   echo "==> 导入证书与私钥到登录钥匙串（随后系统将弹窗请您授权一次信任代码签名）..."
   security import "$TMP_DIR/lumakey.p12" -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign -T /usr/bin/security
   security add-trusted-cert -d -r trustRoot -p codeSign -k "$KEYCHAIN" "$TMP_DIR/lumakey.crt"
+  CREATED_CERT=1
 fi
 
-echo "==> 重置旧临时 Ad-hoc 残留的 TCC 记录（首次授权新证书后将永久记住）..."
-tccutil reset Accessibility app.lumakey.macos || true
-tccutil reset ScreenCapture app.lumakey.macos || true
+if [[ "$CREATED_CERT" == "1" ]]; then
+  echo "==> 重置旧临时 Ad-hoc 残留的 TCC 记录（首次授权新证书后将尽量延续）..."
+  tccutil reset Accessibility app.lumakey.macos || true
+  tccutil reset ScreenCapture app.lumakey.macos || true
+fi
 
 echo "==> 重新打包并签名安装 Lumakey.app..."
 bash "$ROOT_DIR/scripts/install-macos.sh"

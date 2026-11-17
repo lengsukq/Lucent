@@ -38,6 +38,7 @@ Lumakey/
 │   ├── package-dmg.sh                 # 将 dist/Lumakey.app 封装为签名压缩 DMG 与 .sha256
 │   ├── release-macos.sh               # 一键对外分发构建 + Developer ID 签名 + notarytool 公证与 stapler 钉票
 │   ├── install-macos.sh               # 打包并部署到本机 /Applications/Lumakey.app（支持 --skip-build）
+│   ├── resign-local-app.sh            # 面向 DMG 用户的本机固定重签脚本（免 $99 证书跨更新延续本机权限）
 │   └── setup-local-signing.sh         # 仅限开发者本机自用：生成本地证书免除本机调试重复授权
 └── docs/                              # 设计与工程文档
 ```
