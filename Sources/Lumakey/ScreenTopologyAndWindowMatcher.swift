@@ -4,6 +4,12 @@ import Foundation
 import LumakeyCore
 import ScreenCaptureKit
 
+final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
+import SwiftUI
+
 struct DetectedScreenWindow: Identifiable, Equatable, Sendable {
     let id: CGWindowID
     let ownerName: String
@@ -20,52 +26,64 @@ struct DetectedScreenWindow: Identifiable, Equatable, Sendable {
 }
 
 struct ScreenDisplaySlice: Identifiable {
-    var id: CGDirectDisplayID { displayID }
-    let displayID: CGDirectDisplayID
+    var id: CGDirectDisplayID { descriptor.displayID }
+    let descriptor: DisplaySliceDescriptor
     let scDisplay: SCDisplay
     let appKitScreen: NSScreen
-    let cgFrame: CGRect
-    let canvasFrame: CGRect
-    let scale: CGFloat
+    let image: CGImage
+    let pixelatedImage: CGImage?
+
+    var displayID: CGDirectDisplayID { descriptor.displayID }
+    var cgFrame: CGRect { descriptor.cgFrame }
+    var canvasFrame: CGRect { descriptor.canvasFrame }
+    var scale: CGFloat { descriptor.scale }
 }
 
 @MainActor
 struct ScreenTopologySnapshot {
+    let layout: MultiDisplayLayout
     let displays: [ScreenDisplaySlice]
-    let cgUnionBounds: CGRect
-    let canvasBounds: CGRect
-    let primaryScreenHeight: CGFloat
-    let maxScale: CGFloat
-    let baseImage: CGImage
     let windows: [DetectedScreenWindow]
 
+    var cgUnionBounds: CGRect { layout.cgUnionBounds }
+    var canvasBounds: CGRect { layout.canvasBounds }
+    var primaryScreenHeight: CGFloat { layout.primaryScreenHeight }
+    var maxScale: CGFloat { layout.maxScale }
+
+    var compositorSlices: [(canvasFrame: CGRect, scale: CGFloat, image: CGImage)] {
+        displays.map { ($0.canvasFrame, $0.scale, $0.image) }
+    }
+
+    var colorSampleSlices: [(canvasFrame: CGRect, image: CGImage)] {
+        displays.map { ($0.canvasFrame, $0.image) }
+    }
+
     func canvasPoint(fromAppKitGlobal nsPt: NSPoint) -> CGPoint {
-        let cgX = nsPt.x
-        let cgY = primaryScreenHeight - nsPt.y
-        return CGPoint(x: cgX - cgUnionBounds.minX, y: cgY - cgUnionBounds.minY)
+        layout.canvasPoint(fromAppKitGlobal: nsPt)
     }
 
     func appKitGlobalRect(fromCanvas rect: CGRect) -> NSRect {
-        let cgRect = rect.offsetBy(dx: cgUnionBounds.minX, dy: cgUnionBounds.minY)
-        return NSRect(x: cgRect.minX, y: primaryScreenHeight - cgRect.maxY, width: cgRect.width, height: cgRect.height)
+        layout.appKitGlobalRect(fromCanvas: rect)
+    }
+
+    func clampedPinRect(fromCanvas rect: CGRect) -> NSRect {
+        layout.clampedPinFrame(forAppKitSelection: layout.appKitGlobalRect(fromCanvas: rect))
+    }
+
+    func effectiveScale(forSelection rect: CGRect) -> CGFloat {
+        layout.effectiveScale(forSelection: rect)
     }
 
     func displaySlice(containingCanvasPoint pt: CGPoint) -> ScreenDisplaySlice? {
-        displays.first(where: { $0.canvasFrame.insetBy(dx: -0.5, dy: -0.5).contains(pt) })
-            ?? displays.min(by: { hypot($0.canvasFrame.midX - pt.x, $0.canvasFrame.midY - pt.y) < hypot($1.canvasFrame.midX - pt.x, $1.canvasFrame.midY - pt.y) })
+        guard let desc = layout.slice(containingCanvasPoint: pt) else { return displays.first }
+        return displays.first { $0.displayID == desc.displayID }
     }
 
     func targetSlice(forSelection sel: CGRect, fallbackPoint: CGPoint) -> ScreenDisplaySlice? {
-        let anchor = CGPoint(x: sel.maxX, y: sel.maxY)
-        if let hit = displays.first(where: { $0.canvasFrame.insetBy(dx: -1, dy: -1).contains(anchor) }) { return hit }
-        return displays
-            .compactMap { slice -> (ScreenDisplaySlice, CGFloat)? in
-                let inter = slice.canvasFrame.intersection(sel)
-                guard !inter.isNull, inter.width > 0, inter.height > 0 else { return nil }
-                return (slice, inter.width * inter.height)
-            }
-            .max(by: { $0.1 < $1.1 })?.0
-            ?? displaySlice(containingCanvasPoint: fallbackPoint)
+        guard let desc = layout.targetSlice(forSelection: sel, fallbackPoint: fallbackPoint) else {
+            return displaySlice(containingCanvasPoint: fallbackPoint)
+        }
+        return displays.first { $0.displayID == desc.displayID }
     }
 }
 
@@ -75,13 +93,17 @@ enum ScreenTopologyAndWindowMatcher {
         "Window Server", "WindowServer", "Dock", "Wallpaper", "Control Center", "控制中心", "Notification Center", "通知中心"
     ]
 
+    static func screenDisplayID(_ screen: NSScreen) -> CGDirectDisplayID {
+        let num = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+        return CGDirectDisplayID(num)
+    }
+
     @MainActor
-    static func captureSnapshot() async throws -> ScreenTopologySnapshot {
+    static func captureSnapshot(includePixelatedPreview: Bool = true) async throws -> ScreenTopologySnapshot {
         let nsScreens = NSScreen.screens
         guard !nsScreens.isEmpty else {
             throw LumakeyError.visionFailed(L10n.pick("未检测到可用显示器。", "No available display detected."))
         }
-        let primaryHeight = nsScreens[0].frame.height
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
         guard !content.displays.isEmpty else {
             throw LumakeyError.visionFailed(L10n.pick("未检测到可捕获的显示器。", "No shareable display detected."))
@@ -90,48 +112,53 @@ enum ScreenTopologyAndWindowMatcher {
         let ownPID = ProcessInfo.processInfo.processIdentifier
         let ownApps = content.applications.filter { $0.processID == ownPID }
 
-        var rawSlices: [(scDisplay: SCDisplay, screen: NSScreen, cgFrame: CGRect, scale: CGFloat)] = []
+        var matchedScreens: [(scDisplay: SCDisplay, screen: NSScreen, id: CGDirectDisplayID, scale: CGFloat)] = []
         for screen in nsScreens {
-            let num = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
-            guard let scDisp = content.displays.first(where: { $0.displayID == CGDirectDisplayID(num) }) else { continue }
-            let cgRect = CGRect(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)
-            rawSlices.append((scDisp, screen, cgRect, max(screen.backingScaleFactor, 1.0)))
+            let id = screenDisplayID(screen)
+            guard id != 0, let scDisp = content.displays.first(where: { $0.displayID == id }) else { continue }
+            matchedScreens.append((scDisp, screen, id, max(screen.backingScaleFactor, 1.0)))
         }
-        if rawSlices.isEmpty, let firstDisp = content.displays.first {
-            rawSlices.append((firstDisp, nsScreens[0], firstDisp.frame, max(nsScreens[0].backingScaleFactor, 1.0)))
-        }
-
-        let cgUnion = rawSlices.reduce(CGRect.null) { $0.union($1.cgFrame) }
-        let canvasBounds = CGRect(origin: .zero, size: cgUnion.size)
-        let maxScale = rawSlices.map(\.scale).max() ?? 2.0
-
-        let slices: [ScreenDisplaySlice] = rawSlices.map { item in
-            ScreenDisplaySlice(
-                displayID: item.scDisplay.displayID, scDisplay: item.scDisplay, appKitScreen: item.screen,
-                cgFrame: item.cgFrame, canvasFrame: item.cgFrame.offsetBy(dx: -cgUnion.minX, dy: -cgUnion.minY), scale: item.scale
-            )
+        if matchedScreens.isEmpty, let firstDisp = content.displays.first {
+            matchedScreens.append((firstDisp, nsScreens[0], firstDisp.displayID, max(nsScreens[0].backingScaleFactor, 1.0)))
         }
 
-        var capturedPerDisplay: [(CGRect, CGImage)] = []
-        for slice in slices {
-            let filter = SCContentFilter(display: slice.scDisplay, excludingApplications: ownApps, exceptingWindows: [])
+        let layoutInputs = matchedScreens.map {
+            (displayID: $0.id, appKitFrame: $0.screen.frame, appKitVisibleFrame: $0.screen.visibleFrame, scale: $0.scale)
+        }
+        let layout = MultiDisplayLayout(screens: layoutInputs, mainDisplayID: CGMainDisplayID())
+
+        var slices: [ScreenDisplaySlice] = []
+        slices.reserveCapacity(matchedScreens.count)
+        for item in matchedScreens {
+            guard let desc = layout.slices.first(where: { $0.displayID == item.id }) else { continue }
+            let filter = SCContentFilter(display: item.scDisplay, excludingApplications: ownApps, exceptingWindows: [])
             let cfg = SCStreamConfiguration()
-            cfg.width = max(2, Int(round(slice.cgFrame.width * slice.scale)))
-            cfg.height = max(2, Int(round(slice.cgFrame.height * slice.scale)))
+            cfg.width = max(2, Int(round(desc.cgFrame.width * desc.scale)))
+            cfg.height = max(2, Int(round(desc.cgFrame.height * desc.scale)))
             cfg.showsCursor = false
+            cfg.captureResolution = .best
             let img = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: cfg)
-            capturedPerDisplay.append((slice.canvasFrame, img))
+            let pix = includePixelatedPreview ? ScreenshotCompositor.makePixelatedPreview(from: img, cellPixelSize: max(8, Int(round(8 * desc.scale)))) : nil
+            slices.append(ScreenDisplaySlice(
+                descriptor: desc, scDisplay: item.scDisplay, appKitScreen: item.screen,
+                image: img, pixelatedImage: pix
+            ))
         }
 
-        let composite = try compositeCanvasImage(canvasBounds: canvasBounds, scale: maxScale, pieces: capturedPerDisplay)
-        let orderedWindows = buildZOrderedWindows(scWindows: content.windows, ownPID: ownPID, cgUnion: cgUnion, canvasBounds: canvasBounds)
-        return ScreenTopologySnapshot(
-            displays: slices, cgUnionBounds: cgUnion, canvasBounds: canvasBounds,
-            primaryScreenHeight: primaryHeight, maxScale: maxScale, baseImage: composite, windows: orderedWindows
+        guard !slices.isEmpty else {
+            throw LumakeyError.visionFailed(L10n.pick("显示器画面捕获为空。", "Captured display slices are empty."))
+        }
+
+        let orderedWindows = buildZOrderedWindows(
+            scWindows: content.windows, ownPID: ownPID,
+            cgUnion: layout.cgUnionBounds, canvasBounds: layout.canvasBounds
         )
+        return ScreenTopologySnapshot(layout: layout, displays: slices, windows: orderedWindows)
     }
 
-    static func buildZOrderedWindows(scWindows: [SCWindow], ownPID: pid_t, cgUnion: CGRect, canvasBounds: CGRect) -> [DetectedScreenWindow] {
+    static func buildZOrderedWindows(
+        scWindows: [SCWindow], ownPID: pid_t, cgUnion: CGRect, canvasBounds: CGRect
+    ) -> [DetectedScreenWindow] {
         var scByID: [CGWindowID: SCWindow] = [:]
         for w in scWindows where w.isOnScreen && w.windowLayer == 0 && w.owningApplication?.processID != ownPID {
             scByID[w.windowID] = w
@@ -169,63 +196,53 @@ enum ScreenTopologyAndWindowMatcher {
         return result
     }
 
-    static func compositeCanvasImage(canvasBounds: CGRect, scale: CGFloat, pieces: [(canvasFrame: CGRect, image: CGImage)]) throws -> CGImage {
-        if pieces.count == 1, pieces[0].canvasFrame.origin == .zero, pieces[0].canvasFrame.size == canvasBounds.size {
-            return pieces[0].image
-        }
-        let pixelW = max(2, Int(round(canvasBounds.width * scale)))
-        let pixelH = max(2, Int(round(canvasBounds.height * scale)))
-        let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        guard let ctx = CGContext(
-            data: nil, width: pixelW, height: pixelH, bitsPerComponent: 8, bytesPerRow: pixelW * 4,
-            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { throw LumakeyError.visionFailed("无法创建多屏合成画布。") }
-        ctx.interpolationQuality = .high
-        for (rect, img) in pieces {
-            ctx.draw(img, in: CGRect(x: rect.minX * scale, y: (canvasBounds.height - rect.maxY) * scale, width: rect.width * scale, height: rect.height * scale))
-        }
-        guard let out = ctx.makeImage() else { throw LumakeyError.visionFailed("合成多显示器画面失败。") }
-        return out
-    }
-
-    static func captureIndependentWindowImage(windowID: CGWindowID, ignoreShadow: Bool, scale: CGFloat) async throws -> CGImage? {
+    static func captureIndependentWindowImage(
+        windowID: CGWindowID, ignoreShadow: Bool, fallbackScale: CGFloat
+    ) async throws -> (image: CGImage, scale: CGFloat)? {
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
         guard let scWin = content.windows.first(where: { $0.windowID == windowID }) else { return nil }
         let filter = SCContentFilter(desktopIndependentWindow: scWin)
         let rect = filter.contentRect
-        let effScale = max(scale, CGFloat(filter.pointPixelScale), 1.0)
+        let nativeScale = CGFloat(filter.pointPixelScale)
+        let effScale = nativeScale >= 1.0 ? nativeScale : max(fallbackScale, 1.0)
         let cfg = SCStreamConfiguration()
         cfg.width = max(2, Int(round(rect.width * effScale)))
         cfg.height = max(2, Int(round(rect.height * effScale)))
         cfg.scalesToFit = false; cfg.showsCursor = false
         cfg.ignoreShadowsSingleWindow = ignoreShadow
         cfg.shouldBeOpaque = false; cfg.backgroundColor = .clear
-        return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: cfg)
+        cfg.captureResolution = .best
+        let img = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: cfg)
+        return (img, effScale)
     }
 
     @MainActor
     static func activeCursorScreen() -> NSScreen? {
         let mouse = NSEvent.mouseLocation
-        return NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main ?? NSScreen.screens.first
+        return NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) || $0.frame.contains(mouse) })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
     }
 
     static func captureCrossDisplayRegion(
-        canvasRect: CGRect, cgUnionBounds: CGRect,
+        canvasRect: CGRect,
         displays: [(scDisplay: SCDisplay, canvasFrame: CGRect, scale: CGFloat)],
-        excludedWindows: [SCWindow], showsCursor: Bool, outputSize: (Int, Int)
+        excludedWindows: [SCWindow],
+        showsCursor: Bool,
+        outputSize: (Int, Int)
     ) async -> CGImage? {
-        let _ = cgUnionBounds
         var pieces: [(CGRect, CGImage)] = []
         for disp in displays {
-            let inter = disp.canvasFrame.intersection(canvasRect)
+            guard let localSrc = MultiDisplayLayout.clampedLocalSourceRect(forSelection: canvasRect, in: disp.canvasFrame) else { continue }
+            let inter = disp.canvasFrame.intersection(canvasRect.standardized)
             guard !inter.isNull, inter.width >= 2, inter.height >= 2 else { continue }
-            let localSrc = inter.offsetBy(dx: -disp.canvasFrame.minX, dy: -disp.canvasFrame.minY)
             let filter = SCContentFilter(display: disp.scDisplay, excludingWindows: excludedWindows)
             let cfg = SCStreamConfiguration()
             cfg.sourceRect = localSrc
             cfg.width = max(2, Int(round(localSrc.width * disp.scale)))
             cfg.height = max(2, Int(round(localSrc.height * disp.scale)))
-            cfg.showsCursor = showsCursor; cfg.scalesToFit = true
+            cfg.showsCursor = showsCursor
+            cfg.scalesToFit = true
             if let img = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: cfg) {
                 pieces.append((inter.offsetBy(dx: -canvasRect.minX, dy: -canvasRect.minY), img))
             }
@@ -234,7 +251,10 @@ enum ScreenTopologyAndWindowMatcher {
         let outW = max(2, outputSize.0), outH = max(2, outputSize.1)
         let sx = CGFloat(outW) / max(canvasRect.width, 1), sy = CGFloat(outH) / max(canvasRect.height, 1)
         let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        guard let ctx = CGContext(data: nil, width: outW, height: outH, bitsPerComponent: 8, bytesPerRow: outW * 4, space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        guard let ctx = CGContext(
+            data: nil, width: outW, height: outH, bitsPerComponent: 8, bytesPerRow: outW * 4,
+            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
         ctx.interpolationQuality = .high
         for (rel, img) in pieces {
             ctx.draw(img, in: CGRect(x: rel.minX * sx, y: (canvasRect.height - rel.maxY) * sy, width: rel.width * sx, height: rel.height * sy))

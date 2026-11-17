@@ -10,11 +10,6 @@ struct ScreenshotCanvasView: View {
     private var origin: CGPoint { slice.canvasFrame.origin }
     private var viewSize: CGSize { slice.canvasFrame.size }
 
-    private var imageScale: CGFloat {
-        guard session.screenBounds.width > 0 else { return slice.scale }
-        return CGFloat(session.baseImage.width) / session.screenBounds.width
-    }
-
     private func toCanvas(_ local: CGPoint) -> CGPoint { CGPoint(x: local.x + origin.x, y: local.y + origin.y) }
     private func toLocal(_ canvasRect: CGRect) -> CGRect { canvasRect.offsetBy(dx: -origin.x, dy: -origin.y) }
 
@@ -28,45 +23,56 @@ struct ScreenshotCanvasView: View {
         let localSel = toLocal(sel)
         let toolbarW: CGFloat = min(760, viewSize.width - 24)
         let toolbarH: CGFloat = session.activeTool == .move ? 48 : 82
-        let x = min(max(localSel.maxX - toolbarW / 2, toolbarW / 2 + 12), viewSize.width - toolbarW / 2 - 12)
-        let belowY = localSel.maxY + toolbarH / 2 + 10, aboveY = localSel.minY - toolbarH / 2 - 10
+        let minX = toolbarW / 2 + 12
+        let maxX = max(minX, viewSize.width - toolbarW / 2 - 12)
+        let x = min(max(localSel.maxX - toolbarW / 2, minX), maxX)
+        let belowY = localSel.maxY + toolbarH / 2 + 10
+        let aboveY = localSel.minY - toolbarH / 2 - 10
         let y: CGFloat
         if belowY + toolbarH / 2 <= viewSize.height - 10 { y = belowY }
         else if aboveY - toolbarH / 2 >= 10 { y = aboveY }
-        else { y = min(max(toolbarH / 2 + 12, localSel.maxY - toolbarH / 2 - 12), viewSize.height - toolbarH / 2 - 12) }
+        else {
+            let minY = toolbarH / 2 + 12
+            let maxY = max(minY, viewSize.height - toolbarH / 2 - 12)
+            y = min(max(localSel.maxY - toolbarH / 2 - 12, minY), maxY)
+        }
         return CGPoint(x: x, y: y)
     }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Image(decorative: session.baseImage, scale: imageScale, orientation: .up)
+            Image(decorative: slice.image, scale: slice.scale, orientation: .up)
                 .resizable()
-                .frame(width: session.screenBounds.width, height: session.screenBounds.height)
-                .offset(x: -origin.x, y: -origin.y)
+                .frame(width: viewSize.width, height: viewSize.height)
                 .allowsHitTesting(false)
 
             dimmingOverlay
 
             if let sel = session.selectionRect?.standardized {
-                mosaicOverlay(clippedTo: sel)
-                annotationCanvas(clippedTo: sel)
-                    .frame(width: session.screenBounds.width, height: session.screenBounds.height)
-                    .mask(Rectangle().frame(width: sel.width, height: sel.height).position(x: sel.midX, y: sel.midY))
-                    .offset(x: -origin.x, y: -origin.y)
+                let localSel = toLocal(sel)
+                let (pxW, pxH) = session.pixelDimensions(for: sel)
+                mosaicOverlay(localSel: localSel)
+                annotationCanvas(canvasSel: sel, localSel: localSel)
 
                 ScreenshotSelectionChrome(
-                    rect: toLocal(sel),
-                    pixelSizeText: "\(Int(round(sel.width))) × \(Int(round(sel.height))) px",
+                    rect: localSel,
+                    sliceSize: viewSize,
+                    pixelSizeText: "\(pxW) × \(pxH) px",
                     windowTitle: session.selectedWindow?.displayLabel,
                     mode: session.mode
                 )
             } else if let hover = session.hoveredWindow {
                 ScreenshotWindowSnapOverlay(
-                    rect: toLocal(hover.frame), label: hover.displayLabel, overlapCount: session.overlappingWindowCount
+                    rect: toLocal(hover.frame),
+                    sliceSize: viewSize,
+                    label: hover.displayLabel,
+                    overlapCount: session.overlappingWindowCount
                 )
             }
 
-            Color.clear.contentShape(Rectangle())
+            Color.clear
+                .frame(width: viewSize.width, height: viewSize.height)
+                .contentShape(Rectangle())
                 .onContinuousHover { if case .active(let pt) = $0 { session.updateHover(at: toCanvas(pt)) } }
                 .gesture(DragGesture(minimumDistance: 0).onChanged(handleDragChanged).onEnded(handleDragEnded))
 
@@ -82,7 +88,7 @@ struct ScreenshotCanvasView: View {
                     ScreenshotLoupeView(
                         session: session,
                         localCursor: CGPoint(x: session.cursorPoint.x - origin.x, y: session.cursorPoint.y - origin.y),
-                        sliceSize: viewSize, imageScale: imageScale
+                        sliceSize: viewSize
                     )
                 }
                 if let banner = session.bannerMessage {
@@ -103,7 +109,8 @@ struct ScreenshotCanvasView: View {
                 ScreenshotToolbarView(session: session, onAction: onAction).position(localToolbarPosition)
             }
         }
-        .frame(width: viewSize.width, height: viewSize.height).clipped()
+        .frame(width: viewSize.width, height: viewSize.height, alignment: .topLeading)
+        .clipped()
         .onChange(of: session.annotations.count) { _, _ in
             if session.mode == .interactiveAnnotate && shouldHostToolbar { onAction(.syncClipboard) }
         }
@@ -117,38 +124,49 @@ struct ScreenshotCanvasView: View {
                 if !localHole.isNull && localHole.width > 0 && localHole.height > 0 { path.addRect(localHole) }
             }
         }
-        .fill(Color.black.opacity(0.42), style: FillStyle(eoFill: true)).allowsHitTesting(false)
+        .fill(Color.black.opacity(0.42), style: FillStyle(eoFill: true))
+        .frame(width: viewSize.width, height: viewSize.height)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder
-    private func mosaicOverlay(clippedTo sel: CGRect) -> some View {
-        if let pix = session.pixelatedImage {
-            Image(decorative: pix, scale: CGFloat(pix.width) / max(session.screenBounds.width, 1), orientation: .up)
+    private func mosaicOverlay(localSel: CGRect) -> some View {
+        let clippedLocal = localSel.intersection(CGRect(origin: .zero, size: viewSize))
+        if let pix = slice.pixelatedImage, !clippedLocal.isNull, clippedLocal.width > 0, clippedLocal.height > 0 {
+            Image(decorative: pix, scale: CGFloat(pix.width) / max(viewSize.width, 1), orientation: .up)
                 .interpolation(.none).resizable()
-                .frame(width: session.screenBounds.width, height: session.screenBounds.height)
+                .frame(width: viewSize.width, height: viewSize.height)
                 .mask(
                     Canvas { ctx, _ in
+                        ctx.clip(to: Path(clippedLocal))
+                        ctx.translateBy(x: -origin.x, y: -origin.y)
                         let items = session.annotations + (session.draftAnnotation.map { [$0] } ?? [])
                         for item in items where item.tool == .mosaic {
                             ScreenshotAnnotationRenderer.renderMosaicMask(item, in: &ctx)
                         }
                     }
-                    .frame(width: session.screenBounds.width, height: session.screenBounds.height)
-                    .mask(Rectangle().frame(width: sel.width, height: sel.height).position(x: sel.midX, y: sel.midY))
+                    .frame(width: viewSize.width, height: viewSize.height)
                 )
-                .offset(x: -origin.x, y: -origin.y).allowsHitTesting(false)
+                .allowsHitTesting(false)
         }
     }
 
-    private func annotationCanvas(clippedTo sel: CGRect) -> some View {
-        Canvas { ctx, _ in
-            let items = session.annotations + (session.draftAnnotation.map { [$0] } ?? [])
-            ScreenshotAnnotationRenderer.renderSpotlightOverlay(items.filter { $0.tool == .spotlight }, selection: sel, in: &ctx)
-            for item in items where item.tool != .spotlight {
-                ScreenshotAnnotationRenderer.render(item, in: &ctx)
+    @ViewBuilder
+    private func annotationCanvas(canvasSel: CGRect, localSel: CGRect) -> some View {
+        let clippedLocal = localSel.intersection(CGRect(origin: .zero, size: viewSize))
+        if !clippedLocal.isNull, clippedLocal.width > 0, clippedLocal.height > 0 {
+            Canvas { ctx, _ in
+                ctx.clip(to: Path(clippedLocal))
+                ctx.translateBy(x: -origin.x, y: -origin.y)
+                let items = session.annotations + (session.draftAnnotation.map { [$0] } ?? [])
+                ScreenshotAnnotationRenderer.renderSpotlightOverlay(items.filter { $0.tool == .spotlight }, selection: canvasSel, in: &ctx)
+                for item in items where item.tool != .spotlight {
+                    ScreenshotAnnotationRenderer.render(item, in: &ctx)
+                }
             }
+            .frame(width: viewSize.width, height: viewSize.height)
+            .allowsHitTesting(false)
         }
-        .allowsHitTesting(false)
     }
 
     private func handleDragChanged(_ value: DragGesture.Value) {

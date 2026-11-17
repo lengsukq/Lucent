@@ -7,21 +7,22 @@ final class GifHUDPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 
     @MainActor
-    static func present(near region: NSRect, screenFrame: NSRect, controller: GifCaptureController) -> GifHUDPanel {
-        let hudW: CGFloat = 820, hudH: CGFloat = 64
-        let visible = NSScreen.screens.first(where: { $0.frame.intersects(screenFrame) })?.visibleFrame ?? screenFrame
-        let x = min(max(region.midX - hudW / 2, visible.minX + 8), visible.maxX - hudW - 8)
-        let aboveY = region.maxY + 10, belowY = region.minY - hudH - 10
-        let y: CGFloat = (aboveY + hudH <= visible.maxY - 4) ? aboveY : ((belowY >= visible.minY + 4) ? belowY : visible.maxY - hudH - 8)
-
+    static func present(near region: NSRect, visibleFrame: NSRect, controller: GifCaptureController) -> GifHUDPanel {
+        let hudFrame = MultiDisplayLayout.clampedHUDFrame(
+            preferredSize: CGSize(width: 820, height: 64),
+            near: region,
+            visibleFrame: visibleFrame
+        )
         let panel = GifHUDPanel(
-            contentRect: NSRect(x: x, y: y, width: hudW, height: hudH),
+            contentRect: hudFrame,
             styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered, defer: false
+            backing: .buffered,
+            defer: false
         )
         panel.level = .statusBar
         panel.becomesKeyOnlyIfNeeded = true
         panel.hidesOnDeactivate = false
+        panel.sharingType = .none
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
         panel.contentView = NSHostingView(rootView: LocalizedRootContainer { GifRecordingHUDView(controller: controller) })
@@ -40,10 +41,11 @@ final class GifHUDPanel: NSPanel {
         let screen = slice.appKitScreen
         let panel = CaptureOverlayPanel(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         panel.level = .screenSaver
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.hidesOnDeactivate = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
         panel.acceptsMouseMovedEvents = true
-        panel.contentView = NSHostingView(rootView: LocalizedRootContainer {
+        panel.contentView = FirstMouseHostingView(rootView: LocalizedRootContainer {
             GifSelectionOverlayView(session: session, slice: slice, onStartRecording: onStart, onCancel: onCancel)
         })
         panel.setFrame(screen.frame, display: true)

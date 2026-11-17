@@ -30,8 +30,10 @@ final class GifCaptureController: ObservableObject {
 
     private var selectionPanels: [CaptureOverlayPanel] = []
     private var panelByDisplayID: [CGDirectDisplayID: CaptureOverlayPanel] = [:]
+    private var borderPanels: [RecordingRegionBorderPanel] = []
     private var hudPanel: GifHUDPanel?
     private var keyMonitor: Any?
+    private var screenObserver: NSObjectProtocol?
     private var selectionSession: GifSelectionSession?
     private var captureTask: Task<Void, Never>?
     private var activeEncoder: GifStreamEncoder?
@@ -65,7 +67,8 @@ final class GifCaptureController: ObservableObject {
 
     func finishRecording() {
         guard case .recording = phase, let encoder = activeEncoder else { return }
-        captureTask?.cancel(); captureTask = nil; activeEncoder = nil; phase = .encoding
+        captureTask?.cancel(); captureTask = nil; activeEncoder = nil
+        closeBorderPanels(); phase = .encoding
 
         Task { [weak self] in
             guard let self else { return }
@@ -97,9 +100,7 @@ final class GifCaptureController: ObservableObject {
     }
 
     func copyResultAgain(_ result: GifFinalizeResult) {
-        if GifStreamEncoder.copyGifToPasteboard(at: result.fileURL) {
-            onStatusMessage?("已重新复制 GIF 动图到剪贴板")
-        }
+        if GifStreamEncoder.copyGifToPasteboard(at: result.fileURL) { onStatusMessage?("已重新复制 GIF 动图到剪贴板") }
     }
 
     func saveResultAs(_ result: GifFinalizeResult) {
@@ -117,55 +118,49 @@ final class GifCaptureController: ObservableObject {
     func previewResult(_ result: GifFinalizeResult) { NSWorkspace.shared.open(result.fileURL) }
 
     private func prepareAndPresentSelection() async {
-        try? await Task.sleep(for: .milliseconds(100))
+        try? await Task.sleep(for: .milliseconds(70))
         do {
-            let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot()
+            let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includePixelatedPreview: false)
             let initialPt = topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation)
-            let session = GifSelectionSession(topology: topology, initialCursorCanvasPoint: initialPt, options: options)
-            presentSelectionOverlays(session: session)
-        } catch {
-            onStatusMessage?(error.localizedDescription)
-        }
+            presentSelectionOverlays(session: GifSelectionSession(topology: topology, initialCursorCanvasPoint: initialPt, options: options))
+        } catch { onStatusMessage?(error.localizedDescription) }
     }
 
     private func presentSelectionOverlays(session: GifSelectionSession) {
         selectionSession = session; phase = .selectingRegion
         selectionPanels.removeAll(); panelByDisplayID.removeAll()
         for slice in session.topology.displays {
-            let isKey = slice.displayID == session.activeDisplayID
             let p = GifHUDPanel.presentSelection(
-                session: session, slice: slice, makeKey: isKey,
+                session: session, slice: slice, makeKey: slice.displayID == session.activeDisplayID,
                 onStart: { [weak self] in self?.beginRecordingFromSelection() },
                 onCancel: { [weak self] in self?.cancelCapture() }
             )
-            selectionPanels.append(p)
-            panelByDisplayID[slice.displayID] = p
+            selectionPanels.append(p); panelByDisplayID[slice.displayID] = p
         }
         NSApp.activate(ignoringOtherApps: true)
         panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
+        installScreenChangeObserver()
 
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .rightMouseDown, .mouseMoved]) { [weak self] event in
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .rightMouseDown, .mouseMoved, .leftMouseDragged]) { [weak self] event in
             guard let self, let current = self.selectionSession else { return event }
-            if event.type == .mouseMoved {
+            if event.type == .mouseMoved || event.type == .leftMouseDragged {
                 let prevID = current.activeDisplayID
                 current.updateHover(at: current.topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation))
-                if current.activeDisplayID != prevID { self.panelByDisplayID[current.activeDisplayID]?.makeKey() }
+                if event.type == .mouseMoved, current.activeDisplayID != prevID, !current.isDragging, current.activeDrag == nil {
+                    self.panelByDisplayID[current.activeDisplayID]?.makeKey()
+                }
                 return event
             }
             if event.type == .rightMouseDown {
                 if current.selectionRect != nil {
                     current.selectionRect = nil; current.selectedWindow = nil
                     current.updateHover(at: current.topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation))
-                } else {
-                    self.cancelCapture()
-                }
+                } else { self.cancelCapture() }
                 return nil
             }
             if event.keyCode == 53 { self.cancelCapture(); return nil }
             if event.keyCode == 48 && current.selectionRect == nil { _ = current.cycleHoveredWindow(); return nil }
-            if (event.keyCode == 36 || event.keyCode == 76), current.selectionRect != nil {
-                self.beginRecordingFromSelection(); return nil
-            }
+            if (event.keyCode == 36 || event.keyCode == 76), current.selectionRect != nil { self.beginRecordingFromSelection(); return nil }
             return event
         }
     }
@@ -176,48 +171,42 @@ final class GifCaptureController: ObservableObject {
         let appKitRegion = session.appKitScreenRect(for: sel)
         let targetSlice = session.topology.targetSlice(forSelection: sel, fallbackPoint: session.cursorPoint) ?? session.topology.displays[0]
         let lockedWindowID = session.selectedWindow?.id
-        let cgUnion = session.topology.cgUnionBounds
         let displaySpecs = session.topology.displays.map { (scDisplay: $0.scDisplay, canvasFrame: $0.canvasFrame, scale: $0.scale) }
         let outDims = session.outputDimensions(for: sel)
 
         closeSelectionPanels()
         elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0
         phase = .recording(isPaused: false)
-        hudPanel = GifHUDPanel.present(near: appKitRegion, screenFrame: targetSlice.appKitScreen.frame, controller: self)
+        if lockedWindowID == nil { borderPanels = RecordingRegionBorderPanel.presentBorders(forAppKitRect: appKitRegion) }
+        hudPanel = GifHUDPanel.present(near: appKitRegion, visibleFrame: targetSlice.appKitScreen.visibleFrame, controller: self)
 
         let encoder = GifStreamEncoder(options: options)
         activeEncoder = encoder
-        let hudWinID = hudPanel.map { CGWindowID($0.windowNumber) }
+        var excludedIDs = Set(borderPanels.map { CGWindowID($0.windowNumber) })
+        if let hudID = hudPanel.map({ CGWindowID($0.windowNumber) }) { excludedIDs.insert(hudID) }
+
         captureTask = Task { [weak self] in
             await self?.runCaptureLoop(
-                canvasRect: sel, lockedWindowID: lockedWindowID, cgUnion: cgUnion,
-                displaySpecs: displaySpecs, outputSize: outDims, hudWindowID: hudWinID, encoder: encoder
+                canvasRect: sel, lockedWindowID: lockedWindowID, displaySpecs: displaySpecs,
+                outputSize: outDims, excludedWindowIDs: excludedIDs, encoder: encoder
             )
         }
     }
 
     private func runCaptureLoop(
-        canvasRect: CGRect,
-        lockedWindowID: CGWindowID?,
-        cgUnion: CGRect,
+        canvasRect: CGRect, lockedWindowID: CGWindowID?,
         displaySpecs: [(scDisplay: SCDisplay, canvasFrame: CGRect, scale: CGFloat)],
-        outputSize: (Int, Int),
-        hudWindowID: CGWindowID?,
-        encoder: GifStreamEncoder
+        outputSize: (Int, Int), excludedWindowIDs: Set<CGWindowID>, encoder: GifStreamEncoder
     ) async {
         guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false) else {
             cancelCapture(); return
         }
-        let excluded = content.windows.filter { hudWindowID != nil && $0.windowID == hudWindowID }
-        let singleWindowFilter: SCContentFilter? = lockedWindowID.flatMap { wid in
-            content.windows.first(where: { $0.windowID == wid }).map { SCContentFilter(desktopIndependentWindow: $0) }
-        }
-        let singleDisplayMatch = displaySpecs.first { $0.canvasFrame.insetBy(dx: -0.5, dy: -0.5).contains(canvasRect) }
-        let singleDisplayFilter: (SCContentFilter, CGRect)? = singleDisplayMatch.flatMap { spec in
-            guard let liveDisp = content.displays.first(where: { $0.displayID == spec.scDisplay.displayID }) else { return nil }
-            let localSrc = canvasRect.offsetBy(dx: -spec.canvasFrame.minX, dy: -spec.canvasFrame.minY)
-            return (SCContentFilter(display: liveDisp, excludingWindows: excluded), localSrc)
-        }
+        let excluded = content.windows.filter { excludedWindowIDs.contains($0.windowID) }
+        let streamPair = await ScreenRecordingStreamEngine.startHardwareStreamIfSingleSource(
+            canvasRect: canvasRect, lockedWindowID: lockedWindowID, displaySpecs: displaySpecs,
+            excludedWindowIDs: excludedWindowIDs, options: options, outputSize: outputSize, shareableContent: content
+        )
+        defer { if let stream = streamPair?.stream { Task { try? await stream.stopCapture() } } }
 
         let nominal = options.frameIntervalSeconds
         var lastUptime: TimeInterval?
@@ -226,31 +215,16 @@ final class GifCaptureController: ObservableObject {
             guard case .recording(let isPaused) = phase else { break }
             if isPaused { lastUptime = nil; try? await Task.sleep(for: .milliseconds(80)); continue }
             let tickStart = ProcessInfo.processInfo.systemUptime
-
-            let frame: CGImage?
-            if let winFilter = singleWindowFilter {
-                let cfg = SCStreamConfiguration()
-                cfg.width = outputSize.0; cfg.height = outputSize.1
-                cfg.showsCursor = options.showsCursor; cfg.scalesToFit = true; cfg.ignoreShadowsSingleWindow = true
-                frame = try? await SCScreenshotManager.captureImage(contentFilter: winFilter, configuration: cfg)
-            } else if let (dispFilter, localSrc) = singleDisplayFilter {
-                let cfg = SCStreamConfiguration()
-                cfg.sourceRect = localSrc; cfg.width = outputSize.0; cfg.height = outputSize.1
-                cfg.showsCursor = options.showsCursor; cfg.scalesToFit = true
-                frame = try? await SCScreenshotManager.captureImage(contentFilter: dispFilter, configuration: cfg)
-            } else {
-                let liveSpecs = displaySpecs.compactMap { spec -> (SCDisplay, CGRect, CGFloat)? in
-                    guard let live = content.displays.first(where: { $0.displayID == spec.scDisplay.displayID }) else { return nil }
-                    return (live, spec.canvasFrame, spec.scale)
-                }
-                frame = await ScreenTopologyAndWindowMatcher.captureCrossDisplayRegion(
-                    canvasRect: canvasRect, cgUnionBounds: cgUnion, displays: liveSpecs,
-                    excludedWindows: excluded, showsCursor: options.showsCursor, outputSize: outputSize
-                )
+            let next = await ScreenRecordingStreamEngine.captureNextFrame(
+                streamSink: streamPair?.sink, canvasRect: canvasRect, displaySpecs: displaySpecs,
+                shareableContent: content, excludedWindows: excluded, showsCursor: options.showsCursor, outputSize: outputSize
+            )
+            if next.fatalError {
+                if encoder.encodedFrameCount > 0 { finishRecording() } else { cancelCapture() }
+                return
             }
-
-            guard let frame, !Task.isCancelled else {
-                try? await Task.sleep(for: .milliseconds(40)); continue
+            guard let frame = next.image, !Task.isCancelled else {
+                try? await Task.sleep(for: .milliseconds(25)); continue
             }
             guard case .recording(let pausedAfter) = phase, !pausedAfter else { lastUptime = nil; continue }
             let now = ProcessInfo.processInfo.systemUptime
@@ -269,16 +243,35 @@ final class GifCaptureController: ObservableObject {
         }
     }
 
+    private func installScreenChangeObserver() {
+        if let obs = screenObserver { NotificationCenter.default.removeObserver(obs) }
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if case .selectingRegion = self.phase { self.cancelCapture() }
+                else if case .recording = self.phase {
+                    if (self.activeEncoder?.encodedFrameCount ?? 0) > 0 { self.finishRecording() } else { self.cancelCapture() }
+                }
+            }
+        }
+    }
+
     private func closeSelectionPanels() {
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor); keyMonitor = nil }
         for p in selectionPanels { p.orderOut(nil); p.contentView = nil }
-        selectionPanels.removeAll(); panelByDisplayID.removeAll()
-        selectionSession = nil
+        selectionPanels.removeAll(); panelByDisplayID.removeAll(); selectionSession = nil
+    }
+
+    private func closeBorderPanels() {
+        for p in borderPanels { p.orderOut(nil); p.contentView = nil }
+        borderPanels.removeAll()
     }
 
     private func cleanupAllResources(discardEncoder: Bool, animatedHUD: Bool) {
-        captureTask?.cancel(); captureTask = nil
-        closeSelectionPanels()
+        captureTask?.cancel(); captureTask = nil; closeSelectionPanels(); closeBorderPanels()
+        if let obs = screenObserver { NotificationCenter.default.removeObserver(obs); screenObserver = nil }
         if discardEncoder { activeEncoder?.discard() }
         activeEncoder = nil
         if let closingHUD = hudPanel {

@@ -18,6 +18,7 @@ public final class StatusScreenOverlayService: @unchecked Sendable {
     @MainActor private var windows: [NSWindow] = []
     @MainActor private var hintLabels: [NSTextField] = []
     @MainActor private var localKeyMonitor: Any?
+    @MainActor private var screenObserver: NSObjectProtocol?
     @MainActor private var holdTimer: Timer?
     @MainActor private var holdStartDate: Date?
     nonisolated(unsafe) private var eventTap: CFMachPort?
@@ -134,6 +135,14 @@ public final class StatusScreenOverlayService: @unchecked Sendable {
             hintLabels.append(hintLabel)
         }
         installInputMonitors(config: config)
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.isActive, let cfg = self.currentConfiguration else { return }
+                self.presentOnMain(cfg)
+            }
+        }
     }
 
     @objc @MainActor
@@ -220,6 +229,7 @@ public final class StatusScreenOverlayService: @unchecked Sendable {
     @MainActor
     private func tearDownOnMain(animated: Bool) {
         holdTimer?.invalidate(); holdTimer = nil; holdStartDate = nil
+        if let obs = screenObserver { NotificationCenter.default.removeObserver(obs); screenObserver = nil }
         if let mon = localKeyMonitor { NSEvent.removeMonitor(mon); localKeyMonitor = nil }
         if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: false) }
         if let src = eventTapSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), src, .commonModes) }

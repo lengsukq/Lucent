@@ -73,19 +73,25 @@ public extension ScreenshotCompositor {
         ClipboardPasteboardIO.writeImageFileToPasteboard(at: url, to: pasteboard)
     }
 
-    static func saveTempCapture(_ cgImage: CGImage) throws -> URL {
+    static func saveTempCapture(_ cgImage: CGImage, scale: CGFloat = 2.0) throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("lumakey-captures", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let url = folder.appendingPathComponent("lumakey-pin-\(UUID().uuidString).png")
-        try writePNG(cgImage, to: url)
+        try writePNG(cgImage, scale: scale, to: url)
         return url
     }
 
-    static func writePNG(_ cgImage: CGImage, to url: URL) throws {
+    static func writePNG(_ cgImage: CGImage, scale: CGFloat = 2.0, to url: URL) throws {
         guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             throw LumakeyError.visionFailed("无法写入 PNG 文件：\(url.lastPathComponent)")
         }
-        CGImageDestinationAddImage(dest, cgImage, nil)
+        let safeScale = max(scale, 1.0)
+        let dpi = 72.0 * Double(safeScale)
+        let props: [CFString: Any] = [
+            kCGImagePropertyDPIWidth: dpi,
+            kCGImagePropertyDPIHeight: dpi
+        ]
+        CGImageDestinationAddImage(dest, cgImage, props as CFDictionary)
         if !CGImageDestinationFinalize(dest) {
             throw LumakeyError.visionFailed("PNG 编码失败：\(url.lastPathComponent)")
         }

@@ -45,11 +45,9 @@ enum ScreenshotDragMode {
 @MainActor
 final class ScreenshotSessionState: ObservableObject {
     let topology: ScreenTopologySnapshot
-    let pixelatedImage: CGImage?
     let mode: ScreenshotMode
     let previousSelectionRect: CGRect?
 
-    var baseImage: CGImage { topology.baseImage }
     var screenBounds: CGRect { topology.canvasBounds }
     var windows: [DetectedScreenWindow] { topology.windows }
 
@@ -78,11 +76,6 @@ final class ScreenshotSessionState: ObservableObject {
 
     var hoveredWindowRect: CGRect? { hoveredWindow?.frame }
 
-    var backingScale: CGFloat {
-        guard screenBounds.width > 0 else { return topology.maxScale }
-        return max(1.0, CGFloat(baseImage.width) / screenBounds.width)
-    }
-
     var activeDragMode: ScreenshotDragMode?
     var lastTapTimestamp: TimeInterval = 0
     var lastTapPoint: CGPoint = .zero
@@ -95,7 +88,6 @@ final class ScreenshotSessionState: ObservableObject {
         previousSelectionRect: CGRect? = nil
     ) {
         self.topology = topology
-        self.pixelatedImage = ScreenshotCompositor.makePixelatedPreview(from: topology.baseImage, cellPixelSize: 16)
         self.mode = mode
         self.previousSelectionRect = previousSelectionRect
         let clampedPt = CGPoint(
@@ -105,24 +97,40 @@ final class ScreenshotSessionState: ObservableObject {
         self.cursorPoint = clampedPt
         self.activeDisplayID = topology.displaySlice(containingCanvasPoint: clampedPt)?.displayID
             ?? topology.displays.first?.displayID ?? CGMainDisplayID()
-        self.cursorHex = ScreenshotCompositor.samplePixelColor(in: topology.baseImage, point: clampedPt, screenBounds: topology.canvasBounds)
-        self.cursorRGB = ScreenshotCompositor.samplePixelRGBString(in: topology.baseImage, point: clampedPt, screenBounds: topology.canvasBounds)
+        let sampled = ScreenshotCompositor.sampleColorFromSlices(topology.colorSampleSlices, at: clampedPt)
+        self.cursorHex = sampled.hex
+        self.cursorRGB = sampled.rgb
         updateHover(at: clampedPt)
     }
 
+    func effectiveScale(for rect: CGRect) -> CGFloat {
+        topology.effectiveScale(forSelection: rect)
+    }
+
+    func pixelDimensions(for rect: CGRect) -> (Int, Int) {
+        let std = rect.standardized
+        let scale = effectiveScale(for: std)
+        return (max(1, Int(round(std.width * scale))), max(1, Int(round(std.height * scale))))
+    }
+
     func updateHover(at point: CGPoint) {
-        cursorPoint = point
-        if let slice = topology.displaySlice(containingCanvasPoint: point), slice.displayID != activeDisplayID {
+        let clamped = CGPoint(
+            x: min(max(0, point.x), screenBounds.width),
+            y: min(max(0, point.y), screenBounds.height)
+        )
+        cursorPoint = clamped
+        if let slice = topology.displaySlice(containingCanvasPoint: clamped), slice.displayID != activeDisplayID {
             activeDisplayID = slice.displayID
         }
-        cursorHex = ScreenshotCompositor.samplePixelColor(in: baseImage, point: point, screenBounds: screenBounds)
-        cursorRGB = ScreenshotCompositor.samplePixelRGBString(in: baseImage, point: point, screenBounds: screenBounds)
+        let sampled = ScreenshotCompositor.sampleColorFromSlices(topology.colorSampleSlices, at: clamped)
+        cursorHex = sampled.hex
+        cursorRGB = sampled.rgb
         guard selectionRect == nil else {
             hoveredWindow = nil
             overlappingWindowCount = 0
             return
         }
-        let hits = windows.filter { $0.frame.contains(point) }
+        let hits = windows.filter { $0.frame.contains(clamped) }
         overlappingWindowCount = hits.count
         if hits.first?.id != lastTopHitWindowID {
             lastTopHitWindowID = hits.first?.id
@@ -214,6 +222,6 @@ final class ScreenshotSessionState: ObservableObject {
 
     func screenRectForSelection() -> NSRect? {
         guard let rect = selectionRect?.standardized, rect.width >= 4, rect.height >= 4 else { return nil }
-        return topology.appKitGlobalRect(fromCanvas: rect)
+        return topology.clampedPinRect(fromCanvas: rect)
     }
 }

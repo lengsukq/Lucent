@@ -1,7 +1,8 @@
-import LumakeyFoundation; import LumakeySearch
 import AppKit
 import CoreGraphics
 import Foundation
+import LumakeyFoundation
+import LumakeySearch
 
 public enum ScreenshotCompositor {
     public static func samplePixelColor(in cgImage: CGImage, point: CGPoint, screenBounds: CGRect) -> String {
@@ -45,8 +46,8 @@ public enum ScreenshotCompositor {
         let scaleX = CGFloat(baseImage.width) / max(screenBounds.width, 1)
         let scaleY = CGFloat(baseImage.height) / max(screenBounds.height, 1)
         let pixelRect = CGRect(
-            x: floor((clamped.minX - screenBounds.minX) * scaleX),
-            y: floor((clamped.minY - screenBounds.minY) * scaleY),
+            x: max(0, floor((clamped.minX - screenBounds.minX) * scaleX)),
+            y: max(0, floor((clamped.minY - screenBounds.minY) * scaleY)),
             width: max(2, round(clamped.width * scaleX)),
             height: max(2, round(clamped.height * scaleY))
         )
@@ -54,33 +55,7 @@ public enum ScreenshotCompositor {
             throw LumakeyError.visionFailed("无法裁剪选中区域图像。")
         }
         if annotations.isEmpty { return cropped }
-
-        let w = cropped.width, h = cropped.height
-        let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        guard let ctx = CGContext(
-            data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
-            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            throw LumakeyError.visionFailed("无法创建标注合成画布。")
-        }
-        ctx.draw(cropped, in: CGRect(x: 0, y: 0, width: w, height: h))
-        ctx.saveGState()
-        ctx.translateBy(x: 0, y: CGFloat(h))
-        ctx.scaleBy(x: scaleX, y: -scaleY)
-        ctx.translateBy(x: -clamped.minX, y: -clamped.minY)
-
-        let spotlights = annotations.filter { $0.tool == .spotlight }
-        if !spotlights.isEmpty {
-            drawSpotlights(spotlights, selectionRect: clamped, in: ctx)
-        }
-        for item in annotations where item.tool != .spotlight {
-            draw(item, into: ctx, baseCropped: cropped, origin: clamped.origin, scaleX: scaleX, scaleY: scaleY)
-        }
-        ctx.restoreGState()
-        guard let result = ctx.makeImage() else {
-            throw LumakeyError.visionFailed("导出合成截图失败。")
-        }
-        return result
+        return try overlayAnnotations(onto: cropped, selectionRect: clamped, scaleX: scaleX, scaleY: scaleY, annotations: annotations)
     }
 
     public static func compositeAnnotationsOntoWindowImage(
@@ -90,34 +65,67 @@ public enum ScreenshotCompositor {
     ) throws -> CGImage {
         if annotations.isEmpty { return windowImage }
         let w = windowImage.width, h = windowImage.height
+        let scale = max(1.0, round(CGFloat(w) / max(windowCanvasFrame.width, 1)))
+        let padX = max(0, (CGFloat(w) / scale - windowCanvasFrame.width) / 2.0)
+        let padY = max(0, (CGFloat(h) / scale - windowCanvasFrame.height) / 2.0)
+        let effectiveOrigin = CGPoint(x: windowCanvasFrame.minX - padX, y: windowCanvasFrame.minY - padY)
+        return try overlayAnnotations(
+            onto: windowImage,
+            selectionRect: CGRect(origin: effectiveOrigin, size: CGSize(width: CGFloat(w) / scale, height: CGFloat(h) / scale)),
+            spotlightSelection: windowCanvasFrame,
+            scaleX: scale,
+            scaleY: scale,
+            annotations: annotations
+        )
+    }
+
+    static func overlayAnnotations(
+        onto baseCropped: CGImage,
+        selectionRect: CGRect,
+        spotlightSelection: CGRect? = nil,
+        scaleX: CGFloat,
+        scaleY: CGFloat,
+        annotations: [ScreenshotAnnotation]
+    ) throws -> CGImage {
+        let w = baseCropped.width, h = baseCropped.height
         let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
         guard let ctx = CGContext(
             data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
             space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
-            throw LumakeyError.visionFailed("无法创建窗口标注画布。")
+            throw LumakeyError.visionFailed("无法创建标注合成画布。")
         }
-        ctx.draw(windowImage, in: CGRect(x: 0, y: 0, width: w, height: h))
-        let scale = max(1.0, round(CGFloat(w) / max(windowCanvasFrame.width, 1)))
-        let logicalW = CGFloat(w) / scale
-        let logicalH = CGFloat(h) / scale
-        let padX = max(0, (logicalW - windowCanvasFrame.width) / 2.0)
-        let padY = max(0, (logicalH - windowCanvasFrame.height) / 2.0)
-        let effectiveOrigin = CGPoint(x: windowCanvasFrame.minX - padX, y: windowCanvasFrame.minY - padY)
-
+        ctx.draw(baseCropped, in: CGRect(x: 0, y: 0, width: w, height: h))
         ctx.saveGState()
         ctx.translateBy(x: 0, y: CGFloat(h))
-        ctx.scaleBy(x: scale, y: -scale)
-        ctx.translateBy(x: -effectiveOrigin.x, y: -effectiveOrigin.y)
+        ctx.scaleBy(x: scaleX, y: -scaleY)
+        ctx.translateBy(x: -selectionRect.minX, y: -selectionRect.minY)
         let spotlights = annotations.filter { $0.tool == .spotlight }
         if !spotlights.isEmpty {
-            drawSpotlights(spotlights, selectionRect: windowCanvasFrame, in: ctx)
+            drawSpotlights(spotlights, selectionRect: spotlightSelection ?? selectionRect, in: ctx)
         }
         for item in annotations where item.tool != .spotlight {
-            draw(item, into: ctx, baseCropped: windowImage, origin: effectiveOrigin, scaleX: scale, scaleY: scale)
+            draw(item, into: ctx, baseCropped: baseCropped, origin: selectionRect.origin, scaleX: scaleX, scaleY: scaleY)
         }
         ctx.restoreGState()
-        return ctx.makeImage() ?? windowImage
+        guard let result = ctx.makeImage() else {
+            throw LumakeyError.visionFailed("导出合成截图失败。")
+        }
+        return result
+    }
+
+    static func samplePixelRGB(in cgImage: CGImage, point: CGPoint, screenBounds: CGRect) -> (UInt8, UInt8, UInt8)? {
+        guard screenBounds.width > 0, screenBounds.height > 0, cgImage.width > 0, cgImage.height > 0 else { return nil }
+        let px = max(0, min(cgImage.width - 1, Int((point.x - screenBounds.minX) * CGFloat(cgImage.width) / screenBounds.width)))
+        let py = max(0, min(cgImage.height - 1, Int((point.y - screenBounds.minY) * CGFloat(cgImage.height) / screenBounds.height)))
+        var pixel: [UInt8] = [0, 0, 0, 0]
+        let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        ctx.draw(cgImage, in: CGRect(x: -px, y: -(cgImage.height - 1 - py), width: cgImage.width, height: cgImage.height))
+        return (pixel[0], pixel[1], pixel[2])
     }
 
     private static func drawSpotlights(_ items: [ScreenshotAnnotation], selectionRect: CGRect, in ctx: CGContext) {
@@ -135,20 +143,6 @@ public enum ScreenshotCompositor {
         ctx.addPath(path)
         ctx.setFillColor(CGColor(gray: 0, alpha: 0.54))
         ctx.drawPath(using: .eoFill)
-    }
-
-    private static func samplePixelRGB(in cgImage: CGImage, point: CGPoint, screenBounds: CGRect) -> (UInt8, UInt8, UInt8)? {
-        guard screenBounds.width > 0, screenBounds.height > 0, cgImage.width > 0, cgImage.height > 0 else { return nil }
-        let px = max(0, min(cgImage.width - 1, Int((point.x - screenBounds.minX) * CGFloat(cgImage.width) / screenBounds.width)))
-        let py = max(0, min(cgImage.height - 1, Int((point.y - screenBounds.minY) * CGFloat(cgImage.height) / screenBounds.height)))
-        var pixel: [UInt8] = [0, 0, 0, 0]
-        let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        guard let ctx = CGContext(
-            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
-            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
-        ctx.draw(cgImage, in: CGRect(x: -px, y: -(cgImage.height - 1 - py), width: cgImage.width, height: cgImage.height))
-        return (pixel[0], pixel[1], pixel[2])
     }
 
     private static func draw(
@@ -193,8 +187,7 @@ public enum ScreenshotCompositor {
             drawText("\(item.counterIndex)", at: CGPoint(x: center.x - r, y: center.y - r * 0.68), fontSize: r * 1.15, color: .white, centeredWidth: r * 2, in: ctx)
         case .text:
             guard let pt = item.points.first, !item.text.isEmpty else { break }
-            let nsColor = NSColor(cgColor: color) ?? .systemRed
-            drawText(item.text, at: pt, fontSize: item.strokeSize.fontSize, color: nsColor, centeredWidth: nil, in: ctx)
+            drawText(item.text, at: pt, fontSize: item.strokeSize.fontSize, color: NSColor(cgColor: color) ?? .systemRed, centeredWidth: nil, in: ctx)
         }
     }
 

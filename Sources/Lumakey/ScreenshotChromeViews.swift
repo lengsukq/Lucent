@@ -24,37 +24,48 @@ struct ScreenshotModeGuidePill: View {
 
 struct ScreenshotWindowSnapOverlay: View {
     let rect: CGRect
+    let sliceSize: CGSize
     let label: String
     let overlapCount: Int
 
     var body: some View {
         let hint = overlapCount >= 2 ? " · Tab 切下层 (\(overlapCount))" : " · 单击截整窗"
+        let visibleBadgeHost = rect.intersects(CGRect(origin: .zero, size: sliceSize))
+        let badgeX = min(max(130, rect.minX + 120), max(130, sliceSize.width - 130))
+        let badgeY = rect.minY > 28 ? rect.minY - 14 : max(18, rect.minY + 18)
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(Color.cyan.opacity(0.95), lineWidth: 2.2)
                 .frame(width: rect.width, height: rect.height)
                 .position(x: rect.midX, y: rect.midY)
-            HStack(spacing: 5) {
-                Image(systemName: "macwindow").font(.system(size: 10.5, weight: .bold)).foregroundStyle(.cyan)
-                Text("\(label)\(hint)")
+            if visibleBadgeHost {
+                HStack(spacing: 5) {
+                    Image(systemName: "macwindow").font(.system(size: 10.5, weight: .bold)).foregroundStyle(.cyan)
+                    Text("\(label)\(hint)").lineLimit(1)
+                }
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(.black.opacity(0.78), in: Capsule())
+                .position(x: badgeX, y: min(badgeY, sliceSize.height - 18))
             }
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 9).padding(.vertical, 4)
-            .background(.black.opacity(0.78), in: Capsule())
-            .position(x: max(130, rect.minX + 120), y: rect.minY > 28 ? rect.minY - 14 : rect.minY + 18)
         }
+        .frame(width: sliceSize.width, height: sliceSize.height, alignment: .topLeading)
         .allowsHitTesting(false)
     }
 }
 
 struct ScreenshotSelectionChrome: View {
     let rect: CGRect
+    let sliceSize: CGSize
     let pixelSizeText: String
     let windowTitle: String?
     let mode: ScreenshotMode
 
     var body: some View {
+        let badgeVisible = rect.minX < sliceSize.width && rect.maxX > 0
+        let badgeX = min(max(110, rect.minX + 100), max(110, sliceSize.width - 110))
+        let badgeY = rect.minY > 28 ? rect.minY - 14 : max(16, rect.minY + 14)
         ZStack(alignment: .topLeading) {
             Rectangle()
                 .strokeBorder(Color.accentColor, lineWidth: 1.5)
@@ -70,23 +81,26 @@ struct ScreenshotSelectionChrome: View {
                     .position(pt)
             }
 
-            HStack(spacing: 6) {
-                if let windowTitle, !windowTitle.isEmpty {
-                    Image(systemName: "macwindow.badge.plus").foregroundStyle(.cyan)
-                    Text(windowTitle).lineLimit(1)
-                    Text("·").foregroundStyle(.white.opacity(0.5))
+            if badgeVisible {
+                HStack(spacing: 6) {
+                    if let windowTitle, !windowTitle.isEmpty {
+                        Image(systemName: "macwindow.badge.plus").foregroundStyle(.cyan)
+                        Text(windowTitle).lineLimit(1)
+                        Text("·").foregroundStyle(.white.opacity(0.5))
+                    }
+                    Text(pixelSizeText)
+                    if mode == .quickOCR {
+                        Text("OCR").foregroundStyle(.purple)
+                    }
                 }
-                Text(pixelSizeText)
-                if mode == .quickOCR {
-                    Text("OCR").foregroundStyle(.purple)
-                }
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(.black.opacity(0.76), in: RoundedRectangle(cornerRadius: 6))
+                .position(x: badgeX, y: min(badgeY, sliceSize.height - 18))
             }
-            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(.black.opacity(0.76), in: RoundedRectangle(cornerRadius: 6))
-            .position(x: max(110, rect.minX + 100), y: rect.minY > 28 ? rect.minY - 14 : rect.minY + 14)
         }
+        .frame(width: sliceSize.width, height: sliceSize.height, alignment: .topLeading)
         .allowsHitTesting(false)
     }
 }
@@ -95,20 +109,14 @@ struct ScreenshotLoupeView: View {
     @ObservedObject var session: ScreenshotSessionState
     let localCursor: CGPoint
     let sliceSize: CGSize
-    let imageScale: CGFloat
 
     var body: some View {
         let pt = session.cursorPoint
         let offsetX: CGFloat = localCursor.x + 150 > sliceSize.width ? -86 : 86
         let offsetY: CGFloat = localCursor.y + 150 > sliceSize.height ? -86 : 86
-        let cropSize: CGFloat = 28
-        let pixelRect = CGRect(
-            x: max(0, (pt.x - cropSize / 2) * imageScale),
-            y: max(0, (pt.y - cropSize / 2) * imageScale),
-            width: cropSize * imageScale,
-            height: cropSize * imageScale
+        let zoomedCG = ScreenshotCompositor.cropLoupeImage(
+            from: session.topology.compositorSlices, at: pt, pointSize: 28
         )
-        let zoomedCG = session.baseImage.cropping(to: pixelRect)
         VStack(spacing: 4) {
             ZStack {
                 if let zoomedCG {
@@ -154,7 +162,7 @@ struct ScreenshotInlineTextEditor: View {
         .frame(width: 240, height: max(30, session.strokeSize.fontSize + 14))
         .background(.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(cgColor: session.selectedColor.cgColor), lineWidth: 1.2))
-        .position(x: min(max(130, localPoint.x + 120), sliceSize.width - 130), y: min(max(24, localPoint.y + 16), sliceSize.height - 24))
+        .position(x: min(max(130, localPoint.x + 120), max(130, sliceSize.width - 130)), y: min(max(24, localPoint.y + 16), max(24, sliceSize.height - 24)))
     }
 }
 
