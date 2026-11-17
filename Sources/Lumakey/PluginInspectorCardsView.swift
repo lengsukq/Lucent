@@ -6,153 +6,188 @@ struct PluginPermissionsAndSandboxSection: View {
     let plugin: PluginDescriptor
     @ObservedObject var ctrl: PluginCenterController
     @ObservedObject var viewModel: AppViewModel
+    @State private var showTechDetails = false
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if !plugin.declaredCapabilities.isEmpty {
-                PluginCapabilitiesCard(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
-            }
-            if !plugin.declaredResourceScopes.isEmpty || plugin.declaredCapabilities.isEmpty {
-                PluginSandboxPermissionCard(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
-            }
-        }
+    private var declaredCaps: [PluginCapability] { plugin.declaredCapabilities }
+    private var declaredScopes: [PluginResourceScope] { plugin.declaredResourceScopes }
+    private var totalCount: Int { declaredCaps.count + declaredScopes.count }
+    private var grantedCount: Int {
+        declaredCaps.filter { plugin.isCapabilityGranted($0) }.count
+            + declaredScopes.filter { plugin.isResourceScopeGranted($0) }.count
     }
-}
-
-struct PluginCapabilitiesCard: View {
-    let plugin: PluginDescriptor
-    @ObservedObject var ctrl: PluginCenterController
-    @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("宿主能力授权 (Host Bridge)", systemImage: "lock.shield.fill")
-                    .font(.caption.weight(.bold))
-                Spacer()
-                Text("默认最小权限")
-                    .font(.system(size: 9.5, weight: .semibold))
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 7).padding(.vertical, 2)
-                    .background(LiquidColors.pillSurface, in: Capsule())
-            }
-            Text("开启后，插件触发时仅通过本次执行有效的一过性 UDS Socket 复用宿主能力，执行结束即销毁监听。")
-                .font(.caption2)
-                .foregroundStyle(LiquidColors.textSecondary)
-
-            ForEach(plugin.declaredCapabilities) { cap in
-                let granted = plugin.isCapabilityGranted(cap)
-                HStack(spacing: 9) {
-                    Image(systemName: cap.symbolName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(granted ? .cyan : LiquidColors.textSecondary)
-                        .frame(width: 26, height: 26)
-                        .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    VStack(alignment: .leading, spacing: 1) {
-                        HStack(spacing: 5) {
-                            Text(cap.title).font(.caption.weight(.semibold))
-                            Text(cap.rawValue)
-                                .font(.system(size: 9.5, design: .monospaced))
-                                .foregroundStyle(LiquidColors.textSecondary)
-                        }
-                        Text(cap.summary)
-                            .font(.caption2)
-                            .foregroundStyle(LiquidColors.textSecondary)
-                            .lineLimit(2)
-                    }
-                    Spacer(minLength: 4)
-                    Toggle("", isOn: Binding(
-                        get: { granted },
-                        set: { ctrl.setCapabilityGranted(plugin, capability: cap, granted: $0, viewModel: viewModel) }
-                    ))
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .controlSize(.small)
-                }
-                .padding(.horizontal, 9).padding(.vertical, 6)
-                .background(LiquidColors.pillSurface.opacity(0.75), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
-                        .strokeBorder(granted ? Color.cyan.opacity(0.38) : LiquidColors.pillBorder, lineWidth: 0.7)
-                }
-            }
-        }
-        .padding(12)
-        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
-    }
-}
-
-struct PluginSandboxPermissionCard: View {
-    let plugin: PluginDescriptor
-    @ObservedObject var ctrl: PluginCenterController
-    @ObservedObject var viewModel: AppViewModel
-
-    var body: some View {
-        let hasCaps = plugin.manifest.capabilities != nil
-        let hasScopes = plugin.manifest.resourceScopes != nil
-        let fullyDeclared = hasCaps && hasScopes
+        let fullyDeclared = plugin.manifest.capabilities != nil && plugin.manifest.resourceScopes != nil
         let pure = plugin.isPureSandbox && fullyDeclared
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: pure ? "checkmark.shield.fill" : (fullyDeclared ? "network.badge.shield.half.filled" : "exclamationmark.triangle.fill"))
-                    .foregroundStyle(pure ? .mint : (fullyDeclared ? .purple : .orange))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(
-                        pure ? L10n.pick("系统级沙箱：零特权纯沙盒（capabilities: [] · resourceScopes: []）", "OS Sandbox: Pure Zero-Privilege Sandbox") :
-                        (fullyDeclared ? L10n.pick("外部资源作用域管控 (macOS Seatbelt 沙箱)", "External Resource Scopes (macOS Seatbelt Sandbox)") : L10n.pick("未完整声明 capabilities / resourceScopes", "Missing capabilities / resourceScopes declaration"))
-                    )
-                    .font(.caption.weight(.semibold))
-                    Text(
-                        pure
-                        ? L10n.pick("该插件已被 OS 沙箱封锁外网连接、用户主目录写操作与密钥库访问。", "Outbound IP, user home writes, and secret vault access are blocked by OS sandbox.")
-                        : (fullyDeclared ? L10n.pick("可随时关闭下方作用域，由系统内核 Seatbelt 沙箱强制拦截对应网络、写盘或外部子进程。", "Toggle scopes below to block network, disk writes, or subprocesses at the OS kernel level.") : L10n.pick("Plugin v3.1 强校验要求在 plugin.json 显式声明 capabilities 与 resourceScopes。", "Plugin v3.1 requires explicit capabilities and resourceScopes in plugin.json."))
-                    )
-                    .font(.caption2)
-                    .foregroundStyle(LiquidColors.textSecondary)
-                }
-                Spacer(minLength: 0)
-            }
-            if !plugin.declaredResourceScopes.isEmpty {
-                ForEach(plugin.declaredResourceScopes) { scope in
-                    let granted = plugin.isResourceScopeGranted(scope)
-                    HStack(spacing: 9) {
-                        Image(systemName: scope.symbolName)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(granted ? .purple : LiquidColors.textSecondary)
-                            .frame(width: 26, height: 26)
-                            .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        VStack(alignment: .leading, spacing: 1) {
-                            HStack(spacing: 5) {
-                                Text(scope.title).font(.caption.weight(.semibold))
-                                Text(scope.rawValue)
-                                    .font(.system(size: 9.5, design: .monospaced))
-                                    .foregroundStyle(LiquidColors.textSecondary)
-                            }
-                            Text(scope.summary)
-                                .font(.caption2)
-                                .foregroundStyle(LiquidColors.textSecondary)
-                                .lineLimit(2)
+                Label(
+                    L10n.pick("权限与安全控制", "Permissions & Safety"),
+                    systemImage: pure ? "checkmark.shield.fill" : "lock.shield.fill"
+                )
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(pure ? .mint : LiquidColors.textPrimary)
+
+                Text(
+                    pure
+                    ? L10n.pick("纯沙盒 · 零额外权限", "Pure Sandbox")
+                    : L10n.pick("已开启 \(grantedCount)/\(totalCount)", "\(grantedCount)/\(totalCount) Enabled")
+                )
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(pure ? .mint : .cyan)
+                .padding(.horizontal, 7).padding(.vertical, 2)
+                .background(LiquidColors.pillSurface, in: Capsule())
+
+                Spacer()
+
+                if totalCount > 0 && grantedCount < totalCount {
+                    Button(L10n.pick("开启全部所需权限", "Enable All")) {
+                        for cap in declaredCaps {
+                            try? viewModel.setPluginCapabilityGranted(plugin, capability: cap, granted: true)
                         }
-                        Spacer(minLength: 4)
-                        Toggle("", isOn: Binding(
-                            get: { granted },
-                            set: { ctrl.setResourceScopeGranted(plugin, scope: scope, granted: $0, viewModel: viewModel) }
-                        ))
-                        .toggleStyle(.switch)
-                        .labelsHidden()
-                        .controlSize(.small)
+                        for scope in declaredScopes {
+                            try? viewModel.setPluginResourceScopeGranted(plugin, scope: scope, granted: true)
+                        }
                     }
-                    .padding(.horizontal, 9).padding(.vertical, 6)
-                    .background(LiquidColors.pillSurface.opacity(0.75), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
-                            .strokeBorder(granted ? Color.purple.opacity(0.38) : Color.orange.opacity(0.45), lineWidth: 0.7)
-                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
                 }
+
+                if totalCount > 0 {
+                    Button(showTechDetails ? L10n.pick("隐藏技术标识", "Hide IDs") : L10n.pick("技术标识", "Tech IDs")) {
+                        withAnimation(LiquidMotion.pressSpring) { showTechDetails.toggle() }
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                }
+            }
+
+            Text(
+                pure
+                ? L10n.pick("该插件不访问网络、外部文件或系统隐私能力，在独立沙盒内运行。", "This plugin runs in an isolated sandbox without network, file, or privacy access.")
+                : (fullyDeclared
+                    ? L10n.pick("插件只能使用你主动开启的能力；需要 macOS 系统授权的项目会由 Lumakey 统一引导。", "Plugins can only use toggles you turn on. macOS privacy permissions are handled centrally by Lumakey.")
+                    : L10n.pick("插件 manifest 未完整声明 capabilities / resourceScopes，部分权限可能受限。", "Manifest is missing capabilities or resourceScopes declarations."))
+            )
+            .font(.caption2)
+            .foregroundStyle(LiquidColors.textSecondary)
+
+            if !declaredCaps.isEmpty {
+                groupTitle(L10n.pick("功能权限（点击即用）", "Feature Permissions"))
+                ForEach(declaredCaps) { cap in capabilityRow(cap) }
+            }
+
+            if !declaredScopes.isEmpty {
+                groupTitle(L10n.pick("系统与外部访问", "Network, Files & CLI"))
+                ForEach(declaredScopes) { scope in scopeRow(scope) }
             }
         }
-        .padding(12)
+        .padding(14)
         .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
+    }
+
+    private func groupTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(LiquidColors.textSecondary)
+            .padding(.top, 2)
+    }
+
+    private func capabilityRow(_ cap: PluginCapability) -> some View {
+        let granted = plugin.isCapabilityGranted(cap)
+        let tccKind = PluginHostTCCBroker.requiredTCC(for: cap)
+        let tccOK = tccKind.map { PluginHostTCCBroker.status(for: $0).isGranted } ?? true
+
+        return permissionRowShell(
+            symbol: cap.symbolName,
+            tint: granted ? .cyan : LiquidColors.textSecondary,
+            activeBorder: granted ? Color.cyan.opacity(0.35) : LiquidColors.pillBorder,
+            title: cap.title,
+            techID: showTechDetails ? cap.rawValue : nil,
+            summary: cap.summary,
+            badgeText: tccKind != nil ? (tccOK ? L10n.pick("系统已允许", "System OK") : L10n.pick("需系统授权", "Needs System Auth")) : nil,
+            badgeColor: tccOK ? .mint : .orange,
+            actionButton: (!tccOK && tccKind != nil) ? (L10n.pick("去授权", "Authorize"), {
+                guard let kind = tccKind else { return }
+                _ = PluginHostTCCBroker.requestAccessOnBehalfOfPlugin(kind, allowSystemPrompt: true)
+                if let url = URL(string: kind.systemSettingsURLString) { NSWorkspace.shared.open(url) }
+            }) : nil,
+            isOn: Binding(
+                get: { granted },
+                set: { ctrl.setCapabilityGranted(plugin, capability: cap, granted: $0, viewModel: viewModel) }
+            )
+        )
+    }
+
+    private func scopeRow(_ scope: PluginResourceScope) -> some View {
+        let granted = plugin.isResourceScopeGranted(scope)
+        return permissionRowShell(
+            symbol: scope.symbolName,
+            tint: granted ? .purple : LiquidColors.textSecondary,
+            activeBorder: granted ? Color.purple.opacity(0.35) : Color.orange.opacity(0.45),
+            title: scope.title,
+            techID: showTechDetails ? scope.rawValue : nil,
+            summary: scope.summary,
+            badgeText: granted ? nil : L10n.pick("已拦截", "Blocked"),
+            badgeColor: .orange,
+            actionButton: nil,
+            isOn: Binding(
+                get: { granted },
+                set: { ctrl.setResourceScopeGranted(plugin, scope: scope, granted: $0, viewModel: viewModel) }
+            )
+        )
+    }
+
+    private func permissionRowShell(
+        symbol: String, tint: Color, activeBorder: Color,
+        title: String, techID: String?, summary: String,
+        badgeText: String?, badgeColor: Color,
+        actionButton: (String, () -> Void)?,
+        isOn: Binding<Bool>
+    ) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 28, height: 28)
+                .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(title).font(.caption.weight(.semibold))
+                    if let techID {
+                        Text(techID)
+                            .font(.system(size: 9.5, design: .monospaced))
+                            .foregroundStyle(LiquidColors.textSecondary)
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(LiquidColors.pillSurface, in: Capsule())
+                    }
+                    if let badgeText {
+                        Text(badgeText)
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundStyle(badgeColor)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(badgeColor.opacity(0.12), in: Capsule())
+                    }
+                }
+                Text(summary)
+                    .font(.caption2)
+                    .foregroundStyle(LiquidColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 6)
+            if let actionButton {
+                Button(actionButton.0, action: actionButton.1)
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+            }
+            Toggle("", isOn: isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background(LiquidColors.pillSurface.opacity(0.75), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
+                .strokeBorder(activeBorder, lineWidth: 0.7)
+        }
     }
 }

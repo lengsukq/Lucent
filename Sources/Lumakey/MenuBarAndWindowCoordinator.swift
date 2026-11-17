@@ -40,6 +40,11 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
     @objc private func handleGeneralPreferencesChanged() {
         refreshStatusBarIcon()
         syncDockPolicy()
+        SelectionQuickBarController.shared.syncMonitoring(
+            enabled: viewModel.generalPreferences.enableSelectionQuickBar,
+            plugins: viewModel.plugins,
+            viewModel: viewModel
+        )
     }
 
     func start() {
@@ -48,6 +53,11 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         installMemoryPressureMonitor()
         viewModel.bootstrap()
         syncDockPolicy()
+        SelectionQuickBarController.shared.syncMonitoring(
+            enabled: viewModel.generalPreferences.enableSelectionQuickBar,
+            plugins: viewModel.plugins,
+            viewModel: viewModel
+        )
         SystemPulseWindowController.shared.start(
             onPurgeMemory: { [weak self] in self?.viewModel.reclaimAllIdleMemoryNow() },
             onMenuBarUpdate: { [weak self] text in self?.statusItem?.button?.title = text.map { " " + $0 } ?? "" },
@@ -62,6 +72,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
 
     func shutdown() {
         hotKeyManager.unregisterAll(); viewModel.shutdownAllServicesAndTasks()
+        SelectionQuickBarController.shared.stopAll()
         for (_, ctrl) in pluginPanelControllers { ctrl.stop() }
         pluginPanelControllers.removeAll()
         PluginCustomWebWindowController.shared.closeAll()

@@ -238,6 +238,15 @@ struct LauncherAndCaptureDefaultsCardView: View {
                     )
                 )
                 .fixedSize(horizontal: true, vertical: false)
+
+                Toggle(
+                    L10n.pick("鼠标划词后显示悬浮翻译气泡（需开启辅助功能权限）", "Show floating translate bubble after highlighting text (requires Accessibility)"),
+                    isOn: Binding(
+                        get: { prefs.enableSelectionQuickBar },
+                        set: { val in viewModel.updateGeneralPreferences { $0.enableSelectionQuickBar = val } }
+                    )
+                )
+                .fixedSize(horizontal: true, vertical: false)
             }
             .font(.caption)
 

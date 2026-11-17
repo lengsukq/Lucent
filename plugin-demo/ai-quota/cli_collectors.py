@@ -518,43 +518,9 @@ def collect_claude(home: Path, env: dict[str, str]) -> dict[str, Any]:
         except Exception:
             pass
 
-    if not windows and cli_bin:
-        try:
-            proc = subprocess.run(
-                [cli_bin, "-p", "/status", "--no-session-persistence"],
-                env=env,
-                capture_output=True,
-                text=True,
-                timeout=2.6,
-            )
-            clean_txt = ANSI_ESCAPE_RE.sub("", (proc.stdout or "") + "\n" + (proc.stderr or ""))
-            for m in re.finditer(
-                r"(5[- ]?hour|session|weekly|7[- ]?day)[^\n%]{0,42}?(\d{1,3}(?:\.\d+)?)\s*%",
-                clean_txt,
-                re.I,
-            ):
-                lbl_raw = m.group(1).lower()
-                pct_val = clamp_pct(float(m.group(2)))
-                tail_words = clean_txt[m.start() : m.end() + 16].lower()
-                is_left = ("left" in tail_words) or ("remaining" in tail_words)
-                used_val = (100.0 - pct_val) if is_left else pct_val
-                is_5h = ("5" in lbl_raw) or ("session" in lbl_raw)
-                windows.append(
-                    {
-                        "used_pct": used_val,
-                        "window_seconds": 18000 if is_5h else 604800,
-                        "default_zh": "5h" if is_5h else "周限",
-                        "default_en": "5h" if is_5h else "7d",
-                        "reset_ts": 0.0,
-                    }
-                )
-            if windows:
-                source_tag = "CLI /status"
-        except Exception:
-            pass
-
     today_tokens, today_sessions, cache_hit_pct = _scan_claude_today_tokens(claude_dir)
-    installed = bool(cli_bin or claude_dir.is_dir())
+    installed = bool(cli_bin or windows or today_tokens > 0)
+    fallback_source = "JSONL Logs" if today_tokens > 0 else ("CLI (No Non-Chat Quota API)" if cli_bin else "")
     return {
         "provider": "claude",
         "installed": installed,
@@ -564,7 +530,7 @@ def collect_claude(home: Path, env: dict[str, str]) -> dict[str, Any]:
         "todayTokens": today_tokens,
         "todaySessions": today_sessions,
         "cacheHitPct": cache_hit_pct,
-        "source": source_tag or ("JSONL Logs" if today_tokens > 0 else ("CLI" if cli_bin else "")),
+        "source": source_tag or fallback_source,
     }
 
 
@@ -630,27 +596,9 @@ def _parse_agy_cli_usage_text(raw_text: str) -> list[dict[str, Any]]:
 
 def collect_agy(home: Path, env: dict[str, str]) -> dict[str, Any]:
     gemini_dir = home / ".gemini"
-    agy_dir = gemini_dir / "antigravity-cli"
     cli_bin, cli_ver = locate_cli("agy", env)
     windows: list[dict[str, Any]] = []
     source_tag = ""
-
-    if cli_bin:
-        run_env = dict(env)
-        run_env["AGY_CLI_DISABLE_AUTO_UPDATE"] = "true"
-        try:
-            proc = subprocess.run(
-                [cli_bin, "-p", "/usage"],
-                env=run_env,
-                capture_output=True,
-                text=True,
-                timeout=2.8,
-            )
-            windows = _parse_agy_cli_usage_text((proc.stdout or "") + "\n" + (proc.stderr or ""))
-            if windows:
-                source_tag = "agy CLI"
-        except Exception:
-            pass
 
     today_tokens = 0
     today_sessions = 0
@@ -667,7 +615,8 @@ def collect_agy(home: Path, env: dict[str, str]) -> dict[str, Any]:
             except Exception:
                 continue
 
-    installed = bool(cli_bin or agy_dir.is_dir() or gemini_dir.is_dir())
+    installed = bool(cli_bin)
+    fallback_source = "Local Chats" if today_sessions > 0 else ("CLI (No Non-Chat Quota API)" if cli_bin else "")
     return {
         "provider": "agy",
         "installed": installed,
@@ -676,7 +625,7 @@ def collect_agy(home: Path, env: dict[str, str]) -> dict[str, Any]:
         "windows": windows,
         "todayTokens": today_tokens,
         "todaySessions": today_sessions,
-        "source": source_tag or ("CLI" if cli_bin else ""),
+        "source": source_tag or fallback_source,
     }
 
 

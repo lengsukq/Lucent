@@ -167,7 +167,9 @@ class AIQuotaPluginTests(unittest.TestCase):
                 refresh_payload = ai_quota.dispatch(stdin_payload=base_stdin, argv=["--refresh"], user_home=home)
 
             self.assertEqual(payload["schemaVersion"], 2)
-            self.assertEqual(len(payload["items"]), 5)
+            self.assertEqual(len(payload["items"]), 6)
+            self.assertEqual(payload["items"][0]["id"], "aq-open-hud")
+            self.assertEqual(payload["items"][0]["commandArgs"], ["--custom-hud"])
             metrics = {m["key"]: m["value"] for m in payload["metrics"]}
             self.assertIn("5h 78%", metrics["Codex CLI"])
             self.assertIn("5h 70%", metrics["Claude Code"])
@@ -204,6 +206,34 @@ class AIQuotaPluginTests(unittest.TestCase):
                 fpath = data_dir / fname
                 self.assertTrue(fpath.is_file(), f"Missing {fname}")
                 self.assertNotIn("sk-test-valid-key", fpath.read_text(encoding="utf-8"))
+
+    def test_no_chat_prompts_and_strict_cli_install_check(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="lk-aq-nochat-") as tmp:
+            root = Path(tmp)
+            home = root / "home"
+            bin_dir = root / "bin"
+            (home / ".claude" / "skills").mkdir(parents=True)
+            bin_dir.mkdir(parents=True)
+
+            # Put an agy script that fails if -p is ever invoked
+            agy_bin = bin_dir / "agy"
+            agy_bin.write_text(
+                "#!/bin/sh\n"
+                'if [ "$1" = "--version" ]; then echo "agy 1.5.10"; exit 0; fi\n'
+                'if [ "$1" = "-p" ]; then echo "SHOULD_NOT_SEND_PROMPT" >&2; exit 9; fi\n',
+                encoding="utf-8",
+            )
+            agy_bin.chmod(agy_bin.stat().st_mode | stat.S_IXUSR)
+
+            payload = ai_quota.dispatch(
+                stdin_payload={"locale": "zh-Hans", "config": {"extraCliPaths": str(bin_dir), "enabledProviders": "claude, agy"}},
+                argv=["--json"],
+                user_home=home,
+            )
+            by_id = {p["id"]: p for p in payload["providers"]}
+            self.assertFalse(by_id["claude"]["active"])
+            self.assertTrue(by_id["agy"]["active"])
+            self.assertEqual(by_id["agy"]["primaryPercent"], None)
 
 
 if __name__ == "__main__":

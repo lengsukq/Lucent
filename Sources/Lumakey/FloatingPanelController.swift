@@ -102,6 +102,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         previousFrontmostApp = nil
         viewModel.handleOverlayHidden()
         if restorePreviousApp, let targetApp, !targetApp.isTerminated, !targetApp.isActive {
+            NSApp.yieldActivation(to: targetApp)
             targetApp.activate()
         }
         WindowMotionAnimator.dismiss(panel, style: .launcher, immediately: immediately) { [weak self] in

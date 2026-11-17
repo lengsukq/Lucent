@@ -36,6 +36,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public var autoCheckPluginUpdates: Bool
     public var autoInstallSafePluginUpdates: Bool
     public var lastUpdateCheckTimestamp: Double
+    public var enableSelectionQuickBar: Bool
 
     public init(
         schemaVersion: Int = 1,
@@ -60,7 +61,8 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         skippedAppVersion: String = "",
         autoCheckPluginUpdates: Bool = true,
         autoInstallSafePluginUpdates: Bool = false,
-        lastUpdateCheckTimestamp: Double = 0
+        lastUpdateCheckTimestamp: Double = 0,
+        enableSelectionQuickBar: Bool = true
     ) {
         self.schemaVersion = schemaVersion
         self.launchSilentlyInMenuBar = launchSilentlyInMenuBar
@@ -85,6 +87,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.autoCheckPluginUpdates = autoCheckPluginUpdates
         self.autoInstallSafePluginUpdates = autoInstallSafePluginUpdates
         self.lastUpdateCheckTimestamp = max(0, lastUpdateCheckTimestamp)
+        self.enableSelectionQuickBar = enableSelectionQuickBar
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -95,6 +98,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         case excludedIndexPaths
         case updateCheckFrequency, includePrereleaseAppUpdates, skippedAppVersion
         case autoCheckPluginUpdates, autoInstallSafePluginUpdates, lastUpdateCheckTimestamp
+        case enableSelectionQuickBar
     }
 
     public init(from decoder: Decoder) throws {
@@ -122,7 +126,8 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
             skippedAppVersion: (try? c.decodeIfPresent(String.self, forKey: .skippedAppVersion)) ?? "",
             autoCheckPluginUpdates: (try? c.decodeIfPresent(Bool.self, forKey: .autoCheckPluginUpdates)) ?? true,
             autoInstallSafePluginUpdates: (try? c.decodeIfPresent(Bool.self, forKey: .autoInstallSafePluginUpdates)) ?? false,
-            lastUpdateCheckTimestamp: (try? c.decodeIfPresent(Double.self, forKey: .lastUpdateCheckTimestamp)) ?? 0
+            lastUpdateCheckTimestamp: (try? c.decodeIfPresent(Double.self, forKey: .lastUpdateCheckTimestamp)) ?? 0,
+            enableSelectionQuickBar: (try? c.decodeIfPresent(Bool.self, forKey: .enableSelectionQuickBar)) ?? true
         )
     }
 

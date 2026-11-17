@@ -5,14 +5,6 @@ import LumakeyCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-enum GifCapturePhase: Equatable {
-    case idle
-    case selectingRegion
-    case recording(isPaused: Bool)
-    case encoding
-    case completed(GifFinalizeResult)
-}
-
 @MainActor
 final class GifCaptureController: ObservableObject {
     static let shared = GifCaptureController()
@@ -38,18 +30,24 @@ final class GifCaptureController: ObservableObject {
     private var captureTask: Task<Void, Never>?
     private var activeEncoder: GifStreamEncoder?
     private var pendingCompletionHandler: ((GifFinalizeResult) -> Void)?
+    private let focusGuard = CaptureFocusGuard()
 
     private init() {}
     var isActive: Bool { phase != .idle }
 
-    func startInteractiveCapture(options overrideOptions: GifRecordingOptions? = nil, onComplete: ((GifFinalizeResult) -> Void)? = nil) {
+    func startInteractiveCapture(
+        options overrideOptions: GifRecordingOptions? = nil, preferredTargetApp: NSRunningApplication? = nil,
+        onComplete: ((GifFinalizeResult) -> Void)? = nil
+    ) {
         if case .recording = phase { hudPanel?.orderFrontRegardless(); return }
         if case .encoding = phase { return }
         cleanupAllResources(discardEncoder: true, animatedHUD: false)
+        focusGuard.prepareForNewCapture(preferredApp: preferredTargetApp)
         self.options = overrideOptions ?? GeneralPreferences.load().gifDefaultOptions
         self.pendingCompletionHandler = onComplete
 
         guard CGPreflightScreenCaptureAccess() else {
+            focusGuard.finishRestore(restorePreviousApp: false)
             CGRequestScreenCaptureAccess()
             let err = LumakeyError.visionFailed("尚未授予“屏幕录制”权限，请在系统设置 -> 隐私与安全性 -> 屏幕录制 中勾选 Lumakey。")
             onDiagnostic?(err.diagnostic); onStatusMessage?(err.diagnostic.reason)
@@ -133,12 +131,15 @@ final class GifCaptureController: ObservableObject {
             let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includePixelatedPreview: false)
             let initialPt = topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation)
             presentSelectionOverlays(session: GifSelectionSession(topology: topology, initialCursorCanvasPoint: initialPt, options: options))
-        } catch { onStatusMessage?(error.localizedDescription) }
+        } catch {
+            focusGuard.finishRestore(restorePreviousApp: false); onStatusMessage?(error.localizedDescription)
+        }
     }
 
     private func presentSelectionOverlays(session: GifSelectionSession) {
         selectionSession = session; phase = .selectingRegion
         selectionPanels.removeAll(); panelByDisplayID.removeAll()
+        focusGuard.suppressBackgroundWindowsIfNeeded(excluding: selectionPanels)
         for slice in session.topology.displays {
             let p = GifHUDPanel.presentSelection(
                 session: session, slice: slice, makeKey: slice.displayID == session.activeDisplayID,
@@ -147,7 +148,7 @@ final class GifCaptureController: ObservableObject {
             )
             selectionPanels.append(p); panelByDisplayID[slice.displayID] = p
         }
-        NSApp.activate(ignoringOtherApps: true)
+        focusGuard.activateAppForCapture()
         panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
         installScreenChangeObserver()
 
@@ -268,8 +269,10 @@ final class GifCaptureController: ObservableObject {
 
     private func closeSelectionPanels() {
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor); keyMonitor = nil }
+        let hadPanels = !selectionPanels.isEmpty
         for p in selectionPanels { p.orderOut(nil); p.contentView = nil }
         selectionPanels.removeAll(); panelByDisplayID.removeAll(); selectionSession = nil
+        if hadPanels { focusGuard.finishRestore(restorePreviousApp: true) }
     }
 
     private func closeBorderPanels() {

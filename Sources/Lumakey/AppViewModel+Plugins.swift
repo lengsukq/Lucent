@@ -9,6 +9,11 @@ extension AppViewModel {
         pluginCommands = PluginCommandRegistry.registeredCommands(for: loaded)
         enabledQuickButtons = PluginCommandRegistry.enabledQuickButtons(for: loaded)
         pluginSearchEntries = PluginSearchIndex.loadEntries(for: loaded)
+        SelectionQuickBarController.shared.syncMonitoring(
+            enabled: generalPreferences.enableSelectionQuickBar,
+            plugins: loaded,
+            viewModel: self
+        )
     }
 
     func reloadPluginSearchIndex() {
@@ -107,6 +112,25 @@ extension AppViewModel {
         }
         activePluginSettingsID = id
         openRoute(.pluginSettings(id))
+    }
+
+    func openPluginCustomWindow(_ plugin: PluginDescriptor) {
+        guard plugin.isEnabled && plugin.isValid, plugin.manifest.window != nil else { return }
+        if !plugin.grantedCapabilities.contains(.floatingWindow),
+           plugin.declaredCapabilities.contains(.floatingWindow) {
+            try? setPluginCapabilityGranted(plugin, capability: .floatingWindow, granted: true)
+        }
+        let updated = plugins.first(where: { $0.id == plugin.id }) ?? plugin
+        let spec = PluginCustomWindowSpec.resolve(plugin: updated)
+        _ = PluginCustomWebWindowController.shared.open(spec: spec, viewModel: self)
+    }
+
+    func openPreferredFloatingWindow(for plugin: PluginDescriptor, seedPayload: PluginViewPayload? = nil) {
+        if plugin.manifest.window != nil {
+            openPluginCustomWindow(plugin)
+        } else {
+            openFloatingPluginPanel(for: plugin, seedPayload: seedPayload)
+        }
     }
 
     func enterPluginScopedOverlay(_ plugin: PluginDescriptor, initialQuery: String = "") {

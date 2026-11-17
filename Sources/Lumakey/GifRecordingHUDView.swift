@@ -2,6 +2,14 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
+enum GifCapturePhase: Equatable {
+    case idle
+    case selectingRegion
+    case recording(isPaused: Bool)
+    case encoding
+    case completed(GifFinalizeResult)
+}
+
 final class GifHUDPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }

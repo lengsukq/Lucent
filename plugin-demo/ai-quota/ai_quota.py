@@ -169,9 +169,9 @@ def _format_cli_item(snap: dict[str, Any], display_mode: str, is_en: bool) -> tu
 
     if not lines:
         lines.append(
-            "CLI installed; run one session to populate live quota windows"
+            "CLI installed (no non-chat quota RPC; showing local today usage if available)"
             if is_en
-            else "已检测到本机 CLI（运行一次会话后自动生成活跃窗口配额记录）"
+            else "已检测到本机 CLI（该工具暂未提供非对话式额度接口，以下仅统计本地今日用量）"
         )
     if extra_bits:
         lines.append(" · ".join(extra_bits))
@@ -533,6 +533,34 @@ def dispatch(stdin_payload: dict[str, Any], argv: list[str], user_home: Path | N
             for r in all_rows
             if query in f"{r.get('title', '')} {r.get('subtitle', '')} {r.get('id', '')}".lower()
         ] or all_rows
+    elif not open_custom_hud and not open_floating:
+        hud_row = {
+            "id": "aq-open-hud",
+            "title": "Open Desktop Floating Quota Widget →" if is_en else "打开桌面悬浮小窗挂件（置顶实时刷新）→",
+            "subtitle": (
+                "Launch a compact translucent HUD widget on your desktop with auto-refresh"
+                if is_en
+                else "在桌面置顶显示透明玻璃悬浮挂件，支持折叠小窗、透明度调节与自动刷新"
+            ),
+            "icon": "macwindow.on.rectangle",
+            "tintColor": "cyan",
+            "badge": "FLOATING HUD",
+            "commandArgs": ["--custom-hud"],
+            "actions": [
+                {
+                    "id": "launch-hud",
+                    "label": "Glass HUD" if is_en else "玻璃小挂件",
+                    "style": "primary",
+                    "commandArgs": ["--custom-hud"],
+                },
+                {
+                    "id": "launch-panel",
+                    "label": "Native Panel" if is_en else "原生悬浮窗",
+                    "commandArgs": ["--float-panel"],
+                },
+            ],
+        }
+        visible_rows = [hud_row, *visible_rows]
 
     metrics = [
         {"key": "Codex CLI", "value": metric_map.get("codex", "—")},

@@ -80,13 +80,13 @@ struct PluginCommandSettingsCard: View {
                 }
 
                 Text(L10n.pick(
-                    "每项子功能可独立决定是否接入 ⌥Space 全局搜索、单独录制全局热键（⌫ 清空）、挂载浮窗快捷按钮或挂载至顶部状态栏菜单。",
-                    "Each command can join Global Search, bind a global hotkey, mount as a Quick Button, or appear in the status bar menu."
+                    "「混入搜索」= 在 ⌥Space 直接搜到 ·「快捷按钮」= 固定在快捷台首页 ·「菜单栏」= 放进顶部状态栏菜单 ·「绑热键」= 全局快捷键（按 ⌫ 清空）",
+                    "Search = appear in ⌥Space · Quick = pin on Home · Menu = add to status menu · Hotkey = global shortcut (⌫ to clear)"
                 ))
                 .font(.caption2)
                 .foregroundStyle(LiquidColors.textSecondary)
 
-                VStack(spacing: 7) {
+                VStack(spacing: 8) {
                     ForEach(commands) { spec in
                         commandRow(spec)
                     }
@@ -110,74 +110,79 @@ struct PluginCommandSettingsCard: View {
         let sym = (spec.icon?.isEmpty == false && !PluginIconResolver.looksLikeRelativeFilePath(spec.icon))
             ? (spec.icon ?? plugin.symbolIconName)
             : plugin.symbolIconName
+        let isWindowCmd = spec.arguments.contains("--custom-hud") || spec.arguments.contains("--float-panel")
+        let runLabel = isWindowCmd ? L10n.pick("打开浮窗", "Open") : L10n.pick("运行", "Run")
 
-        return HStack(alignment: .center, spacing: 10) {
-            PluginIconBadge(
-                symbol: sym, customIconURL: customIcon,
-                accentColor: isQuickOn ? "orange" : plugin.manifest.accentColor,
-                isBuiltin: plugin.isBuiltin, mode: plugin.manifest.mode, size: 32
-            )
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                PluginIconBadge(
+                    symbol: sym, customIconURL: customIcon,
+                    accentColor: isQuickOn ? "orange" : plugin.manifest.accentColor,
+                    isBuiltin: plugin.isBuiltin, mode: plugin.manifest.mode, size: 32
+                )
+                VStack(alignment: .leading, spacing: 4) {
                     Text(cmdTitle)
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(LiquidColors.textPrimary)
-                        .lineLimit(1)
-                        .layoutPriority(1)
-                    if spec.includeInGlobalSearch == false && plugin.overrides.commandSearchOverrides[spec.id] == nil {
-                        Text(L10n.pick("默认域内", "Scoped"))
-                            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                            .foregroundStyle(LiquidColors.textSecondary)
-                            .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                            .padding(.horizontal, 5.5).padding(.vertical, 1.5)
-                            .background(LiquidColors.pillSurface, in: Capsule())
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(cmdSub)
+                        .font(.caption2)
+                        .foregroundStyle(LiquidColors.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 6) {
+                    commandHotKeyButton(spec: spec, currentHotKey: cmdHK, isRecording: isRecording)
+                    Button(runLabel) {
+                        viewModel.runPlugin(plugin, query: "", arguments: spec.arguments, showInline: !isWindowCmd)
                     }
-                    ForEach(spec.keywords.prefix(2), id: \.self) { kw in
-                        Text(kw)
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(LiquidColors.accentPrimary)
-                            .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                            .padding(.horizontal, 6).padding(.vertical, 1.5)
-                            .background(LiquidColors.pillSurface, in: Capsule())
+                    .buttonStyle(GlassPillButtonStyle(prominent: isWindowCmd, compact: true))
+                    .disabled(!plugin.isBuiltin && (!plugin.isEnabled || !plugin.isValid))
+                }
+                .fixedSize(horizontal: true, vertical: false)
+            }
+
+            HStack(spacing: 10) {
+                if !spec.keywords.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(spec.keywords.prefix(2), id: \.self) { kw in
+                            Text(kw)
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(LiquidColors.accentPrimary)
+                                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(LiquidColors.pillSurface, in: Capsule())
+                        }
                     }
                 }
-                Text(cmdSub)
-                    .font(.caption2)
-                    .foregroundStyle(LiquidColors.textSecondary)
-                    .lineLimit(1)
-            }
-            .frame(minWidth: 130, maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 8) {
-                commandHotKeyButton(spec: spec, currentHotKey: cmdHK, isRecording: isRecording)
-
-                Toggle(L10n.pick("搜索", "Search"), isOn: Binding(
+                Spacer(minLength: 4)
+                Toggle(L10n.pick("混入搜索", "Search"), isOn: Binding(
                     get: { isSearchOn },
                     set: { viewModel.setPluginCommandSearchEnabled(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
                 ))
                 .font(.caption2).fixedSize(horizontal: true, vertical: false)
+                .help(L10n.pick("允许在 ⌥Space 搜索框直接检索此功能", "Show this command in ⌥Space search results"))
 
-                Toggle(L10n.pick("快捷按钮", "Quick"), isOn: Binding(
+                Toggle(L10n.pick("首页快捷按钮", "Quick Btn"), isOn: Binding(
                     get: { isQuickOn },
                     set: { viewModel.setPluginCommandQuickButton(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
                 ))
-                .font(.caption2.weight(.semibold)).fixedSize(horizontal: true, vertical: false).tint(.orange)
+                .font(.caption2.weight(.medium)).fixedSize(horizontal: true, vertical: false).tint(.orange)
+                .help(L10n.pick("固定为 ⌥Space 首页快捷按钮", "Pin as a Quick Button on ⌥Space Home"))
 
                 Toggle(L10n.pick("菜单栏", "Menu"), isOn: Binding(
                     get: { isMenuOn },
                     set: { viewModel.setPluginCommandMenuBar(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
                 ))
-                .font(.caption2.weight(.semibold)).fixedSize(horizontal: true, vertical: false).tint(.cyan)
-
-                Button(L10n.pick("运行", "Run")) {
-                    viewModel.runPlugin(plugin, query: "", arguments: spec.arguments, showInline: false)
-                }
-                .buttonStyle(GlassPillButtonStyle(compact: true))
-                .disabled(!plugin.isBuiltin && (!plugin.isEnabled || !plugin.isValid))
+                .font(.caption2.weight(.medium)).fixedSize(horizontal: true, vertical: false).tint(.cyan)
+                .help(L10n.pick("添加到屏幕顶部状态栏菜单", "Add to macOS status bar menu"))
             }
-            .fixedSize(horizontal: true, vertical: false)
+            .padding(.leading, 42)
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .padding(.horizontal, 12).padding(.vertical, 10)
         .background(
             isQuickOn ? Color.orange.opacity(0.08) : LiquidColors.pillSurface.opacity(0.55),
             in: RoundedRectangle(cornerRadius: LiquidRadii.row, style: .continuous)

@@ -82,11 +82,12 @@ extension AppViewModel {
     }
 
     private func runScreenCapture(mode: ScreenshotMode) {
+        let preferredTargetApp = resolveOverlayTargetApp?()
         isCapturingScreen = true; onHideOverlayRequest?()
         Task {
             defer { self.isCapturingScreen = false }
             do {
-                let result = try await ScreenCaptureCoordinator.shared.capture(mode: mode)
+                let result = try await ScreenCaptureCoordinator.shared.capture(mode: mode, preferredTargetApp: preferredTargetApp)
                 self.isCapturingScreen = false
                 switch result {
                 case .cancelled:

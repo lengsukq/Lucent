@@ -37,6 +37,9 @@ struct PluginDedicatedSettingsView: View {
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .liquidGlassCard(cornerRadius: LiquidRadii.row, solidReadable: true)
                         }
+                        if !plugin.isBuiltin {
+                            PluginSetupReminderAndGuideSection(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
+                        }
                         if let fields = plugin.manifest.config, !fields.isEmpty {
                             PluginConfigFormCard(plugin: plugin, fields: fields, ctrl: ctrl, viewModel: viewModel)
                         }
@@ -99,8 +102,18 @@ struct PluginDedicatedSettingsView: View {
             }
 
             FlowWrapLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                if plugin.manifest.window != nil {
+                    Button {
+                        viewModel.openPluginCustomWindow(plugin)
+                    } label: {
+                        Label(L10n.pick("打开桌面悬浮窗", "Open Floating Widget"), systemImage: "macwindow.on.rectangle")
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: true))
+                    .disabled(!plugin.isEnabled || !plugin.isValid)
+                }
                 Button(L10n.pick("在快捷台打开 ↩", "Open in Launcher ↩")) { viewModel.enterPluginScopedOverlay(plugin) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true)).disabled(!plugin.isEnabled || !plugin.isValid)
+                    .buttonStyle(GlassPillButtonStyle(prominent: plugin.manifest.window == nil))
+                    .disabled(!plugin.isEnabled || !plugin.isValid)
                 Button(L10n.pick("插件市场 →", "Plugin Store →")) {
                     viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = .plugins
                 }

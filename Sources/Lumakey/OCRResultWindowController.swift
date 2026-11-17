@@ -134,7 +134,7 @@ final class OCRResultWindowController: NSObject, NSWindowDelegate {
         } else {
             win.makeKeyAndOrderFront(nil)
         }
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         window = win
         onVisibilityChanged?()
     }

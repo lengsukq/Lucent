@@ -6,9 +6,13 @@ struct PluginPermissionsMatrixView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject var ctrl: PluginCenterController
 
-    private var entries: [AppPermissionAuditEntry] {
+    private var groupedEntries: [(category: LumakeyPermissionCategory, items: [AppPermissionAuditEntry])] {
         let all = PluginPermissionAudit.buildAudit(plugins: viewModel.plugins)
-        return ctrl.showUnusedPermissions ? all : all.filter { $0.declaredPluginCount > 0 }
+        let filtered = ctrl.showUnusedPermissions ? all : all.filter { $0.declaredPluginCount > 0 }
+        return LumakeyPermissionCategory.allCases.compactMap { cat in
+            let matches = filtered.filter { $0.permission.category == cat }
+            return matches.isEmpty ? nil : (cat, matches)
+        }
     }
 
     private var sandboxPlugins: [PluginDescriptor] {
@@ -20,10 +24,24 @@ struct PluginPermissionsMatrixView: View {
             .filter { $0.declaredPluginCount > 0 }.count
         VStack(alignment: .leading, spacing: 8) {
             summaryHeader(activeCount: activePermissionCount)
+            Text(L10n.pick(
+                "这里汇总了哪些插件正在使用什么权限：系统隐私权限需要在 macOS 系统设置里勾选一次；扩展能力与联网权限可在具体插件设置页单独开关。",
+                "Overview of permissions in use. macOS privacy permissions are granted in System Settings; plugin toggles can be adjusted per plugin."
+            ))
+            .font(.caption2)
+            .foregroundStyle(LiquidColors.textSecondary)
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(entries) { entry in
-                        permissionCard(entry)
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    ForEach(groupedEntries, id: \.category) { group in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(group.category.title)
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(LiquidColors.textSecondary)
+                                .padding(.horizontal, 2)
+                            ForEach(group.items) { entry in
+                                permissionCard(entry)
+                            }
+                        }
                     }
                     if !sandboxPlugins.isEmpty {
                         sandboxSummaryCard
@@ -39,11 +57,11 @@ struct PluginPermissionsMatrixView: View {
 
     private func summaryHeader(activeCount: Int) -> some View {
         HStack(spacing: 6) {
-            Label("App 权限全景清单 (\(activeCount)/\(LumakeyPermission.allCases.count) 项在用)", systemImage: "checklist.checked")
+            Label(L10n.pick("权限使用总览 (\(activeCount) 项在用)", "Permissions Overview (\(activeCount) in use)"), systemImage: "checklist.checked")
                 .font(.caption.weight(.bold))
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button(ctrl.showUnusedPermissions ? "仅看已声明" : "显示全部") {
+            Button(ctrl.showUnusedPermissions ? L10n.pick("只看在用权限", "Used Only") : L10n.pick("显示未使用项", "Show Unused")) {
                 ctrl.showUnusedPermissions.toggle()
             }
             .buttonStyle(GlassPillButtonStyle(prominent: ctrl.showUnusedPermissions))

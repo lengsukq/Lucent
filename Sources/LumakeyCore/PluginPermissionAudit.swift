@@ -9,10 +9,10 @@ public enum LumakeyPermissionCategory: String, Codable, Sendable, Hashable, Case
 
     public var title: String {
         switch self {
-        case .systemTCC: L10n.pick("系统 TCC（宿主代申）", "System TCC (Host Brokered)")
-        case .systemKernel: L10n.pick("内核采样", "Kernel Telemetry")
-        case .hostBridge: L10n.pick("容器与宿主桥接", "Container & Host Bridge")
-        case .resourceScope: L10n.pick("外部作用域", "Resource Scope")
+        case .systemTCC: L10n.pick("macOS 系统隐私权限", "macOS Privacy Permissions")
+        case .systemKernel: L10n.pick("只读硬件采样", "Hardware Telemetry")
+        case .hostBridge: L10n.pick("插件扩展能力", "Plugin Capabilities")
+        case .resourceScope: L10n.pick("网络 / 文件 / 命令行", "Network / Files / CLI")
         }
     }
 }

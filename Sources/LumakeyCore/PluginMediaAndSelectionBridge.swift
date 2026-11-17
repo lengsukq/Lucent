@@ -73,11 +73,21 @@ public enum PluginSelectionReader {
 
     private static func readSelectionFromAX(appElement: AXUIElement) -> String? {
         for element in candidateAXElements(from: appElement) {
+            if isSecureInputElement(element) { return nil }
             if let text = extractSelectedText(from: element), !text.isEmpty {
                 return text
             }
         }
         return nil
+    }
+
+    private static func isSecureInputElement(_ element: AXUIElement) -> Bool {
+        var subroleRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subroleRef) == .success,
+           let subrole = subroleRef as? String, subrole == (kAXSecureTextFieldSubrole as String) {
+            return true
+        }
+        return false
     }
 
     private static func candidateAXElements(from appElement: AXUIElement) -> [AXUIElement] {

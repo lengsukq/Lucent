@@ -19,6 +19,8 @@
   let isCompact = false;
   let isPinned = sdk && sdk.env ? Boolean(sdk.env.pinOnTop) : true;
   let lastSummary = "";
+  let refreshTimer = null;
+  let currentIntervalMs = 30000;
 
   if (isEn) {
     titleEl.textContent = "AI Quota Glass HUD";
@@ -72,8 +74,9 @@
       const barBlock = pct !== null
         ? `<div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, pct)}%"></div></div>`
         : "";
+      const setupHint = (!p.active && p.id === "deepseek") ? ' data-open-settings="1" style="cursor:pointer"' : "";
       rowHTML.push(`
-        <div class="prov-row">
+        <div class="prov-row"${setupHint}>
           <div class="prov-top">
             <span class="prov-name">${escapeHTML(p.title)}</span>
             <span class="prov-badge ${badgeCls}">${escapeHTML(p.badge || "READY")}</span>
@@ -86,6 +89,15 @@
 
     ringsEl.innerHTML = ringItems.join("");
     listEl.innerHTML = rowHTML.join("");
+    listEl.querySelectorAll('[data-open-settings="1"]').forEach((el) => {
+      el.addEventListener("click", () => sdk && sdk.openExternal("lumakey://settings/plugin/ai-quota"));
+    });
+
+    const nextMs = Math.max(15000, Number(data.intervalSeconds || 30) * 1000);
+    if (nextMs !== currentIntervalMs) {
+      currentIntervalMs = nextMs;
+      scheduleAutoRefresh();
+    }
   }
 
   function escapeHTML(str) {
@@ -116,7 +128,7 @@
   btnCompact.addEventListener("click", async () => {
     isCompact = !isCompact;
     shell.classList.toggle("compact", isCompact);
-    if (sdk) await sdk.window.resize(392, isCompact ? 156 : 488, true);
+    if (sdk) await sdk.window.resize(392, isCompact ? 148 : 488, true);
   });
 
   btnPin.addEventListener("click", async () => {
@@ -146,8 +158,13 @@
     }
   });
 
+  function scheduleAutoRefresh() {
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => {
+      if (!document.hidden) refresh(false);
+    }, currentIntervalMs);
+  }
+
   refresh(false);
-  setInterval(() => {
-    if (!document.hidden) refresh(false);
-  }, 30000);
+  scheduleAutoRefresh();
 })();

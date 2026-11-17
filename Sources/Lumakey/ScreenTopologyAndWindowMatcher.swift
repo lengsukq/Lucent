@@ -4,6 +4,11 @@ import Foundation
 import LumakeyCore
 @preconcurrency import ScreenCaptureKit
 
+final class CaptureOverlayPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }

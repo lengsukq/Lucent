@@ -60,6 +60,7 @@ final class PinWindowController {
             defer: false
         )
         panel.level = .floating
+        panel.hidesOnDeactivate = false
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.isMovableByWindowBackground = true
@@ -160,6 +161,7 @@ final class PinWindowController {
             defer: false
         )
         badge.level = .statusBar
+        badge.hidesOnDeactivate = false
         badge.isOpaque = false
         badge.backgroundColor = .clear
         badge.hasShadow = true

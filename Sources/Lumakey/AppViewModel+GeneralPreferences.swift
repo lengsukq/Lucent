@@ -35,6 +35,13 @@ extension AppViewModel {
             queryIdleClearTask?.cancel()
             queryIdleClearTask = nil
         }
+        if previous.enableSelectionQuickBar != current.enableSelectionQuickBar {
+            SelectionQuickBarController.shared.syncMonitoring(
+                enabled: current.enableSelectionQuickBar,
+                plugins: plugins,
+                viewModel: self
+            )
+        }
     }
 
     func reloadGeneralPreferencesFromDisk() {

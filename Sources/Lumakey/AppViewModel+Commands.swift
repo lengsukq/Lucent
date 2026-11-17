@@ -123,8 +123,9 @@ extension AppViewModel {
     }
 
     func startGifRecording() {
+        let preferredTargetApp = resolveOverlayTargetApp?()
         onHideOverlayRequest?()
-        GifCaptureController.shared.startInteractiveCapture()
+        GifCaptureController.shared.startInteractiveCapture(preferredTargetApp: preferredTargetApp)
     }
 
     func executeEverythingHit(_ hit: EverythingSearchHit) {

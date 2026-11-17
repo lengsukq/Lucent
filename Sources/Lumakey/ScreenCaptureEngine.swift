@@ -4,11 +4,6 @@ import LumakeyCore
 @preconcurrency import ScreenCaptureKit
 import SwiftUI
 
-final class CaptureOverlayPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
-}
-
 @MainActor
 final class ScreenCaptureCoordinator {
     static let shared = ScreenCaptureCoordinator()
@@ -22,18 +17,29 @@ final class ScreenCaptureCoordinator {
     private var pasteboardSnapshot: PasteboardSnapshot?
     private var didModifyPasteboard = false
     private var lastSelectionRect: CGRect?
+    private let focusGuard = CaptureFocusGuard()
+    private var captureGeneration: UInt64 = 0
 
     private init() {}
 
-    func capture(mode: ScreenshotMode) async throws -> ScreenshotResult {
+    func capture(mode: ScreenshotMode, preferredTargetApp: NSRunningApplication? = nil) async throws -> ScreenshotResult {
         if !overlayPanels.isEmpty { finish(with: .cancelled, animated: false) }
+        captureGeneration &+= 1
+        focusGuard.prepareForNewCapture(preferredApp: preferredTargetApp)
         guard CGPreflightScreenCaptureAccess() else {
+            focusGuard.finishRestore(restorePreviousApp: false)
             CGRequestScreenCaptureAccess()
             throw LumakeyError.visionFailed(L10n.pick("尚未授予“屏幕录制”权限，请在系统设置 -> 隐私与安全性 -> 屏幕录制 中勾选 Lumakey。", "Screen Recording permission is not granted. Enable Lumakey in System Settings > Privacy & Security > Screen Recording."))
         }
 
         try? await Task.sleep(for: .milliseconds(70))
-        let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includePixelatedPreview: true)
+        let topology: ScreenTopologySnapshot
+        do {
+            topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includePixelatedPreview: true)
+        } catch {
+            focusGuard.finishRestore(restorePreviousApp: false)
+            throw error
+        }
         let initialPt = topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation)
         let remembered = lastSelectionRect
             .map { $0.intersection(topology.canvasBounds) }
@@ -53,6 +59,7 @@ final class ScreenCaptureCoordinator {
         didModifyPasteboard = false
         activeSession = session
         overlayPanels.removeAll(); panelByDisplayID.removeAll()
+        focusGuard.suppressBackgroundWindowsIfNeeded(excluding: overlayPanels)
 
         for slice in session.topology.displays {
             let panel = CaptureOverlayPanel(
@@ -74,7 +81,7 @@ final class ScreenCaptureCoordinator {
             overlayPanels.append(panel)
             panelByDisplayID[slice.displayID] = panel
         }
-        NSApp.activate(ignoringOtherApps: true)
+        focusGuard.activateAppForCapture()
         panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .rightMouseDown, .mouseMoved, .leftMouseDragged]) { [weak self] event in
@@ -269,13 +276,21 @@ final class ScreenCaptureCoordinator {
         let closingPanels = overlayPanels
         overlayPanels.removeAll(); panelByDisplayID.removeAll()
         activeSession = nil
+        let shouldRestoreApp = { if case .ocrRequested = result { return false }; return true }()
+        if shouldRestoreApp { focusGuard.beginRestorePreviousAppIfNeeded() }
         let cont = continuation; continuation = nil
         cont?.resume(returning: result)
-        guard !closingPanels.isEmpty else { MemoryStats.reclaimFreeHeapPages(); return }
-        for (idx, panel) in closingPanels.enumerated() {
-            WindowMotionAnimator.dismiss(panel, style: .fullscreenOverlay, immediately: !animated) { [weak panel] in
-                panel?.contentView = nil
-                if idx == closingPanels.count - 1 { MemoryStats.reclaimFreeHeapPages() }
+        guard !closingPanels.isEmpty else {
+            focusGuard.finishRestore(restorePreviousApp: shouldRestoreApp); MemoryStats.reclaimFreeHeapPages(); return
+        }
+        let gen = captureGeneration; var remaining = closingPanels.count
+        for panel in closingPanels {
+            WindowMotionAnimator.dismiss(panel, style: .fullscreenOverlay, immediately: !animated) { [weak self, weak panel] in
+                panel?.contentView = nil; remaining -= 1
+                if remaining == 0 {
+                    if let self, self.captureGeneration == gen { self.focusGuard.finishRestore(restorePreviousApp: shouldRestoreApp) }
+                    MemoryStats.reclaimFreeHeapPages()
+                }
             }
         }
     }
