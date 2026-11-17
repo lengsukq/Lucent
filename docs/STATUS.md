@@ -2,6 +2,16 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.9.7)
+
+- **模块化可定制启动页、多场景 Profile 与 `lumakey-mcp` 智能编排闭环 (`HomeBuiltinActionModels`, `HomeLaunchItemModels`, `HomeLayoutModels`, `HomeLayoutPresets`, `HomeLayoutStore`, `HomeLayoutSpec`, `OverlayBentoHomeView`, `OverlayBentoHomeSections`, `OverlayHomeItemEditorSheet`, `HomeCustomizationSettingsView`, `OverlayResultContextMenuViews`, `MCPHomeLayoutSchemas`, `MCPHomeLayoutHandlers`, `MCPHomeItemHandlers`, `LumakeyHomeLayoutAndMCPTests`, `CheckHomeLayoutAndMCP`)**：
+  - **统一启动项协议 (`HomeLaunchItem`) 与安全边界 (`HomeLaunchSecurity`)**：打通内置系统能力（15 项 `HomeBuiltinActionID`）、本机 `.app` 应用、自制与商店插件及子功能命令（支持智能默认/进入专属列表/内联运行/独立悬浮窗 4 种触发策略）、网页与协议书签（`http`/`https`/`lumakey`/`vscode`/`cursor`/`obsidian`/`notion` 等安全 Scheme 白名单，支持指定浏览器打开并严格拦截 `javascript:`/`file:` 等危险注入）、本地目录/文件与预设检索词共 7 类统一目标，均支持自定义标题、副标题、SF Symbol 图标与色板覆盖；
+  - **多场景 Profile 与四大可编排分区 (`HomeLayoutConfig` / `home-layout.json`)**：在保持主悬浮窗 `880 × 544` 零跳动恒定尺寸前提下，支持最多 8 套场景 Profile 秒切、4 套官方预设（均衡默认 / 极简纯搜 / 开发者工作台 / 书签与应用中心）及一键撤回（`lastUndoProfile`）；开放 Bento 磁贴区（`2/3/4` 列与 `⌘1..9` 空态直达）、混合高频坞（`8/16` 格，支持钉选优先 + 智能频次补位或纯手动模式，兼容旧版 `pinnedAppIDs` 自动迁移）、多组命名书签与插件胶囊架以及可隐藏探索提示条的自由显隐与上下调序，配套底栏精简模式消除重复快捷按钮渲染，并自动随 `home-layout.json` 纳入 `.lumakeybackup` v2 加密备份与 WebDAV 云同步；
+  - **全链路可视化交互 + `lumakey-mcp` (`v0.3.2`) 跨进程零轮询热刷新**：支持搜索候选右键菜单「钉到启动页」、主页右键与就地编辑态、以及设置中心独立「启动页定制」面板；`lumakey-mcp` 新增 `lumakey://specs/home-layout-v1` 规范资源与 `lumakey_get_home_layout`、`lumakey_update_home_layout`、`lumakey_upsert_home_item`、`lumakey_remove_home_item` 四项工具，写入后通过 `DistributedNotificationCenter` 零轮询即时刷新运行中的宿主主页，并移除残余 `@State` 宏依赖确保纯 CommandLineTools 工具链零错误编译。
+- **截图标注 (`⌥A`) / 极速识字 (`⌥O`) 与 GIF 录屏 (`⌥G`) 单击应用窗口 `1×1` 像素选区修复 (`CaptureSelectionGeometry`, `ScreenshotCanvasView`, `ScreenshotSessionState`, `GifSelectionOverlay`, `ScreenTopologyAndWindowMatcher`, `ScreenRecordingStreamEngine`)**：
+  - 修复 `DragGesture(minimumDistance: 0)` 在鼠标按下瞬间（位移 `0pt`）即提前写入 `0×0` `selectionRect`，导致 `updateHover` 清空 `hoveredWindow` 并在松手后残留 `1×1 px`（截图/OCR）或 `2×2 px`（GIF 录屏）极小像素点选区的问题；统一抽离 `CaptureSelectionGeometry`，仅在真实拖拽位移 `>= 3pt` 时创建/移动/缩放选区（同时避免在已锁定窗口内双击完成时误清空 `selectedWindow`），保留按下瞬间的窗口命中与 `Tab` 层级切换上下文，并对桌面空白处轻点或微抖动执行无残留回退；
+  - 加固 `SCContentFilter(desktopIndependentWindow:)` 在部分窗口状态下 `contentRect` 返回零尺寸时的 `scWin.frame` 真实尺寸回退与最小像素守卫，并修正 GIF 独立窗口 `SCStream` 采集按完整窗口原生比例计算分辨率。
+
 ## 已完成与已验证 (v0.9.6)
 
 - **开机自启、静默驻留与全量基础偏好体系闭环 (`LaunchAtLoginService`, `GeneralPreferencesModels`, `GeneralPreferencesStore`, `AppViewModel+GeneralPreferences`, `GeneralStartupAndBehaviorCardView`, `ClipboardPrivacySettingsCardView`, `LumakeyGeneralPreferencesTests`)**：

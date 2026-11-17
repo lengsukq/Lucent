@@ -121,9 +121,9 @@
 - **权限全景清单 (`PluginPermissionAudit` & `PluginHostTCCBroker`)**：汇总系统 TCC（由宿主代申并在矩阵页提供实时状态与一键代申入口）、内核采样、容器/宿主桥接与 Seatbelt 资源作用域共 21 项细分权限，列出每项权限当前被哪些 `BUILTIN` / `EXT` 插件声明及授权状态，并在底部独立归集显式声明 `[]` 的纯沙盒插件。
 - **内置工具与短语**：`LumakeyCore` 同时内置零子进程 `DevToolkitEngine` 与 `SnippetStore`。
 
-## 四、原生 Stdio MCP 服务器 (`lumakey-mcp` v0.3.1)
+## 四、原生 Stdio MCP 服务器 (`lumakey-mcp` v0.3.2)
 
-`lumakey-mcp` 基于零依赖换行分隔 JSON-RPC 2.0（支持 `--plugins-dir <path>`），暴露 `lumakey://specs/plugin-v3` 与 `lumakey://specs/plugin-store-v1` 资源及 12 项工具：
+`lumakey-mcp` 基于零依赖换行分隔 JSON-RPC 2.0（支持 `--plugins-dir <path>` 与 `--home-layout <path>`），暴露 `lumakey://specs/plugin-v3`、`lumakey://specs/plugin-store-v1` 与 `lumakey://specs/home-layout-v1` 三项规范资源及 16 项工具：
 
 | 工具名 | 必选 / 关键参数 | 作用 |
 | --- | --- | --- |
@@ -139,6 +139,10 @@
 | `lumakey_package_plugin_for_store` | `id`, `outputDir`（必选），`registryPath`, `storeId`, `storeName`, `downloadURL`（可选） | 校验外置插件并打包干净 `<id>.zip`（剔除隐藏文件与软链接）、计算 64 位 `sha256`，自动生成或更新 `lumakey-registry.json` |
 | `lumakey_list_plugin_stores` | 无 | 列出当前已订阅的全部自定义插件商店源及收录插件 |
 | `lumakey_resolve_or_install_url` | `url`（必选），`install`, `installPluginId`（可选） | 自动识别任意地址是插件商店还是单个插件，支持一键订阅入驻或按需安装插件 |
+| `lumakey_get_home_layout` | `includeCandidates`, `includeNativeApps`（可选） | 读取当前启动页多场景 Profile、各分区明细，以及可用内置动作、已装插件与已索引书签候选池 |
+| `lumakey_update_home_layout` | `selectProfileID`, `createProfile`, `applyPreset`, `sectionOrder`, `hiddenSections`, `bentoColumns`, `dockRows`, `upsertShelf`, `undoLastChange` 等 | 创建/切换场景 Profile、套用 4 套官方预设、调整四大分区显隐与网格密度、管理分组书签架或撤回上次改动，并通知运行中宿主实时热刷新 |
+| `lumakey_upsert_home_item` | `section`（必选），`kind`, `id`, `shelfID`, `customTitle`, `customIcon`, `accentColor`, `index`, `moveOffset` 等 | 向 Bento 磁贴、混合高频坞或分组书签架新增、更新或移动启动项（内置动作、本机应用、自制插件/命令、白名单书签 URL、本地目录、查询词） |
+| `lumakey_remove_home_item` | `id`, `section` 或 `resetPreset` | 移除指定主页启动项，或将当前 Profile 一键重置为指定官方预设 |
 
 ## 五、自定义商店入驻与单插件地址自动识别规范 (`PluginStoreSniffer` & `lumakey-registry.json`)
 
