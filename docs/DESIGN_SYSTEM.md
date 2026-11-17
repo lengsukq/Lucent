@@ -7,7 +7,7 @@
 1. **真圆角悬浮中枢外壳与双层高光描边（`RoundedGlassContainerView` + `DoubleSpecularBorder`）**：
    - AppKit 层 `RoundedGlassContainerView` 继承 `NSVisualEffectView`（`.popover` + `.behindWindow` + `.active`），生成 `28pt` 连续圆角 9-slice `maskImage` 并配合 `.cornerCurve = .continuous` 图层裁剪；配合 `DoubleSpecularBorder`（外层顶亮底敛镜面高光 + 内层微缩暗衬）、`LiquidColors` 动态令牌与 `CrispSearchTextField`（`allowsVibrancy = false`），浅色/深色壁纸下文字、占位符与按钮均保持清晰可读；
    - 顶部提供 `18pt` 极简抓手条（拖拽移窗，双击居中重置位置），搜索栏外边距、Bento 空白区、底栏空闲区及 `⌘`+左键全区域均可流畅拖动；面板锁定 **`880 × 544` 恒定零跳动尺寸**，文件与剪贴板子过滤条内嵌于左侧列表区顶部，`全部 / 文件 / 剪贴板 / 插件` 四态切换时外框与主分割线完全静止。
-   - 系统脉搏监控悬浮窗采用与主面板同源的 `20pt` `.popover` 液态玻璃胶囊，支持顶部精简横条悬停展开、三边吸附隐藏标签及高对比等宽 Sparkline 卡片；区域 GIF 录制采用顶部居中灵动岛式悬浮 HUD（`GifRecordingHUDView`）；截图标注浮层采用全屏 `.screenSaver` 无边框透明层 + `Canvas` 矢量渲染 + 底部两行 iOS 液态玻璃浮动工具条 + 像素放大镜取色框。
+   - 系统脉搏监控悬浮窗采用与主面板同源的 `20pt` `.popover` 液态玻璃胶囊，支持顶部精简横条悬停展开、三边吸附隐藏标签及高对比等宽 Sparkline 卡片；区域 GIF 录制采用顶部居中灵动岛式悬浮 HUD（`GifRecordingHUDView`）及跨屏 `sharingType = .none` 穿透虚线边界提示框；截图标注浮层改为每块显示器独立的 `.screenSaver` 无边框原生 DPI 分片层（`FirstMouseHostingView` 首击响应）+ `Canvas` 矢量渲染 + 底部两行 iOS 液态玻璃浮动工具条 + 像素放大镜取色框；外部插件可复用 `PluginFloatingPanelWindowView` 弹出置顶实时监控面板，或在 `window` / `floatingWindow` 容器下渲染无边框透明自由悬浮挂件（`PluginCustomWebWindowController`）。
 2. **Bento 磁贴、键盘快选徽标与高光超椭圆图标**：
    - 控制中心 `3×2` Bento 磁贴与 8 格应用坞采用 `22pt` 连续圆角 `.ultraThinMaterial` + `LiquidBentoTileStyle`（按压 `0.975` 阻尼缩放回弹与双层描边）；
    - 功能图标统一使用 `SquircleBadge`（连续超椭圆圆角、线性渐变、顶部白色镜面高光与柔和投影）；

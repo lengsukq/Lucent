@@ -13,20 +13,23 @@ Lumakey/
 ├── Package.swift                      # Swift 6 九目标分层清单 (Foundation/Search/Media/System/Core + App/MCP + Tests/Check)
 ├── LICENSE                            # MIT 开源许可证
 ├── CONTRIBUTING.md                    # 外部贡献规范与模块依赖边界红线
+├── .github/workflows/                 # CI (arm64 验证)、GitHub Pages 自动部署与 Release DMG 发布流
 ├── apps/macos/
 │   ├── Info.plist                     # macOS arm64 应用包元数据 (app.lumakey.macos, LSUIElement = true)
 │   └── Lumakey.entitlements           # Hardened Runtime 与 Apple 公证所需最小权限声明
 ├── Sources/
 │   ├── LumakeyFoundation/             # 零上层依赖基础库（本地化、双主题、签名检查、双轨密钥库、进程监管）
 │   ├── LumakeySearch/                 # 全盘索引（EverythingIndex / LMKYIDX3 SHA-256 快照）与安全文件操作
-│   ├── LumakeyMedia/                  # 截图合成、离线 Vision OCR、视频零拷贝兼容与纯 Swift Markdown 解析
+│   ├── LumakeyMedia/                  # 多屏几何与分片 DPI 截图合成、离线 Vision OCR、视频零拷贝兼容与纯 Swift Markdown 解析
 │   ├── LumakeySystem/                 # Mach/IOKit 系统监控、网络流量去向、物理鼠标平滑与热键冲突探测
-│   ├── LumakeyCore/                   # 插件引擎（含 sandbox-exec 强制隔离）、LumaLink、备份与全局搜索编排
-│   ├── Lumakey/                       # SwiftUI + AppKit 菜单栏常驻与双内置主题界面
+│   ├── LumakeyCore/                   # 插件引擎（Seatbelt 沙箱、自由窗口规格、宿主 TCC 代理、系统通知）、LumaLink、Backup v2 与全局搜索编排
+│   ├── Lumakey/                       # SwiftUI + AppKit 菜单栏常驻、双内置主题界面、WKWebView 自由浮窗与 SCStream 区域录屏
 │   └── LumakeyMCP/                    # 原生 stdio JSON-RPC 2.0 MCP 服务 (lumakey-mcp)
 ├── Tests/
 │   ├── LumakeyTests/                  # 标准 Swift Testing 单元测试与检索/内存延迟基准套件 (swift test)
 │   └── LumakeyCheck/                  # 全链路系统自检与 lumakey-mcp 真实子进程联调
+├── plugin-demo/                       # 官方示例插件商店（8 款旗舰插件源码、package-store.sh 与 lumakey-registry.json）
+├── site/                              # 产品介绍页（3D WebGL2 体验主页 + 2D 图文详解实验台）
 ├── scripts/
 │   ├── check-docs.py                  # 文档索引覆盖与断链/锚点检查
 │   ├── verify-macos.sh                # arm64 环境、300 行 Clean Code、编译与校验总门禁

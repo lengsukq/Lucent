@@ -1,6 +1,6 @@
 # 插件系统与 MCP 接口规范
 
-`Lumakey` 定位为 **macOS 轻量生产力中枢**（而非多运行时应用中心、常驻 Web 网关或 `launchd` 守护进程调度器）。其 **Plugin v3.4（原生体验对齐、双语清单、子功能热键与深度窗口路由版）** 延续「零常驻开销、按需触发、即关即回收」原则，将**内置原生插件 (`BUILTIN`)** 与**外部扩展插件 (`EXT`)** 统一纳入设置中心「插件独立设置」导航列表、包内自定义图标与品牌色、中英双语自适应、子功能 (`commands`) 全局搜索与独立快捷键、默认关闭的按需快捷按钮 (`快捷按钮`)、主浮窗对称插件子模式、宿主独立阅读/钉屏深链与全 App 权限审计矩阵，并通过同包交付的 `lumakey-mcp` 服务向 AI 客户端暴露完整规范与接口。
+`Lumakey` 定位为 **macOS 轻量生产力中枢**（而非多运行时应用中心、常驻 Web 网关或 `launchd` 守护进程调度器）。其 **Plugin v3.6（自由画布浮窗 `WKWebView` HUD、独立实时悬浮面板、宿主统一 TCC 代申与双语深度路由版）** 延续「零常驻开销、按需触发、即关即回收」原则，将**内置原生插件 (`BUILTIN`)** 与**外部扩展插件 (`EXT`)** 统一纳入设置中心「插件独立设置」导航列表、包内自定义图标与品牌色、中英双语自适应、子功能 (`commands`) 全局搜索与独立快捷键、默认关闭的按需快捷按钮 (`快捷按钮`)、主浮窗对称插件子模式、自由画布/实时悬浮面板/阅读钉屏深链与全 App 权限审计矩阵，并通过同包交付的 `lumakey-mcp` 服务向 AI 客户端暴露完整规范与接口。
 
 ## 一、统一注册模型、原生视觉、多语言清单与强制权限声明
 
@@ -12,7 +12,7 @@
      - `builtin-mos`（鼠标平滑与滚轮反转）：声明 `[accessibility]`；内置子功能含 `切换鼠标平滑总开关`、`切换鼠标滚轮反转方向`、`切换 120Hz 平滑滚动插值`
      - `builtin-system-pulse`（系统脉搏桌面监控悬浮窗）：声明 `[telemetrySampling]`；内置子功能含 `开关系统脉搏桌面悬浮窗`、`开关菜单栏实时性能读数`
 2. **外部扩展插件 (`plugin.json` 契约 · `EXT`)**：
-   - 插件包目录 `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json` 保持代码与静态资源不可变；可写缓存、免前缀检索索引 `search-index.json` 与零子进程轻量状态摘要 `status.json` 写入隔离目录 `PluginData/<id>/`（通过 `LUMAKEY_DATA_DIR` 与 `stdin.dataDir` 注入）；普通配置、授权与用户覆盖项持久化于 `plugin-state.json`，`.secret` 密钥字段由基于双轨 256-bit 随机主密钥的本机 `0600` `AES-GCM` 保险箱（`LMKYVLT2`）加密托管。
+   - 插件包目录 `~/Library/Application Support/Lumakey/Plugins/<id>/plugin.json` 保持代码与静态资源不可变；可写缓存、免前缀检索索引 `search-index.json`（严格仅从隔离目录读取，忽略包内根目录旧路径）与零子进程轻量状态摘要 `status.json` 写入隔离目录 `PluginData/<id>/`（通过 `LUMAKEY_DATA_DIR` 与 `stdin.dataDir` 注入）；普通配置、授权与用户覆盖项持久化于 `plugin-state.json`，`.secret` 密钥字段由基于双轨 256-bit 随机主密钥的本机 `0600` `AES-GCM` 保险箱（`LMKYVLT2`）加密托管。
    - **`capabilities` 与 `resourceScopes` 双必选强校验 + OS 级 Seatbelt 强制隔离 (`PluginSandboxProfileBuilder`)**：注册时必须在 `plugin.json` 同时显式写出 `"capabilities"` 与 `"resourceScopes"`（`network` / `filesystem` / `subprocess`）数组；运行期由 `ProcessSupervisor` 切断宿主环境变量继承（仅注入纯净白名单与隔离 `TMPDIR`），并通过 `/usr/bin/sandbox-exec` 动态生成 Seatbelt 规则强制拦截未授权网络、用户目录写操作与越权子进程执行，同时无条件拉黑宿主 `.vault` 与 `~/Library/Keychains`。
    - **包内自定义图标、品牌色与自然分类标签 (`icon` / `accentColor` / `categoryTag`)**：
      - `icon` 既支持 SF Symbol（如 `"bookmark.fill"`），也支持插件包内的相对图像路径（如 `"icon.svg"`、`"assets/icon.png"`，严格拦截路径逃逸并经 `IconCache` 缓存渲染）；`PluginViewItem` 与 `search-index.json` 词条同样支持包内或 `PluginData` 下的自定义图标与 `tintColor` 色值；

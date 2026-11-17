@@ -8,6 +8,7 @@
   - **宿主托管 `WKWebView` 自由窗口与透明无边框 HUD (`window` / `floatingWindow`)**：新增 `PluginCustomWindowSpec`、`lumakey://window/<id>` 深链、`manifest.window` 与 `effect.openWindow`，开放 `standard`、`frameless`（无边框透明异形窗）与 `hud`（`.nonactivatingPanel` 不抢焦点全桌面置顶浮窗）三种容器形态；注入 `window.lumakey` 双向 JS SDK（支持 `run`、`bridge`、`permissions.request`、`window.{startDrag,resize,moveTo,setPinned,setClickThrough,setOpacity,close}` 与 `[data-lumakey-drag]` 120Hz 原生拖拽），内置未授权时宿主内联权限确认门禁、透明度安全下限（`0.15`）、单插件最多 `4` 窗限制、菜单栏「关闭全部插件自由窗口」逃生通道及关窗即销毁回收（零常驻）；
   - **宿主统一 TCC 权限代申与新增系统能力桥接 (`PluginHostTCCBroker` & `PluginScreenAndWindowBridge`)**：遵循「macOS 认宿主，宿主审插件」两级代理模型，新增 `screenCapture`（交互选区截图 `captureInteractive`、主屏快照 `captureMainDisplay`、像素取色 `sampleColor`）、`notifications`（`send` / `requestPermission`）、`selection.pasteBack`（及 `effect.pasteText` 原窗口焦点恢复与 `⌘V` 注入）与 `clipboard.writeImage`；权限审计矩阵页 (`PluginPermissionsMatrixView`) 同步展示宿主 TCC 实时状态并提供一键「宿主代申」入口；
   - **官方示例 `ai-quota` 升级至 `v1.2.0`**：新增基于 `floatingWindow` 自由画布的无边框透明玻璃桌面挂件（`ui/widget.html` + `--custom-hud` 子功能），支持 4 路 SVG 环形进度仪表、紧凑/展开尺寸动态切换、透明度无级滑块、置顶开关与系统通知投递。
+  - **纯新架构边界收口与介绍页双形态改版 (`site/`, `LumakeyMultiDisplayAndCleanCodeTests`, `LumakeyCheck`)**：移除 `LMKYVLT1` / `Backup v1` / 旧钥匙串迁移 / 包根目录 `search-index.json` 回退与 MCP `plugin-v1/v2` / `disabledCommandIDs` 兼容路径并补齐负向安全回归校验；[site/](../site/index.html) 升级为 3D WebGL2 体验主页（`index.html` + `experience.js`）与 2D 图文交互实验台（`overview.html`）双页联动结构。
 
 ## 已完成与已验证 (v0.9.3)
 

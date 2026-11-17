@@ -1,8 +1,8 @@
 # 流光 Lumakey
 
-> **交互式产品介绍页**：[https://lengsukq.github.io/Lumakey/](https://lengsukq.github.io/Lumakey/) ｜ **示例插件商店**：[`plugin-demo/`](plugin-demo/README.md) ｜ **工程文档**：[文档总览](docs/INDEX.md)
+> **交互式产品介绍页**：[https://lengsukq.github.io/Lumakey/](https://lengsukq.github.io/Lumakey/)（3D 体验主页）｜ [2D 图文详解与实验台](https://lengsukq.github.io/Lumakey/overview.html) ｜ **示例插件商店**：[`plugin-demo/`](plugin-demo/README.md) ｜ **工程文档**：[文档总览](docs/INDEX.md)
 
-**专为 macOS Apple Silicon (`arm64`) 原生打造的轻量快捷效率中枢：菜单栏常驻、全局热键秒呼，以单一统一全搜栏整合应用、全盘文件、剪贴板、计算换算、物理鼠标平滑滚轮与 Plugin v3.4 原生一等公民插件系统（内置 `lumakey-mcp` AI 造插件服务），并配备零 WebKit 的 Markdown/文本/图像/视频独立阅读窗口与自动内存回收架构。**
+**专为 macOS Apple Silicon (`arm64`) 原生打造的轻量快捷效率中枢：菜单栏常驻、全局热键秒呼，以单一统一全搜栏整合应用、全盘文件、剪贴板、计算换算、物理鼠标平滑滚轮与 Plugin v3.6 原生一等公民插件系统（含自由 `WKWebView` 悬浮挂件、宿主统一 TCC 代理与内置 `lumakey-mcp` AI 造插件服务），并配备零 WebKit 的 Markdown/文本/图像/视频独立阅读窗口与自动内存回收架构。**
 
 `Lumakey` 是一个完全独立、零第三方依赖的 Swift 6 + SwiftUI/AppKit 原生桌面应用（`app.lumakey.macos`），内置中英双语系统（首次打开自动跟随 macOS 系统语言，后续可在设置中心、菜单栏或 `⌥Space` 搜索指令中免重启实时切换「简体中文 / English」）以及「凝霜留白 (`Pure Frost`)」与「霓彩流光 (`Prism Pulse`)」双视觉主题。设计原则是：**优先复用 macOS 系统原生能力，保持干净可维护的分层模块化 Clean Code，让高频效率指令零延迟触达且空闲占用极低。**
 
@@ -20,10 +20,10 @@
 - **内置系统脉搏监控悬浮窗 (`⌥M`)、多视图文件工作台 (`⌥E`) 与流光随行 (`LumaLink`)**：
   - 基于 Darwin Mach、`IOKit` 与 `getifaddrs` 零子进程采样 CPU P/E 核负载、动态等效频率 (`GHz`)、GPU 利用率、内存/Swap、实时整机功耗 (`W`) 与网速（新装默认关闭）；宿主 `systemControl` 桥接支持多屏全屏状态屏遮罩与键鼠防误触拦截；
   - 按需文件工作台 (`⌥E`) 支持单双栏自适应并排、`⌘`/区间多选与液态蓝矩形框选、跨目录拖拽与复制粘贴、新建文件夹、单文件改名与批量重命名预检、系统废纸篓安全删除、6 种排序、7 类媒体筛选、右侧居中图文视频预览与只读 NTFS 护航。
-- **跨多显示器截图标注、独立窗口无遮挡捕获、区域 GIF 录制与极速识字引擎 (`⌥A` / `⌥G` / `⌥O`)**：
-  - 基于 `ScreenCaptureKit` 与 `ScreenTopologyAndWindowMatcher` 实现多屏全屏组同步冻结、跨显示器无缝框选与前后 Z 序重叠窗口切换（`Tab`）；单击应用窗口支持 `SCContentFilter(desktopIndependentWindow:)` 无遮挡独立捕获（保留原生透明圆角，支持 `⌥` 单击/工具栏一键去阴影）；
-  - 支持 `R` 键恢复上次选区、8 控制点缩放、放大镜取色（`C` 复制 `#HEX` / `⇧C` 复制 `rgb()`）、实时马赛克预览、方向键 `1pt`/`⇧+10pt` 微调、**矩形 / 椭圆 / 箭头 / 直线 / 画笔 / 荧光笔 / 马赛克 / 聚光灯 / 序号 / 文字** 共 10 种标注工具（数字键 `1–0` 秒切）、`⌘Z` 撤销 / `⇧⌘Z` 重做、`P` 钉图 / `O` 识字、`⌘S` 保存与双击复制；
-  - **原生区域 GIF 录制 (`⌥G`)**：复用 `ScreenCaptureKit` + `ImageIO` 流式 GIF89a 编码，支持跨屏框选、多屏选窗与锁定单一独立窗口录制，配备悬浮控制条、640p/960p/HD 缩放与静止帧合并压缩；
+- **跨多显示器截图标注、独立窗口无遮挡捕获、流式区域 GIF 录制与极速识字引擎 (`⌥A` / `⌥G` / `⌥O`)**：
+  - 基于 `ScreenCaptureKit`、`MultiDisplayLayout` 与 `ScreenTopologyAndWindowMatcher` 实现多屏逐屏原生 `backingScaleFactor` 独立 DPI 分片冻屏（完整支持负坐标左/下副屏、纵向堆叠及 `1x`/`2x` 混合屏拓扑）、跨显示器无缝框选与前后 Z 序重叠窗口切换（`Tab`），并配备显示器热插拔守护；单击应用窗口支持 `SCContentFilter(desktopIndependentWindow:)` 无遮挡独立捕获（保留原生透明圆角，支持 `⌥` 单击/工具栏一键去阴影）；
+  - 支持 `R` 键恢复上次选区、8 控制点缩放、放大镜取色（`C` 复制 `#HEX` / `⇧C` 复制 `rgb()`）、实时马赛克预览、方向键 `1pt`/`⇧+10pt` 微调、**矩形 / 椭圆 / 箭头 / 直线 / 画笔 / 荧光笔 / 马赛克 / 聚光灯 / 序号 / 文字** 共 10 种标注工具（数字键 `1–0` 秒切）、`⌘Z` 撤销 / `⇧⌘Z` 重做、`P` 钉图 / `O` 识字、`⌘S` 保存与双击复制；PNG 落盘注入显示器真实 DPI 元数据确保 1:1 Retina 逻辑尺寸还原；
+  - **原生流式区域 GIF 录制 (`⌥G`)**：基于 `ScreenCaptureKit` (`SCStream`) + `VideoToolbox` + `ImageIO` 实现单屏/单窗口零拷贝硬件流式 GIF89a 采集与跨屏分片拼接录制（配套 `sharingType = .none` 非侵入穿透边界提示框），配备灵动岛悬浮控制条、640p/960p/HD 缩放与静止帧合并压缩；
   - **交互式悬浮钉图 & 亚秒级离线 Vision OCR**：支持全图拖动、滚轮缩放、`⌥+滚轮` 透明度调节、`T` 键半透明穿透对照与「发送到扩展插件」，框选松手即自动识字并居中弹出独立识字结果窗。
 - **内置物理鼠标平滑滚动与滚轮方向增强**：
   - 基于 `CGEvent.tapCreate` 精准区分物理鼠标滚轮（`scrollWheelEventIsContinuous == 0`），**完全保留触控板自然滚动**；支持滚轮方向反转、120Hz 高帧率像素级平滑插值、`⇧` 横向滚动、`⌥` 3× 加速与应用 Bundle ID 排除列表；关闭或静止时 0 后台消耗。
