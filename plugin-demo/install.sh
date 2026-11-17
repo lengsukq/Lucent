@@ -6,6 +6,7 @@ PLUGIN_ID="${1:-all}"
 DEST_ROOT="$HOME/Library/Application Support/Lumakey/Plugins"
 
 ALL_PLUGINS=(
+  "ai-quota"
   "browser-hub"
   "lumalink-companion"
   "notion-bookmarks"

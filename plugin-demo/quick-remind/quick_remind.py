@@ -401,6 +401,12 @@ def execute_plugin(
     effect: dict[str, Any] = {"reloadSearchIndex": True, "statusSummary": summary, "statusBadge": badge}
     if toast:
         effect["toast"] = toast
+        if flag == "--add":
+            effect["notification"] = {
+                "title": "Quick Remind" if is_en else "闪电提醒已设定",
+                "body": toast,
+                "sound": True,
+            }
 
     return {
         "schemaVersion": 2,

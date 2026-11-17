@@ -2,6 +2,119 @@
   "maintainer" : "Lumakey Official",
   "plugins" : [
     {
+      "accentColor" : "emerald",
+      "author" : "Lumakey Official",
+      "capabilities" : [
+        "clipboard",
+        "floatingWindow",
+        "notifications"
+      ],
+      "categoryTag" : "AI 额度",
+      "description" : "支持无边框毛玻璃自由悬浮挂件 (WKWebView HUD)、置顶监控小窗与系统通知，并发调用本机 Codex、Claude Code、Antigravity (agy)、DSH CLI 查看窗口限额及今日 Token，并通过加密保险箱查询 DeepSeek 余额",
+      "downloadURL" : "./dist/ai-quota.zip",
+      "id" : "ai-quota",
+      "keywords" : [
+        "quota",
+        "usage",
+        "limit",
+        "codex",
+        "claude",
+        "agy",
+        "dsh",
+        "deepseek",
+        "额度",
+        "余量",
+        "余额",
+        "用量"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "AI Quota",
+          "commands" : {
+            "agy-quota" : {
+              "subtitle" : "Query local agy CLI for Gemini and shared pool remaining percentages",
+              "title" : "Inspect Antigravity (agy) Model Pool Quota"
+            },
+            "claude-quota" : {
+              "subtitle" : "Read 5h / weekly plan limits via local claude CLI and today's session stats",
+              "title" : "Inspect Claude Code Quota & Today's Token Usage"
+            },
+            "codex-quota" : {
+              "subtitle" : "Check 5h & weekly rate-limit windows via local codex CLI and session logs",
+              "title" : "Inspect OpenAI Codex CLI Quota & Reset Timers"
+            },
+            "custom-hud" : {
+              "subtitle" : "Render a custom frameless floating HUD with ring gauges, compact fold mode & opacity slider",
+              "title" : "Open Frameless Glass AI Quota HUD Widget"
+            },
+            "deepseek-dsh" : {
+              "subtitle" : "Query CNY/USD balance via configured DeepSeek API key and summarize local dsh spend",
+              "title" : "Inspect DeepSeek Balance & DSH Harness Usage"
+            },
+            "float-panel" : {
+              "subtitle" : "Float on top of your desktop with 30s auto-refresh and zero resident cost when closed",
+              "title" : "Pop Out Pinned Live AI Quota Floating Window"
+            },
+            "quota-dashboard" : {
+              "subtitle" : "Probe local Codex, Claude Code, agy, dsh CLIs and DeepSeek API balance in parallel",
+              "title" : "Open AI CLI Quotas & DeepSeek Balance Dashboard"
+            },
+            "refresh-quotas" : {
+              "subtitle" : "Bypass cache to poll all enabled CLIs/balances and post a native macOS banner",
+              "title" : "Force Refresh All Quotas & Send System Notification"
+            }
+          },
+          "config" : {
+            "cacheTtlSeconds" : {
+              "label" : "Snapshot Cache TTL (seconds)",
+              "section" : "Sources & Display"
+            },
+            "deepseekApiKey" : {
+              "helpText" : "Sealed in Lumakey's 0600 AES-GCM vault (LMKYVLT2); used only for api.deepseek.com/user/balance",
+              "label" : "DeepSeek API Key (comma-separated for multiple accounts)",
+              "placeholder" : "sk-... (or Main:sk-xxx, Backup:sk-yyy)",
+              "section" : "API Keys (Encrypted Local Vault)"
+            },
+            "displayMode" : {
+              "helpText" : "'remaining' shows % left (recommended); 'used' shows % consumed",
+              "label" : "Quota Window Percentage Mode",
+              "section" : "Sources & Display"
+            },
+            "enabledProviders" : {
+              "label" : "Enabled Providers",
+              "placeholder" : "codex, claude, agy, dsh, deepseek",
+              "section" : "Sources & Display"
+            },
+            "extraCliPaths" : {
+              "label" : "Extra CLI PATH Directories (optional)",
+              "placeholder" : "Colon-separated bin paths (Homebrew/nvm/fnm/volta/bun auto-detected)",
+              "section" : "Advanced Paths"
+            },
+            "floatingIntervalSeconds" : {
+              "label" : "Default Auto-Refresh Interval for Floating Panel (seconds)",
+              "section" : "Floating Panel & Notifications"
+            },
+            "notifyOnRefresh" : {
+              "label" : "Send native macOS notification banner on Force Refresh",
+              "section" : "Floating Panel & Notifications"
+            }
+          },
+          "description" : "Custom frameless glass HUD, pinned floating quota panel & system notifications for local Codex, Claude Code, Antigravity (agy), DSH CLIs, and DeepSeek API balance",
+          "name" : "AI Quota Radar · CLI Limits & API Balance"
+        }
+      },
+      "mode" : "view",
+      "name" : "AI 额度雷达 · CLI 用量与 API 余额面板",
+      "resourceScopes" : [
+        "network",
+        "filesystem",
+        "subprocess"
+      ],
+      "sha256" : "4213bdc816b864272bc993d0298c6966e0751ca7e54df16f9f9db862ec06cdec",
+      "sizeBytes" : 37100,
+      "version" : "1.2.0"
+    },
+    {
       "accentColor" : "indigo",
       "author" : "Lumakey Official",
       "capabilities" : [
@@ -85,7 +198,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "cc93275edaa00dfeafd851df60b5a89992018fb5629fb5019de3a75d9178c78f",
+      "sha256" : "34b54dbd723240cd8e5f2ced919eeeec7b9ec8a94bfd7a798dfcac6f648b1af5",
       "sizeBytes" : 20333,
       "version" : "1.0.0"
     },
@@ -166,7 +279,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "55ac1386e586517573e737f853f08b82a3b80af663ff447a69d1ced1dbedb5ec",
+      "sha256" : "1fe6d8352e8270eabb5a67e712d120a3bfa22f70727fbaa16e29af370f4e39a2",
       "sizeBytes" : 18291,
       "version" : "2.2.0"
     },
@@ -254,7 +367,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "c5dd23a260304047f6a9ef3038283b0f29fadad5b8380e1cafd52ef5016e4b2c",
+      "sha256" : "209135f2ca57185c35f705e658b92395de1a6780cb957bf5128a30fcd553d61b",
       "sizeBytes" : 15739,
       "version" : "1.0.0"
     },
@@ -335,8 +448,8 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "c835c39d4345366b3c40132c67050a619f9841e63089ad4ee0e51b66a2583949",
-      "sizeBytes" : 24971,
+      "sha256" : "e1b7f4a2a556c620a2d0aad3ef31bb1f0fc4e4e122fdc7d8e5b97c524f93711d",
+      "sizeBytes" : 26516,
       "version" : "1.4.0"
     },
     {
@@ -408,8 +521,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "18827a3217568bef00e7c73cb3658ec34319f6f967e291e1257c25bcc1b64b4d",
-      "sizeBytes" : 12906,
+      "sha256" : "79ea107b012b953ef8dfd9cb816a08e8ef1876fdd46689162307c2c7b7214bfa",
+      "sizeBytes" : 12958,
       "version" : "1.0.0"
     },
     {
@@ -497,7 +610,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "60822d8ad0f73dfb87c82f317d302d2961d2c5476bd0834e8067e443ba8706d5",
+      "sha256" : "1ebf2463c137f506cada780d33311a55436ff752a19628b8b6cd7d9d6dc8bdd5",
       "sizeBytes" : 10694,
       "version" : "1.0.0"
     },
@@ -598,7 +711,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "b58a3a56a47fdec3ae5297535a21e52d35524c6068750373370997ded5146fcc",
+      "sha256" : "596da6f707306f9a0b3dcfc827d9ef21210d3715fca9ac0d7a5db3ce54a21382",
       "sizeBytes" : 17679,
       "version" : "1.0.0"
     }
@@ -606,5 +719,5 @@
   "schemaVersion" : 1,
   "storeId" : "lumakey-demo-store",
   "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-17T02:35:13Z"
+  "updatedAt" : "2026-11-17T07:43:03Z"
 }

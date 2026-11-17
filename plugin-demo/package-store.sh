@@ -7,6 +7,7 @@ DIST_DIR="$DEMO_ROOT/dist"
 REGISTRY_FILE="$DEMO_ROOT/lumakey-registry.json"
 
 PLUGINS=(
+  "ai-quota"
   "browser-hub"
   "lumalink-companion"
   "notion-bookmarks"
@@ -20,8 +21,8 @@ for pid in "${PLUGINS[@]}"; do
   chmod +x "$DEMO_ROOT/$pid/run.sh"
 done
 
-MCP_BIN="$REPO_ROOT/dist/Lumakey.app/Contents/MacOS/lumakey-mcp"
-if [[ ! -x "$MCP_BIN" ]]; then
+MCP_BIN="${LUMAKEY_MCP_BIN:-}"
+if [[ -z "$MCP_BIN" || ! -x "$MCP_BIN" ]]; then
   swift build ${LUMAKEY_SPM_EXTRA_ARGS:-} -c debug --arch arm64 --package-path "$REPO_ROOT" --product lumakey-mcp
   MCP_BIN="$(swift build ${LUMAKEY_SPM_EXTRA_ARGS:-} -c debug --arch arm64 --package-path "$REPO_ROOT" --show-bin-path)/lumakey-mcp"
 fi

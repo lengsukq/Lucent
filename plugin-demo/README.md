@@ -1,7 +1,8 @@
 # Lumakey 官方插件商店与扩展示例 (`plugin-demo`)
 
-本目录既是仓库自带的**完整自定义插件商店示例（含 `lumakey-registry.json` 与 `dist/*.zip` 校验归档包）**，也是面向 **Lumakey Plugin v3** 架构的七款旗舰外置插件源码：
+本目录既是仓库自带的**完整自定义插件商店示例（含 `lumakey-registry.json` 与 `dist/*.zip` 校验归档包）**，也是面向 **Lumakey Plugin v3** 架构的八款旗舰外置插件源码：
 
+- [`ai-quota/`](ai-quota/README.md)：**AI 额度雷达 · CLI 用量与 API 余额面板**（并发调用本机安装的 `codex`、`claude`、`agy`、`dsh` CLI 与会话日志实时展示 5h/7d 速率窗口余量、重置倒计时与今日 Token，并支持在 `LMKYVLT2` 加密保险箱写入 `DeepSeek API Key` 查询 CNY/USD 账户余额）。
 - [`browser-hub/`](browser-hub/README.md)：**三端浏览器书签与历史中枢**（本地文件与 SQLite WAL 无锁直连 Microsoft Edge、Google Chrome 多 Profile 与 Apple Safari 书签、阅读列表及历史记录，自动同步 `⌥Space` 免前缀索引并支持按来源浏览器打开）。
 - [`lumalink-companion/`](lumalink-companion/README.md)：**流光随行 · LumaLink 远控伴侣**（纯外部沙盒 `resourceScopes: []` + 受控宿主桥接 `capabilities: ["lumaLinkStatus"]` 全功能远控台，支持置顶配对二维码、多屏 HiDPI 切换、防窥黑屏、防休眠与设备解绑）。
 - [`notion-bookmarks/`](notion-bookmarks/README.md)：**Notion 书签收藏插件**（云端 REST API + 本地免前缀检索索引示例，声明 `capabilities: ["clipboard"]`、`resourceScopes: ["network", "filesystem"]`）。
@@ -21,11 +22,11 @@
 ### 方式二：命令行安装到本地插件目录
 
 ```bash
-# 安装全部七款商店插件
+# 安装全部八款商店插件
 bash plugin-demo/install.sh
 
-# 或单独安装指定插件（如 translate-hub / screen-shield / mac-pilot / quick-remind）
-bash plugin-demo/install.sh translate-hub
+# 或单独安装指定插件（如 ai-quota / translate-hub / screen-shield / mac-pilot / quick-remind）
+bash plugin-demo/install.sh ai-quota
 ```
 
 ### 方式三：重新打包商店归档与 `lumakey-registry.json`

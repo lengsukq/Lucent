@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 3,
+  "id": "ai-quota",
+  "name": "AI 额度雷达 · CLI 用量与 API 余额面板",
+  "version": "1.2.0",
+  "description": "支持无边框毛玻璃自由悬浮挂件 (WKWebView HUD)、置顶监控小窗与系统通知，并发调用本机 Codex、Claude Code、Antigravity (agy)、DSH CLI 查看窗口限额及今日 Token，并通过加密保险箱查询 DeepSeek 余额",
+  "mode": "view",
+  "keywords": [
+    "quota",
+    "usage",
+    "limit",
+    "codex",
+    "claude",
+    "agy",
+    "dsh",
+    "deepseek",
+    "额度",
+    "余量",
+    "余额",
+    "用量"
+  ],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "icon.svg",
+  "accentColor": "emerald",
+  "categoryTag": "AI 额度",
+  "capabilities": ["clipboard", "floatingWindow", "notifications"],
+  "resourceScopes": ["network", "filesystem", "subprocess"],
+  "refreshIntervalSeconds": 120,
+  "window": {
+    "entryHtml": "ui/widget.html",
+    "title": "AI Quota Glass HUD",
+    "width": 392,
+    "height": 488,
+    "minWidth": 320,
+    "minHeight": 196,
+    "resizable": true,
+    "chrome": "frameless",
+    "transparent": true,
+    "pinOnTop": true
+  },
+  "commands": [
+    {
+      "id": "quota-dashboard",
+      "title": "打开 AI CLI 额度与 DeepSeek 余额实时面板",
+      "subtitle": "并发调用本机 Codex、Claude Code、agy、dsh CLI 查看窗口限额与 DeepSeek 账户余额",
+      "keywords": ["aiquota", "额度面板", "cli额度", "quota dashboard"],
+      "icon": "gauge.with.dots.needle.67percent",
+      "arguments": ["--dashboard"],
+      "passQuery": true
+    },
+    {
+      "id": "custom-hud",
+      "title": "打开无边框透明玻璃 AI 额度自由挂件 (Custom HUD)",
+      "subtitle": "基于 floatingWindow 自由窗口画布渲染环形仪表盘、紧凑折叠态与可调透明度桌面挂件",
+      "keywords": ["quotahud", "额度挂件", "自由浮窗", "glass hud"],
+      "icon": "sparkles.tv.fill",
+      "arguments": ["--custom-hud"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "float-panel",
+      "title": "弹出独立置顶 AI 额度悬浮监控窗",
+      "subtitle": "像网络监控窗一样置顶悬浮在桌面并按 30 秒自动刷新（关闭窗口即零驻留释放）",
+      "keywords": ["quotafloat", "额度悬浮窗", "置顶额度", "floating quota"],
+      "icon": "macwindow.on.rectangle",
+      "arguments": ["--float-panel"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "refresh-quotas",
+      "title": "强制实时刷新全部额度并推送系统通知",
+      "subtitle": "跳过缓存重采全部已启用 CLI 与 DeepSeek 余额，并发送 macOS 原生通知横幅摘要",
+      "keywords": ["quotarefresh", "刷新额度", "刷新余额"],
+      "icon": "arrow.clockwise.circle.fill",
+      "arguments": ["--refresh"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "codex-quota",
+      "title": "查看 OpenAI Codex CLI 额度与重置时间",
+      "subtitle": "通过本机 codex CLI 与会话日志查看 5h / 7d 窗口余量及今日 Token",
+      "keywords": ["codex额度", "codex usage", "codex limit"],
+      "icon": "terminal.fill",
+      "arguments": ["--provider", "codex"],
+      "passQuery": false
+    },
+    {
+      "id": "claude-quota",
+      "title": "查看 Claude Code 额度与今日 Token 缓存率",
+      "subtitle": "通过本机 claude CLI 与会话统计查看 5h / 7d 配额与今日 Token 消耗",
+      "keywords": ["claude额度", "cc额度", "claude usage"],
+      "icon": "sparkles.rectangle.stack.fill",
+      "arguments": ["--provider", "claude"],
+      "passQuery": false
+    },
+    {
+      "id": "agy-quota",
+      "title": "查看 Antigravity (agy) 模型池余量",
+      "subtitle": "通过本机 agy CLI 实时读取 Gemini 与共享模型池剩余百分比",
+      "keywords": ["agy额度", "antigravity quota", "agy usage"],
+      "icon": "bolt.horizontal.circle.fill",
+      "arguments": ["--provider", "agy"],
+      "passQuery": false
+    },
+    {
+      "id": "deepseek-dsh",
+      "title": "查看 DeepSeek 账户余额与 DSH 今日消耗",
+      "subtitle": "通过配置的 DeepSeek API Key 查询 CNY/USD 余额，并汇总本机 dsh 用量",
+      "keywords": ["deepseek余额", "dsh额度", "dsh用量", "deepseek balance"],
+      "icon": "yensign.circle.fill",
+      "arguments": ["--provider", "deepseek-dsh"],
+      "passQuery": false
+    }
+  ],
+  "config": [
+    {
+      "key": "deepseekApiKey",
+      "label": "DeepSeek API Key（支持多账号逗号分隔）",
+      "type": "secret",
+      "placeholder": "sk-...（可选填多个，如 主号:sk-xxx, 备用:sk-yyy）",
+      "required": false,
+      "section": "API 密钥（本机加密保险箱）",
+      "helpText": "由 Lumakey 本机 0600 AES-GCM 保险箱 (LMKYVLT2) 加密托管，用于查询官方 api.deepseek.com/user/balance"
+    },
+    {
+      "key": "enabledProviders",
+      "label": "启用的监控源",
+      "type": "tags",
+      "defaultValue": "codex, claude, agy, dsh, deepseek",
+      "placeholder": "可选: codex, claude, agy, dsh, deepseek",
+      "section": "采集源与显示偏好"
+    },
+    {
+      "key": "displayMode",
+      "label": "窗口配额百分比口径",
+      "type": "select",
+      "defaultValue": "remaining",
+      "options": ["remaining", "used"],
+      "section": "采集源与显示偏好",
+      "helpText": "remaining 显示剩余可用百分比（推荐），used 显示已消耗百分比"
+    },
+    {
+      "key": "notifyOnRefresh",
+      "label": "执行「强制实时刷新」时发送 macOS 原生系统通知摘要",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "悬浮窗与系统通知"
+    },
+    {
+      "key": "floatingIntervalSeconds",
+      "label": "弹出独立悬浮窗的默认自动刷新间隔 (秒)",
+      "type": "number",
+      "control": "slider",
+      "defaultValue": "30",
+      "minValue": 15,
+      "maxValue": 300,
+      "stepValue": 15,
+      "section": "悬浮窗与系统通知"
+    },
+    {
+      "key": "cacheTtlSeconds",
+      "label": "面板快照缓存有效期 (秒)",
+      "type": "number",
+      "control": "slider",
+      "defaultValue": "45",
+      "minValue": 0,
+      "maxValue": 600,
+      "stepValue": 15,
+      "section": "采集源与显示偏好"
+    },
+    {
+      "key": "extraCliPaths",
+      "label": "额外 CLI PATH 目录（可选）",
+      "type": "text",
+      "defaultValue": "",
+      "placeholder": "自动识别 Homebrew/nvm/fnm/volta/bun；可补充自定义 bin 路径（冒号分隔）",
+      "section": "高级路径配置"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "AI Quota Radar · CLI Limits & API Balance",
+      "description": "Custom frameless glass HUD, pinned floating quota panel & system notifications for local Codex, Claude Code, Antigravity (agy), DSH CLIs, and DeepSeek API balance",
+      "categoryTag": "AI Quota",
+      "commands": {
+        "quota-dashboard": {
+          "title": "Open AI CLI Quotas & DeepSeek Balance Dashboard",
+          "subtitle": "Probe local Codex, Claude Code, agy, dsh CLIs and DeepSeek API balance in parallel"
+        },
+        "custom-hud": {
+          "title": "Open Frameless Glass AI Quota HUD Widget",
+          "subtitle": "Render a custom frameless floating HUD with ring gauges, compact fold mode & opacity slider"
+        },
+        "float-panel": {
+          "title": "Pop Out Pinned Live AI Quota Floating Window",
+          "subtitle": "Float on top of your desktop with 30s auto-refresh and zero resident cost when closed"
+        },
+        "refresh-quotas": {
+          "title": "Force Refresh All Quotas & Send System Notification",
+          "subtitle": "Bypass cache to poll all enabled CLIs/balances and post a native macOS banner"
+        },
+        "codex-quota": {
+          "title": "Inspect OpenAI Codex CLI Quota & Reset Timers",
+          "subtitle": "Check 5h & weekly rate-limit windows via local codex CLI and session logs"
+        },
+        "claude-quota": {
+          "title": "Inspect Claude Code Quota & Today's Token Usage",
+          "subtitle": "Read 5h / weekly plan limits via local claude CLI and today's session stats"
+        },
+        "agy-quota": {
+          "title": "Inspect Antigravity (agy) Model Pool Quota",
+          "subtitle": "Query local agy CLI for Gemini and shared pool remaining percentages"
+        },
+        "deepseek-dsh": {
+          "title": "Inspect DeepSeek Balance & DSH Harness Usage",
+          "subtitle": "Query CNY/USD balance via configured DeepSeek API key and summarize local dsh spend"
+        }
+      },
+      "config": {
+        "deepseekApiKey": {
+          "label": "DeepSeek API Key (comma-separated for multiple accounts)",
+          "placeholder": "sk-... (or Main:sk-xxx, Backup:sk-yyy)",
+          "section": "API Keys (Encrypted Local Vault)",
+          "helpText": "Sealed in Lumakey's 0600 AES-GCM vault (LMKYVLT2); used only for api.deepseek.com/user/balance"
+        },
+        "enabledProviders": {
+          "label": "Enabled Providers",
+          "placeholder": "codex, claude, agy, dsh, deepseek",
+          "section": "Sources & Display"
+        },
+        "displayMode": {
+          "label": "Quota Window Percentage Mode",
+          "section": "Sources & Display",
+          "helpText": "'remaining' shows % left (recommended); 'used' shows % consumed"
+        },
+        "notifyOnRefresh": {
+          "label": "Send native macOS notification banner on Force Refresh",
+          "section": "Floating Panel & Notifications"
+        },
+        "floatingIntervalSeconds": {
+          "label": "Default Auto-Refresh Interval for Floating Panel (seconds)",
+          "section": "Floating Panel & Notifications"
+        },
+        "cacheTtlSeconds": {
+          "label": "Snapshot Cache TTL (seconds)",
+          "section": "Sources & Display"
+        },
+        "extraCliPaths": {
+          "label": "Extra CLI PATH Directories (optional)",
+          "placeholder": "Colon-separated bin paths (Homebrew/nvm/fnm/volta/bun auto-detected)",
+          "section": "Advanced Paths"
+        }
+      }
+    }
+  }
+}
