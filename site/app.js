@@ -8,9 +8,32 @@
   const REPO_BASE = 'https://github.com/lengsukq/Lumakey';
   const SCHEME_PREFIX = ['lumakey', '://'].join('');
 
+  function safeGet(key, fallback = null) {
+    try {
+      const v = window.localStorage.getItem(key);
+      return v !== null ? v : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+  function safeSet(key, val) {
+    try {
+      window.localStorage.setItem(key, val);
+    } catch (_) {}
+  }
+
+  let savedPluginIds = ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'];
+  try {
+    const rawSaved = safeGet('lumakey-enabled-plugins-v1');
+    if (rawSaved) {
+      const parsed = JSON.parse(rawSaved);
+      if (Array.isArray(parsed)) savedPluginIds = parsed;
+    }
+  } catch (_) {}
+
   const state = {
-    theme: localStorage.getItem('lumakey-showcase-theme-v2') || 'pure-frost',
-    lang: localStorage.getItem('lumakey-showcase-lang-v2') || 'zh',
+    theme: safeGet('lumakey-showcase-theme-v2', 'pure-frost'),
+    lang: safeGet('lumakey-showcase-lang-v2', 'zh'),
     preset: 'bento',
     scope: 'all',
     query: '',
@@ -20,8 +43,14 @@
     sliderRatio: 0.35,
     builderProfile: 'daily',
     focusedPluginId: 'translate-hub',
-    enabledPlugins: new Set(['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'])
+    enabledPlugins: new Set(savedPluginIds)
   };
+
+  function saveEnabledPlugins() {
+    try {
+      localStorage.setItem('lumakey-enabled-plugins-v1', JSON.stringify([...state.enabledPlugins]));
+    } catch (_) {}
+  }
 
   // Hydrate repository links cleanly
   document.querySelectorAll('[data-gh-path]').forEach((el) => {
@@ -43,6 +72,7 @@
       nav_bento: '原生引擎',
       nav_philosophy: '核心思想',
       nav_arch: '工程架构',
+      nav_3d_exp: '返回 3D 主页',
       nav_download: '下载 DMG',
       theme_frost: '凝霜留白',
       theme_prism: '霓彩流光',
@@ -52,7 +82,12 @@
       hero_title_2: '自由生长出你的 Lumakey。',
       hero_subtitle: '我们拒绝把所有人塞进同一套臃肿的全家桶。Lumakey 提供零依赖的 Swift 6 极速核心（全盘秒搜、截图标注、离线 OCR、平滑滚轮），并通过一等公民插件架构与内置 MCP AI 协议桥，让你按需拼装、甚至一句话定制完全属于自己的专属效率中枢——不装不占，装上即原生。',
       cta_builder: '亲手拼装你的专属 Lumakey',
+      cta_3d_exp: '返回 3D 沉浸式主页',
       cta_download: '下载 macOS 安装包 (.dmg)',
+      jump_3d_plugins: '返回 3D 主页 · 插件生态 →',
+      jump_3d_mcp: '返回 3D 主页 · MCP 共创 →',
+      jump_3d_dag: '返回 3D 主页 · 原生架构 →',
+      foot_3d_exp: '返回 3D 主页',
       preset_try: '实时体验底座 + 插件联动：',
       preset_bento: '专属 Bento 面板',
       preset_translate: '流光译站 · 划词/OCR',
@@ -191,6 +226,7 @@
       nav_bento: 'Base Engines',
       nav_philosophy: 'Philosophy',
       nav_arch: 'Architecture',
+      nav_3d_exp: '3D Main Stage',
       nav_download: 'Download DMG',
       theme_frost: 'Pure Frost',
       theme_prism: 'Prism Pulse',
@@ -200,7 +236,12 @@
       hero_title_2: 'Freely Shape Your Own Lumakey.',
       hero_subtitle: 'Instead of forcing everyone into a bloated all-in-one suite, Lumakey pairs a zero-dependency Swift 6 micro-core (mmap disk search, ScreenCaptureKit annotation, offline OCR, 120Hz smooth mouse wheel) with a first-class Plugin v3.4 architecture and embedded MCP server — assemble only what you love, or build a custom plugin with one AI sentence.',
       cta_builder: 'Assemble Your Own Lumakey',
+      cta_3d_exp: 'Back to 3D Main Stage',
       cta_download: 'Download for macOS (.dmg)',
+      jump_3d_plugins: 'View in 3D Main Stage →',
+      jump_3d_mcp: 'Open in 3D Main Stage →',
+      jump_3d_dag: 'Inspect in 3D Main Stage →',
+      foot_3d_exp: '3D Main Stage',
       preset_try: 'Try Core + Plugin Workflows:',
       preset_bento: 'Custom Bento Hub',
       preset_translate: 'Translate Hub · Selection/OCR',
@@ -671,6 +712,7 @@
           if (state.enabledPlugins.has(pid)) state.enabledPlugins.delete(pid);
           else state.enabledPlugins.add(pid);
           state.builderProfile = 'custom';
+          saveEnabledPlugins();
           syncProfileButtons();
         }
         renderWorkbench();
@@ -692,6 +734,7 @@
       if (!list) return;
       state.builderProfile = prof;
       state.enabledPlugins = new Set(list);
+      saveEnabledPlugins();
       if (list.length > 0 && !state.enabledPlugins.has(state.focusedPluginId)) {
         state.focusedPluginId = list[0];
       }
@@ -1209,7 +1252,7 @@
   function applyTheme(themeId) {
     state.theme = themeId;
     document.documentElement.setAttribute('data-theme', themeId);
-    localStorage.setItem('lumakey-showcase-theme-v2', themeId);
+    safeSet('lumakey-showcase-theme-v2', themeId);
 
     const label = document.getElementById('themeToggleLabel');
     const dict = I18N[state.lang];
@@ -1227,7 +1270,7 @@
   function applyLanguage(lang) {
     state.lang = lang;
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-    localStorage.setItem('lumakey-showcase-lang-v2', lang);
+    safeSet('lumakey-showcase-lang-v2', lang);
 
     const dict = I18N[lang];
     document.querySelectorAll('[data-i18n]').forEach((el) => {

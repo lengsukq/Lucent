@@ -1,0 +1,790 @@
+/* ==========================================================================
+   Lumakey — Interactive Multi-Morph Shader & Editorial Cinema Stylesheet
+   Pure negative space · Oversized editorial typography · Optical cursor aura
+   ========================================================================== */
+
+:root,
+[data-theme="prism-pulse"] {
+  color-scheme: dark;
+
+  --bg-void: #03040a;
+  --fg-primary: #f7f9ff;
+  --fg-secondary: rgba(214, 223, 247, 0.72);
+  --fg-muted: rgba(142, 156, 194, 0.48);
+
+  --line-hair: rgba(255, 255, 255, 0.11);
+  --line-active: rgba(125, 211, 252, 0.58);
+
+  --surface-whisper: rgba(255, 255, 255, 0.04);
+  --surface-whisper-hover: rgba(255, 255, 255, 0.09);
+  --surface-active: rgba(56, 189, 248, 0.13);
+
+  --accent: #7dd3fc;
+  --cta-bg: #f8fafc;
+  --cta-fg: #050711;
+  --aura-stroke: rgba(165, 243, 252, 0.55);
+}
+
+[data-theme="pure-frost"] {
+  color-scheme: light;
+
+  --bg-void: #f3f6fc;
+  --fg-primary: #090f1d;
+  --fg-secondary: rgba(15, 23, 42, 0.70);
+  --fg-muted: rgba(71, 85, 105, 0.50);
+
+  --line-hair: rgba(15, 23, 42, 0.10);
+  --line-active: rgba(2, 132, 199, 0.52);
+
+  --surface-whisper: rgba(15, 23, 42, 0.035);
+  --surface-whisper-hover: rgba(15, 23, 42, 0.075);
+  --surface-active: rgba(2, 132, 199, 0.09);
+
+  --accent: #0284c7;
+  --cta-bg: #090f1d;
+  --cta-fg: #ffffff;
+  --aura-stroke: rgba(2, 132, 199, 0.50);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-void);
+  color: var(--fg-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.6s ease, color 0.4s ease;
+}
+
+.mono {
+  font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Fullscreen WebGL Shader Canvas & Optical Magnetic Cursor Ring
+   ========================================================================== */
+.webgl-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100vw;
+  height: 100vh;
+  cursor: crosshair;
+}
+
+.webgl-stage:active {
+  cursor: grabbing;
+}
+
+.webgl-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cursor-aura {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 120;
+  pointer-events: none;
+  transform: translate3d(-100px, -100px, 0);
+  will-change: transform;
+}
+
+.cursor-aura-ring {
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  margin-top: -17px;
+  border-radius: 50%;
+  border: 1px solid var(--aura-stroke);
+  transition: width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              background-color 0.2s ease;
+}
+
+.cursor-aura.charging .cursor-aura-ring {
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  margin-top: -8px;
+  border-color: #f472b6;
+  background-color: rgba(244, 114, 182, 0.22);
+  box-shadow: 0 0 20px rgba(244, 114, 182, 0.65);
+}
+
+.cursor-aura.hovering-node .cursor-aura-ring {
+  width: 48px;
+  height: 48px;
+  margin-left: -24px;
+  margin-top: -24px;
+  border-color: var(--accent);
+  background-color: rgba(56, 189, 248, 0.10);
+}
+
+.cursor-node-label {
+  position: absolute;
+  left: 22px;
+  top: -7px;
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--fg-primary);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--surface-whisper-hover);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-active);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.cursor-aura.hovering-node .cursor-node-label,
+.cursor-aura.charging .cursor-node-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ==========================================================================
+   Fast Minimalist Boot Curtain
+   ========================================================================== */
+.boot-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--bg-void);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.75s ease;
+}
+
+.boot-curtain.ready {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.curtain-inner {
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.curtain-wordmark {
+  font-size: 11px;
+  letter-spacing: 0.36em;
+  color: var(--fg-secondary);
+}
+
+.curtain-line {
+  width: 100%;
+  height: 1px;
+  background: var(--line-hair);
+  overflow: hidden;
+}
+
+.curtain-line-fill {
+  width: 30%;
+  height: 100%;
+  background: var(--fg-primary);
+  transition: width 0.4s ease;
+}
+
+/* ==========================================================================
+   Whisper-Quiet Architectural Top Header
+   ========================================================================== */
+.film-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 24px 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.header-left,
+.header-right {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.header-divider {
+  width: 1px;
+  height: 13px;
+  background: var(--line-hair);
+}
+
+.stage-morph-tag {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--fg-muted);
+  padding-left: 14px;
+  border-left: 1px solid var(--line-hair);
+}
+
+.minimal-link,
+.minimal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--fg-secondary);
+  transition: color 0.25s ease, opacity 0.25s ease;
+}
+
+.minimal-link:hover,
+.minimal-btn:hover {
+  color: var(--fg-primary);
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--fg-primary);
+}
+
+.brand-mark img {
+  border-radius: 5px;
+}
+
+.play-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.minimal-btn.playing .play-indicator {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.minimal-btn.playing {
+  color: var(--fg-primary);
+}
+
+.minimal-cta {
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+.minimal-cta:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+/* ==========================================================================
+   Interactive Right Timecode & Stage Rail
+   ========================================================================== */
+.timecode-rail {
+  position: fixed;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.timecode-num,
+.timecode-total {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+
+.timecode-num {
+  color: var(--fg-primary);
+}
+
+.timecode-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.tc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-hair);
+  transition: transform 0.25s ease, background-color 0.25s ease;
+}
+
+.tc-dot:hover {
+  transform: scale(1.6);
+  background: var(--fg-secondary);
+}
+
+.tc-dot.active {
+  background: var(--accent);
+  transform: scale(1.45);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.timecode-track {
+  width: 1px;
+  height: 68px;
+  background: var(--line-hair);
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.timecode-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--fg-primary);
+  transform-origin: 50% 0;
+  transform: scaleY(0.05);
+}
+
+/* ==========================================================================
+   Scroll-Choreographed Editorial Story Layer
+   ========================================================================== */
+.film-scroll {
+  position: relative;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.film-scene {
+  min-height: 132vh;
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 120px 6vw;
+  display: flex;
+  align-items: center;
+}
+
+.scene-center {
+  justify-content: center;
+  align-items: flex-end;
+  text-align: center;
+  min-height: 102vh;
+  padding-top: 44vh;
+  padding-bottom: 7vh;
+}
+
+.scene-finale {
+  min-height: 106vh;
+  padding-top: 42vh;
+  padding-bottom: 7vh;
+}
+
+.scene-left {
+  justify-content: flex-start;
+}
+
+.scene-right {
+  justify-content: flex-end;
+}
+
+.scene-copy {
+  max-width: 472px;
+  will-change: transform, opacity;
+}
+
+.scene-center .scene-copy {
+  max-width: 740px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.inline-actions,
+.editorial-arrow-link,
+.plugin-whisper-list,
+.forge-selector,
+.forge-prompt-box,
+.pulse-trigger,
+.finale-cta-row,
+.portal-strip {
+  pointer-events: auto;
+}
+
+.eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  color: var(--fg-muted);
+  margin-bottom: 18px;
+}
+
+.index-num {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.hero-display {
+  margin: 0 0 18px;
+  font-size: clamp(2.5rem, 5.5vw, 5.0rem);
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  line-height: 1.06;
+  color: var(--fg-primary);
+}
+
+.section-display {
+  margin: 0 0 20px;
+  font-size: clamp(2.0rem, 3.5vw, 3.2rem);
+  font-weight: 740;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  color: var(--fg-primary);
+}
+
+.lead-prose {
+  margin: 0 0 28px;
+  max-width: 580px;
+  font-size: clamp(0.98rem, 1.3vw, 1.12rem);
+  line-height: 1.66;
+  font-weight: 420;
+  color: var(--fg-secondary);
+}
+
+.body-prose {
+  margin: 0 0 26px;
+  font-size: 15px;
+  line-height: 1.72;
+  font-weight: 420;
+  color: var(--fg-secondary);
+}
+
+.inline-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.pulse-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line-hair);
+  background: var(--surface-whisper);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--fg-primary);
+  transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pulse-trigger:hover {
+  border-color: var(--line-active);
+  background: var(--surface-whisper-hover);
+  transform: translateY(-2px);
+}
+
+.pulse-trigger:active {
+  transform: scale(0.97);
+}
+
+.kbd-whisper {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.scroll-cue {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--fg-muted);
+}
+
+.metric-ledger {
+  margin: 0 0 28px;
+  border-top: 1px solid var(--line-hair);
+}
+
+.ledger-item {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: baseline;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line-hair);
+}
+
+.ledger-item dt {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--fg-primary);
+}
+
+.ledger-item dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fg-secondary);
+}
+
+.editorial-arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 580;
+  color: var(--fg-primary);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line-hair);
+  transition: border-color 0.25s ease, gap 0.25s ease;
+}
+
+.editorial-arrow-link:hover {
+  border-color: var(--accent);
+  gap: 13px;
+}
+
+.plugin-whisper-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.plugin-whisper-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-hair);
+  background: var(--surface-whisper);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-size: 12.5px;
+  font-weight: 520;
+  color: var(--fg-muted);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.plugin-whisper-chip:hover {
+  color: var(--fg-primary);
+  border-color: var(--fg-muted);
+}
+
+.plugin-whisper-chip.mounted {
+  color: var(--fg-primary);
+  border-color: var(--line-active);
+  background: var(--surface-active);
+}
+
+.chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+.plugin-whisper-chip.mounted .chip-dot {
+  background: var(--accent);
+  opacity: 1;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.plugin-summary {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  margin-bottom: 24px;
+}
+
+.forge-selector {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line-hair);
+  margin-bottom: 14px;
+}
+
+.forge-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--line-hair);
+  font-size: 13.5px;
+  color: var(--fg-muted);
+  text-align: left;
+  transition: color 0.25s ease, padding-left 0.25s ease;
+}
+
+.forge-option:hover {
+  color: var(--fg-primary);
+  padding-left: 10px;
+}
+
+.forge-option.active {
+  color: var(--fg-primary);
+  font-weight: 600;
+}
+
+.forge-option.active .mono {
+  color: var(--accent);
+}
+
+.forge-prompt-box {
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-hair);
+  background: var(--surface-whisper);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.forge-prompt-quote {
+  font-size: 13px;
+  line-height: 1.56;
+  color: var(--fg-primary);
+  margin-bottom: 6px;
+}
+
+.forge-prompt-meta {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+#sec-3 .pulse-trigger {
+  margin-bottom: 22px;
+}
+
+.finale-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 40px;
+}
+
+.primary-film-cta {
+  padding: 14px 28px;
+  border-radius: 999px;
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primary-film-cta:hover {
+  transform: translateY(-2px);
+}
+
+.secondary-film-cta {
+  padding: 14px 26px;
+  border-radius: 999px;
+  border: 1px solid var(--line-hair);
+  background: var(--surface-whisper);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--fg-primary);
+  font-size: 14px;
+  font-weight: 560;
+  transition: border-color 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.secondary-film-cta:hover {
+  border-color: var(--line-active);
+  transform: translateY(-2px);
+}
+
+.portal-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line-hair);
+}
+
+.portal-strip a {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  transition: color 0.22s ease;
+}
+
+.portal-strip a:hover {
+  color: var(--fg-primary);
+}
+
+@media (max-width: 900px) {
+  .film-header {
+    padding: 16px 20px;
+  }
+  .stage-morph-tag,
+  .timecode-rail,
+  .cursor-aura {
+    display: none;
+  }
+  .film-scene {
+    padding: 96px 24px;
+    justify-content: center;
+  }
+  .scene-copy {
+    max-width: 520px;
+  }
+}
