@@ -14,10 +14,10 @@
 | Markdown / 文本独立渲染 | Swift 6 原生块级解析器 + `AttributedString(markdown:)` | 零 `WKWebView`、零额外 WebKit XPC 进程开销 |
 | 单位换算、密码学哈希与二维码生成 | `Foundation.Measurement` + `CryptoKit` (`Insecure.MD5`, `SHA256`) + `CoreImage` (`CIQRCodeGenerator`) | 离线秒算物理量换算、MD5/SHA-256 摘要与高清无锯齿矢量缩放二维码 PNG |
 | 应用本地化与中文拼音检索 | `InfoPlist.loctable` + `String.applyingTransform(.toLatin)` | 直接解析系统包内中文名并用 ICU 音译为全拼与首字母 |
-| 原生选区截图、标注与钉图置顶 | `ScreenCaptureKit` (`SCShareableContent` + `SCScreenshotManager`) + `CGPreflightScreenCaptureAccess` + `CGContext` | 免 CLI 毫秒级 Retina 冻屏、窗口识别吸附、像素取色、实时标注合成及原位悬浮钉图 (`level = .screenSaver` / `.floating`) |
-| 原生区域 GIF 动图流式录制 | `ScreenCaptureKit` (`SCScreenshotManager`) + `ImageIO` (`CGImageDestination` `com.compuserve.gif`) | 零 `ffmpeg` 依赖实现区域帧循环采集、640p/960p/HD 分辨率缩放、静止帧差值合并与双格式剪贴板输出 |
+| 原生选区截图、标注与钉图置顶 | `ScreenCaptureKit` (`SCShareableContent` + `SCScreenshotManager`) + `NSScreen` + `CGContext` | 免 CLI 毫秒级逐屏原生 DPI 冻屏分片、跨屏窗口识别吸附、像素取色、实时标注合成及 1:1 Retina 原位悬浮钉图 (`level = .screenSaver` / `.floating`) |
+| 原生区域 GIF 动图流式录制 | `ScreenCaptureKit` (`SCStream` + `SCStreamOutput` + `SCScreenshotManager`) + `VideoToolbox` + `ImageIO` (`CGImageDestination` `com.compuserve.gif`) | 零 `ffmpeg` 依赖实现单屏/单窗口 `SCStream` 硬件流采集、跨屏区域分片裁剪合成、`sharingType = .none` 穿透边界提示、640p/960p/HD 分辨率缩放、静止帧差值合并与双格式剪贴板输出 |
 | 离线文字/条码识别与抠图 | `Vision` (`VNRecognizeTextRequest`, `VNDetectBarcodesRequest`, `VNGenerateForegroundInstanceMaskRequest`) + `CoreML.MLComputeDevice.cpu` | 绑定 CPU 计算阶段避开部分系统环境下 Neural Engine ~36s 卡顿，实现亚秒级中英 OCR、条码识别与透明通道主体抠图 |
-| 本地完整性备份与 WebDAV 云同步 | `CryptoKit.SHA256` + `Security` (`SecItemAdd` / `SecItemCopyMatching`) + `Foundation.URLSession` (RFC 4918) | 生成带顶层 `payloadSHA256` 校验的 `.lumakeybackup` 归档，钥匙串安全存密并原生直连坚果云/Nextcloud/Synology NAS/Alist WebDAV |
+| 本地完整性备份与 WebDAV 云同步 | `CryptoKit` (`AES.GCM`, `SHA256`) + `Compression` (LZFSE) + `Foundation.URLSession` (RFC 4918) | 生成 LZFSE 压缩与 `SHA-256` 校验的 `.lumakeybackup` v2 归档，`LocalSecretVault` (`LMKYVLT2`) 安全存密并原生直连坚果云/Nextcloud/Synology NAS/Alist WebDAV |
 | 剪贴板监听与隐私排除 | `AppKit.NSPasteboard.general` (`changeCount` + `concealedTypes`) | 自动跳过密码管理器标记数据并在条目淘汰时删除对应缓存图片 |
 | 端口、文件事件、卷与多格式媒体预览 | `/usr/sbin/lsof` / `CoreServices.FSEventStream` / `Darwin.statfs` / `ImageIO` / `AVKit.AVPlayerView` / `PDFKit` | 文件索引与插件目录实时增量监听、硬件加速解码与无损看图 |
 

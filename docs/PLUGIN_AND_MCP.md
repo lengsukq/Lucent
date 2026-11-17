@@ -35,7 +35,7 @@
      - 声明 `"accepts": ["url", "text", "image", "file", "directory"]` 自动在剪贴板侧边镜、Everything 文件预览、工作台右键菜单与 Vision OCR 结果窗挂载联动动作；
      - `PluginPostActionEffect` 返回 `"statusSummary"` / `"statusBadge"`（或写入 `PluginData/<id>/status.json`）后，设置页与侧边镜零子进程展示最新同步/运行状态摘要。
 
-### 完整示例如下（向后兼容 v1/v2/v3.x）
+### 完整示例如下
 
 ```json
 {
@@ -91,18 +91,25 @@
 ## 二、主浮窗对称融合、富排视图卡片与宿主独立窗口深链
 
 - **内置与外置对称的主浮窗子模式 (`Tab`)**：切入 `插件` 维度时顶部 `OverlayPluginFilterStrip` 统一展示全部活跃内置与外部插件胶囊；在任意搜索结果选中内置或外部插件按 `Tab`（或点击胶囊）即可进入**专属列表子模式**（置顶展示该插件全部子功能与索引词条，`⌘,` 直达对应设置页）。
-- **富排 Markdown 与宿主独立窗口路由 (`PluginDeepLinkParser`)**：
-  - `PluginStructuredViewCard` 复用纯 Swift `MarkdownBlocksStackView` 原生渲染标题、代码块（带一键复制）、表格、引用、任务列表与高亮提示块；
-  - 插件可通过 `item.openURL` 或 `effect`（`openReaderPath` / `openImagePath` / `pinImagePath`）触发 `lumakey://reader?path=...`（或 `?title=...&markdown=...`）、`lumakey://image?path=...&pin=1`、`lumakey://pin?path=...`，直接唤起宿主的独立 Markdown 阅读窗、只读看图窗或屏幕悬浮钉图。
+- **自由画布窗口 (`window` / `floatingWindow`)、实时置顶悬浮面板、原生系统通知与宿主统一 TCC 代理 (`PluginCustomWebWindowController`, `PluginHostTCCBroker` & `PluginDeepLinkParser`)**：
+  - **不限 UI 样式的自由窗口与透明无边框浮窗 (`lumakey://window/<id>` / `effect.openWindow`)**：外部插件既可输出轻量 JSON 渲染默认结构化卡片，也可在 `plugin.json` 声明 `"window": { "entryHtml": "ui/widget.html", "chrome": "standard"|"frameless"|"hud", "transparent": true, "pinOnTop": true, "width": 392, "height": 488 }` 并申请 `"window"` 或 `"floatingWindow"` 权限，由宿主通过系统原生 `WKWebView` 渲染完全自定义的 HTML/CSS/Canvas/SVG 窗口或桌面悬浮挂件；容器自动注入 `window.lumakey` 双向 SDK（支持 `lumakey.run(args)` 调用插件后端、`lumakey.bridge(cap, action, params)` 调用宿主桥、`lumakey.permissions.request(cap)` 动态申请权限、`lumakey.window.{startDrag,resize,moveTo,setPinned,setClickThrough,setOpacity,close}` 控制窗口，任意标注 `data-lumakey-drag` 的元素原生支持 120Hz 无边框拖拽；强制透明度下限 `0.15`、单插件并发上限 `4` 窗及菜单栏一键关闭全部自由窗口安全逃生入口，关窗即销毁视图与任务，零后台常驻）；
+  - **宿主统一代申 macOS 系统 TCC 权限 (`PluginHostTCCBroker`)**：外部插件脚本不直接向系统索取高危 TCC 权限；当用户放行插件的 `selection`（含 `pasteBack` 原窗口回填粘贴）、`screenCapture`（交互框选截图 `captureInteractive`、主屏快照 `captureMainDisplay` 与像素取色 `sampleColor`）或 `notifications`（原生横幅通知）时，由签名宿主 `Lumakey.app` 统一检测并代弹 macOS 系统授权请求或引导跳转隐私设置页；
+  - **独立置顶实时悬浮面板 (`lumakey://panel/<id>?pin=1&interval=30` / `effect.openFloatingPanel`)**：无需编写前端 HTML 的 `mode: "view"` 插件仍可通过主浮窗卡片右上角「悬浮窗」按钮、深链或 `openFloatingPanel` Effect 弹出复用 `SecondaryWindowScaffold` + `WindowLevelStore` 的独立置顶毛玻璃小窗，按设定秒数（`15s ~ 300s` 或手动）自动轮询刷新，关闭窗口即刻停止；
+  - **宿主级系统原生通知横幅 (`effect.notification` / `notifications.send`) 与原窗口粘贴回填 (`effect.pasteText` / `selection.pasteBack`)**：支持投递 macOS 原生 `UNUserNotificationCenter` 横幅通知，并支持将插件处理后的文本自动写回唤起前的前台焦点窗口并触发 `⌘V`；
+  - 同时支持通过 `item.openURL` 或 `effect`（`openReaderPath` / `openImagePath` / `pinImagePath`）触发 `lumakey://reader?path=...`、`lumakey://image?path=...&pin=1`、`lumakey://pin?path=...`，唤起独立 Markdown 阅读窗、只读看图窗或屏幕悬浮钉图。
 - **默认最小权限与一过性 UDS Socket（即用即毁）**：外部插件声明的 `capabilities` 默认全部关闭；授权后仅在单次执行周期于私密 `0700` 临时目录下创建 `0600` Unix Domain Socket 及 48 位随机 Token，退出/取消/超时后 `defer` 立即销毁。
 
 ### 可声明的宿主能力 (`PluginCapability`)
 
-| Capability | 典型 Action & Params | 返回 / 说明 |
+| Capability | 典型 Action & Params | 关联系统 TCC（宿主代申） / 说明 |
 | --- | --- | --- |
-| `clipboard` | `read` (`{}`)、`write` (`{"text":"..."}`) | 读写系统剪贴板文本（脱敏保护） |
-| `selection` | `read` (`{}`) | 复用宿主 Accessibility 读取当前前台应用选区文本 |
-| `audio` | `play` (`{"path":"..."}`)、`speak` (`{"text":"..."}`)、`stop` | 复用宿主音频引擎播放在线缓存音频或系统语音朗读 |
+| `window` | `open` (`{htmlPath,width,height,title}`)、`close` (`{windowID}`) | 容器权限：打开自定义 HTML/CSS/Canvas 独立自由窗口 |
+| `floatingWindow` | `open` (`{htmlPath,chrome:"frameless"\|"hud",transparent:true,pinOnTop:true,clickThrough:false}`)、`close` | 浮窗容器权限：支持全局置顶、无边框透明背景、不抢焦点 HUD 与点击穿透（向下兼容 `window`） |
+| `screenCapture` | `status`、`requestPermission`、`sampleColor` (`{x,y}`)、`captureMainDisplay`、`captureInteractive` | **屏幕录制 TCC**：由宿主代申并执行交互选区截图、主屏快照与屏幕像素 `#HEX` 取色 |
+| `notifications` | `status`、`requestPermission`、`send` (`{title,subtitle,body,sound}`) | **系统通知 TCC**：由宿主代申并投递原生 macOS 横幅提醒 |
+| `clipboard` | `read` (`{}`)、`write` (`{"text":"..."}`)、`writeImage` (`{"imagePath":"/abs/img.png"}`) | 读写系统剪贴板文本或写入 PNG/TIFF 双格式图片 |
+| `selection` | `read` (`{}`)、`pasteBack` (`{"text":"..."}`) | **辅助功能 TCC**：读取前台应用选中文本，或自动切回原窗口执行 `⌘V` 粘贴回填 |
+| `audio` | `play` (`{"path":"..."}`)、`speak` (`{"text":"..."}`)、`stop` | 复用宿主音频引擎播放音频文件或执行系统语音朗读 |
 | `ocr` | `recognize` (`{"imagePath":"/abs/path.png"}`) | 复用 `VisionService` 离线识别中英文字与条码 |
 | `everythingSearch` | `search` (`{"query":"...","limit":20}`) | 复用 `EverythingIndex` 内存树按 DSL 检索文件 |
 | `displayInfo` | `list` (`{}`) | 返回活跃显示器 `displayID`、当前模式与可用分辨率 |
@@ -111,23 +118,23 @@
 
 ## 三、全 App 权限审计矩阵与开发者套件
 
-- **权限全景清单 (`PluginPermissionAudit`)**：汇总全部 11 项系统 TCC、内核采样与宿主桥接权限，列出每项权限当前被哪些 `BUILTIN` / `EXT` 插件声明及授权状态，并在底部独立归集显式声明 `[]` 的纯沙盒插件。
+- **权限全景清单 (`PluginPermissionAudit` & `PluginHostTCCBroker`)**：汇总系统 TCC（由宿主代申并在矩阵页提供实时状态与一键代申入口）、内核采样、容器/宿主桥接与 Seatbelt 资源作用域共 21 项细分权限，列出每项权限当前被哪些 `BUILTIN` / `EXT` 插件声明及授权状态，并在底部独立归集显式声明 `[]` 的纯沙盒插件。
 - **内置工具与短语**：`LumakeyCore` 同时内置零子进程 `DevToolkitEngine` 与 `SnippetStore`。
 
 ## 四、原生 Stdio MCP 服务器 (`lumakey-mcp` v0.3.1)
 
-`lumakey-mcp` 基于零依赖换行分隔 JSON-RPC 2.0（支持 `--plugins-dir <path>`），暴露 `lumakey://specs/plugin-v1..v3` 与 `lumakey://specs/plugin-store-v1` 资源及 12 项工具：
+`lumakey-mcp` 基于零依赖换行分隔 JSON-RPC 2.0（支持 `--plugins-dir <path>`），暴露 `lumakey://specs/plugin-v3` 与 `lumakey://specs/plugin-store-v1` 资源及 12 项工具：
 
 | 工具名 | 必选 / 关键参数 | 作用 |
 | --- | --- | --- |
 | `lumakey_list_plugins` | `includeBuiltin`（可选，默认 `true`） | 返回内置与外部插件的启用、包内图标/品牌色、多语言标题、已声明子功能 (`declaredCommands`)、子功能热键 (`commandHotKeys`)、已开启快捷按钮 (`quickButtonCommandIDs`)、运行态摘要 (`statusSummary`)、宿主能力与 Seatbelt 资源域 (`grantedResourceScopes`/`revokedResourceScopes`) 状态 |
 | `lumakey_app_permissions` | `onlyUsed`（可选） | 返回全 App 权限审计矩阵及纯沙盒 (`[]`) 插件列表 |
 | `lumakey_scaffold_plugin` | `id`, `name`, `keywords`, `capabilities`, `resourceScopes`（必选），`accepts`（可选） | 安全生成 `plugin.json` 与可执行 `run.sh` |
-| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `browser-hub`、`lumalink-companion`、`notion-bookmarks`、`translate-hub`、`mac-pilot`、`quick-remind` 与 `screen-shield` 七款旗舰插件） |
+| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `ai-quota`、`browser-hub`、`lumalink-companion`、`notion-bookmarks`、`translate-hub`、`mac-pilot`、`quick-remind` 与 `screen-shield` 八款旗舰插件） |
 | `lumakey_validate_plugin` | `id` | 校验 `capabilities`、`resourceScopes`、包内图标安全边界、滑块数值范围、`commands`、`accepts` 与脚本权限 |
 | `lumakey_run_plugin_test` | `id`, `query`, `arguments`, `context`, `clipboardText`（可选） | 执行内置或外部插件测试（自动注入 `locale`/`theme`、模拟子功能 `arguments`、跨模块 `context` 与临时 Host Bridge） |
 | `lumakey_set_plugin_enabled` | `id`, `enabled` | 启停外部或 `BUILTIN` 插件 |
-| `lumakey_update_plugin_overrides` | `id`（必选），`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs` 等 | 在不改动 `plugin.json` 的前提下配置用户级别名、主入口/子功能热键、按需快捷按钮与全局搜索可见性 |
+| `lumakey_update_plugin_overrides` | `id`（必选），`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `commandSearchOverrides` 等 | 在不改动 `plugin.json` 的前提下配置用户级别名、主入口/子功能热键、按需快捷按钮与全局搜索可见性 |
 | `lumakey_remove_plugin` | `id` | 移除外部扩展插件目录、加密密钥与隔离数据目录（禁止删除 `builtin-*`） |
 | `lumakey_package_plugin_for_store` | `id`, `outputDir`（必选），`registryPath`, `storeId`, `storeName`, `downloadURL`（可选） | 校验外置插件并打包干净 `<id>.zip`（剔除隐藏文件与软链接）、计算 64 位 `sha256`，自动生成或更新 `lumakey-registry.json` |
 | `lumakey_list_plugin_stores` | 无 | 列出当前已订阅的全部自定义插件商店源及收录插件 |
