@@ -136,7 +136,8 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
             raw.append(contentsOf: buffer.prefix(n))
             if raw.contains(0x0A) { break }
         }
-        let lineData = raw.split(separator: 0x0A, maxSplits: 1).first.map(Data.init) ?? raw
+        let trimmed = raw.drop(while: { $0 == 0x0A })
+        let lineData = trimmed.firstIndex(of: 0x0A).map { Data(trimmed[..<$0]) } ?? Data(trimmed)
         let response = routeRequestData(lineData)
         if var outData = try? JSONSerialization.data(withJSONObject: response, options: [.sortedKeys, .withoutEscapingSlashes]) {
             outData.append(0x0A)

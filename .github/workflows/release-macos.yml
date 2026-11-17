@@ -59,12 +59,15 @@ jobs:
           echo "Resolved version: short=$SHORT_VERSION build=$TS_NUM tag=$RELEASE_TAG"
 
       - name: Import code signing identity
-        if: ${{ secrets.LUMAKEY_SIGN_P12_BASE64 != '' && secrets.LUMAKEY_SIGN_P12_PASSWORD != '' }}
         env:
           P12_BASE64: ${{ secrets.LUMAKEY_SIGN_P12_BASE64 }}
           P12_PASS: ${{ secrets.LUMAKEY_SIGN_P12_PASSWORD }}
           SIGN_IDENTITY_VAR: ${{ vars.LUMAKEY_SIGN_IDENTITY }}
         run: |
+          if [[ -z "$P12_BASE64" || -z "$P12_PASS" ]]; then
+            echo "No signing certificate secrets configured; falling back to ad-hoc signing."
+            exit 0
+          fi
           KC_PATH="$RUNNER_TEMP/$CI_KEYCHAIN_NAME"
           KC_PASS="$(openssl rand -hex 24)"
           P12_FILE="$RUNNER_TEMP/signer.p12"
