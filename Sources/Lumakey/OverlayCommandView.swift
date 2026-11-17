@@ -68,86 +68,88 @@ struct OverlayCommandView: View {
     private var searchCapsuleBar: some View {
         let searchShape = RoundedRectangle(cornerRadius: LiquidRadii.searchBar, style: .continuous)
         let hasQuery = !viewModel.overlayQuery.isEmpty
-        return ZStack {
-            WindowDragRegion()
-            HStack(alignment: .center, spacing: 10) {
-                SquircleBadge(
-                    symbol: viewModel.activeScopedPlugin?.manifest.icon ?? viewModel.omniFilter.symbolName,
-                    topColor: filterBadgeColors.0,
-                    bottomColor: filterBadgeColors.1,
-                    size: 36
-                )
-                .contentTransition(.symbolEffect(.replace))
+        return HStack(alignment: .center, spacing: 10) {
+            SquircleBadge(
+                symbol: viewModel.activeScopedPlugin?.manifest.icon ?? viewModel.omniFilter.symbolName,
+                topColor: filterBadgeColors.0,
+                bottomColor: filterBadgeColors.1,
+                size: 36
+            )
+            .contentTransition(.symbolEffect(.replace))
+            .onTapGesture { viewModel.bumpFocusToken() }
 
-                if let scoped = viewModel.activeScopedPlugin {
-                    OverlayScopedPluginCapsule(plugin: scoped) {
-                        withAnimation(LiquidMotion.snappySpring) {
-                            viewModel.scopedPluginID = nil
-                            viewModel.inlinePluginViewPayload = nil
-                            viewModel.activeInlinePlugin = nil
-                        }
-                        viewModel.bumpFocusToken()
+            if let scoped = viewModel.activeScopedPlugin {
+                OverlayScopedPluginCapsule(plugin: scoped) {
+                    withAnimation(LiquidMotion.snappySpring) {
+                        viewModel.scopedPluginID = nil
+                        viewModel.inlinePluginViewPayload = nil
+                        viewModel.activeInlinePlugin = nil
                     }
-                    .transition(.scale(scale: 0.88).combined(with: .opacity))
+                    viewModel.bumpFocusToken()
                 }
+                .transition(.scale(scale: 0.88).combined(with: .opacity))
+            }
 
-                AutoFocusSearchField(
-                    text: $viewModel.overlayQuery,
-                    placeholder: effectivePlaceholder,
-                    focusToken: viewModel.focusToken,
-                    onAction: { action in viewModel.handleOverlayKeyAction(action) },
-                    onQuickSelectIndex: { index in viewModel.quickExecuteCandidate(at: index) },
-                    onCopyCandidate: { viewModel.copySelectedCandidateValue() },
-                    onSecondarySubmit: { viewModel.executeSecondaryCandidateAction() }
-                )
-                .frame(height: 28)
+            AutoFocusSearchField(
+                text: $viewModel.overlayQuery,
+                placeholder: effectivePlaceholder,
+                focusToken: viewModel.focusToken,
+                onAction: { action in viewModel.handleOverlayKeyAction(action) },
+                onQuickSelectIndex: { index in viewModel.quickExecuteCandidate(at: index) },
+                onCopyCandidate: { viewModel.copySelectedCandidateValue() },
+                onSecondarySubmit: { viewModel.executeSecondaryCandidateAction() }
+            )
+            .frame(maxWidth: .infinity, minHeight: 38, maxHeight: 42)
 
-                if hasQuery {
-                    Button {
-                        withAnimation(LiquidMotion.snappySpring) {
-                            viewModel.overlayQuery = ""
-                            viewModel.inlineResultBody = nil
-                            viewModel.inlinePluginViewPayload = nil
-                            viewModel.activeInlinePlugin = nil
-                        }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(LiquidColors.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .transition(.scale(scale: 0.80).combined(with: .opacity))
-                }
-
+            if hasQuery {
                 Button {
                     withAnimation(LiquidMotion.snappySpring) {
-                        viewModel.showOverlayLens.toggle()
+                        viewModel.overlayQuery = ""
+                        viewModel.inlineResultBody = nil
+                        viewModel.inlinePluginViewPayload = nil
+                        viewModel.activeInlinePlugin = nil
                     }
-                    viewModel.syncOverlayPreviewToSelection()
+                    viewModel.bumpFocusToken()
                 } label: {
-                    Image(systemName: "sidebar.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(viewModel.effectiveLensVisible ? LiquidColors.accentPrimary : LiquidColors.textSecondary)
-                        .frame(width: 28, height: 28)
-                        .background(viewModel.effectiveLensVisible ? LiquidColors.accentPrimary.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(LiquidColors.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .help("展开/收起右侧实时预览 (⌘Y)")
+                .transition(.scale(scale: 0.80).combined(with: .opacity))
+            }
 
-                filterCapsuleBar
-            }
-            .animation(LiquidMotion.snappySpring, value: hasQuery)
-            .animation(LiquidMotion.snappySpring, value: viewModel.scopedPluginID)
-            .padding(.horizontal, 8)
-            .frame(height: 52)
-            .background {
-                ZStack {
-                    searchShape.fill(.ultraThinMaterial)
-                    searchShape.fill(LiquidColors.inputFieldSurface)
+            Button {
+                withAnimation(LiquidMotion.snappySpring) {
+                    viewModel.showOverlayLens.toggle()
                 }
+                viewModel.syncOverlayPreviewToSelection()
+                viewModel.bumpFocusToken()
+            } label: {
+                Image(systemName: "sidebar.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(viewModel.effectiveLensVisible ? LiquidColors.accentPrimary : LiquidColors.textSecondary)
+                    .frame(width: 28, height: 28)
+                    .background(viewModel.effectiveLensVisible ? LiquidColors.accentPrimary.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             }
-            .overlay { searchShape.strokeBorder(LiquidColors.inputFieldBorder, lineWidth: 1.0) }
-            .padding(.horizontal, 16)
+            .buttonStyle(.plain)
+            .help("展开/收起右侧实时预览 (⌘Y)")
+
+            filterCapsuleBar
         }
+        .animation(LiquidMotion.snappySpring, value: hasQuery)
+        .animation(LiquidMotion.snappySpring, value: viewModel.scopedPluginID)
+        .padding(.horizontal, 8)
+        .frame(height: 52)
+        .background {
+            ZStack {
+                searchShape.fill(.ultraThinMaterial)
+                searchShape.fill(LiquidColors.inputFieldSurface)
+            }
+            .contentShape(searchShape)
+            .onTapGesture { viewModel.bumpFocusToken() }
+        }
+        .overlay { searchShape.strokeBorder(LiquidColors.inputFieldBorder, lineWidth: 1.0) }
+        .padding(.horizontal, 16)
         .frame(height: 58)
         .padding(.bottom, 2)
     }
@@ -168,9 +170,9 @@ struct OverlayCommandView: View {
                 } label: {
                     Text(filter.title)
                         .font(.caption.weight(active ? .semibold : .medium))
-                        .foregroundStyle(active ? Color.white : LiquidColors.textPrimary.opacity(0.78))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
+                        .foregroundStyle(active ? Color.white : LiquidColors.textPrimary.opacity(0.78))
                         .background {
                             if active {
                                 segShape.fill(LiquidColors.accentGradient)

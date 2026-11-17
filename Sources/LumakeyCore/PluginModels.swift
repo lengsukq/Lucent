@@ -40,10 +40,13 @@ public struct PluginConfigField: Codable, Sendable, Hashable, Identifiable {
 }
 
 public struct PluginManifest: Codable, Sendable, Hashable {
+    public static let defaultTimeoutSeconds: Double = 8.0
+
     public let schemaVersion: Int?
     public let id: String
     public let name: String
     public let version: String
+    public let minAppVersion: String?
     public let description: String
     public let mode: PluginMode
     public let keywords: [String]
@@ -60,6 +63,9 @@ public struct PluginManifest: Codable, Sendable, Hashable {
     public let capabilities: [String]?
     public let resourceScopes: [String]?
     public let accepts: [String]?
+    public let acceptExtensions: [String]?
+    public let acceptURLHosts: [String]?
+    public let timeoutSeconds: Double?
     public let refreshIntervalSeconds: Int?
     public let window: PluginManifestWindowDefaults?
     public let commands: [PluginCommandSpec]?
@@ -89,28 +95,38 @@ public struct PluginManifest: Codable, Sendable, Hashable {
         }
     }
 
+    public var effectiveTimeoutSeconds: Double {
+        guard let raw = timeoutSeconds, raw.isFinite else { return Self.defaultTimeoutSeconds }
+        return min(max(raw, 3.0), 30.0)
+    }
+
     public init(
-        schemaVersion: Int? = nil, id: String, name: String, version: String, description: String,
+        schemaVersion: Int? = nil, id: String, name: String, version: String,
+        minAppVersion: String? = nil, description: String,
         mode: PluginMode, keywords: [String], entry: String, author: String? = nil,
         icon: String? = nil, accentColor: String? = nil, categoryTag: String? = nil,
         hotkey: String? = nil, includeInGlobalSearch: Bool? = nil,
         searchIndexInGlobalSearch: Bool? = nil, backupExclude: [String]? = nil,
         config: [PluginConfigField]? = nil,
         capabilities: [String]? = nil, resourceScopes: [String]? = nil,
-        accepts: [String]? = nil, refreshIntervalSeconds: Int? = nil,
+        accepts: [String]? = nil, acceptExtensions: [String]? = nil,
+        acceptURLHosts: [String]? = nil, timeoutSeconds: Double? = nil,
+        refreshIntervalSeconds: Int? = nil,
         window: PluginManifestWindowDefaults? = nil,
         commands: [PluginCommandSpec]? = nil, locales: [String: PluginLocaleStrings]? = nil
     ) {
         self.schemaVersion = schemaVersion; self.id = id; self.name = name
-        self.version = version; self.description = description; self.mode = mode
-        self.keywords = keywords; self.entry = entry; self.author = author; self.icon = icon
-        self.accentColor = accentColor; self.categoryTag = categoryTag; self.hotkey = hotkey
+        self.version = version; self.minAppVersion = minAppVersion; self.description = description
+        self.mode = mode; self.keywords = keywords; self.entry = entry
+        self.author = author; self.icon = icon; self.accentColor = accentColor
+        self.categoryTag = categoryTag; self.hotkey = hotkey
         self.includeInGlobalSearch = includeInGlobalSearch
         self.searchIndexInGlobalSearch = searchIndexInGlobalSearch
         self.backupExclude = backupExclude
         self.config = config; self.capabilities = capabilities; self.resourceScopes = resourceScopes
-        self.accepts = accepts; self.refreshIntervalSeconds = refreshIntervalSeconds
-        self.window = window
+        self.accepts = accepts; self.acceptExtensions = acceptExtensions
+        self.acceptURLHosts = acceptURLHosts; self.timeoutSeconds = timeoutSeconds
+        self.refreshIntervalSeconds = refreshIntervalSeconds; self.window = window
         self.commands = commands; self.locales = locales
     }
 }
@@ -187,6 +203,7 @@ public struct PluginDescriptor: Identifiable, Sendable, Hashable {
     public var declaredPermissions: [LumakeyPermission] { PluginPermissionAudit.declaredPermissions(for: self) }
     public var isPureSandbox: Bool { declaredPermissions.isEmpty }
     public var pinnedInOverlay: Bool { overrides.pinnedInOverlay }
+    public var showInMenuBar: Bool { overrides.showInMenuBar }
     public var includeInGlobalSearch: Bool {
         overrides.includeInGlobalSearchOverride ?? manifest.includeInGlobalSearch ?? true
     }

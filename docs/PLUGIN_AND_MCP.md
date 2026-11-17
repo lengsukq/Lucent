@@ -1,6 +1,6 @@
 # 插件系统与 MCP 接口规范
 
-`Lumakey` 定位为 **macOS 轻量生产力中枢**（而非多运行时应用中心、常驻 Web 网关或 `launchd` 守护进程调度器）。其 **Plugin v3.6（自由画布浮窗 `WKWebView` HUD、独立实时悬浮面板、宿主统一 TCC 代申与双语深度路由版）** 延续「零常驻开销、按需触发、即关即回收」原则，将**内置原生插件 (`BUILTIN`)** 与**外部扩展插件 (`EXT`)** 统一纳入设置中心「插件独立设置」导航列表、包内自定义图标与品牌色、中英双语自适应、子功能 (`commands`) 全局搜索与独立快捷键、默认关闭的按需快捷按钮 (`快捷按钮`)、主浮窗对称插件子模式、自由画布/实时悬浮面板/阅读钉屏深链与全 App 权限审计矩阵，并通过同包交付的 `lumakey-mcp` 服务向 AI 客户端暴露完整规范与接口。
+`Lumakey` 定位为 **macOS 轻量生产力中枢**（而非多运行时应用中心、常驻 Web 网关或 `launchd` 守护进程调度器）。其 **Plugin v3.7（沙盒化自由画布 `WKWebView` HUD、窗口几何记忆与环境热同步、精细上下文过滤、阶段进度桥接与跨源批量更新版）** 延续「零常驻开销、按需触发、即关即回收」原则，将**内置原生插件 (`BUILTIN`)** 与**外部扩展插件 (`EXT`)** 统一纳入设置中心「插件独立设置」导航列表（支持按需折叠隐藏）、包内自定义图标与品牌色、中英双语自适应、子功能 (`commands`) 全局搜索与独立快捷键、默认关闭的按需快捷按钮与状态栏菜单挂载、自由画布/实时悬浮面板/阅读钉屏深链与全 App 权限审计矩阵，并通过同包交付的 `lumakey-mcp` 服务向 AI 客户端暴露完整规范与接口。
 
 ## 一、统一注册模型、原生视觉、多语言清单与强制权限声明
 
@@ -25,15 +25,15 @@
      - **注册期分级全局搜索接入控制**：顶层 `plugin.json` 支持声明 `"includeInGlobalSearch": true|false`（主入口默认是否混入 `⌥Space` 全局搜索）与 `"searchIndexInGlobalSearch": true|false`（免前缀索引池默认是否混入全局搜索），每条 `commands[]` 与 `search-index.json` 的 `items[]` 均可独立声明 `"includeInGlobalSearch"`，并与用户设置页的三态覆盖（`includeInGlobalSearchOverride` / `searchIndexGlobalOverride` / `commandSearchOverrides`）按「用户显式覆盖 -> 条目/子命令声明 -> 主入口生效值」解耦决策（即使隐藏主入口也可单独放行指定高频子命令）；
      - **插件运行时数据与外部路径备份（Backup v2）**：`.lumakeybackup` v2 自动采用原生 `LZFSE` 压缩纳入 `PluginData/<id>/` 持久化数据与检索索引（自动跳过 `.tmp-*`、`cache/`、`*.log`、`*.sock` 及 `plugin.json` 中 `"backupExclude"` 规则），支持 `type: "path"` 配置项声明 `"includeInBackup": true` 随包备份主目录文件并按 `~/...` 跨机还原，同时支持可选备份口令经 `SHA256x65536 + HKDF + AES-GCM` 端到端加密迁移插件 `secret` 密钥；
      - 除插件主入口热键外，每项子功能均可在独立设置页单独录制全局快捷键（持久化于 `overrides.commandHotKeys` 并纳入三层热键冲突检测），配置 `silentWhenHotKeyTriggered: true` 的动作类子功能按下热键即可后台静默瞬发。
-   - **快捷按钮 (`快捷按钮`) — 严格默认关闭、按需挂载**：
-     - **默认状态下，所有插件与所有插件子功能均没有开启快捷按钮**（`pinnedInOverlay = false`，`quickButtonCommandIDs = []`），确保新装与新增插件零界面打扰；
-     - 用户可在插件独立设置页、插件管理中心、搜索结果右键菜单或 `⌘Return` 为常用插件或具体子功能单独打开 **「快捷按钮」**。
+   - **快捷按钮与状态栏菜单挂载 — 严格默认关闭、按需挂载**：
+     - **默认状态下，所有插件与所有插件子功能均没有开启快捷按钮或状态栏菜单挂载**（`pinnedInOverlay = false`，`showInMenuBar = false`，`quickButtonCommandIDs = []`，`menuBarCommandIDs = []`），确保新装与新增插件零界面打扰；
+     - 用户可在插件独立设置页为常用插件或具体子功能单独打开 **「快捷按钮」**、**「显示在状态栏菜单」** 或切换 **「显示在左侧设置栏」**（隐藏后归入侧边栏底部折叠组）。
    - **即时自动保存配置表单与折叠式开发者诊断**：
      - `PluginConfigFormCard` 支持 `text`、`secret`、`boolean`、`select`、`number`（支持 `"control": "slider"` 原生滑块或步进器）、`path`、`directory`、`tags`，交互改动即时自动落盘（文本输入防抖/失焦自动同步）；
      - 独立设置页默认置顶用户参数与子功能卡片，将缓存清理与实时运行测试器收纳于底部默认折叠的「开发者诊断」面板中。
-   - **跨模块上下文动作 (`accepts`)、轻量运行态摘要 (`status.json`) 与按需同步 (`refreshIntervalSeconds`)**：
-     - 声明 `"accepts": ["url", "text", "image", "file", "directory"]` 自动在剪贴板侧边镜、Everything 文件预览、工作台右键菜单与 Vision OCR 结果窗挂载联动动作；
-     - `PluginPostActionEffect` 返回 `"statusSummary"` / `"statusBadge"`（或写入 `PluginData/<id>/status.json`）后，设置页与侧边镜零子进程展示最新同步/运行状态摘要。
+   - **精细化上下文动作 (`accepts` / `acceptExtensions` / `acceptURLHosts`)、受控超时 (`timeoutSeconds`) 与阶段进度桥接**：
+     - 声明 `"accepts": ["url", "text", "image", "file", "directory"]` 自动在剪贴板侧边镜、Everything 文件预览、工作台右键菜单与 Vision OCR 结果窗挂载联动动作，并可通过可选 `"acceptExtensions": ["pdf", "md"]` 或 `"acceptURLHosts": ["github.com"]` 精准收窄匹配目标；
+     - 可选声明 `"minAppVersion"`（宿主最低版本门禁）与 `"timeoutSeconds"`（`3 ~ 30` 秒，默认 `8` 秒），执行期间可通过 `LUMAKEY_BRIDGE_SOCK` 发送零特权 `{"token":"...","op":"progress","message":"...","fraction":0.5}` 实时刷新状态提示；`PluginPostActionEffect` 返回 `"statusSummary"` / `"statusBadge"`（或写入 `PluginData/<id>/status.json`）后，设置页与侧边镜零子进程展示最新运行状态摘要。
 
 ### 完整示例如下
 

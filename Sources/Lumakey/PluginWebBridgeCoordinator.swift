@@ -21,7 +21,7 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
     }
 
     func tearDown(webView: WKWebView?) {
-        stopDragTracking()
+        stopDragTracking(persist: false)
         for (_, task) in activeTasks { task.cancel() }
         activeTasks.removeAll()
         webView?.configuration.userContentController.removeScriptMessageHandler(forName: PluginWebSDKBootstrap.handlerName)
@@ -128,11 +128,13 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
             frame.origin.y += (frame.height - CGFloat(h))
             frame.size = NSSize(width: w, height: h)
             win.setFrame(frame, display: true, animate: (body["animate"] as? Bool) ?? true)
+            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
             return ["ok": true, "width": w, "height": h]
         case "moveTo":
             let x = CGFloat((body["x"] as? NSNumber)?.doubleValue ?? Double(win.frame.origin.x))
             let y = CGFloat((body["y"] as? NSNumber)?.doubleValue ?? Double(win.frame.origin.y))
             win.setFrame(NSRect(origin: NSPoint(x: x, y: y), size: win.frame.size), display: true, animate: (body["animate"] as? Bool) ?? false)
+            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
             return ["ok": true]
         case "setPinned":
             guard plugin.grantedCapabilities.contains(.floatingWindow) else {
@@ -140,6 +142,7 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
             }
             let pinned = (body["pinned"] as? Bool) ?? true
             WindowLevelStore.shared.setPinned(pinned, forKey: windowKey)
+            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
             return ["ok": true, "pinned": pinned]
         case "setClickThrough":
             guard plugin.grantedCapabilities.contains(.floatingWindow) else {
@@ -152,7 +155,11 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
             let raw = (body["opacity"] as? NSNumber)?.doubleValue ?? 1.0
             let clamped = min(max(raw, PluginCustomWindowSpec.minOpacity), 1.0)
             win.alphaValue = clamped
+            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
             return ["ok": true, "opacity": clamped]
+        case "resetFrame":
+            PluginCustomWebWindowController.shared.resetCanvasToDefaults(forKey: windowKey, plugin: plugin)
+            return ["ok": true]
         case "minimize":
             win.miniaturize(nil)
             return ["ok": true]
@@ -165,7 +172,7 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
     }
 
     private func beginNativeMouseDrag(for win: NSWindow) {
-        stopDragTracking()
+        stopDragTracking(persist: false)
         let startMouse = NSEvent.mouseLocation
         let startOrigin = win.frame.origin
         let dragMon = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDragged], handler: { [weak win] ev in
@@ -176,15 +183,19 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
         })
         if let dragMon { dragMonitors.append(dragMon) }
         let upMon = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseUp], handler: { [weak self] ev in
-            self?.stopDragTracking()
+            self?.stopDragTracking(persist: true)
             return ev
         })
         if let upMon { dragMonitors.append(upMon) }
     }
 
-    private func stopDragTracking() {
+    private func stopDragTracking(persist: Bool) {
+        let hadMonitors = !dragMonitors.isEmpty
         for mon in dragMonitors { NSEvent.removeMonitor(mon) }
         dragMonitors.removeAll()
+        if persist && hadMonitors {
+            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
+        }
     }
 
     private func runPluginBackend(

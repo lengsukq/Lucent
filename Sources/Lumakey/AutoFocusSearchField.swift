@@ -18,6 +18,17 @@ enum OverlayKeyAction: Sendable {
 
 private final class CrispSearchTextField: NSTextField {
     override var allowsVibrancy: Bool { false }
+    override var acceptsFirstResponder: Bool { true }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard let panel = window as? KeyableFloatingPanel else { return }
+        panel.searchField = self
+        DispatchQueue.main.async { [weak panel, weak self] in
+            guard let panel, let self, self.window === panel, panel.isVisible else { return }
+            panel.focusSearchFieldIfNeeded(moveCursorToEnd: true)
+        }
+    }
 }
 
 struct AutoFocusSearchField: NSViewRepresentable {
@@ -55,7 +66,8 @@ struct AutoFocusSearchField: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSTextField, context: Context) {
         context.coordinator.parent = self
-        if nsView.stringValue != text {
+        let activeEditor = nsView.currentEditor() as? NSTextView
+        if activeEditor?.hasMarkedText() != true, nsView.stringValue != text {
             nsView.stringValue = text
         }
         let localizedPlaceholder = L10n.translate(placeholder)
@@ -64,15 +76,7 @@ struct AutoFocusSearchField: NSViewRepresentable {
             context.coordinator.lastPlaceholder = localizedPlaceholder
         }
         if context.coordinator.lastFocusToken != focusToken {
-            context.coordinator.lastFocusToken = focusToken
-            DispatchQueue.main.async {
-                guard let window = nsView.window else { return }
-                window.makeFirstResponder(nsView)
-                if let editor = window.fieldEditor(false, for: nsView) as? NSTextView {
-                    let len = (nsView.stringValue as NSString).length
-                    editor.setSelectedRange(NSRange(location: len, length: 0))
-                }
-            }
+            context.coordinator.scheduleFocus(for: nsView, token: focusToken)
         }
     }
 
@@ -101,6 +105,21 @@ struct AutoFocusSearchField: NSViewRepresentable {
             self.parent = parent
         }
 
+        func scheduleFocus(for field: NSTextField, token: Int) {
+            DispatchQueue.main.async { [weak self, weak field] in
+                guard let self, let field, let window = field.window, window.isVisible else { return }
+                self.lastFocusToken = token
+                let activeEditor = field.currentEditor() as? NSTextView
+                if activeEditor == nil || window.firstResponder !== activeEditor {
+                    _ = window.makeFirstResponder(field)
+                }
+                if let editor = window.fieldEditor(false, for: field) as? NSTextView, !editor.hasMarkedText() {
+                    let len = (field.stringValue as NSString).length
+                    editor.setSelectedRange(NSRange(location: len, length: 0))
+                }
+            }
+        }
+
         func installMonitor(for field: NSTextField) {
             removeMonitor()
             keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .leftMouseDown]) { [weak self, weak field] event in
@@ -113,6 +132,13 @@ struct AutoFocusSearchField: NSViewRepresentable {
                     return nil
                 }
                 if event.type == .keyDown {
+                    if field.currentEditor() == nil, !(win.firstResponder is NSTextView) {
+                        _ = win.makeFirstResponder(field)
+                        if let editor = win.fieldEditor(false, for: field) as? NSTextView, !editor.hasMarkedText() {
+                            let len = (field.stringValue as NSString).length
+                            editor.setSelectedRange(NSRange(location: len, length: 0))
+                        }
+                    }
                     return self.handleCommandKeyDown(event: event, flags: flags, field: field, window: win)
                 }
                 return event
@@ -165,6 +191,21 @@ struct AutoFocusSearchField: NSViewRepresentable {
             }
             guard cleanFlags == .command else { return event }
             switch key {
+            case "v":
+                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView {
+                    activeEditor.paste(nil)
+                    return nil
+                }
+            case "a":
+                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView {
+                    activeEditor.selectAll(nil)
+                    return nil
+                }
+            case "x":
+                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView {
+                    activeEditor.cut(nil)
+                    return nil
+                }
             case "c":
                 let hasSelection = (editor?.selectedRange().length ?? 0) > 0
                 if !hasSelection, let onCopyCandidate = parent.onCopyCandidate {

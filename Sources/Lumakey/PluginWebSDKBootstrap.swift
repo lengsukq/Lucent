@@ -16,8 +16,10 @@ enum PluginWebSDKBootstrap {
             "chrome": spec.chrome.rawValue,
             "transparent": spec.transparent,
             "pinOnTop": spec.pinOnTop,
+            "opacity": spec.opacity,
             "locale": L10n.current.rawValue,
             "theme": AppThemeConfig.load().selectedTheme.rawValue,
+            "networkAllowed": plugin.isResourceScopeGranted(.network),
             "declaredCapabilities": plugin.declaredCapabilities.map(\.rawValue),
             "grantedCapabilities": plugin.grantedCapabilities.map(\.rawValue).sorted(),
             "initialStateJSON": spec.initialStateJSON ?? ""
@@ -32,8 +34,21 @@ enum PluginWebSDKBootstrap {
           function send(op, payload) {
             return window.webkit.messageHandlers.\(handlerName).postMessage(Object.assign({ op: op }, payload || {}));
           }
+          window.__lumakeyApplyEnvUpdate = function(patch) {
+            if (!patch || typeof patch !== "object") return;
+            Object.assign(env, patch);
+            try {
+              window.dispatchEvent(new CustomEvent("lumakey:envChanged", { detail: Object.assign({}, env) }));
+            } catch (_) {}
+          };
           window.lumakey = Object.freeze({
             env: env,
+            onEnvChanged: (listener) => {
+              if (typeof listener !== "function") return () => {};
+              const h = (ev) => listener(ev.detail || env);
+              window.addEventListener("lumakey:envChanged", h);
+              return () => window.removeEventListener("lumakey:envChanged", h);
+            },
             run: (args = [], query = "") => send("run", { args: Array.isArray(args) ? args : [], query: String(query || "") }),
             bridge: (capability, action, params = {}) => send("bridge", { capability: String(capability), action: String(action), params: params || {} }),
             permissions: Object.freeze({
@@ -47,6 +62,7 @@ enum PluginWebSDKBootstrap {
               setPinned: (pinned) => send("win", { cmd: "setPinned", pinned: Boolean(pinned) }),
               setClickThrough: (enabled) => send("win", { cmd: "setClickThrough", enabled: Boolean(enabled) }),
               setOpacity: (opacity) => send("win", { cmd: "setOpacity", opacity: Number(opacity) }),
+              resetFrame: () => send("win", { cmd: "resetFrame" }),
               minimize: () => send("win", { cmd: "minimize" }),
               close: () => send("win", { cmd: "close" })
             }),

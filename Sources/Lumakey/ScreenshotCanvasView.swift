@@ -208,7 +208,7 @@ struct ScreenshotCanvasView: View {
         }
         if case .creating = mode {
             if let sel = session.selectionRect, sel.width < 6 || sel.height < 6, let hover = session.hoveredWindow {
-                session.selectWindow(hover, excludeShadow: NSEvent.modifierFlags.contains(.option))
+                session.selectWindow(hover, excludeShadow: session.excludeWindowShadow || NSEvent.modifierFlags.contains(.option))
             }
             if session.mode == .quickOCR, let sel = session.selectionRect?.standardized, sel.width >= 8, sel.height >= 8 {
                 onAction(.ocr); return
@@ -224,7 +224,7 @@ struct ScreenshotCanvasView: View {
 
     private func handleSingleOrDoubleClick(at point: CGPoint) {
         if session.selectionRect == nil, let hover = session.hoveredWindow {
-            session.selectWindow(hover, excludeShadow: NSEvent.modifierFlags.contains(.option))
+            session.selectWindow(hover, excludeShadow: session.excludeWindowShadow || NSEvent.modifierFlags.contains(.option))
             onAction(session.mode == .quickOCR ? .ocr : .syncClipboard)
             return
         }

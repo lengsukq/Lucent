@@ -1,23 +1,49 @@
 import AppKit
+import Carbon
 import LumakeyCore
 
-extension MenuBarAndWindowCoordinator {
+extension MenuBarAndWindowCoordinator: NSMenuDelegate {
     func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: L10n.translate("流光 Lumakey"))
+        let symbol = viewModel.generalPreferences.menuBarIconStyle.symbolName
+        item.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: L10n.translate("流光 Lumakey"))
         item.button?.imagePosition = .imageLeading
         item.button?.font = NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .medium)
-        item.button?.toolTip = L10n.translate("流光 Lumakey (⌥Space)")
-        item.menu = buildStatusMenu()
+        updateStatusButtonTooltip(for: item)
+        let menu = NSMenu()
+        menu.delegate = self
+        populateStatusMenu(menu)
+        item.menu = menu
         self.statusItem = item
     }
 
+    func refreshStatusBarIcon() {
+        guard let item = statusItem else { return }
+        let symbol = viewModel.generalPreferences.menuBarIconStyle.symbolName
+        item.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: L10n.translate("流光 Lumakey"))
+    }
+
     func refreshLocalizedChrome() {
-        statusItem?.button?.toolTip = L10n.translate("流光 Lumakey (⌥Space)")
-        statusItem?.menu = buildStatusMenu()
+        refreshStatusBarIcon()
+        if let item = statusItem {
+            updateStatusButtonTooltip(for: item)
+            if let menu = item.menu { populateStatusMenu(menu) }
+        }
         for (key, win) in windows {
             if let base = windowBaseTitles[key] { win.title = L10n.translate(base) }
         }
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === statusItem?.menu else { return }
+        if let item = statusItem { updateStatusButtonTooltip(for: item) }
+        populateStatusMenu(menu)
+    }
+
+    private func updateStatusButtonTooltip(for item: NSStatusItem) {
+        let hk = hotKeyManager.currentConfig.effectiveChord(for: .launcher)?.displayString
+        let base = L10n.translate("流光 Lumakey")
+        item.button?.toolTip = hk.map { "\(base) (\($0))" } ?? base
     }
 
     func buildDockMenu() -> NSMenu {
@@ -25,59 +51,217 @@ extension MenuBarAndWindowCoordinator {
         if !windows.isEmpty {
             for (_, win) in windows.sorted(by: { $0.key < $1.key }) {
                 let frontTitle = L10n.pick("前置：\(win.title)", "Bring to Front: \(win.title)")
-                addMenuItem(to: menu, rawTitle: frontTitle, key: "", translate: false) {
+                let mItem = MenuBarCallbackItem(title: frontTitle) {
                     if win.isMiniaturized { win.deminiaturize(nil) }
                     win.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
                 }
+                menu.addItem(mItem)
             }
             menu.addItem(.separator())
         }
-        addMenuItem(to: menu, rawTitle: "文件与外置磁盘工作台", key: "⌥E") { [weak self] in self?.open(route: .workspace) }
-        addMenuItem(to: menu, rawTitle: "本机网络流量与去向监控", key: "⌥N") { [weak self] in self?.open(route: .networkMonitor) }
-        addMenuItem(to: menu, rawTitle: "统一搜索快捷台", key: "⌥Space") { [weak self] in self?.panelController.show(filter: .all) }
-        addMenuItem(to: menu, rawTitle: "选区截图钉屏", key: "⌥A") { [weak self] in self?.viewModel.captureAndPinScreenshot() }
-        addMenuItem(to: menu, rawTitle: "区域 GIF 动图录制", key: "⌥G") { [weak self] in self?.viewModel.startGifRecording() }
-        addMenuItem(to: menu, rawTitle: "导出与云备份", key: "") { [weak self] in self?.open(route: .settings(.backup)) }
-        let langLabel = L10n.pick("切换语言：English", "Switch Language: 简体中文")
-        addMenuItem(to: menu, rawTitle: langLabel, key: "", translate: false) { [weak self] in self?.viewModel.cycleAppLanguage() }
-        addMenuItem(to: menu, rawTitle: "设置中心", key: "⌘,") { [weak self] in self?.open(route: .settings(.general)) }
+        let dockItems: [MenuBarBuiltinItemID] = [
+            .fileWorkspace, .networkMonitor, .launcherAll, .screenshotPin,
+            .gifRecord, .backupSync, .checkForUpdates, .switchLanguage, .settingsCenter
+        ]
+        for id in dockItems {
+            menu.addItem(makeBuiltinMenuItem(id, context: currentRuntimeContext()))
+        }
         return menu
     }
 
     func buildStatusMenu() -> NSMenu {
         let menu = NSMenu()
-        addMenuItem(to: menu, rawTitle: "呼出统一搜索快捷台", key: "⌥Space") { [weak self] in self?.panelController.show(filter: .all) }
-        addMenuItem(to: menu, rawTitle: "文件极速过滤", key: "⌥F") { [weak self] in self?.panelController.show(filter: .files) }
-        addMenuItem(to: menu, rawTitle: "剪贴板历史过滤", key: "⌥C") { [weak self] in self?.panelController.show(filter: .clipboard) }
-        menu.addItem(.separator())
-        addMenuItem(to: menu, rawTitle: "系统脉搏监控悬浮窗", key: "⌥M") { SystemPulseWindowController.shared.toggleFloatingWidget() }
-        addMenuItem(to: menu, rawTitle: "系统脉搏：立即贴边自动隐藏", key: "") { SystemPulseWindowController.shared.snapToNearestEdge() }
-        addMenuItem(to: menu, rawTitle: "菜单栏显示实时功耗与网速", key: "") { SystemPulseWindowController.shared.toggleMenuBarReadout() }
-        addMenuItem(to: menu, rawTitle: "本机网络流量与去向监控", key: "⌥N") { [weak self] in self?.open(route: .networkMonitor) }
-        menu.addItem(.separator())
-        addMenuItem(to: menu, rawTitle: "选区截图钉屏", key: "⌥A") { [weak self] in self?.viewModel.captureAndPinScreenshot() }
-        addMenuItem(to: menu, rawTitle: "选区截图离线识字", key: "⌥O") { [weak self] in self?.viewModel.captureAndAnalyzeOCR() }
-        addMenuItem(to: menu, rawTitle: "区域 GIF 动图录制", key: "⌥G") { [weak self] in self?.viewModel.startGifRecording() }
-        addMenuItem(to: menu, rawTitle: "关闭全部钉图", key: "") { PinWindowController.shared.closeAll() }
-        addMenuItem(to: menu, rawTitle: "关闭全部插件自由窗口", key: "") { PluginCustomWebWindowController.shared.closeAll() }
-        menu.addItem(.separator())
-        addMenuItem(to: menu, rawTitle: "导出、备份与 WebDAV 云同步", key: "") { [weak self] in self?.open(route: .settings(.backup)) }
-        addMenuItem(to: menu, rawTitle: "流光随行手机远控与极速 RDP", key: "") { [weak self] in self?.openLumaLinkConsole() }
-        addMenuItem(to: menu, rawTitle: "应用缓存与存储清理", key: "") { [weak self] in self?.open(route: .settings(.cache)) }
-        addMenuItem(to: menu, rawTitle: "鼠标平滑与滚轮反转", key: "") { [weak self] in self?.open(route: .settings(.mos)) }
-        addMenuItem(to: menu, rawTitle: "立即释放空闲内存", key: "") { [weak self] in self?.viewModel.reclaimAllIdleMemoryNow() }
-        addMenuItem(to: menu, rawTitle: "文件与外置磁盘工作台 · 附加", key: "⌥E") { [weak self] in self?.open(route: .workspace) }
-        let langLabel = L10n.pick("切换界面语言：English", "Switch Language: 简体中文")
-        addMenuItem(to: menu, rawTitle: langLabel, key: "", translate: false) { [weak self] in self?.viewModel.cycleAppLanguage() }
-        addMenuItem(to: menu, rawTitle: "设置与插件 MCP 中心", key: "⌘,") { [weak self] in self?.open(route: .settings(.general)) }
-        menu.addItem(.separator())
-        addMenuItem(to: menu, rawTitle: "退出 流光 Lumakey", key: "⌘Q") { NSApp.terminate(nil) }
+        menu.delegate = self
+        populateStatusMenu(menu)
         return menu
     }
 
-    private func addMenuItem(to menu: NSMenu, rawTitle: String, key: String, translate: Bool = true, action: @escaping () -> Void) {
-        let localized = translate ? L10n.translate(rawTitle) : rawTitle
-        menu.addItem(MenuBarCallbackItem(title: key.isEmpty ? localized : "\(localized)   (\(key))", callback: action))
+    func populateStatusMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let ctx = currentRuntimeContext()
+        let config = viewModel.menuBarConfig
+        let layout = config.resolvedLayout(context: ctx)
+
+        var previousGroup: MenuBarItemGroup? = nil
+        for itemID in layout.topLevelItems {
+            if let prev = previousGroup, prev != itemID.group {
+                menu.addItem(.separator())
+            }
+            menu.addItem(makeBuiltinMenuItem(itemID, context: ctx))
+            previousGroup = itemID.group
+        }
+
+        if config.showPinnedPluginsSection {
+            let pinnedPlugins = PluginCommandRegistry.enabledMenuBarItems(for: viewModel.plugins)
+            if !pinnedPlugins.isEmpty {
+                if !menu.items.isEmpty { menu.addItem(.separator()) }
+                for pItem in pinnedPlugins {
+                    menu.addItem(makePinnedPluginMenuItem(pItem))
+                }
+            }
+        }
+
+        if !layout.maintenanceSubmenuItems.isEmpty {
+            if !menu.items.isEmpty { menu.addItem(.separator()) }
+            let subRoot = NSMenuItem(title: L10n.pick("维护与系统工具", "Maintenance & Tools"), action: nil, keyEquivalent: "")
+            subRoot.image = NSImage(systemSymbolName: "wrench.and.screwdriver", accessibilityDescription: nil)
+            let submenu = NSMenu(title: subRoot.title)
+            for mID in layout.maintenanceSubmenuItems {
+                submenu.addItem(makeBuiltinMenuItem(mID, context: ctx))
+            }
+            subRoot.submenu = submenu
+            menu.addItem(subRoot)
+        }
+
+        if !layout.systemTailItems.isEmpty {
+            if !menu.items.isEmpty { menu.addItem(.separator()) }
+            for tailID in layout.systemTailItems {
+                if tailID == .quitApp && layout.systemTailItems.count > 1 {
+                    menu.addItem(.separator())
+                }
+                menu.addItem(makeBuiltinMenuItem(tailID, context: ctx))
+            }
+        }
+    }
+
+    private func currentRuntimeContext() -> MenuBarRuntimeContext {
+        let pulseCfg = SystemPulseWindowController.shared.state.config
+        let hasLumaLink = viewModel.lumaLinkConfig.enabled
+            || viewModel.plugins.contains { $0.id == LumaLinkServer.companionPluginID && $0.isEnabled && $0.isValid }
+        let updater = AppUpdateCoordinator.shared
+        return MenuBarRuntimeContext(
+            activePinCount: PinWindowController.shared.activePinCount,
+            activePluginWindowCount: PluginCustomWebWindowController.shared.activeWindowCount,
+            isSystemPulseFloatingVisible: pulseCfg.floatingEnabled,
+            isLumaLinkAvailableOrEnabled: hasLumaLink,
+            availableAppUpdateVersion: updater.availableAppRelease?.normalizedVersion,
+            availablePluginUpdateCount: updater.pendingPluginUpdates.count
+        )
+    }
+
+    private func makeBuiltinMenuItem(_ id: MenuBarBuiltinItemID, context: MenuBarRuntimeContext) -> NSMenuItem {
+        let title: String = switch id {
+        case .closeAllPins where context.activePinCount > 0:
+            "\(id.localizedTitle) (\(context.activePinCount))"
+        case .closeAllPluginWindows where context.activePluginWindowCount > 0:
+            "\(id.localizedTitle) (\(context.activePluginWindowCount))"
+        case .checkForUpdates where context.availableAppUpdateVersion != nil:
+            L10n.pick(
+                "发现新版本 v\(context.availableAppUpdateVersion ?? "") · 查看更新",
+                "Update Available v\(context.availableAppUpdateVersion ?? "")"
+            )
+        case .checkForUpdates where context.availablePluginUpdateCount > 0:
+            L10n.pick(
+                "发现 \(context.availablePluginUpdateCount) 款插件可升级 · 查看更新",
+                "\(context.availablePluginUpdateCount) Plugin Update(s) Available"
+            )
+        case .switchLanguage:
+            L10n.pick("切换界面语言：English", "Switch Language: 简体中文")
+        default:
+            id.localizedTitle
+        }
+
+        let item = MenuBarCallbackItem(title: title) { [weak self] in
+            self?.performMenuAction(id)
+        }
+        item.image = NSImage(systemSymbolName: id.symbolName, accessibilityDescription: nil)
+
+        switch id {
+        case .systemPulseWidget:
+            item.state = SystemPulseWindowController.shared.state.config.floatingEnabled ? .on : .off
+        case .menuBarTelemetryReadout:
+            item.state = SystemPulseWindowController.shared.state.config.showInMenuBar ? .on : .off
+        case .mosSettings:
+            item.state = viewModel.mosConfig.enabled ? .on : .off
+        default:
+            break
+        }
+
+        if let hkAction = id.associatedHotKeyAction,
+           let chord = hotKeyManager.currentConfig.effectiveChord(for: hkAction) {
+            applyShortcut(chord: chord, to: item)
+        } else if id == .settingsCenter {
+            item.keyEquivalent = ","
+            item.keyEquivalentModifierMask = [.command]
+        } else if id == .quitApp {
+            item.keyEquivalent = "q"
+            item.keyEquivalentModifierMask = [.command]
+        }
+        return item
+    }
+
+    private func makePinnedPluginMenuItem(_ pinned: PluginQuickButtonItem) -> NSMenuItem {
+        let label = switch pinned.target {
+        case .plugin: pinned.title
+        case .command: "\(pinned.pluginName) · \(pinned.title)"
+        }
+        let item = MenuBarCallbackItem(title: label) { [weak self] in
+            self?.viewModel.executeMenuBarPluginItem(pinned)
+        }
+        if let iconURL = pinned.customIconURL,
+           let img = IconCache.shared.pluginIcon(for: iconURL, pointSize: 15) {
+            item.image = img
+        } else {
+            item.image = NSImage(systemSymbolName: pinned.symbolName, accessibilityDescription: nil)
+        }
+        if let plug = viewModel.plugins.first(where: { $0.id == pinned.pluginID }) {
+            let rawHK: String? = switch pinned.target {
+            case .plugin: plug.effectiveHotKey
+            case .command(_, let cmdID): plug.effectiveCommandHotKey(for: cmdID)
+            }
+            if let rawHK, let chord = HotKeyChord.parse(rawHK) {
+                applyShortcut(chord: chord, to: item)
+            }
+        }
+        return item
+    }
+
+    private func applyShortcut(chord: HotKeyChord, to item: NSMenuItem) {
+        if let keyEq = Self.menuKeyEquivalent(for: chord.keyCode) {
+            item.keyEquivalent = keyEq
+            item.keyEquivalentModifierMask = chord.modifierFlags
+        } else {
+            item.title = "\(item.title)   (\(chord.displayString))"
+        }
+    }
+
+    private static func menuKeyEquivalent(for keyCode: Int) -> String? {
+        if keyCode == kVK_Space { return " " }
+        if keyCode == kVK_Return { return "\r" }
+        if keyCode == kVK_Tab { return "\t" }
+        if keyCode == kVK_Delete { return "\u{08}" }
+        if keyCode == kVK_Escape { return "\u{1b}" }
+        guard let label = HotKeyChord.keyLabel(for: keyCode), label.count == 1 else { return nil }
+        return label.lowercased()
+    }
+
+    private func performMenuAction(_ id: MenuBarBuiltinItemID) {
+        switch id {
+        case .launcherAll: panelController.show(filter: .all)
+        case .filesFilter: panelController.show(filter: .files)
+        case .clipboardFilter: panelController.show(filter: .clipboard)
+        case .systemPulseWidget: SystemPulseWindowController.shared.toggleFloatingWidget()
+        case .systemPulseSnapEdge: SystemPulseWindowController.shared.snapToNearestEdge()
+        case .menuBarTelemetryReadout: SystemPulseWindowController.shared.toggleMenuBarReadout()
+        case .networkMonitor: open(route: .networkMonitor)
+        case .screenshotPin: viewModel.captureAndPinScreenshot()
+        case .screenshotOCR: viewModel.captureAndAnalyzeOCR()
+        case .gifRecord: viewModel.startGifRecording()
+        case .closeAllPins: PinWindowController.shared.closeAll()
+        case .closeAllPluginWindows: PluginCustomWebWindowController.shared.closeAll()
+        case .backupSync: open(route: .settings(.backup))
+        case .lumaLinkConsole: openLumaLinkConsole()
+        case .cacheCleanup: open(route: .settings(.cache))
+        case .mosSettings: open(route: .settings(.mos))
+        case .reclaimMemory: viewModel.reclaimAllIdleMemoryNow()
+        case .fileWorkspace: open(route: .workspace)
+        case .switchLanguage: viewModel.cycleAppLanguage()
+        case .checkForUpdates:
+            open(route: .settings(.about))
+            AppUpdateCoordinator.shared.checkNow(viewModel: viewModel)
+        case .settingsCenter: open(route: .settings(.general))
+        case .quitApp: NSApp.terminate(nil)
+        }
     }
 }
 

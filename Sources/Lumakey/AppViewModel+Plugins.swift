@@ -66,6 +66,7 @@ extension AppViewModel {
     func setPluginCapabilityGranted(_ plugin: PluginDescriptor, capability: PluginCapability, granted: Bool) throws {
         try PluginSystem.setPluginCapabilityGranted(id: plugin.id, capability: capability, granted: granted)
         reloadPlugins()
+        PluginCustomWebWindowController.shared.syncPluginState(for: plugin.id, plugins: plugins)
     }
 
     func grantMissingCapabilitiesAndRerun(_ plugin: PluginDescriptor) {
@@ -75,6 +76,7 @@ extension AppViewModel {
             try? PluginSystem.setPluginCapabilityGranted(id: plugin.id, capability: cap, granted: true)
         }
         reloadPlugins()
+        PluginCustomWebWindowController.shared.syncPluginState(for: plugin.id, plugins: plugins)
         guard let updated = plugins.first(where: { $0.id == plugin.id }) else { return }
         activeInlinePlugin = updated
         let q = scopedPluginID == updated.id
@@ -86,6 +88,7 @@ extension AppViewModel {
     func setPluginResourceScopeGranted(_ plugin: PluginDescriptor, scope: PluginResourceScope, granted: Bool) throws {
         try PluginSystem.setPluginResourceScopeGranted(id: plugin.id, scope: scope, granted: granted)
         reloadPlugins()
+        PluginCustomWebWindowController.shared.syncPluginState(for: plugin.id, plugins: plugins)
     }
 
     func openBuiltinPluginSettings(_ plugin: PluginDescriptor) {

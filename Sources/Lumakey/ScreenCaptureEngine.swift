@@ -41,6 +41,7 @@ final class ScreenCaptureCoordinator {
         let session = ScreenshotSessionState(
             topology: topology, initialCursorCanvasPoint: initialPt, mode: mode, previousSelectionRect: remembered
         )
+        session.excludeWindowShadow = GeneralPreferences.load().screenshotExcludeWindowShadow
         return try await withCheckedThrowingContinuation { cont in
             self.continuation = cont
             self.presentOverlays(with: session)
@@ -231,10 +232,22 @@ final class ScreenCaptureCoordinator {
                 let url = try ScreenshotCompositor.saveTempCapture(image, scale: scale)
                 copyComposedToPasteboard(image, scale: scale, session: session); finish(with: .cutoutRequested(url))
             case .save:
+                let prefs = GeneralPreferences.load()
+                let saveDir = prefs.resolvedCaptureSaveDirectory()
+                try? FileManager.default.createDirectory(at: saveDir, withIntermediateDirectories: true)
+                let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+                let fileName = "Lumakey-\(stamp).png"
+                if prefs.quickSaveCaptureWithoutDialog {
+                    let dst = saveDir.appendingPathComponent(fileName, isDirectory: false)
+                    try ScreenshotCompositor.writePNG(image, scale: scale, to: dst)
+                    copyComposedToPasteboard(image, scale: scale, session: session)
+                    finish(with: .saved(dst), animated: true)
+                    return
+                }
                 for p in overlayPanels { p.orderOut(nil) }
                 let panel = NSSavePanel(); panel.allowedContentTypes = [.png]
-                let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-                panel.nameFieldStringValue = "Lumakey-\(stamp).png"
+                panel.directoryURL = saveDir
+                panel.nameFieldStringValue = fileName
                 if panel.runModal() == .OK, let url = panel.url {
                     try ScreenshotCompositor.writePNG(image, scale: scale, to: url)
                     copyComposedToPasteboard(image, scale: scale, session: session)

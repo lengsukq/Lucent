@@ -101,6 +101,13 @@ public enum ClipboardService {
         "com.apple.Passwords"
     ]
 
+    public static func shouldIgnoreSourceApp(bundleIdentifier: String?, excludedBundleIDs: [String]) -> Bool {
+        guard let bundleIdentifier = bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !bundleIdentifier.isEmpty,
+              !excludedBundleIDs.isEmpty else { return false }
+        return excludedBundleIDs.contains { $0.caseInsensitiveCompare(bundleIdentifier) == .orderedSame }
+    }
+
     public static func looksLikeSensitiveSecret(_ raw: String) -> Bool {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 20, trimmed.count <= 8_192 else { return false }
@@ -115,7 +122,13 @@ public enum ClipboardService {
         ClipboardPasteboardIO.captureCurrent(from: pasteboard)
     }
 
-    public static func insert(_ entry: ClipboardEntry, into list: [ClipboardEntry], maxUnpinned: Int = 80) -> [ClipboardEntry] {
+    public static func insert(
+        _ entry: ClipboardEntry,
+        into list: [ClipboardEntry],
+        maxUnpinned: Int = 80,
+        ttl: ClipboardRetentionTTL = .forever,
+        now: Date = Date()
+    ) -> [ClipboardEntry] {
         var next = list
         var preservedPin = entry.isPinned
         var removed: [ClipboardEntry] = []
@@ -133,27 +146,53 @@ public enum ClipboardService {
         var updated = entry
         updated.isPinned = preservedPin
         next.insert(updated, at: 0)
+        return pruneAndCapInternal(next, alreadyRemoved: removed, maxUnpinned: max(1, maxUnpinned), ttl: ttl, now: now)
+    }
 
+    public static func pruneAndCap(
+        _ list: [ClipboardEntry],
+        maxUnpinned: Int,
+        ttl: ClipboardRetentionTTL,
+        now: Date = Date()
+    ) -> [ClipboardEntry] {
+        pruneAndCapInternal(list, alreadyRemoved: [], maxUnpinned: max(1, maxUnpinned), ttl: ttl, now: now)
+    }
+
+    private static func pruneAndCapInternal(
+        _ list: [ClipboardEntry],
+        alreadyRemoved: [ClipboardEntry],
+        maxUnpinned: Int,
+        ttl: ClipboardRetentionTTL,
+        now: Date
+    ) -> [ClipboardEntry] {
+        let maxAge = ttl.ttlSeconds
         var unpinnedSeen = 0
         var kept: [ClipboardEntry] = []
-        kept.reserveCapacity(next.count)
-        for item in next {
+        var removed = alreadyRemoved
+        kept.reserveCapacity(list.count)
+        for item in list {
             if item.isPinned {
                 kept.append(item)
+                continue
+            }
+            if let maxAge, now.timeIntervalSince(item.capturedAt) > maxAge {
+                removed.append(item)
+                continue
+            }
+            unpinnedSeen += 1
+            if unpinnedSeen <= maxUnpinned {
+                kept.append(item)
             } else {
-                unpinnedSeen += 1
-                if unpinnedSeen <= maxUnpinned {
-                    kept.append(item)
-                } else {
-                    removed.append(item)
-                }
+                removed.append(item)
             }
         }
-        let activePaths = Set(kept.flatMap { $0.fileURLs.map(\.path) })
-        let safeToRemove = removed.filter { candidate in
-            candidate.fileURLs.allSatisfy { !activePaths.contains($0.path) }
+        if !removed.isEmpty {
+            let activePaths = Set(kept.flatMap { $0.fileURLs.map(\.path) })
+            let safeToRemove = removed.filter { candidate in
+                candidate.fileURLs.allSatisfy { !activePaths.contains($0.path) }
+            }
+            removeTempFiles(for: safeToRemove)
         }
-        removeTempFiles(for: safeToRemove)
         return kept
     }
 
@@ -190,12 +229,9 @@ public enum ClipboardService {
             switch category {
             case .all: catOK = true
             case .text: catOK = item.textValue != nil
-            case .image:
-                if case .image = item.payloadKind { catOK = true } else { catOK = false }
-            case .video:
-                if case .video = item.payloadKind { catOK = true } else { catOK = false }
-            case .file:
-                if case .file = item.payloadKind { catOK = true } else { catOK = false }
+            case .image: if case .image = item.payloadKind { catOK = true } else { catOK = false }
+            case .video: if case .video = item.payloadKind { catOK = true } else { catOK = false }
+            case .file: if case .file = item.payloadKind { catOK = true } else { catOK = false }
             case .pinned: catOK = item.isPinned
             }
             guard catOK else { return false }
@@ -222,19 +258,15 @@ public enum ClipboardService {
         let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if s.hasPrefix("#") {
             let hexPart = String(s.dropFirst())
-            if hexPart.count == 6, hexPart.allSatisfy(\.isHexDigit) {
-                return "#" + hexPart.uppercased()
-            }
+            if hexPart.count == 6, hexPart.allSatisfy(\.isHexDigit) { return "#" + hexPart.uppercased() }
             if hexPart.count == 3, hexPart.allSatisfy(\.isHexDigit) {
-                let expanded = hexPart.map { "\($0)\($0)" }.joined()
-                return "#" + expanded.uppercased()
+                return "#" + hexPart.map { "\($0)\($0)" }.joined().uppercased()
             }
             return nil
         }
         let lower = s.lowercased()
         if lower.hasPrefix("rgb("), lower.hasSuffix(")") {
-            let inner = lower.dropFirst(4).dropLast()
-            let comps = inner.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+            let comps = lower.dropFirst(4).dropLast().split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
             if comps.count == 3, comps.allSatisfy({ (0...255).contains($0) }) {
                 return String(format: "#%02X%02X%02X", comps[0], comps[1], comps[2])
             }
@@ -245,10 +277,8 @@ public enum ClipboardService {
     public static func hslString(fromHex hex: String) -> String? {
         let clean = hex.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "")
         guard clean.count == 6, let val = UInt32(clean, radix: 16) else { return nil }
-        let r = Double((val >> 16) & 0xFF) / 255.0
-        let g = Double((val >> 8) & 0xFF) / 255.0
-        let b = Double(val & 0xFF) / 255.0
-        let maxC = max(r, g, b), minC = min(r, g, b), delta = maxC - minC
+        let r = Double((val >> 16) & 0xFF) / 255.0, g = Double((val >> 8) & 0xFF) / 255.0, b = Double(val & 0xFF) / 255.0
+        let maxC = max(r, max(g, b)), minC = min(r, min(g, b)), delta = maxC - minC
         let l = (maxC + minC) / 2.0
         var h = 0.0, s = 0.0
         if delta > 0.0001 {

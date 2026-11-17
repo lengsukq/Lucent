@@ -9,6 +9,7 @@ extension PluginSystem {
         keywords: [String],
         description: String,
         mode: PluginMode = .script,
+        minAppVersion: String? = nil,
         author: String? = nil,
         icon: String? = nil,
         hotkey: String? = nil,
@@ -19,6 +20,9 @@ extension PluginSystem {
         capabilities: [PluginCapability] = [],
         resourceScopes: [PluginResourceScope] = [],
         accepts: [PluginContextKind]? = nil,
+        acceptExtensions: [String]? = nil,
+        acceptURLHosts: [String]? = nil,
+        timeoutSeconds: Double? = nil,
         commands: [PluginCommandSpec]? = nil,
         in rootDir: URL = defaultPluginsDirectory()
     ) throws -> PluginDescriptor {
@@ -39,8 +43,9 @@ extension PluginSystem {
 
         let manifest = PluginManifest(
             schemaVersion: 3,
-            id: id, name: name, version: "1.0.0", description: description,
-            mode: mode, keywords: keywords.isEmpty ? [id] : keywords, entry: entryName,
+            id: id, name: name, version: "1.0.0", minAppVersion: minAppVersion,
+            description: description, mode: mode,
+            keywords: keywords.isEmpty ? [id] : keywords, entry: entryName,
             author: author, icon: icon, hotkey: hotkey,
             includeInGlobalSearch: includeInGlobalSearch,
             searchIndexInGlobalSearch: searchIndexInGlobalSearch,
@@ -49,6 +54,9 @@ extension PluginSystem {
             capabilities: capabilities.map(\.rawValue),
             resourceScopes: resourceScopes.map(\.rawValue),
             accepts: accepts.map { $0.map(\.rawValue) },
+            acceptExtensions: acceptExtensions,
+            acceptURLHosts: acceptURLHosts,
+            timeoutSeconds: timeoutSeconds,
             commands: commands
         )
         let encoder = JSONEncoder()
@@ -124,8 +132,7 @@ extension PluginSystem {
         }
         if let secretKeys = secretFieldKeys(id: id, in: rootDir), !secretKeys.isEmpty {
             PluginKeychainStore.deleteSecrets(
-                pluginID: id,
-                fieldKeys: Array(secretKeys),
+                pluginID: id, fieldKeys: Array(secretKeys),
                 service: PluginDataPaths.keychainService(forPluginsRoot: rootDir),
                 customVaultURL: PluginDataPaths.scopedVaultFileURL(forPluginsRoot: rootDir)
             )

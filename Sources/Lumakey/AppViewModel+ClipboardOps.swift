@@ -134,20 +134,44 @@ extension AppViewModel {
         guard pb.changeCount != lastPasteboardChangeCount else { return }
         lastPasteboardChangeCount = pb.changeCount
         guard !isClipboardPaused else { return }
+        let sourceBundleID = (isOverlayVisible ? resolveOverlayTargetApp?() : NSWorkspace.shared.frontmostApplication)?.bundleIdentifier
+            ?? NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        if ClipboardService.shouldIgnoreSourceApp(
+            bundleIdentifier: sourceBundleID,
+            excludedBundleIDs: generalPreferences.clipboardExcludedBundleIDs
+        ) {
+            return
+        }
         if let entry = ClipboardService.captureCurrent(from: pb) {
-            clipboardItems = ClipboardService.insert(entry, into: clipboardItems)
+            clipboardItems = ClipboardService.insert(
+                entry,
+                into: clipboardItems,
+                maxUnpinned: generalPreferences.clipboardMaxUnpinned,
+                ttl: generalPreferences.clipboardRetentionTTL
+            )
         }
     }
 
     func startClipboardMonitor() {
         stopClipboardMonitor()
         lastPasteboardChangeCount = NSPasteboard.general.changeCount
+        var ticksSincePrune = 0
         clipboardTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(1500), tolerance: .milliseconds(250))
                 guard !Task.isCancelled, let self else { break }
                 if self.isCapturingScreen || self.isClipboardPaused { continue }
                 self.capturePasteboardOnceIfChanged()
+                ticksSincePrune &+= 1
+                if ticksSincePrune >= 20, self.generalPreferences.clipboardRetentionTTL != .forever {
+                    ticksSincePrune = 0
+                    let pruned = ClipboardService.pruneAndCap(
+                        self.clipboardItems,
+                        maxUnpinned: self.generalPreferences.clipboardMaxUnpinned,
+                        ttl: self.generalPreferences.clipboardRetentionTTL
+                    )
+                    if pruned != self.clipboardItems { self.clipboardItems = pruned }
+                }
             }
         }
     }

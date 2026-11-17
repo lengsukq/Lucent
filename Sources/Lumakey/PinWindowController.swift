@@ -32,6 +32,7 @@ final class PinWindowController {
     static let shared = PinWindowController()
     private var panels: [NSPanel] = []
     private var unlockBadges: [ObjectIdentifier: NSPanel] = [:]
+    var activePinCount: Int { panels.count }
     var availablePluginsProvider: (() -> [PluginDescriptor])?
     var onRouteToPlugin: ((PluginDescriptor, PluginContextPayload) -> Void)?
 

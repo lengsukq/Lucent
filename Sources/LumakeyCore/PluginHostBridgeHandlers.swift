@@ -16,6 +16,7 @@ public struct PluginBridgeHostContext: Sendable {
     public let interactiveCaptureHandler: (@Sendable () throws -> PluginCapturedScreenFile)?
     public let customWindowOpener: (@Sendable (PluginCustomWindowSpec) -> Bool)?
     public let customWindowCloser: (@Sendable (String, String) -> Bool)?
+    public let progressReporter: (@Sendable (PluginExecutionProgress) -> Void)?
 
     public init(
         everythingIndex: EverythingIndex? = nil,
@@ -30,7 +31,8 @@ public struct PluginBridgeHostContext: Sendable {
         pasteBackHandler: (@Sendable (String) -> PluginPasteBackOutcome)? = nil,
         interactiveCaptureHandler: (@Sendable () throws -> PluginCapturedScreenFile)? = nil,
         customWindowOpener: (@Sendable (PluginCustomWindowSpec) -> Bool)? = nil,
-        customWindowCloser: (@Sendable (String, String) -> Bool)? = nil
+        customWindowCloser: (@Sendable (String, String) -> Bool)? = nil,
+        progressReporter: (@Sendable (PluginExecutionProgress) -> Void)? = nil
     ) {
         self.everythingIndex = everythingIndex
         self.clipboardReader = clipboardReader ?? {
@@ -42,9 +44,7 @@ public struct PluginBridgeHostContext: Sendable {
                 return NSPasteboard.general.setString(text, forType: .string)
             }
         }
-        self.selectionReader = selectionReader ?? {
-            PluginSelectionReader.captureFrontmostSelection()
-        }
+        self.selectionReader = selectionReader ?? { PluginSelectionReader.captureFrontmostSelection() }
         self.preCapturedSelection = preCapturedSelection
         self.pluginID = pluginID
         self.pluginName = pluginName
@@ -54,6 +54,7 @@ public struct PluginBridgeHostContext: Sendable {
         self.interactiveCaptureHandler = interactiveCaptureHandler
         self.customWindowOpener = customWindowOpener
         self.customWindowCloser = customWindowCloser
+        self.progressReporter = progressReporter
     }
 
     public func scoped(to descriptor: PluginDescriptor) -> PluginBridgeHostContext {
@@ -70,7 +71,8 @@ public struct PluginBridgeHostContext: Sendable {
             pasteBackHandler: pasteBackHandler,
             interactiveCaptureHandler: interactiveCaptureHandler,
             customWindowOpener: customWindowOpener,
-            customWindowCloser: customWindowCloser
+            customWindowCloser: customWindowCloser,
+            progressReporter: progressReporter
         )
     }
 

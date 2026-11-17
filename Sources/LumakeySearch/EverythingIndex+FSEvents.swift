@@ -10,18 +10,27 @@ public extension EverythingIndex {
         ".gradle", ".cargo", ".rustup", ".npm"
     ]
 
-    func applyingFSEventDirectories(_ rawChangedDirs: Set<String>, maxNodes: Int = 260_000) -> EverythingIndex {
+    func applyingFSEventDirectories(
+        _ rawChangedDirs: Set<String>,
+        maxNodes: Int = 260_000,
+        excludedPaths: Set<String> = []
+    ) -> EverythingIndex {
         guard !rawChangedDirs.isEmpty, !rootPaths.isEmpty else { return self }
+        let normalizedExclusions = Self.normalizedExcludedSet(excludedPaths)
         let resolvedRoots = rootPaths.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().standardizedFileURL.path }
         var changedSet = Set<String>()
         for raw in rawChangedDirs {
             let std = URL(fileURLWithPath: raw).standardizedFileURL.path
+            if !normalizedExclusions.isEmpty && Self.isPathExcluded(std, excludedPaths: normalizedExclusions) { continue }
             let res = URL(fileURLWithPath: raw).resolvingSymlinksInPath().standardizedFileURL.path
             for (idx, rootPath) in rootPaths.enumerated() {
                 let resRoot = resolvedRoots[idx]
                 if std == rootPath || std.hasPrefix(rootPath + "/") { changedSet.insert(std) }
                 if res == resRoot || res.hasPrefix(resRoot + "/") {
-                    changedSet.insert(resRoot == rootPath ? res : rootPath + String(res.dropFirst(resRoot.count)))
+                    let mapped = resRoot == rootPath ? res : rootPath + String(res.dropFirst(resRoot.count))
+                    if normalizedExclusions.isEmpty || !Self.isPathExcluded(mapped, excludedPaths: normalizedExclusions) {
+                        changedSet.insert(mapped)
+                    }
                 }
             }
         }
@@ -61,11 +70,14 @@ public extension EverythingIndex {
                 active = true
                 let item = queues[rootIdx][heads[rootIdx]]
                 heads[rootIdx] += 1
+                if !normalizedExclusions.isEmpty && Self.isPathExcluded(item.path, excludedPaths: normalizedExclusions) {
+                    continue
+                }
                 let isRoot = item.parentNewID == -1
                 let shouldScan = changedSet.contains(item.path) || (!isRoot && item.oldDirID == nil)
 
                 if shouldScan {
-                    for child in scanSingleDirectory(at: item.path) {
+                    for child in scanSingleDirectory(at: item.path, excludedPaths: normalizedExclusions) {
                         if newNodes.count >= maxNodes { reachedLimit = true; break }
                         let newID = Int32(newNodes.count)
                         newNodes.append(IndexedNode(
@@ -84,6 +96,10 @@ public extension EverythingIndex {
                     let existing = isRoot ? oldRootChildren[rootIdx] : (item.oldDirID.map { oldChildren[$0] } ?? [])
                     for oldIdx in existing {
                         if newNodes.count >= maxNodes { reachedLimit = true; break }
+                        let childPath = oldPaths[oldIdx]
+                        if !normalizedExclusions.isEmpty && Self.isPathExcluded(childPath, excludedPaths: normalizedExclusions) {
+                            continue
+                        }
                         let old = nodes[oldIdx]
                         let newID = Int32(newNodes.count)
                         newNodes.append(IndexedNode(
@@ -93,7 +109,7 @@ public extension EverythingIndex {
                             name: old.name
                         ))
                         if old.isDirectory {
-                            queues[rootIdx].append(QueueItem(path: oldPaths[oldIdx], parentNewID: newID, oldDirID: oldIdx))
+                            queues[rootIdx].append(QueueItem(path: childPath, parentNewID: newID, oldDirID: oldIdx))
                         }
                     }
                 }
@@ -103,7 +119,7 @@ public extension EverythingIndex {
         return EverythingIndex(rootURLs: rootURLs, nodes: newNodes, builtAt: Date(), reachedNodeLimit: reachedLimit)
     }
 
-    private func scanSingleDirectory(at path: String) -> [(name: String, isDirectory: Bool)] {
+    private func scanSingleDirectory(at path: String, excludedPaths: Set<String>) -> [(name: String, isDirectory: Bool)] {
         guard let dir = path.withCString({ opendir($0) }) else { return [] }
         defer { closedir(dir) }
         var result: [(name: String, isDirectory: Bool)] = []
@@ -114,6 +130,7 @@ public extension EverythingIndex {
             }
             if name == "." || name == ".." || name.hasPrefix(".") { continue }
             let childPath = path == "/" ? "/\(name)" : "\(path)/\(name)"
+            if !excludedPaths.isEmpty && Self.isPathExcluded(childPath, excludedPaths: excludedPaths) { continue }
             let rawIsDir: Bool
             switch Int32(entry.pointee.d_type) {
             case DT_DIR: rawIsDir = true

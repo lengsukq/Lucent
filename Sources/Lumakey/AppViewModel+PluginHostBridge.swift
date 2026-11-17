@@ -37,6 +37,16 @@ extension AppViewModel {
                 Self.runOnMainActorSync {
                     PluginCustomWebWindowController.shared.close(pluginID: pluginID, windowID: windowID)
                 }
+            },
+            progressReporter: { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    if let pct = progress.fraction {
+                        self.serviceMessage = "\(progress.message) (\(Int((pct * 100).rounded()))%)"
+                    } else {
+                        self.serviceMessage = progress.message
+                    }
+                }
             }
         )
     }

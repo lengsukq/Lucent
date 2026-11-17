@@ -4,16 +4,6 @@ import LumakeyCore
 import SwiftUI
 import WebKit
 
-private final class PluginFramelessCanvasWindow: NSWindow {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
-}
-
-private final class PluginHUDCanvasPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-}
-
 @MainActor
 final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
     static let shared = PluginCustomWebWindowController()
@@ -21,16 +11,37 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
     private struct ManagedCanvas {
         let pluginID: String
         let windowID: String
-        let spec: PluginCustomWindowSpec
+        var spec: PluginCustomWindowSpec
         let window: NSWindow
         let webView: WKWebView?
         let coordinator: PluginWebBridgeCoordinator?
     }
 
     private var activeCanvases: [String: ManagedCanvas] = [:]
+    private weak var boundViewModel: AppViewModel?
     var onWindowVisibilityChanged: (() -> Void)?
 
-    private override init() { super.init() }
+    private override init() {
+        super.init()
+        PluginWebNetworkSandbox.prewarm()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleHostEnvChanged), name: .lumakeyLanguageDidChange, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleHostEnvChanged), name: .lumakeyThemeDidChange, object: nil
+        )
+    }
+
+    @objc private func handleHostEnvChanged() {
+        guard let vm = boundViewModel else { return }
+        for (key, managed) in activeCanvases {
+            guard let plug = vm.plugins.first(where: { $0.id == managed.pluginID }) else { continue }
+            let pinned = WindowLevelStore.shared.isPinned(key)
+            PluginWebEnvBroadcaster.pushEnvUpdate(
+                to: managed.webView, plugin: plug, pinOnTop: pinned, opacity: Double(managed.window.alphaValue)
+            )
+        }
+    }
 
     var hasStandardWindows: Bool {
         activeCanvases.values.contains { $0.spec.chrome != .hud && $0.window.isVisible }
@@ -38,14 +49,57 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
 
     var activeWindowCount: Int { activeCanvases.count }
 
+    func syncPluginState(for pluginID: String, plugins: [PluginDescriptor]) {
+        guard let plug = plugins.first(where: { $0.id == pluginID }) else { return }
+        for (key, managed) in activeCanvases where managed.pluginID == pluginID {
+            let pinned = WindowLevelStore.shared.isPinned(key)
+            PluginWebEnvBroadcaster.pushEnvUpdate(
+                to: managed.webView, plugin: plug, pinOnTop: pinned, opacity: Double(managed.window.alphaValue)
+            )
+        }
+    }
+
+    func persistCanvasFrame(forKey key: String) {
+        guard let managed = activeCanvases[key], managed.webView != nil else { return }
+        let frame = managed.window.frame
+        let saved = PluginSavedWindowFrame(
+            x: Int(frame.origin.x.rounded()),
+            y: Int(frame.origin.y.rounded()),
+            width: Int(frame.size.width.rounded()),
+            height: Int(frame.size.height.rounded()),
+            opacity: Double(managed.window.alphaValue),
+            pinOnTop: WindowLevelStore.shared.isPinned(key)
+        )
+        PluginWindowFrameStore.saveFrame(saved, pluginID: managed.pluginID, windowID: managed.windowID)
+    }
+
+    func resetCanvasToDefaults(forKey key: String, plugin: PluginDescriptor) {
+        guard let managed = activeCanvases[key] else { return }
+        let defSpec = PluginCustomWindowSpec.resolve(plugin: plugin, launch: PluginWindowLaunchEffect(windowID: managed.windowID))
+        managed.window.setContentSize(NSSize(width: CGFloat(defSpec.width), height: CGFloat(defSpec.height)))
+        PluginWebWindowBuilder.positionWindow(managed.window, spec: defSpec)
+        managed.window.alphaValue = defSpec.opacity
+        if plugin.grantedCapabilities.contains(.floatingWindow) || !defSpec.pinOnTop {
+            WindowLevelStore.shared.setPinned(defSpec.pinOnTop, forKey: key)
+        }
+        persistCanvasFrame(forKey: key)
+    }
+
     @discardableResult
     func open(spec rawSpec: PluginCustomWindowSpec, viewModel: AppViewModel) -> Bool {
+        boundViewModel = viewModel
         guard let plugin = viewModel.plugins.first(where: { $0.id == rawSpec.pluginID }),
               plugin.isBuiltin || plugin.isEnabled else {
             viewModel.serviceMessage = L10n.pick("未找到可用插件 '\(rawSpec.pluginID)'", "Plugin '\(rawSpec.pluginID)' not available")
             return false
         }
-        let spec = PluginCustomWindowSpec.resolve(plugin: plugin, baseSpec: rawSpec)
+        let resolvedBase = PluginCustomWindowSpec.resolve(plugin: plugin, baseSpec: rawSpec)
+        let savedFrame = PluginWindowFrameStore.loadFrame(pluginID: resolvedBase.pluginID, windowID: resolvedBase.windowID)
+        let spec = resolvedBase.applyingSavedFrame(
+            savedFrame,
+            hasExplicitOrigin: rawSpec.x != nil && rawSpec.y != nil,
+            canRestoreFloatingPin: plugin.grantedCapabilities.contains(.floatingWindow)
+        )
         let reqCap = spec.requiredCapability
         let isDeclared = plugin.declaredCapabilities.contains(reqCap)
             || (reqCap == .window && plugin.declaredCapabilities.contains(.floatingWindow))
@@ -69,7 +123,25 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         }
 
         if !spec.isSatisfied(by: plugin.grantedCapabilities) {
-            presentPermissionGateWindow(key: key, plugin: plugin, spec: spec, viewModel: viewModel)
+            let gateWindow = PluginWebWindowBuilder.makePermissionGateWindow(
+                plugin: plugin, capability: reqCap, delegate: self,
+                onAllow: { [weak self] in
+                    try? viewModel.setPluginCapabilityGranted(plugin, capability: reqCap, granted: true)
+                    _ = self?.close(key: key)
+                    _ = self?.open(spec: spec, viewModel: viewModel)
+                },
+                onOpenSettings: { [weak self] in
+                    _ = self?.close(key: key)
+                    viewModel.openPluginSettings(id: plugin.id)
+                },
+                onCancel: { [weak self] in _ = self?.close(key: key) }
+            )
+            activeCanvases[key] = ManagedCanvas(
+                pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: gateWindow, webView: nil, coordinator: nil
+            )
+            onWindowVisibilityChanged?()
+            NSApp.activate(ignoringOtherApps: true)
+            gateWindow.makeKeyAndOrderFront(nil)
             return true
         }
 
@@ -88,6 +160,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
 
     @discardableResult
     private func close(key: String) -> Bool {
+        persistCanvasFrame(forKey: key)
         guard let managed = activeCanvases.removeValue(forKey: key) else { return false }
         WindowLevelStore.shared.detach(key: key)
         managed.coordinator?.tearDown(webView: managed.webView)
@@ -103,10 +176,23 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         for key in Array(activeCanvases.keys) { _ = close(key: key) }
     }
 
+    func windowDidMove(_ notification: Notification) {
+        guard let win = notification.object as? NSWindow,
+              let key = activeCanvases.first(where: { $0.value.window === win })?.key else { return }
+        persistCanvasFrame(forKey: key)
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let win = notification.object as? NSWindow,
+              let key = activeCanvases.first(where: { $0.value.window === win })?.key else { return }
+        persistCanvasFrame(forKey: key)
+    }
+
     func windowWillClose(_ notification: Notification) {
         guard let closedWin = notification.object as? NSWindow,
-              let key = activeCanvases.first(where: { $0.value.window === closedWin })?.key,
-              let managed = activeCanvases.removeValue(forKey: key) else { return }
+              let key = activeCanvases.first(where: { $0.value.window === closedWin })?.key else { return }
+        persistCanvasFrame(forKey: key)
+        guard let managed = activeCanvases.removeValue(forKey: key) else { return }
         WindowLevelStore.shared.detach(key: key)
         managed.coordinator?.tearDown(webView: managed.webView)
         closedWin.delegate = nil
@@ -131,50 +217,13 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         return nil
     }
 
-    private func presentPermissionGateWindow(
-        key: String, plugin: PluginDescriptor, spec: PluginCustomWindowSpec, viewModel: AppViewModel
-    ) {
-        let reqCap = spec.requiredCapability
-        let gateWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 250),
-            styleMask: [.titled, .closable, .fullSizeContentView],
-            backing: .buffered, defer: false
-        )
-        gateWindow.title = "\(plugin.displayName) · \(L10n.pick("窗口权限确认", "Window Permission"))"
-        gateWindow.titlebarAppearsTransparent = true
-        gateWindow.isReleasedWhenClosed = false
-        gateWindow.delegate = self
-        gateWindow.center()
-
-        let gateView = PluginWindowPermissionGateView(
-            plugin: plugin, capability: reqCap,
-            onAllow: { [weak self] in
-                try? viewModel.setPluginCapabilityGranted(plugin, capability: reqCap, granted: true)
-                _ = self?.close(key: key)
-                _ = self?.open(spec: spec, viewModel: viewModel)
-            },
-            onOpenSettings: { [weak self] in
-                _ = self?.close(key: key)
-                viewModel.openPluginSettings(id: plugin.id)
-            },
-            onCancel: { [weak self] in _ = self?.close(key: key) }
-        )
-        gateWindow.contentView = NSHostingView(rootView: LocalizedRootContainer { gateView })
-        activeCanvases[key] = ManagedCanvas(
-            pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: gateWindow, webView: nil, coordinator: nil
-        )
-        onWindowVisibilityChanged?()
-        NSApp.activate(ignoringOtherApps: true)
-        gateWindow.makeKeyAndOrderFront(nil)
-    }
-
     private func presentWebCanvas(
         key: String, plugin: PluginDescriptor, spec: PluginCustomWindowSpec,
         source: HTMLContentSource, viewModel: AppViewModel
     ) {
-        let win = buildNativeWindow(for: spec, title: spec.title ?? plugin.displayName)
+        let win = PluginWebWindowBuilder.buildNativeWindow(for: spec, title: spec.title ?? plugin.displayName)
         win.delegate = self
-        positionWindow(win, spec: spec)
+        PluginWebWindowBuilder.positionWindow(win, spec: spec)
 
         let config = WKWebViewConfiguration()
         let coordinator = PluginWebBridgeCoordinator(pluginID: plugin.id, windowKey: key, viewModel: viewModel, window: win)
@@ -203,63 +252,20 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         )
         onWindowVisibilityChanged?()
 
-        switch source {
-        case .localFile(let fileURL, let root): webView.loadFileURL(fileURL, allowingReadAccessTo: root)
-        case .inlineHTML(let html, let baseURL): webView.loadHTMLString(html, baseURL: baseURL)
+        let allowNet = plugin.isResourceScopeGranted(.network)
+        Task { @MainActor [weak webView] in
+            if !allowNet, let rules = await PluginWebNetworkSandbox.ruleListForOfflineCanvas() {
+                webView?.configuration.userContentController.add(rules)
+            }
+            guard let webView else { return }
+            switch source {
+            case .localFile(let fileURL, let root): webView.loadFileURL(fileURL, allowingReadAccessTo: root)
+            case .inlineHTML(let html, let baseURL): webView.loadHTMLString(html, baseURL: baseURL)
+            }
         }
 
-        if spec.chrome == .hud {
-            win.orderFrontRegardless()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-            win.makeKeyAndOrderFront(nil)
-        }
-    }
-
-    private func buildNativeWindow(for spec: PluginCustomWindowSpec, title: String) -> NSWindow {
-        let rect = NSRect(x: 0, y: 0, width: spec.width, height: spec.height)
-        let win: NSWindow
-        switch spec.chrome {
-        case .standard:
-            var mask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
-            if spec.resizable { mask.insert(.resizable) }
-            win = NSWindow(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
-            win.title = title; win.titlebarAppearsTransparent = spec.transparent
-        case .frameless:
-            var mask: NSWindow.StyleMask = [.borderless]
-            if spec.resizable { mask.insert(.resizable) }
-            win = PluginFramelessCanvasWindow(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
-            win.title = title
-        case .hud:
-            var mask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
-            if spec.resizable { mask.insert(.resizable) }
-            let panel = PluginHUDCanvasPanel(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
-            panel.hidesOnDeactivate = false; panel.isFloatingPanel = true
-            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            win = panel; win.title = title
-        }
-        win.isReleasedWhenClosed = false
-        win.minSize = NSSize(width: spec.minWidth, height: spec.minHeight)
-        if spec.transparent || spec.chrome != .standard {
-            win.isOpaque = false; win.backgroundColor = .clear
-        }
-        win.hasShadow = !spec.transparent || spec.chrome == .standard
-        return win
-    }
-
-    private func positionWindow(_ window: NSWindow, spec: PluginCustomWindowSpec) {
-        let vis = ScreenTopologyAndWindowMatcher.activeCursorScreen()?.visibleFrame
-            ?? NSScreen.main?.visibleFrame
-            ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        if let x = spec.x, let y = spec.y {
-            let safeX = max(vis.minX + 8, min(CGFloat(x), vis.maxX - CGFloat(spec.width) - 8))
-            let safeY = max(vis.minY + 8, min(CGFloat(y), vis.maxY - CGFloat(spec.height) - 8))
-            window.setFrameOrigin(NSPoint(x: safeX, y: safeY))
-        } else if spec.chrome != .standard || spec.pinOnTop {
-            window.setFrameOrigin(NSPoint(x: vis.maxX - CGFloat(spec.width) - 24, y: vis.maxY - CGFloat(spec.height) - 36))
-        } else {
-            window.setFrameOrigin(NSPoint(x: vis.midX - CGFloat(spec.width) / 2, y: vis.midY - CGFloat(spec.height) / 2))
-        }
+        if spec.chrome == .hud { win.orderFrontRegardless() }
+        else { NSApp.activate(ignoringOtherApps: true); win.makeKeyAndOrderFront(nil) }
     }
 
     private func canvasKey(pluginID: String, windowID: String) -> String {

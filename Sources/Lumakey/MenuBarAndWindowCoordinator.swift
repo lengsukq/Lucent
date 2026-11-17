@@ -22,18 +22,40 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(handleLanguageChanged), name: .lumakeyLanguageDidChange, object: nil
         )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleMenuBarConfigChanged), name: .lumakeyMenuBarConfigDidChange, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleGeneralPreferencesChanged), name: .lumakeyGeneralPreferencesDidChange, object: nil
+        )
     }
 
     @objc private func handleLanguageChanged() { refreshLocalizedChrome() }
 
+    @objc private func handleMenuBarConfigChanged() {
+        viewModel.menuBarConfig = MenuBarConfig.load()
+        if let menu = statusItem?.menu { populateStatusMenu(menu) }
+    }
+
+    @objc private func handleGeneralPreferencesChanged() {
+        refreshStatusBarIcon()
+        syncDockPolicy()
+    }
+
     func start() {
-        setupStatusItem(); registerHotKeys(); installMemoryPressureMonitor(); viewModel.bootstrap()
+        setupStatusItem()
+        registerHotKeys()
+        installMemoryPressureMonitor()
+        viewModel.bootstrap()
+        syncDockPolicy()
         SystemPulseWindowController.shared.start(
             onPurgeMemory: { [weak self] in self?.viewModel.reclaimAllIdleMemoryNow() },
             onMenuBarUpdate: { [weak self] text in self?.statusItem?.button?.title = text.map { " " + $0 } ?? "" },
             onOpenNetworkMonitor: { [weak self] in self?.open(route: .networkMonitor) }
         )
-        panelController.show(filter: .all)
+        if !viewModel.generalPreferences.launchSilentlyInMenuBar {
+            panelController.show(filter: .all)
+        }
     }
 
     func showLauncher(filter: OmniFilter = .all) { panelController.show(filter: filter) }
@@ -179,6 +201,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
     }
 
     private func presentSettingsWindow() {
+        viewModel.refreshLaunchAtLoginStatus()
         presentWindow(
             key: "settings", title: "流光 Lumakey 设置与插件",
             size: NSSize(width: 980, height: 640), minSize: NSSize(width: 960, height: 620)

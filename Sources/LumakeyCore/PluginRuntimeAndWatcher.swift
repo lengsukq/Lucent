@@ -146,14 +146,15 @@ extension PluginSystem {
         contextPayload: PluginContextPayload? = nil,
         hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
-        timeoutSeconds: Double = 8.0
+        timeoutSeconds: Double? = nil
     ) throws -> PluginExecutionResult {
         try runExternalPlugin(
             descriptor,
             context: PluginExecutionContext(
                 query: query, arguments: arguments, clipboardText: clipboardText,
                 contextPayload: contextPayload, hostContext: hostContext,
-                pluginsRoot: rootDir, timeoutSeconds: timeoutSeconds
+                pluginsRoot: rootDir,
+                timeoutSeconds: timeoutSeconds ?? descriptor.manifest.effectiveTimeoutSeconds
             )
         )
     }
@@ -188,6 +189,11 @@ extension PluginSystem {
         if let dataDir { pluginVars["LUMAKEY_DATA_DIR"] = dataDir.path }
         if !descriptor.declaredCapabilities.isEmpty {
             let server = try PluginHostBridgeServer(descriptor: descriptor, grantedCapabilities: latestGrants, hostContext: context.hostContext)
+            bridgeServer = server
+            pluginVars["LUMAKEY_BRIDGE_SOCK"] = server.socketPath
+            pluginVars["LUMAKEY_BRIDGE_TOKEN"] = server.token
+        } else if context.hostContext.progressReporter != nil,
+                  let server = try? PluginHostBridgeServer(descriptor: descriptor, grantedCapabilities: latestGrants, hostContext: context.hostContext) {
             bridgeServer = server
             pluginVars["LUMAKEY_BRIDGE_SOCK"] = server.socketPath
             pluginVars["LUMAKEY_BRIDGE_TOKEN"] = server.token
@@ -245,12 +251,13 @@ extension PluginSystem {
         configOverrides: [String: String]? = nil,
         hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
-        timeoutSeconds: Double = 8.0
+        timeoutSeconds: Double? = nil
     ) throws -> PluginResolvedOutput {
         let context = PluginExecutionContext(
             query: query, arguments: arguments, clipboardText: clipboardText,
             contextPayload: contextPayload, configOverrides: configOverrides,
-            hostContext: hostContext, pluginsRoot: rootDir, timeoutSeconds: timeoutSeconds
+            hostContext: hostContext, pluginsRoot: rootDir,
+            timeoutSeconds: timeoutSeconds ?? descriptor.manifest.effectiveTimeoutSeconds
         )
         let providers: [any PluginExecutionProvider] = [BuiltinPluginProvider(), ExternalScriptPluginProvider()]
         guard let provider = providers.first(where: { $0.supports(descriptor) }) else {
@@ -268,16 +275,17 @@ extension PluginSystem {
         configOverrides: [String: String]? = nil,
         hostContext: PluginBridgeHostContext = .default,
         in rootDir: URL? = nil,
-        timeoutSeconds: Double = 8.0
+        timeoutSeconds: Double? = nil
     ) async throws -> PluginResolvedOutput {
         let cancelHandle = ProcessCancellationHandle()
+        let resolvedTimeout = timeoutSeconds ?? descriptor.manifest.effectiveTimeoutSeconds
         return try await withTaskCancellationHandler {
             try await Task.detached(priority: .userInitiated) {
                 let context = PluginExecutionContext(
                     query: query, arguments: arguments, clipboardText: clipboardText,
                     contextPayload: contextPayload, configOverrides: configOverrides,
                     hostContext: hostContext, pluginsRoot: rootDir,
-                    timeoutSeconds: timeoutSeconds, cancellationHandle: cancelHandle
+                    timeoutSeconds: resolvedTimeout, cancellationHandle: cancelHandle
                 )
                 let providers: [any PluginExecutionProvider] = [BuiltinPluginProvider(), ExternalScriptPluginProvider()]
                 guard let provider = providers.first(where: { $0.supports(descriptor) }) else {

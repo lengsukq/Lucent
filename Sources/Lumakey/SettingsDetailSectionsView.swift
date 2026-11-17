@@ -57,13 +57,13 @@ struct SettingsDetailSectionsView: View {
             VStack(spacing: 14) {
                 VStack(spacing: 10) {
                     SquircleBadge(symbol: "sparkles", topColor: .cyan, bottomColor: .indigo, size: 60)
-                    Text(L10n.pick("流光 Lumakey 0.8.9", "Lumakey 0.8.9")).font(.title2.weight(.bold))
-                    Text(L10n.pick("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 26", "Apple Silicon (arm64) Native Swift 6 · Zero Third-Party Dependencies · Build 26"))
+                    Text(L10n.pick("流光 Lumakey 0.9.0", "Lumakey 0.9.0")).font(.title2.weight(.bold))
+                    Text(L10n.pick("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 28", "Apple Silicon (arm64) Native Swift 6 · Zero Third-Party Dependencies · Build 28"))
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
                     Text(
                         L10n.pick(
-                            "轻量级菜单栏高效快捷中枢：内置中英双语实时切换与「凝霜留白」「霓彩流光」双视觉主题，统合全局智能检索、插件独立设置与按需快捷按钮、文件工作台多选归档、原生 GIF 录屏、智能截图标注与钉屏、离线 Vision OCR、WebDAV 云备份与插件系统 v3。",
-                            "Lightweight native menu bar productivity hub with live Chinese/English switching and dual built-in themes (Pure Frost & Prism Pulse), uniting omni-search, dedicated plugin settings & quick buttons, multi-volume file workspace, GIF capture, screenshot annotation & pinning, offline Vision OCR, WebDAV backup, and Plugin System v3."
+                            "轻量级菜单栏高效快捷中枢：内置中英双语实时切换与「凝霜留白」「霓彩流光」双视觉主题，统合全局智能检索、插件独立设置与按需快捷按钮、文件工作台多选归档、原生 GIF 录屏、智能截图标注与钉屏、离线 Vision OCR、WebDAV 云备份、GitHub 版本校验更新与插件系统 v3。",
+                            "Lightweight native menu bar productivity hub with live Chinese/English switching and dual built-in themes (Pure Frost & Prism Pulse), uniting omni-search, dedicated plugin settings & quick buttons, multi-volume file workspace, GIF capture, screenshot annotation & pinning, offline Vision OCR, WebDAV backup, verified GitHub updates, and Plugin System v3."
                         )
                     )
                     .font(.callout).multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 540)
@@ -82,6 +82,8 @@ struct SettingsDetailSectionsView: View {
                 }
                 .padding(20).frame(maxWidth: .infinity)
                 .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
+
+                SoftwareAndPluginUpdateCardView(viewModel: viewModel)
 
                 HStack(spacing: 10) {
                     aboutPillar("cpu", .cyan, "Native Services First", "完全基于 SwiftUI、AppKit、Vision 与 CoreGraphics 原生构建，无任何外部依赖或浏览器壳。")

@@ -38,6 +38,7 @@ enum BackupCoordinator {
         AppUsageService.shared.discardPendingAndReloadFromDisk()
         LocalSecretVault.clearMemoryCache()
 
+        viewModel.reloadGeneralPreferencesFromDisk()
         viewModel.applyMosConfig(report.mosConfig)
         let pulse = SystemPulseWindowController.shared
         pulse.state.config = report.telemetryConfig
@@ -47,7 +48,12 @@ enum BackupCoordinator {
 
         var merged = viewModel.clipboardItems
         for entry in report.restoredClipboardEntries.reversed() {
-            merged = ClipboardService.insert(entry, into: merged)
+            merged = ClipboardService.insert(
+                entry,
+                into: merged,
+                maxUnpinned: viewModel.generalPreferences.clipboardMaxUnpinned,
+                ttl: viewModel.generalPreferences.clipboardRetentionTTL
+            )
         }
         viewModel.clipboardItems = merged
         viewModel.reloadThemeFromDisk()

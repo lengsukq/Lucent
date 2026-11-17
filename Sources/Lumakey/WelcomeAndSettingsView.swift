@@ -2,15 +2,25 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
+@MainActor
+private final class SettingsSidebarCollapseState: ObservableObject {
+    @Published var showHiddenPlugins: Bool = false
+}
+
 struct SettingsCenterView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var languageManager = LanguageManager.shared
+    @ObservedObject private var updater = AppUpdateCoordinator.shared
+    @StateObject private var collapseState = SettingsSidebarCollapseState()
 
-    private var sidebarExternalPlugins: [PluginDescriptor] {
-        viewModel.plugins.filter { !$0.isBuiltin }
+    private var allExternalPlugins: [PluginDescriptor] { viewModel.plugins.filter { !$0.isBuiltin } }
+    private var visibleExternalPlugins: [PluginDescriptor] {
+        allExternalPlugins.filter { $0.showInSettingsSidebar || $0.id == viewModel.activePluginSettingsID }
     }
-
+    private var hiddenExternalPlugins: [PluginDescriptor] {
+        allExternalPlugins.filter { !$0.showInSettingsSidebar && $0.id != viewModel.activePluginSettingsID }
+    }
     private var detailIdentity: String {
         "\(viewModel.activeSettingsSection.canonicalSection.rawValue):\(viewModel.activePluginSettingsID ?? "core")"
     }
@@ -27,10 +37,7 @@ struct SettingsCenterView: View {
     var body: some View {
         let _ = languageManager.current
         SecondaryWindowScaffold(title: "流光设置与扩展中心", subtitle: currentSubtitle, symbol: "slider.horizontal.3", pinWindowKey: "settings") {
-            HStack(spacing: 12) {
-                sidebar
-                detailPane
-            }
+            HStack(spacing: 12) { sidebar; detailPane }
         }
         .frame(minWidth: 960, idealWidth: 980, maxWidth: .infinity, minHeight: 620, maxHeight: .infinity)
     }
@@ -39,20 +46,48 @@ struct SettingsCenterView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 2.5) {
                 sidebarGroupHeader("核心设置")
-                ForEach(SettingsSection.coreSidebarSections) { section in sectionButton(section) }
+                ForEach(SettingsSection.coreSidebarSections) { section in
+                    sectionButton(section, dotActive: coreSectionBadge(section))
+                }
                 Divider().opacity(0.25).padding(.vertical, 5)
                 sidebarGroupHeader("插件独立设置")
                 ForEach(SettingsSection.builtinPluginSections) { section in
                     sectionButton(section, dotActive: isBuiltinActive(section))
                 }
-                if !sidebarExternalPlugins.contains(where: { $0.id == LumaLinkServer.companionPluginID }) {
+                if !allExternalPlugins.contains(where: { $0.id == LumaLinkServer.companionPluginID }) {
                     sectionButton(.lumaLink, dotActive: viewModel.lumaLinkConfig.enabled)
                 }
-                ForEach(sidebarExternalPlugins) { plugin in externalPluginSidebarButton(plugin) }
+                ForEach(visibleExternalPlugins) { plugin in externalPluginSidebarButton(plugin) }
+                if !hiddenExternalPlugins.isEmpty {
+                    Button {
+                        withAnimation(LiquidMotion.snappySpring) { collapseState.showHiddenPlugins.toggle() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: collapseState.showHiddenPlugins ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 9.5, weight: .bold))
+                            Text(L10n.pick("已隐藏插件 (\(hiddenExternalPlugins.count))", "Hidden (\(hiddenExternalPlugins.count))"))
+                                .font(.caption2.weight(.semibold))
+                            Spacer()
+                        }
+                        .foregroundStyle(LiquidColors.textSecondary).padding(.horizontal, 8).padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    if collapseState.showHiddenPlugins {
+                        ForEach(hiddenExternalPlugins) { plugin in externalPluginSidebarButton(plugin) }
+                    }
+                }
             }
         }
         .padding(8).frame(width: 214).frame(maxHeight: .infinity, alignment: .topLeading)
         .liquidGlassCard(cornerRadius: LiquidRadii.bento)
+    }
+
+    private func coreSectionBadge(_ section: SettingsSection) -> Bool? {
+        switch section {
+        case .plugins: updater.pendingPluginUpdates.isEmpty ? nil : true
+        case .about: updater.hasAnyPendingUpdate ? true : nil
+        default: nil
+        }
     }
 
     private func sidebarGroupHeader(_ text: String) -> some View {
@@ -73,8 +108,7 @@ struct SettingsCenterView: View {
         let active = viewModel.activeSettingsSection.canonicalSection == section
         return Button {
             withAnimation(LiquidMotion.snappySpring) {
-                viewModel.activePluginSettingsID = nil
-                viewModel.activeSettingsSection = section
+                viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = section
             }
         } label: {
             HStack(alignment: .center, spacing: 9) {
@@ -97,8 +131,7 @@ struct SettingsCenterView: View {
         let active = viewModel.activeSettingsSection == .pluginDetail && viewModel.activePluginSettingsID == plugin.id
         return Button {
             withAnimation(LiquidMotion.snappySpring) {
-                viewModel.activePluginSettingsID = plugin.id
-                viewModel.activeSettingsSection = .pluginDetail
+                viewModel.activePluginSettingsID = plugin.id; viewModel.activeSettingsSection = .pluginDetail
             }
         } label: {
             HStack(alignment: .center, spacing: 9) {
@@ -132,22 +165,19 @@ struct SettingsCenterView: View {
                 case .shortcuts:
                     HotKeySettingsView(
                         hotKeyManager: viewModel.hotKeyManager ?? GlobalHotKeyManager.activeInstance,
-                        pluginHotKeys: viewModel.externalPluginHotKeys,
-                        plugins: viewModel.plugins,
+                        pluginHotKeys: viewModel.externalPluginHotKeys, plugins: viewModel.plugins,
                         onOpenPluginSettings: { id in viewModel.openPluginSettings(id: id) }
                     )
                 case .backup: BackupSettingsView(viewModel: viewModel)
                 default: SettingsDetailSectionsView(viewModel: viewModel, section: viewModel.activeSettingsSection.canonicalSection)
                 }
             }
-            .id(detailIdentity)
-            .transition(LiquidMotion.lensTransition)
+            .id(detailIdentity).transition(LiquidMotion.lensTransition)
         }
         .animation(LiquidMotion.snappySpring, value: detailIdentity)
         .padding(16)
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
-        .clipped()
-        .liquidGlassCard(cornerRadius: LiquidRadii.bento)
+        .clipped().liquidGlassCard(cornerRadius: LiquidRadii.bento)
     }
 
     private var generalSection: some View {
@@ -155,98 +185,25 @@ struct SettingsCenterView: View {
             VStack(alignment: .leading, spacing: 12) {
                 SettingsSectionHeroHeader(
                     symbol: "slider.horizontal.3", topColor: .blue, bottomColor: .indigo,
-                    title: "通用外观与全盘检索范围",
-                    subtitle: "语言、双视觉主题、程序坞驻留策略与默认磁盘检索范围设置；插件独立配置请直接点击左侧列表。"
+                    title: L10n.pick("通用启动、版本更新与检索范围", "General Startup, Updates & Search Scope"),
+                    subtitle: L10n.pick(
+                        "统一配置开机自启、静默驻留、应用与插件自动更新、状态栏菜单、多屏唤起及索引范围。",
+                        "Configure Launch at Login, silent residence, app & plugin updates, status bar menu, launcher behavior, and search scope."
+                    )
                 ) {
                     Button("关闭所有屏幕钉图") { PinWindowController.shared.closeAll() }
                         .buttonStyle(GlassPillButtonStyle())
                 }
+                StartupAndResidenceCardView(viewModel: viewModel)
+                SoftwareAndPluginUpdateCardView(viewModel: viewModel)
                 LanguageSettingsCardView(viewModel: viewModel)
                 ThemeSettingsCardView(viewModel: viewModel)
-                SettingsToggleCardRow(
-                    symbol: "macwindow", topColor: .blue, bottomColor: .indigo,
-                    title: "关闭全部窗口后仍在程序坞 (Dock) 常驻图标",
-                    subtitle: "打开文件工作台、影院播放、阅读或设置窗口时会自动显示 Dock 图标；仅全部关闭后按此开关收起",
-                    isOn: Binding(get: { viewModel.showDockIcon }, set: { viewModel.setDockIconVisible($0) })
-                )
-                searchScopeCard
-                signingStatusCard
+                MenuBarCustomizationCardView(viewModel: viewModel)
+                LauncherAndCaptureDefaultsCardView(viewModel: viewModel)
+                GeneralSearchScopeCardView(viewModel: viewModel)
+                GeneralSigningStatusCardView()
             }
             .padding(.trailing, 4)
         }
-    }
-
-    private var searchScopeCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Label("默认文件检索作用域", systemImage: "magnifyingglass.circle.fill")
-                    .font(.callout.weight(.semibold))
-                Text(viewModel.isIndexingEverything ? L10n.pick("索引中…", "Indexing…") : L10n.pick("\(viewModel.everythingNodeCount) 节点", "\(viewModel.everythingNodeCount) nodes"))
-                    .font(.caption2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(LiquidColors.accentPrimary)
-                    .padding(.horizontal, 8).padding(.vertical, 2.5)
-                    .background(LiquidColors.pillSurface, in: Capsule())
-                Spacer()
-                Button("重建磁盘缓存") { viewModel.forceRebuildEverythingIndex() }
-                    .buttonStyle(GlassPillButtonStyle(compact: true))
-                Button("立即呼出搜文件 (⌥F)") { viewModel.showOverlay(filter: .files) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
-            }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 185), spacing: 8)], spacing: 8) {
-                ForEach(viewModel.availableEverythingScopes) { scope in
-                    let active = viewModel.everythingScope == scope
-                    Button { viewModel.rebuildEverythingIndex(scope: scope) } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: scopeIcon(scope))
-                                .foregroundStyle(active ? Color.white : LiquidColors.accentPrimary)
-                            Text(scope.title).font(.caption.weight(.semibold)).lineLimit(1)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 10).padding(.vertical, 8)
-                        .foregroundStyle(active ? Color.white : LiquidColors.textPrimary)
-                        .background(active ? Color.accentColor : LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
-                        .overlay { RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
-                    }
-                    .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.control))
-                }
-            }
-        }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-    }
-
-    private func scopeIcon(_ scope: EverythingScope) -> String {
-        switch scope {
-        case .allVolumes: "externaldrive.fill.badge.checkmark"
-        case .quickUserFolders: "folder.fill"
-        case .home: "house.fill"
-        case .volume: "externaldrive.fill"
-        }
-    }
-
-    private var signingStatusCard: some View {
-        let sign = CodeSigningInspector.inspect()
-        return HStack(spacing: 12) {
-            SquircleBadge(
-                symbol: sign.isReadyForPublicDistribution ? "checkmark.seal.fill" : (sign.isStableForTCC ? "lock.shield.fill" : "shield.lefthalf.filled"),
-                topColor: sign.isStableForTCC ? .green : .blue,
-                bottomColor: sign.isStableForTCC ? .teal : .indigo,
-                size: 32
-            )
-            VStack(alignment: .leading, spacing: 2) {
-                Text(sign.badgeTitle).font(.callout.weight(.semibold))
-                Text(sign.explanation).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            if !sign.isStableForTCC {
-                Button("隐私与安全性…") {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-                .buttonStyle(GlassPillButtonStyle())
-            }
-        }
-        .padding(12).liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
     }
 }

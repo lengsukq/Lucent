@@ -8,10 +8,7 @@ import SwiftUI
 final class AppViewModel: ObservableObject {
     @Published var omniFilter: OmniFilter = .all
     @Published var overlayQuery: String = "" {
-        didSet {
-            guard overlayQuery != oldValue else { return }
-            handleOverlayQueryChanged()
-        }
+        didSet { if overlayQuery != oldValue { handleOverlayQueryChanged() } }
     }
     @Published var overlaySelectedIndex: Int = 0
     var userMovedOverlaySelection: Bool = false
@@ -20,14 +17,11 @@ final class AppViewModel: ObservableObject {
     @Published var showOverlayLens: Bool = false
     @Published var focusToken: Int = 0
     @Published var scopedPluginID: String? = nil {
-        didSet {
-            guard scopedPluginID != oldValue else { return }
-            if isOverlayVisible {
-                refreshDisplayedCandidates(resetSelection: true)
-            }
-        }
+        didSet { if scopedPluginID != oldValue, isOverlayVisible { refreshDisplayedCandidates(resetSelection: true) } }
     }
-    @Published var everythingScope: EverythingScope = .allVolumes
+    @Published var generalPreferences: GeneralPreferences
+    @Published var launchAtLoginStatus: LaunchAtLoginStatus = LaunchAtLoginService.currentStatus()
+    @Published var everythingScope: EverythingScope
     var isSyncingPinnedClipboardStore: Bool = false
     @Published var clipboardItems: [ClipboardEntry] = [] {
         didSet {
@@ -37,10 +31,7 @@ final class AppViewModel: ObservableObject {
         }
     }
     @Published var clipboardCategory: ClipboardCategory = .all {
-        didSet {
-            guard clipboardCategory != oldValue else { return }
-            refreshDisplayedCandidates(resetSelection: true)
-        }
+        didSet { if clipboardCategory != oldValue { refreshDisplayedCandidates(resetSelection: true) } }
     }
     @Published var isClipboardPaused: Bool = false
     @Published var canUndoClipboardDelete: Bool = false
@@ -51,14 +42,13 @@ final class AppViewModel: ObservableObject {
     @Published var inlineResultBody: String?
     @Published var inlinePluginViewPayload: PluginViewPayload?
     @Published var activeInlinePlugin: PluginDescriptor?
-    @Published var showDockIcon: Bool = false
+    @Published var showDockIcon: Bool
+    @Published var menuBarConfig: MenuBarConfig = MenuBarConfig.load()
     @Published var appTheme: AppThemeID = ThemeManager.shared.current
     @Published var appLanguage: AppLanguageID = LanguageManager.shared.current
     @Published var activeSettingsSection: SettingsSection = .general
     @Published var activePluginSettingsID: String? = nil
-    @Published var appLaunchCounts: [String: Int] = [:] {
-        didSet { updateCachedDockApps() }
-    }
+    @Published var appLaunchCounts: [String: Int] = [:] { didSet { updateCachedDockApps() } }
     @Published var isCapturingScreen: Bool = false
 
     @Published var mosConfig: MosConfig = MosConfig.load()
@@ -89,23 +79,14 @@ final class AppViewModel: ObservableObject {
         }
     }
     @Published var plugins: [PluginDescriptor] = [] {
-        didSet {
-            guard plugins != oldValue else { return }
-            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
-        }
+        didSet { if plugins != oldValue, isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) } }
     }
     @Published var pluginCommands: [PluginRegisteredCommand] = [] {
-        didSet {
-            guard pluginCommands != oldValue else { return }
-            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
-        }
+        didSet { if pluginCommands != oldValue, isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) } }
     }
     @Published var enabledQuickButtons: [PluginQuickButtonItem] = []
     @Published var pluginSearchEntries: [PluginSearchEntry] = [] {
-        didSet {
-            guard pluginSearchEntries != oldValue else { return }
-            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
-        }
+        didSet { if pluginSearchEntries != oldValue, isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) } }
     }
     @Published var pluginOutputText: String = ""
 
@@ -141,6 +122,7 @@ final class AppViewModel: ObservableObject {
     var hashTask: Task<Void, Never>?
     var clipboardTask: Task<Void, Never>?
     var indexUnloadTask: Task<Void, Never>?
+    var queryIdleClearTask: Task<Void, Never>?
     var leftDirectoryTask: Task<Void, Never>?
     var rightDirectoryTask: Task<Void, Never>?
     var locationRefreshTask: Task<Void, Never>?
@@ -166,6 +148,11 @@ final class AppViewModel: ObservableObject {
     var onDockVisibilityChanged: ((Bool) -> Void)?
 
     init() {
+        let initialPrefs = GeneralPreferences.load()
+        self.generalPreferences = initialPrefs
+        self.showDockIcon = initialPrefs.showDockIcon
+        self.everythingScope = EverythingScope(persisted: initialPrefs.defaultEverythingScope)
+
         let home = FileManager.default.homeDirectoryForCurrentUser
         let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first ?? home
         let leftTab = WorkspaceTab(directoryURL: home)
@@ -175,33 +162,25 @@ final class AppViewModel: ObservableObject {
     }
 
     func bootstrap() {
-        performStartupOrphanCleanup()
-        refreshCachedVolumes()
-        installVolumeObservers()
-        configureLifecycleIntegrations()
-        reloadAppsAndPlugins()
+        refreshLaunchAtLoginStatus()
+        GifCaptureController.shared.options = generalPreferences.gifDefaultOptions
+        performStartupOrphanCleanup(); refreshCachedVolumes(); installVolumeObservers()
+        configureLifecycleIntegrations(); reloadAppsAndPlugins()
         primeEverythingIndexOnStartup(scope: everythingScope)
-        MosEngine.shared.apply(config: mosConfig, persist: false)
-        refreshMosStatus()
-        LumaLinkServer.shared.onStatusChanged = { [weak self] in
-            self?.refreshLumaLinkStatus(refreshPermissions: false)
-        }
-        LumaLinkRdpSidecarService.shared.onStatusChanged = { [weak self] in
-            self?.refreshLumaLinkStatus(refreshPermissions: false)
-        }
-        let hasCompanionInstalledAndEnabled = plugins.contains {
-            $0.id == LumaLinkServer.companionPluginID && $0.isEnabled && $0.isValid
-        }
-        if hasCompanionInstalledAndEnabled && lumaLinkConfig.enabled {
+        MosEngine.shared.apply(config: mosConfig, persist: false); refreshMosStatus()
+        LumaLinkServer.shared.onStatusChanged = { [weak self] in self?.refreshLumaLinkStatus(refreshPermissions: false) }
+        LumaLinkRdpSidecarService.shared.onStatusChanged = { [weak self] in self?.refreshLumaLinkStatus(refreshPermissions: false) }
+        let hasCompanion = plugins.contains { $0.id == LumaLinkServer.companionPluginID && $0.isEnabled && $0.isValid }
+        if hasCompanion && lumaLinkConfig.enabled {
             LumaLinkServer.shared.apply(config: lumaLinkConfig, persist: false)
             refreshLumaLinkStatus(refreshPermissions: lumaLinkConfig.rdpEnabled)
         } else if lumaLinkConfig.enabled {
-            lumaLinkConfig.enabled = false
-            LumaLinkServer.shared.stopAll()
+            lumaLinkConfig.enabled = false; LumaLinkServer.shared.stopAll()
         }
-        loadPersistedPinnedClipboard()
-        startClipboardMonitor()
+        loadPersistedPinnedClipboard(); startClipboardMonitor()
         BackupCoordinator.triggerAutoBackupOnLaunchIfNeeded(viewModel: self)
+        AppUpdateCoordinator.shared.refreshCachedPluginUpdateCount(installedPlugins: plugins)
+        AppUpdateCoordinator.shared.performScheduledCheckOnStartupIfNeeded(viewModel: self)
         Task { [weak self] in
             let detected = await Task.detached(priority: .utility) { HostToolingStatus.detect() }.value
             self?.toolingStatus = detected
@@ -219,7 +198,6 @@ final class AppViewModel: ObservableObject {
     }
 
     var activePaneState: PaneState { activePane == .left ? leftPane : rightPane }
-
     func mutatePane(_ pane: PaneSide, _ transform: (inout PaneState) -> Void) {
         if pane == .left { transform(&leftPane) } else { transform(&rightPane) }
     }
@@ -231,16 +209,11 @@ final class AppViewModel: ObservableObject {
 
     var clipboardHistoryCount: Int { clipboardItems.count }
     var activeProcessCount: Int { ProcessSupervisor.shared.activeCount }
-
-    func updateCachedDockApps() {
-        cachedDockApps = Array(AppUsageService.shared.rankApps(installedApps).prefix(8))
-    }
+    func updateCachedDockApps() { cachedDockApps = Array(AppUsageService.shared.rankApps(installedApps).prefix(8)) }
 
     var availableEverythingScopes: [EverythingScope] {
         var list: [EverythingScope] = [.allVolumes, .quickUserFolders, .home]
-        for vol in cachedVolumes where vol.mountPath != "/" {
-            list.append(.volume(name: vol.name, mountPath: vol.mountPath))
-        }
+        for vol in cachedVolumes where vol.mountPath != "/" { list.append(.volume(name: vol.name, mountPath: vol.mountPath)) }
         return list
     }
 
@@ -248,8 +221,7 @@ final class AppViewModel: ObservableObject {
         let changed = (pane == .left ? leftPane : rightPane).currentDirectory.standardizedFileURL.path != url.standardizedFileURL.path
         mutatePane(pane) { state in
             if pushHistory, state.currentDirectory != url { state.history.append(state.currentDirectory) }
-            state.currentDirectory = url
-            state.diagnostic = nil
+            state.currentDirectory = url; state.diagnostic = nil
         }
         if changed && activePane == pane { clearWorkspaceSelection() }
         refreshDirectory(pane: pane)
@@ -262,12 +234,8 @@ final class AppViewModel: ObservableObject {
     }
 
     func addTab(pane: PaneSide) {
-        let baseURL = (pane == .left ? leftPane : rightPane).currentDirectory
-        let newTab = WorkspaceTab(directoryURL: baseURL)
-        mutatePane(pane) { state in
-            state.tabs.append(newTab)
-            state.activeTabID = newTab.id
-        }
+        let newTab = WorkspaceTab(directoryURL: (pane == .left ? leftPane : rightPane).currentDirectory)
+        mutatePane(pane) { state in state.tabs.append(newTab); state.activeTabID = newTab.id }
         refreshDirectory(pane: pane)
     }
 

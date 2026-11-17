@@ -1,130 +1,30 @@
 import AppKit
+import CoreGraphics
 import LumakeyCore
 import SwiftUI
 
 final class KeyableFloatingPanel: NSPanel {
+    weak var searchField: NSTextField?
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-}
 
-final class RoundedGlassContainerView: NSVisualEffectView {
-    private var currentCornerRadius: CGFloat
-    private let outerRimLayer = CAGradientLayer()
-    private let outerRimMask = CALayer()
-    private let innerRimLayer = CAGradientLayer()
-    private let innerRimMask = CALayer()
-    init(cornerRadius: CGFloat = LiquidRadii.panel) {
-        self.currentCornerRadius = cornerRadius
-        super.init(frame: .zero)
-        blendingMode = .behindWindow; state = .active
-        isEmphasized = true; wantsLayer = true
-        configureSpecularRimLayers()
-        applyCurrentThemeMetrics(force: true)
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(handleThemeChanged), name: .lumakeyThemeDidChange, object: nil
-        )
+    override func becomeKey() {
+        super.becomeKey()
+        focusSearchFieldIfNeeded(moveCursorToEnd: false)
     }
 
-    @objc private func handleThemeChanged() {
-        applyCurrentThemeMetrics(force: false)
-    }
-
-    required init?(coder: NSCoder) { nil }
-    override var mouseDownCanMoveWindow: Bool { true }
-
-    override func layout() {
-        super.layout()
-        CATransaction.begin(); CATransaction.setDisableActions(true)
-        layoutRimLayers()
-        CATransaction.commit()
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        updateRimAppearance()
-    }
-
-    func applyCurrentThemeMetrics(force: Bool) {
-        let isPrism = ThemeManager.currentSnapshot == .prismPulse
-        material = isPrism ? .popover : .menu
-        updateCornerRadius(LiquidRadii.panel, force: force)
-        updateRimAppearance()
-    }
-
-    func updateCornerRadius(_ radius: CGFloat, force: Bool = false) {
-        guard force || abs(radius - currentCornerRadius) > 0.4 else { return }
-        currentCornerRadius = radius
-        layer?.cornerRadius = radius
-        layer?.cornerCurve = .continuous
-        layer?.masksToBounds = true
-        maskImage = Self.makeRoundedMaskImage(cornerRadius: radius)
-        layoutRimLayers()
-    }
-
-    private func configureSpecularRimLayers() {
-        for (gradient, mask) in [(outerRimLayer, outerRimMask), (innerRimLayer, innerRimMask)] {
-            gradient.isGeometryFlipped = true
-            gradient.startPoint = CGPoint(x: 0.0, y: 0.0)
-            gradient.endPoint = CGPoint(x: 1.0, y: 1.0)
-            gradient.zPosition = 999
-            mask.backgroundColor = nil; mask.cornerCurve = .continuous; mask.borderColor = NSColor.black.cgColor
-            gradient.mask = mask
-            layer?.addSublayer(gradient)
+    @MainActor
+    func focusSearchFieldIfNeeded(moveCursorToEnd: Bool) {
+        guard let field = searchField, field.window === self else { return }
+        let activeEditor = field.currentEditor() as? NSTextView
+        if activeEditor == nil || firstResponder !== activeEditor {
+            _ = makeFirstResponder(field)
         }
-        outerRimMask.borderWidth = 1.1
-        innerRimMask.borderWidth = 0.75
-    }
-
-    private func layoutRimLayers() {
-        outerRimLayer.frame = bounds; outerRimMask.frame = bounds; outerRimMask.cornerRadius = currentCornerRadius
-        let insetBounds = bounds.insetBy(dx: 1.2, dy: 1.2)
-        innerRimLayer.frame = insetBounds
-        innerRimMask.frame = CGRect(origin: .zero, size: insetBounds.size)
-        innerRimMask.cornerRadius = max(0, currentCornerRadius - 1.2)
-    }
-
-    private func updateRimAppearance() {
-        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let isPrism = ThemeManager.currentSnapshot == .prismPulse
-        if SystemDisplayPreferences.shared.increaseContrast || !isPrism {
-            let alpha: CGFloat = SystemDisplayPreferences.shared.increaseContrast ? 0.28 : (isDark ? 0.18 : 0.12)
-            let edge = (isDark ? NSColor.white : NSColor.black).withAlphaComponent(alpha).cgColor
-            outerRimLayer.colors = [edge, edge]; outerRimLayer.locations = [0.0, 1.0]
-            innerRimLayer.isHidden = true
-            return
-        }
-        innerRimLayer.isHidden = false
-        outerRimLayer.colors = [
-            NSColor.white.withAlphaComponent(isDark ? 0.50 : 0.80).cgColor,
-            NSColor.systemCyan.withAlphaComponent(isDark ? 0.18 : 0.22).cgColor,
-            NSColor.systemPink.withAlphaComponent(isDark ? 0.30 : 0.34).cgColor
-        ]
-        outerRimLayer.locations = [0.0, 0.48, 1.0]
-        innerRimLayer.colors = [
-            NSColor.white.withAlphaComponent(isDark ? 0.24 : 0.40).cgColor,
-            NSColor.systemPurple.withAlphaComponent(isDark ? 0.18 : 0.14).cgColor,
-            NSColor.clear.cgColor
-        ]
-        innerRimLayer.locations = [0.0, 0.5, 1.0]
-    }
-
-    private static func makeRoundedMaskImage(cornerRadius: CGFloat) -> NSImage {
-        let safeRadius = max(2, cornerRadius)
-        let inset = ceil(safeRadius * 1.6) + 1
-        let edge = inset * 2 + 4
-        let renderer = ImageRenderer(content: RoundedRectangle(cornerRadius: safeRadius, style: .continuous).fill(Color.black).frame(width: edge, height: edge))
-        renderer.scale = 2.0
-        let image: NSImage
-        if let rendered = renderer.nsImage {
-            rendered.size = NSSize(width: edge, height: edge); image = rendered
-        } else {
-            image = NSImage(size: NSSize(width: edge, height: edge), flipped: false) { rect in
-                NSColor.black.setFill(); NSBezierPath(roundedRect: rect, xRadius: safeRadius, yRadius: safeRadius).fill(); return true
-            }
-        }
-        image.capInsets = NSEdgeInsets(top: inset, left: inset, bottom: inset, right: inset)
-        image.resizingMode = .stretch
-        return image
+        guard moveCursorToEnd,
+              let editor = fieldEditor(false, for: field) as? NSTextView,
+              !editor.hasMarkedText() else { return }
+        let len = (field.stringValue as NSString).length
+        editor.setSelectedRange(NSRange(location: len, length: 0))
     }
 }
 
@@ -135,12 +35,25 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
     private var panel: KeyableFloatingPanel?
     private unowned let viewModel: AppViewModel
     private var idleTeardownTask: Task<Void, Never>?
+    private var focusRetryTask: Task<Void, Never>?
     private var userDraggedTopCenter: NSPoint?
     private var isAdjustingFrame = false
+    private var isPresenting = false
     private var isHiding = false
     private(set) var previousFrontmostApp: NSRunningApplication?
 
-    init(viewModel: AppViewModel) { self.viewModel = viewModel; super.init() }
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        if viewModel.generalPreferences.rememberOverlayPosition,
+           let saved = viewModel.generalPreferences.savedOverlayTopCenter {
+            self.userDraggedTopCenter = NSPoint(x: saved.x, y: saved.y)
+        }
+        super.init()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleAppDidResignActive), name: NSApplication.didResignActiveNotification, object: nil
+        )
+    }
+
     var isVisible: Bool { panel?.isVisible == true && !isHiding }
 
     func toggle(filter: OmniFilter) {
@@ -149,6 +62,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
 
     func show(filter: OmniFilter) {
         idleTeardownTask?.cancel(); idleTeardownTask = nil
+        focusRetryTask?.cancel(); focusRetryTask = nil
         let panel = ensurePanel()
         let wasActivelyVisible = panel.isVisible && !isHiding
         isHiding = false
@@ -161,23 +75,26 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
             }
         }
         viewModel.prepareOverlay(filter: filter)
-        if !panel.isVisible {
+        if !wasActivelyVisible {
             positionPanel(panel, width: panelWidth, height: panelHeight, animated: false)
         }
+        isPresenting = true
+        if !NSApp.isActive { NSApp.activate(ignoringOtherApps: true) }
         if !wasActivelyVisible {
             WindowMotionAnimator.present(panel, style: .launcher, makeKey: true)
         } else {
             panel.alphaValue = 1.0
             panel.makeKeyAndOrderFront(nil)
         }
-        if !panel.isKeyWindow {
-            NSApp.activate(ignoringOtherApps: true)
-            panel.makeKeyAndOrderFront(nil)
-        }
+        panel.makeKeyAndOrderFront(nil)
+        panel.focusSearchFieldIfNeeded(moveCursorToEnd: true)
+        isPresenting = false
         viewModel.bumpFocusToken()
+        scheduleFocusReinforcement()
     }
 
     func hide(restorePreviousApp: Bool = true, immediately: Bool = false) {
+        focusRetryTask?.cancel(); focusRetryTask = nil
         guard let panel, panel.isVisible else { return }
         if isHiding && !immediately { return }
         isHiding = true
@@ -196,18 +113,47 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
 
     func resetPositionToCenter() {
         userDraggedTopCenter = nil
+        if viewModel.generalPreferences.savedOverlayTopCenter != nil {
+            viewModel.updateGeneralPreferences { $0.savedOverlayTopCenter = nil }
+        }
         guard let panel, panel.isVisible else { return }
         positionPanel(panel, width: panelWidth, height: panelHeight, animated: true)
     }
 
+    @objc private func handleAppDidResignActive() {
+        guard !isPresenting, isVisible, !viewModel.isOverlayPinned, !viewModel.isCapturingScreen else { return }
+        hide(restorePreviousApp: false)
+    }
+
     func windowDidResignKey(_ notification: Notification) {
-        guard !isHiding, !viewModel.isOverlayPinned, !viewModel.isCapturingScreen else { return }
+        guard !isPresenting, !isHiding, !viewModel.isOverlayPinned, !viewModel.isCapturingScreen else { return }
         hide(restorePreviousApp: false)
     }
 
     func windowDidMove(_ notification: Notification) {
         guard !isAdjustingFrame, !isHiding, let panel, panel.isVisible else { return }
-        userDraggedTopCenter = NSPoint(x: panel.frame.midX, y: panel.frame.maxY)
+        let pt = NSPoint(x: panel.frame.midX, y: panel.frame.maxY)
+        userDraggedTopCenter = pt
+        if viewModel.generalPreferences.rememberOverlayPosition {
+            let anchor = PersistedOverlayAnchor(x: Double(pt.x.rounded()), y: Double(pt.y.rounded()))
+            if viewModel.generalPreferences.savedOverlayTopCenter != anchor {
+                viewModel.updateGeneralPreferences { $0.savedOverlayTopCenter = anchor }
+            }
+        }
+    }
+
+    private func scheduleFocusReinforcement() {
+        focusRetryTask = Task { [weak self] in
+            for delayMs in [18, 75] {
+                try? await Task.sleep(for: .milliseconds(delayMs))
+                guard !Task.isCancelled, let self, self.isVisible, let panel = self.panel else { return }
+                self.isPresenting = true
+                if !NSApp.isActive { NSApp.activate(ignoringOtherApps: true) }
+                if !panel.isKeyWindow { panel.makeKeyAndOrderFront(nil) }
+                panel.focusSearchFieldIfNeeded(moveCursorToEnd: false)
+                self.isPresenting = false
+            }
+        }
     }
 
     private func ensurePanel() -> KeyableFloatingPanel {
@@ -216,6 +162,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
             contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false
         )
+        created.becomesKeyOnlyIfNeeded = false
         created.level = .floating; created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         created.isOpaque = false; created.backgroundColor = .clear; created.hasShadow = true
         created.isMovableByWindowBackground = true; created.hidesOnDeactivate = false; created.delegate = self
@@ -234,11 +181,44 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         return created
     }
 
+    private func resolveTargetScreen() -> NSScreen? {
+        switch viewModel.generalPreferences.overlayScreenTarget {
+        case .cursorScreen:
+            let mouse = NSEvent.mouseLocation
+            return NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main
+        case .focusedWindowScreen:
+            if let pid = previousFrontmostApp?.processIdentifier,
+               let winScreen = Self.screenForFrontmostWindow(pid: pid) {
+                return winScreen
+            }
+            return NSScreen.main ?? NSScreen.screens.first
+        case .primaryScreen:
+            return NSScreen.screens.first ?? NSScreen.main
+        }
+    }
+
+    private static func screenForFrontmostWindow(pid: pid_t) -> NSScreen? {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
+              let primaryH = NSScreen.screens.first?.frame.height else { return nil }
+        for info in list {
+            guard let owner = info[kCGWindowOwnerPID as String] as? pid_t, owner == pid,
+                  let layer = info[kCGWindowLayer as String] as? Int, layer == 0,
+                  let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
+                  let cgRect = CGRect(dictionaryRepresentation: boundsDict),
+                  cgRect.width >= 60, cgRect.height >= 60 else { continue }
+            let appKitMid = NSPoint(x: cgRect.midX, y: primaryH - cgRect.midY)
+            if let hit = NSScreen.screens.first(where: { $0.frame.contains(appKitMid) }) { return hit }
+        }
+        return nil
+    }
+
     private func positionPanel(_ panel: NSPanel, width: CGFloat, height: CGFloat, animated: Bool) {
-        let mouseLocation = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
+        let screen = resolveTargetScreen()
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let topCenter = (userDraggedTopCenter.flatMap { screen?.frame.contains($0) == true ? $0 : nil })
+        let activeSaved: NSPoint? = viewModel.generalPreferences.rememberOverlayPosition
+            ? (userDraggedTopCenter ?? viewModel.generalPreferences.savedOverlayTopCenter.map { NSPoint(x: $0.x, y: $0.y) })
+            : nil
+        let topCenter = (activeSaved.flatMap { screen?.frame.contains($0) == true ? $0 : nil })
             ?? NSPoint(x: visible.midX, y: visible.maxY - 72)
         let x = min(max(visible.minX + 16, topCenter.x - width / 2.0), visible.maxX - width - 16)
         let y = min(max(visible.minY + 24, topCenter.y - height), visible.maxY - height - 12)

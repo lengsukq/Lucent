@@ -100,6 +100,32 @@ extension AppViewModel {
         }
     }
 
+    func executeMenuBarPluginItem(_ item: PluginQuickButtonItem) {
+        switch item.target {
+        case .plugin(let pluginID):
+            guard let plugin = plugins.first(where: { $0.id == pluginID }) else { return }
+            if plugin.isBuiltin {
+                runPlugin(plugin, query: "", showInline: false)
+            } else if plugin.manifest.window != nil && plugin.isCapabilityGranted(.floatingWindow) {
+                let spec = PluginCustomWindowSpec.resolve(plugin: plugin)
+                _ = PluginCustomWebWindowController.shared.open(spec: spec, viewModel: self)
+            } else {
+                enterPluginScopedOverlay(plugin)
+            }
+        case .command(let pluginID, let commandID):
+            guard let plugin = plugins.first(where: { $0.id == pluginID }),
+                  let spec = plugin.declaredCommands.first(where: { $0.id == commandID })
+            else { return }
+            let silent = spec.silentWhenHotKeyTriggered ?? plugin.isBuiltin
+            if !silent {
+                onShowOverlayRequest?(.plugins)
+                scopedPluginID = plugin.id
+                overlayQuery = ""
+            }
+            runPlugin(plugin, query: "", arguments: spec.arguments, showInline: !silent)
+        }
+    }
+
     func togglePluginCommandQuickButton(_ regCmd: PluginRegisteredCommand) {
         setPluginCommandQuickButton(
             pluginID: regCmd.pluginID, commandID: regCmd.command.id,
@@ -112,6 +138,17 @@ extension AppViewModel {
             try PluginSystem.setPluginCommandQuickButton(pluginID: pluginID, commandID: commandID, enabled: enabled)
             reloadPlugins()
             serviceMessage = enabled ? "已将「\(title)」添加到快捷按钮栏" : "已将「\(title)」从快捷按钮栏移除"
+        } catch {
+            serviceMessage = error.localizedDescription
+        }
+    }
+
+    func setPluginCommandMenuBar(pluginID: String, commandID: String, title: String, enabled: Bool) {
+        do {
+            try PluginSystem.setPluginCommandMenuBar(pluginID: pluginID, commandID: commandID, enabled: enabled)
+            reloadPlugins()
+            NotificationCenter.default.post(name: .lumakeyMenuBarConfigDidChange, object: nil)
+            serviceMessage = enabled ? "已将「\(title)」挂载到状态栏菜单" : "已从状态栏菜单移除「\(title)」"
         } catch {
             serviceMessage = error.localizedDescription
         }

@@ -60,7 +60,7 @@ struct PluginCommandSettingsCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     Label(
-                        L10n.pick("子功能 · 全局搜索、独立快捷键与快捷按钮", "Commands · Global Search, Hotkeys & Quick Buttons"),
+                        L10n.pick("子功能 · 全局搜索、热键、快捷按钮与菜单栏", "Commands · Search, Hotkeys, Quick Buttons & Menu Bar"),
                         systemImage: "bolt.horizontal.circle.fill"
                     )
                     .font(.callout.weight(.semibold))
@@ -80,8 +80,8 @@ struct PluginCommandSettingsCard: View {
                 }
 
                 Text(L10n.pick(
-                    "每项子功能可按注册策略或手动开关独立决定是否接入 ⌥Space 全局搜索，支持单独录制全局热键（⌫ 清空）或挂载快捷按钮。",
-                    "Each command can independently join ⌥Space Global Search (via manifest default or user override), bind a global hotkey, or mount as a Quick Button."
+                    "每项子功能可独立决定是否接入 ⌥Space 全局搜索、单独录制全局热键（⌫ 清空）、挂载浮窗快捷按钮或挂载至顶部状态栏菜单。",
+                    "Each command can join Global Search, bind a global hotkey, mount as a Quick Button, or appear in the status bar menu."
                 ))
                 .font(.caption2)
                 .foregroundStyle(LiquidColors.textSecondary)
@@ -100,6 +100,7 @@ struct PluginCommandSettingsCard: View {
 
     private func commandRow(_ spec: PluginCommandSpec) -> some View {
         let isQuickOn = plugin.overrides.quickButtonCommandIDs.contains(spec.id)
+        let isMenuOn = plugin.overrides.menuBarCommandIDs.contains(spec.id)
         let isSearchOn = plugin.isCommandSearchEnabled(spec)
         let cmdTitle = plugin.manifest.localizedCommandTitle(spec)
         let cmdSub = plugin.manifest.localizedCommandSubtitle(spec)
@@ -110,7 +111,7 @@ struct PluginCommandSettingsCard: View {
             ? (spec.icon ?? plugin.symbolIconName)
             : plugin.symbolIconName
 
-        return HStack(alignment: .center, spacing: 12) {
+        return HStack(alignment: .center, spacing: 10) {
             PluginIconBadge(
                 symbol: sym, customIconURL: customIcon,
                 accentColor: isQuickOn ? "orange" : plugin.manifest.accentColor,
@@ -131,7 +132,7 @@ struct PluginCommandSettingsCard: View {
                             .padding(.horizontal, 5.5).padding(.vertical, 1.5)
                             .background(LiquidColors.pillSurface, in: Capsule())
                     }
-                    ForEach(spec.keywords.prefix(3), id: \.self) { kw in
+                    ForEach(spec.keywords.prefix(2), id: \.self) { kw in
                         Text(kw)
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundStyle(LiquidColors.accentPrimary)
@@ -145,9 +146,9 @@ struct PluginCommandSettingsCard: View {
                     .foregroundStyle(LiquidColors.textSecondary)
                     .lineLimit(1)
             }
-            .frame(minWidth: 160, maxWidth: .infinity, alignment: .leading)
+            .frame(minWidth: 130, maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 commandHotKeyButton(spec: spec, currentHotKey: cmdHK, isRecording: isRecording)
 
                 Toggle(L10n.pick("搜索", "Search"), isOn: Binding(
@@ -161,6 +162,12 @@ struct PluginCommandSettingsCard: View {
                     set: { viewModel.setPluginCommandQuickButton(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
                 ))
                 .font(.caption2.weight(.semibold)).fixedSize(horizontal: true, vertical: false).tint(.orange)
+
+                Toggle(L10n.pick("菜单栏", "Menu"), isOn: Binding(
+                    get: { isMenuOn },
+                    set: { viewModel.setPluginCommandMenuBar(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
+                ))
+                .font(.caption2.weight(.semibold)).fixedSize(horizontal: true, vertical: false).tint(.cyan)
 
                 Button(L10n.pick("运行", "Run")) {
                     viewModel.runPlugin(plugin, query: "", arguments: spec.arguments, showInline: false)

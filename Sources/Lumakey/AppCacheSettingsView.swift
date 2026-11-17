@@ -51,6 +51,15 @@ struct AppCacheSettingsView: View {
     @ObservedObject var viewModel: AppViewModel
     @StateObject private var cacheState = AppCacheViewState()
 
+    private var dynamicSubtitle: String {
+        let prefs = viewModel.generalPreferences
+        let ttlText = prefs.clipboardRetentionTTL.localizedTitle
+        return L10n.pick(
+            "统一治理剪贴板隐私与历史（未收藏上限 \(prefs.clipboardMaxUnpinned) 条 · 过期策略：\(ttlText)）、截图/GIF 缓存与全盘索引快照。",
+            "Manage clipboard privacy & retention (\(prefs.clipboardMaxUnpinned) unpinned cap · Auto-expire: \(ttlText)), capture caches, and index snapshots."
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             SettingsSectionHeroHeader(
@@ -58,7 +67,7 @@ struct AppCacheSettingsView: View {
                 topColor: .orange,
                 bottomColor: .indigo,
                 title: "存储、剪贴板与内存管理",
-                subtitle: "统一治理剪贴板媒体（自动跳过密码管理器隐私项 · 未收藏上限 80 条）、截图/GIF 缓存与全盘索引快照。"
+                subtitle: dynamicSubtitle
             ) {
                 HStack(spacing: 8) {
                     Button { cacheState.refresh(viewModel: viewModel) } label: {
@@ -84,6 +93,7 @@ struct AppCacheSettingsView: View {
             }
 
             summaryCard
+            ClipboardPrivacySettingsCardView(viewModel: viewModel)
 
             if let banner = cacheState.statusBanner {
                 HStack(spacing: 8) {

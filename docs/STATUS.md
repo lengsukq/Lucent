@@ -2,6 +2,24 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.9.6)
+
+- **开机自启、静默驻留与全量基础偏好体系闭环 (`LaunchAtLoginService`, `GeneralPreferencesModels`, `GeneralPreferencesStore`, `AppViewModel+GeneralPreferences`, `GeneralStartupAndBehaviorCardView`, `ClipboardPrivacySettingsCardView`, `LumakeyGeneralPreferencesTests`)**：
+  - **原生 `SMAppService.mainApp` 开机自启与启动静默驻留（P0）**：严格遵守零 `launchd` 守护进程原则，接入 macOS 原生登录项注册/注销与实时状态感知（区分「已开启 / 未开启 / 需在系统设置批准 / 需放入 `/Applications`」并提供一键跳转系统登录项按钮）；新增「启动时静默驻留状态栏（不自动弹出快捷台）」开关（开启自启时自动联动启用），并补齐 `showDockIcon`（程序坞常驻）与 `defaultEverythingScope`（默认文件检索作用域）的磁盘持久化恢复（自动随 `general-preferences.json` 纳入 `.lumakeybackup` 与 WebDAV 云备份）；
+  - **快捷台 (`⌥Space`) 多屏/清理交互偏好与零死键焦点加固（P1）**：新增隐藏面板后搜索词清理策略（`隐藏 30 秒后清空 / 立即清空 / 保留上次输入`）、多显示器唤起屏幕策略（`跟随鼠标屏幕 / 跟随焦点窗口屏幕 / 固定主显示器`）、手动拖拽面板坐标持久化记忆，以及 4 款顶部状态栏图标样式切换；同时彻底修复冷启动/隐藏 30s 重建及未激活态下的输入框失焦问题，补齐标准 `Edit` 主菜单与任意按键自动聚焦搜索框兜底；
+  - **应用自身更新与插件后台自动更新中心 (`AppUpdateModels`, `AppUpdateService`, `AppUpdateCoordinator`, `SoftwareAndPluginUpdateCardView`)**：零第三方依赖直连官方 GitHub Releases 接口检测新版本（支持每日 / 每次启动 / 每周 / 仅手动检查、预览版开关与跳过指定版本），支持一键下载 `.dmg` 并自动校验 `.dmg.sha256` 完整性后挂载打开（未公证构建附带一键复制本地保留 TCC 权限重签命令）；同时打通已订阅插件源的后台自动检查与**「仅自动静默升级零新增权限的安全插件（涉及权限升级仍需手动确认）」**策略，并在状态栏菜单与设置侧边栏实时展示新版本提醒；
+  - **剪贴板容量/过期/应用黑名单、截图/GIF 默认工作流与索引排除路径（P1 + P2）**：在存储与缓存页开放未收藏保留条数（`30 / 80 / 200 / 500` 条）、自动过期周期（`永不 / 24h / 7天 / 30天`，收藏项永久豁免）与「剪贴板忽略应用」黑名单（支持本机应用拼音搜索勾选与访达选取 `.app`）；新增截图与 GIF 默认导出目录（默认 `~/Pictures/Lumakey`）、「`⌘S` 免弹窗一键直存」、独立窗口截图默认去阴影与 GIF 默认帧率/画质持久化记忆；全盘检索新增用户级自定义排除文件夹列表（初次扫描与 `FSEvents` 增量监听双端跳过）。
+
+## 已完成与已验证 (v0.9.5)
+
+- **顶部状态栏菜单可定制化体系与 `NSMenuDelegate` 实时动态渲染 (`MenuBarConfigModels`, `MenuBarConfigStore`, `MenuBarCustomizationCardView`, `MenuBarAndWindowCoordinator+Menus`, `PluginCommandModels`)**：
+  - **三档预设、逐项显隐排序与二级收纳子菜单**：新增 `MenuBarConfig`（持久化至 `~/Library/Application Support/Lumakey/menubar-config.json` 并自动纳入 `.lumakeybackup` 与 WebDAV 云备份），内置「精简核心（约 6 项）」「效率常用（默认推荐，高频置顶 + 低频维护折叠为二级菜单）」「完整全量」三套预设，支持逐项开关与 `↑/↓` 排序，并锁定「设置中心」与「退出」始终常驻防迷路；
+  - **上下文按需显隐、真实热键与实时勾选态同步**：状态栏菜单接入 `NSMenuDelegate.menuNeedsUpdate`，每次点开即时同步 `HotKeyBindingConfig` 真实自定义快捷键并映射至原生 `NSMenuItem.keyEquivalent`、实时渲染系统脉搏/菜单栏读数/鼠标平滑的 `✓` 勾选态；开启按需隐藏后，无活跃钉图/自由窗口时自动收起对应清理项（活跃时显示实时数量如 `关闭全部钉图 (2)`），未安装或未启用流光随行时默认不占行；同时支持将外部插件主入口或具体子功能按需挂载至状态栏菜单（`showInMenuBar` / `menuBarCommandIDs`，默认全关）。
+- **插件系统 Plugin v3.7 六项体验与安全闭环完善 (`PluginModels`, `PluginSystem`, `PluginWindowStateAndProgress`, `PluginWebCanvasSupport`, `PluginCustomWebWindowController`, `PluginStoreController`, `PluginStoreMarketplaceView`, `PluginStoreSheetsView`, `WelcomeAndSettingsView`)**：
+  - **已声明字段全链路闭环**：设置中心左侧栏接入 `showInSettingsSidebar` 过滤并提供「已隐藏插件」折叠抽屉与独立开关；`PluginSystem.validate` 与 `PluginStoreService` 落地 `minAppVersion` 宿主最低版本比对拦截；
+  - **`WKWebView` 网络沙盒对齐、窗口几何记忆与环境热推送**：未获授 `network` 作用域的自由画布窗口自动注入编译缓存的 `WKContentRuleList` 拦截外网 `http(s)/ws(s)` 请求；新增 `PluginWindowFrameStore`（`window-frames.json`）按 `windowID` 自动记忆拖拽坐标、缩放尺寸、透明度与置顶状态（支持 `lumakey.window.resetFrame()` 与设置页一键重置）；宿主切换语言、主题或权限时向活跃画布实时广播 `lumakey:envChanged` 事件；
+  - **插件商店跨源聚合更新、权限升级提醒、精细上下文与实时进度桥接**：商店市场新增跨订阅源「检查全部更新」「一键更新 (N)」角标、关键词筛选、`changelog` 展示与升级新增 `capabilities` / `resourceScopes` 时的 `PluginUpdateEscalationSheet` 差异确认弹窗；`accepts` 新增 `acceptExtensions` 与 `acceptURLHosts` 精准过滤；支持 `timeoutSeconds`（`3~30s`）与 Host Bridge 零特权 `op: "progress"` 实时阶段文案上报；新增 `LumakeyPluginPolishAndMenuBarTests` 单元测试套件。
+
 ## 已完成与已验证 (v0.9.4)
 
 - **外部插件「不限样式自由画布窗口 (`WKWebView` / 无边框置顶 HUD)」与「宿主统一代申系统 TCC 权限」体系 (`PluginCustomWindowModels`, `PluginCustomWebWindowController`, `PluginWebBridgeCoordinator`, `PluginWebSDKBootstrap`, `PluginHostTCCBroker`, `PluginScreenAndWindowBridge`, `AppViewModel+PluginHostBridge`, `plugin-demo/ai-quota` v1.2.0)**：

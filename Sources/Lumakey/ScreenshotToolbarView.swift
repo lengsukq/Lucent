@@ -37,6 +37,9 @@ struct ScreenshotToolbarView: View {
                         tint: .cyan
                     ) {
                         session.excludeWindowShadow.toggle()
+                        var prefs = GeneralPreferences.load()
+                        prefs.screenshotExcludeWindowShadow = session.excludeWindowShadow
+                        prefs.save()
                         onAction(.syncClipboard)
                     }
                 }

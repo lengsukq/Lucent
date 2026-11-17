@@ -133,6 +133,24 @@ enum EverythingScope: Hashable, Identifiable {
     case home
     case volume(name: String, mountPath: String)
 
+    init(persisted: PersistedEverythingScope) {
+        switch persisted {
+        case .allVolumes: self = .allVolumes
+        case .quickUserFolders: self = .quickUserFolders
+        case .home: self = .home
+        case .volume(let name, let mountPath): self = .volume(name: name, mountPath: mountPath)
+        }
+    }
+
+    var persisted: PersistedEverythingScope {
+        switch self {
+        case .allVolumes: .allVolumes
+        case .quickUserFolders: .quickUserFolders
+        case .home: .home
+        case .volume(let name, let mountPath): .volume(name: name, mountPath: mountPath)
+        }
+    }
+
     var id: String {
         switch self {
         case .allVolumes: "all"

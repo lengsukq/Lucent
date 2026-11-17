@@ -85,15 +85,14 @@ extension PluginSystem {
         next.commandSearchOverrides = cleanedCmdSearch
         next.priorityBoost = min(max(next.priorityBoost, -200), 300)
         next.quickButtonCommandIDs = deduplicateIDs(next.quickButtonCommandIDs)
+        next.menuBarCommandIDs = deduplicateIDs(next.menuBarCommandIDs)
         inst.overrides = next
         snap.plugins[id] = inst
         try saveStateSnapshot(snap, in: rootDir)
     }
 
     public static func setPluginCommandHotKey(
-        pluginID: String,
-        commandID: String,
-        hotKey: String?,
+        pluginID: String, commandID: String, hotKey: String?,
         in rootDir: URL = defaultPluginsDirectory()
     ) throws {
         guard PluginCommandRegistry.isSafeCommandID(commandID) else {
@@ -109,9 +108,7 @@ extension PluginSystem {
     }
 
     public static func setPluginCommandQuickButton(
-        pluginID: String,
-        commandID: String,
-        enabled: Bool,
+        pluginID: String, commandID: String, enabled: Bool,
         in rootDir: URL = defaultPluginsDirectory()
     ) throws {
         guard PluginCommandRegistry.isSafeCommandID(commandID) else {
@@ -119,36 +116,44 @@ extension PluginSystem {
         }
         try updatePluginOverrides(id: pluginID, in: rootDir) { ov in
             if enabled {
-                if !ov.quickButtonCommandIDs.contains(commandID) {
-                    ov.quickButtonCommandIDs.append(commandID)
-                }
+                if !ov.quickButtonCommandIDs.contains(commandID) { ov.quickButtonCommandIDs.append(commandID) }
             } else {
                 ov.quickButtonCommandIDs.removeAll { $0 == commandID }
             }
         }
     }
 
-    public static func setPluginCommandSearchEnabled(
-        pluginID: String,
-        commandID: String,
-        enabled: Bool?,
+    public static func setPluginCommandMenuBar(
+        pluginID: String, commandID: String, enabled: Bool,
         in rootDir: URL = defaultPluginsDirectory()
     ) throws {
         guard PluginCommandRegistry.isSafeCommandID(commandID) else {
             throw LumakeyError.pluginInvalid("子功能 id '\(commandID)' 不合法")
         }
         try updatePluginOverrides(id: pluginID, in: rootDir) { ov in
-            if let enabled {
-                ov.commandSearchOverrides[commandID] = enabled
+            if enabled {
+                if !ov.menuBarCommandIDs.contains(commandID) { ov.menuBarCommandIDs.append(commandID) }
             } else {
-                ov.commandSearchOverrides.removeValue(forKey: commandID)
+                ov.menuBarCommandIDs.removeAll { $0 == commandID }
             }
         }
     }
 
+    public static func setPluginCommandSearchEnabled(
+        pluginID: String, commandID: String, enabled: Bool?,
+        in rootDir: URL = defaultPluginsDirectory()
+    ) throws {
+        guard PluginCommandRegistry.isSafeCommandID(commandID) else {
+            throw LumakeyError.pluginInvalid("子功能 id '\(commandID)' 不合法")
+        }
+        try updatePluginOverrides(id: pluginID, in: rootDir) { ov in
+            if let enabled { ov.commandSearchOverrides[commandID] = enabled }
+            else { ov.commandSearchOverrides.removeValue(forKey: commandID) }
+        }
+    }
+
     public static func setPluginSearchIndexGlobalEnabled(
-        pluginID: String,
-        enabled: Bool?,
+        pluginID: String, enabled: Bool?,
         in rootDir: URL = defaultPluginsDirectory()
     ) throws {
         try updatePluginOverrides(id: pluginID, in: rootDir) { ov in
@@ -157,8 +162,7 @@ extension PluginSystem {
     }
 
     public static func resetPluginOverrides(
-        id: String,
-        in rootDir: URL = defaultPluginsDirectory()
+        id: String, in rootDir: URL = defaultPluginsDirectory()
     ) throws {
         guard isValidAnyPluginID(id) else {
             throw LumakeyError.pluginInvalid("插件 id '\(id)' 不合法")
@@ -173,8 +177,7 @@ extension PluginSystem {
     }
 
     public static func recordPluginUsage(
-        id: String,
-        at now: Date = Date(),
+        id: String, at now: Date = Date(),
         in rootDir: URL = defaultPluginsDirectory()
     ) {
         guard isValidAnyPluginID(id) else { return }

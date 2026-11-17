@@ -7,6 +7,7 @@ extension AppViewModel {
         stopIndexWatcher()
         everythingScope = scope
         isIndexingEverything = true
+        let excluded = generalPreferences.excludedIndexPathSet
 
         everythingIndexTask = Task { [weak self] in
             guard let self else { return }
@@ -17,7 +18,7 @@ extension AppViewModel {
             self.cachedVolumes = volumes
 
             let rootSetup = Self.resolveIndexRoots(scope: scope, externals: externals)
-            let scopeKey = Self.snapshotScopeKey(scope: scope, roots: rootSetup.allRoots)
+            let scopeKey = Self.snapshotScopeKey(scope: scope, roots: rootSetup.allRoots, excludedPaths: excluded)
 
             if let meta = await Task.detached(priority: .utility, operation: {
                 EverythingSnapshotStore.readHeaderMetadata(scopeKey: scopeKey, expectedRoots: rootSetup.allRoots)
@@ -31,7 +32,9 @@ extension AppViewModel {
                 return
             }
 
-            let built = await Self.buildScopedIndex(scope: scope, rootSetup: rootSetup, priority: .utility)
+            let built = await Self.buildScopedIndex(
+                scope: scope, rootSetup: rootSetup, excludedPaths: excluded, priority: .utility
+            )
             guard !Task.isCancelled else { return }
             if let built {
                 self.everythingNodeCount = built.nodes.count
@@ -72,6 +75,7 @@ extension AppViewModel {
         stopIndexWatcher()
         everythingScope = scope
         isIndexingEverything = true
+        let excluded = generalPreferences.excludedIndexPathSet
 
         everythingIndexTask = Task { [weak self] in
             guard let self else { return }
@@ -81,7 +85,7 @@ extension AppViewModel {
             guard !Task.isCancelled else { return }
 
             let rootSetup = Self.resolveIndexRoots(scope: scope, externals: externals)
-            let scopeKey = Self.snapshotScopeKey(scope: scope, roots: rootSetup.allRoots)
+            let scopeKey = Self.snapshotScopeKey(scope: scope, roots: rootSetup.allRoots, excludedPaths: excluded)
 
             if !forceRebuild,
                let cached = await Task.detached(priority: .userInitiated, operation: {
@@ -96,7 +100,9 @@ extension AppViewModel {
                 return
             }
 
-            let finalIndex = await Self.buildScopedIndex(scope: scope, rootSetup: rootSetup, priority: .userInitiated) { [weak self] stage1 in
+            let finalIndex = await Self.buildScopedIndex(
+                scope: scope, rootSetup: rootSetup, excludedPaths: excluded, priority: .userInitiated
+            ) { [weak self] stage1 in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.everythingIndex = stage1
@@ -120,24 +126,25 @@ extension AppViewModel {
     private static func buildScopedIndex(
         scope: EverythingScope,
         rootSetup: (fastRoots: [URL], slowRoots: [URL], allRoots: [URL]),
+        excludedPaths: Set<String>,
         priority: TaskPriority,
         onStage1: (@Sendable (EverythingIndex) -> Void)? = nil
     ) async -> EverythingIndex? {
         if scope == .allVolumes {
             let stage1 = await Task.detached(priority: priority) {
-                try? EverythingIndex.build(rootURLs: rootSetup.fastRoots, maxNodes: 140_000)
+                try? EverythingIndex.build(rootURLs: rootSetup.fastRoots, maxNodes: 140_000, excludedPaths: excludedPaths)
             }.value
             guard !Task.isCancelled else { return nil }
             if let stage1, let onStage1 { onStage1(stage1) }
             guard !rootSetup.slowRoots.isEmpty else { return stage1 }
             let stage2 = await Task.detached(priority: .utility) {
-                try? EverythingIndex.build(rootURLs: rootSetup.slowRoots, maxNodes: 120_000)
+                try? EverythingIndex.build(rootURLs: rootSetup.slowRoots, maxNodes: 120_000, excludedPaths: excludedPaths)
             }.value
             guard !Task.isCancelled else { return stage1 }
             return stage2.map { stage1?.merging($0) ?? $0 } ?? stage1
         }
         return await Task.detached(priority: priority) {
-            try? EverythingIndex.build(rootURLs: rootSetup.allRoots, maxNodes: 180_000)
+            try? EverythingIndex.build(rootURLs: rootSetup.allRoots, maxNodes: 180_000, excludedPaths: excludedPaths)
         }.value
     }
 
@@ -151,13 +158,17 @@ extension AppViewModel {
             return summary.map { !VolumeInspector.isSlowOrRemoteVolume($0) } ?? true
         }
         guard !watchRoots.isEmpty else { return }
-        let resolvedKey = scopeKey ?? Self.snapshotScopeKey(scope: everythingScope, roots: index.rootURLs)
+        let excluded = generalPreferences.excludedIndexPathSet
+        let resolvedKey = scopeKey ?? Self.snapshotScopeKey(
+            scope: everythingScope, roots: index.rootURLs, excludedPaths: excluded
+        )
 
         fsEventWatcher = EverythingFSEventWatcher(roots: watchRoots, debounceInterval: 0.9) { [weak self] changedDirs in
             Task { @MainActor [weak self] in
                 guard let self, let current = self.everythingIndex else { return }
+                let activeExcluded = self.generalPreferences.excludedIndexPathSet
                 let updated = await Task.detached(priority: .utility) {
-                    current.applyingFSEventDirectories(changedDirs)
+                    current.applyingFSEventDirectories(changedDirs, excludedPaths: activeExcluded)
                 }.value
                 guard self.everythingIndex?.rootPaths == current.rootPaths else { return }
                 self.everythingIndex = updated
@@ -203,8 +214,10 @@ extension AppViewModel {
         return (roots, [], roots)
     }
 
-    private static func snapshotScopeKey(scope: EverythingScope, roots: [URL]) -> String {
-        let joined = roots.map(\.standardizedFileURL.path).sorted().joined(separator: "|")
-        return "\(scope.id)|\(joined)"
+    private static func snapshotScopeKey(scope: EverythingScope, roots: [URL], excludedPaths: Set<String>) -> String {
+        let joinedRoots = roots.map(\.standardizedFileURL.path).sorted().joined(separator: "|")
+        guard !excludedPaths.isEmpty else { return "\(scope.id)|\(joinedRoots)" }
+        let joinedExcl = excludedPaths.sorted().joined(separator: ";")
+        return "\(scope.id)|\(joinedRoots)|excl:\(joinedExcl)"
     }
 }

@@ -138,7 +138,13 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
         }
         let trimmed = raw.drop(while: { $0 == 0x0A })
         let lineData = trimmed.firstIndex(of: 0x0A).map { Data(trimmed[..<$0]) } ?? Data(trimmed)
-        let response = routeRequestData(lineData)
+        let response = Self.evaluateRequestData(
+            lineData,
+            expectedToken: token,
+            descriptor: descriptor,
+            grantedCapabilities: grantedCapabilities,
+            hostContext: hostContext
+        )
         if var outData = try? JSONSerialization.data(withJSONObject: response, options: [.sortedKeys, .withoutEscapingSlashes]) {
             outData.append(0x0A)
             outData.withUnsafeBytes { ptr in
@@ -153,12 +159,30 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
         }
     }
 
-    private func routeRequestData(_ data: Data) -> [String: Any] {
+    public static func evaluateRequestData(
+        _ data: Data,
+        expectedToken: String,
+        descriptor: PluginDescriptor,
+        grantedCapabilities: Set<PluginCapability>,
+        hostContext: PluginBridgeHostContext
+    ) -> [String: Any] {
         guard let req = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return PluginHostBridgeHandlers.errorJSON("invalid_json", "请求必须是单行 JSON 对象")
         }
-        guard let supplied = req["token"] as? String, supplied == token else {
+        guard let supplied = req["token"] as? String, supplied == expectedToken else {
             return PluginHostBridgeHandlers.errorJSON("invalid_token", "Host Bridge 一次性令牌校验失败")
+        }
+        let opRaw = (req["op"] as? String) ?? (req["capability"] as? String) ?? ""
+        if opRaw == "progress" {
+            let params = (req["params"] as? [String: Any]) ?? req
+            let msg = (params["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !msg.isEmpty else {
+                return PluginHostBridgeHandlers.errorJSON("invalid_params", "progress 上报缺少非空 message 参数")
+            }
+            let frac = (params["fraction"] as? NSNumber)?.doubleValue
+            let progress = PluginExecutionProgress(pluginID: descriptor.id, message: msg, fraction: frac)
+            hostContext.progressReporter?(progress)
+            return ["ok": true, "action": "progress", "data": ["message": progress.message]]
         }
         guard let capRaw = req["capability"] as? String,
               let capability = PluginCapability(rawValue: capRaw)

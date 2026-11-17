@@ -18,7 +18,7 @@ final class GifCaptureController: ObservableObject {
     static let shared = GifCaptureController()
 
     @Published private(set) var phase: GifCapturePhase = .idle
-    @Published var options: GifRecordingOptions = GifRecordingOptions()
+    @Published var options: GifRecordingOptions = GeneralPreferences.load().gifDefaultOptions
     @Published private(set) var elapsedSeconds: Double = 0
     @Published private(set) var encodedFrameCount: Int = 0
     @Published private(set) var mergedFrameCount: Int = 0
@@ -40,14 +40,13 @@ final class GifCaptureController: ObservableObject {
     private var pendingCompletionHandler: ((GifFinalizeResult) -> Void)?
 
     private init() {}
-
     var isActive: Bool { phase != .idle }
 
     func startInteractiveCapture(options overrideOptions: GifRecordingOptions? = nil, onComplete: ((GifFinalizeResult) -> Void)? = nil) {
         if case .recording = phase { hudPanel?.orderFrontRegardless(); return }
         if case .encoding = phase { return }
         cleanupAllResources(discardEncoder: true, animatedHUD: false)
-        if let overrideOptions { self.options = overrideOptions }
+        self.options = overrideOptions ?? GeneralPreferences.load().gifDefaultOptions
         self.pendingCompletionHandler = onComplete
 
         guard CGPreflightScreenCaptureAccess() else {
@@ -104,8 +103,19 @@ final class GifCaptureController: ObservableObject {
     }
 
     func saveResultAs(_ result: GifFinalizeResult) {
+        let prefs = GeneralPreferences.load()
+        let saveDir = prefs.resolvedCaptureSaveDirectory()
+        try? FileManager.default.createDirectory(at: saveDir, withIntermediateDirectories: true)
+        let fileName = "Lumakey-GIF-\(ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")).gif"
+        if prefs.quickSaveCaptureWithoutDialog {
+            let dst = saveDir.appendingPathComponent(fileName, isDirectory: false)
+            try? FileManager.default.removeItem(at: dst); try? FileManager.default.copyItem(at: result.fileURL, to: dst)
+            _ = GifStreamEncoder.copyGifToPasteboard(at: dst)
+            onStatusMessage?(L10n.pick("GIF 已保存至默认目录：\(dst.lastPathComponent)", "GIF saved to default folder: \(dst.lastPathComponent)"))
+            return
+        }
         let panel = NSSavePanel(); panel.allowedContentTypes = [.gif]
-        panel.nameFieldStringValue = "Lumakey-GIF-\(ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")).gif"
+        panel.directoryURL = saveDir; panel.nameFieldStringValue = fileName
         NSApp.activate(ignoringOtherApps: true)
         if panel.runModal() == .OK, let dst = panel.url {
             try? FileManager.default.removeItem(at: dst); try? FileManager.default.copyItem(at: result.fileURL, to: dst)
@@ -168,20 +178,20 @@ final class GifCaptureController: ObservableObject {
     private func beginRecordingFromSelection() {
         guard let session = selectionSession, let sel = session.selectionRect?.standardized, sel.width >= 12, sel.height >= 12 else { return }
         options = session.options
+        var prefs = GeneralPreferences.load()
+        if prefs.gifDefaultOptions != session.options { prefs.gifDefaultOptions = session.options; prefs.save() }
         let appKitRegion = session.appKitScreenRect(for: sel)
         let targetSlice = session.topology.targetSlice(forSelection: sel, fallbackPoint: session.cursorPoint) ?? session.topology.displays[0]
         let lockedWindowID = session.selectedWindow?.id
         let displaySpecs = session.topology.displays.map { (scDisplay: $0.scDisplay, canvasFrame: $0.canvasFrame, scale: $0.scale) }
         let outDims = session.outputDimensions(for: sel)
 
-        closeSelectionPanels()
-        elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0
+        closeSelectionPanels(); elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0
         phase = .recording(isPaused: false)
         if lockedWindowID == nil { borderPanels = RecordingRegionBorderPanel.presentBorders(forAppKitRect: appKitRegion) }
         hudPanel = GifHUDPanel.present(near: appKitRegion, visibleFrame: targetSlice.appKitScreen.visibleFrame, controller: self)
 
-        let encoder = GifStreamEncoder(options: options)
-        activeEncoder = encoder
+        let encoder = GifStreamEncoder(options: options); activeEncoder = encoder
         var excludedIDs = Set(borderPanels.map { CGWindowID($0.windowNumber) })
         if let hudID = hudPanel.map({ CGWindowID($0.windowNumber) }) { excludedIDs.insert(hudID) }
 
@@ -223,9 +233,7 @@ final class GifCaptureController: ObservableObject {
                 if encoder.encodedFrameCount > 0 { finishRecording() } else { cancelCapture() }
                 return
             }
-            guard let frame = next.image, !Task.isCancelled else {
-                try? await Task.sleep(for: .milliseconds(25)); continue
-            }
+            guard let frame = next.image, !Task.isCancelled else { try? await Task.sleep(for: .milliseconds(25)); continue }
             guard case .recording(let pausedAfter) = phase, !pausedAfter else { lastUptime = nil; continue }
             let now = ProcessInfo.processInfo.systemUptime
             let delta = lastUptime.map { min(max(now - $0, nominal * 0.4), 1.0) } ?? nominal

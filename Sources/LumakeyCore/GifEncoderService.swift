@@ -5,7 +5,7 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-public struct GifRecordingOptions: Codable, Sendable, Equatable {
+public struct GifRecordingOptions: Codable, Sendable, Equatable, Hashable {
     public static let fpsPresets: [Int] = [10, 15, 20]
     public static let dimensionPresets: [Int] = [640, 960, 1280]
 

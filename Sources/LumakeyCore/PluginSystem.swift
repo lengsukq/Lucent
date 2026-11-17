@@ -3,6 +3,18 @@ import Foundation
 
 public enum PluginSystem {
     static let stateLock = NSLock()
+    public static let fallbackHostAppVersion = "0.9.0"
+
+    public static var currentHostAppVersion: String {
+        if let bundled = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            let trimmed = bundled.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty,
+               PluginVersionComparator.compare(trimmed, fallbackHostAppVersion) != .orderedAscending {
+                return trimmed
+            }
+        }
+        return fallbackHostAppVersion
+    }
 
     public static func defaultPluginsDirectory() -> URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -82,10 +94,7 @@ public enum PluginSystem {
         let issues = validate(manifest: manifest, in: directoryURL)
         let inst = snapshot.plugins[manifest.id] ?? PluginInstanceState()
         let config = resolvedConfig(
-            for: manifest,
-            stored: inst.configValues,
-            pluginsRoot: resolvedRoot,
-            includeSecrets: includeSecrets
+            for: manifest, stored: inst.configValues, pluginsRoot: resolvedRoot, includeSecrets: includeSecrets
         )
         let granted = Set(inst.grantedCapabilities.compactMap { PluginCapability(rawValue: $0) })
         let revokedScopes = Set(inst.revokedResourceScopes.compactMap { PluginResourceScope(rawValue: $0) })
@@ -141,12 +150,23 @@ public enum PluginSystem {
         )
     }
 
-    public static func validate(manifest: PluginManifest, in directoryURL: URL) -> [String] {
+    public static func validate(
+        manifest: PluginManifest,
+        in directoryURL: URL,
+        hostAppVersion: String = currentHostAppVersion
+    ) -> [String] {
         var issues: [String] = []
         if !isSafePluginID(manifest.id) { issues.append("id 仅允许小写字母、数字与连字符") }
         if PluginBuiltinRegistry.isBuiltin(id: manifest.id) { issues.append("id '\(manifest.id)' 为内置插件保留前缀") }
         if manifest.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { issues.append("name 不能为空") }
         if manifest.keywords.isEmpty { issues.append("keywords 至少包含一个触发词") }
+        if let minVer = manifest.minAppVersion?.trimmingCharacters(in: .whitespacesAndNewlines), !minVer.isEmpty,
+           PluginVersionComparator.compare(hostAppVersion, minVer) == .orderedAscending {
+            issues.append("插件要求宿主最低版本 v\(minVer)（当前 v\(hostAppVersion)）")
+        }
+        if let timeout = manifest.timeoutSeconds, (!timeout.isFinite || timeout < 3.0 || timeout > 30.0) {
+            issues.append("timeoutSeconds 必须在 3 ~ 30 秒之间")
+        }
         if let iconErr = PluginIconResolver.validateManifestIcon(manifest.icon, in: directoryURL) {
             issues.append(iconErr)
         }
@@ -190,6 +210,18 @@ public enum PluginSystem {
         }
         for rawAccept in manifest.accepts ?? [] where PluginContextKind(rawValue: rawAccept) == nil {
             issues.append("未知 accepts 上下文类型声明：'\(rawAccept)'")
+        }
+        for rawExt in manifest.acceptExtensions ?? [] {
+            let clean = rawExt.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "."))
+            if clean.isEmpty || clean.contains("/") || clean.contains("..") {
+                issues.append("acceptExtensions 包含非法扩展名：'\(rawExt)'")
+            }
+        }
+        for rawHost in manifest.acceptURLHosts ?? [] {
+            let clean = rawHost.trimmingCharacters(in: .whitespacesAndNewlines)
+            if clean.isEmpty || clean.contains("/") || clean.contains(" ") {
+                issues.append("acceptURLHosts 包含非法域名：'\(rawHost)'")
+            }
         }
         var seenCmdIDs = Set<String>()
         for cmd in manifest.commands ?? [] {

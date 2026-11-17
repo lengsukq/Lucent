@@ -25,6 +25,7 @@ public enum PluginStorePackager {
         downloadURL: String? = nil,
         homepage: String? = nil,
         minAppVersion: String? = nil,
+        changelog: String? = nil,
         updateRegistryAt registryFileURL: URL? = nil,
         storeId: String = "custom-store",
         storeName: String = "Custom Lumakey Store",
@@ -63,16 +64,17 @@ public enum PluginStorePackager {
             throw LumakeyError.pluginInvalid("生成 .zip 归档失败：\(res.stderr.trimmingCharacters(in: .whitespacesAndNewlines))")
         }
 
-        // Remove __MACOSX metadata if ditto emitted any, or re-verify clean unpack
         let sha256 = PluginStoreService.computeSHA256Hex(archiveData)
         let m = loaded.manifest
         let effectiveDownloadURL = (downloadURL?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? "./\(pluginID).zip"
+        let effectiveMinApp = (minAppVersion?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? m.minAppVersion
 
         let item = PluginStoreItem(
             id: m.id,
             name: m.name,
             version: m.version,
-            minAppVersion: minAppVersion,
+            minAppVersion: effectiveMinApp,
+            changelog: changelog,
             description: m.description,
             author: m.author,
             icon: (m.icon.map { PluginIconResolver.looksLikeRelativeFilePath($0) ? nil : $0 }) ?? nil,

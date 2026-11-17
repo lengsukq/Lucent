@@ -14,26 +14,14 @@ public struct PluginCommandSpec: Codable, Sendable, Hashable, Identifiable {
     public let includeInGlobalSearch: Bool?
 
     public init(
-        id: String,
-        title: String,
-        subtitle: String,
-        keywords: [String] = [],
-        icon: String? = nil,
-        hotkey: String? = nil,
-        arguments: [String] = [],
-        passQuery: Bool? = nil,
-        silentWhenHotKeyTriggered: Bool? = nil,
+        id: String, title: String, subtitle: String, keywords: [String] = [],
+        icon: String? = nil, hotkey: String? = nil, arguments: [String] = [],
+        passQuery: Bool? = nil, silentWhenHotKeyTriggered: Bool? = nil,
         includeInGlobalSearch: Bool? = nil
     ) {
-        self.id = id
-        self.title = title
-        self.subtitle = subtitle
-        self.keywords = keywords
-        self.icon = icon
-        self.hotkey = hotkey
-        self.arguments = arguments
-        self.passQuery = passQuery
-        self.silentWhenHotKeyTriggered = silentWhenHotKeyTriggered
+        self.id = id; self.title = title; self.subtitle = subtitle; self.keywords = keywords
+        self.icon = icon; self.hotkey = hotkey; self.arguments = arguments
+        self.passQuery = passQuery; self.silentWhenHotKeyTriggered = silentWhenHotKeyTriggered
         self.includeInGlobalSearch = includeInGlobalSearch
     }
 }
@@ -116,29 +104,13 @@ public struct PluginQuickButtonItem: Identifiable, Sendable, Hashable {
     public let target: PluginQuickButtonTarget
 
     public init(
-        id: String,
-        title: String,
-        shortTitle: String,
-        subtitle: String,
-        symbolName: String,
-        customIconURL: URL? = nil,
-        accentColor: String? = nil,
-        pluginID: String,
-        pluginName: String,
-        isBuiltin: Bool,
-        target: PluginQuickButtonTarget
+        id: String, title: String, shortTitle: String, subtitle: String,
+        symbolName: String, customIconURL: URL? = nil, accentColor: String? = nil,
+        pluginID: String, pluginName: String, isBuiltin: Bool, target: PluginQuickButtonTarget
     ) {
-        self.id = id
-        self.title = title
-        self.shortTitle = shortTitle
-        self.subtitle = subtitle
-        self.symbolName = symbolName
-        self.customIconURL = customIconURL
-        self.accentColor = accentColor
-        self.pluginID = pluginID
-        self.pluginName = pluginName
-        self.isBuiltin = isBuiltin
-        self.target = target
+        self.id = id; self.title = title; self.shortTitle = shortTitle; self.subtitle = subtitle
+        self.symbolName = symbolName; self.customIconURL = customIconURL; self.accentColor = accentColor
+        self.pluginID = pluginID; self.pluginName = pluginName; self.isBuiltin = isBuiltin; self.target = target
     }
 }
 
@@ -164,39 +136,50 @@ public enum PluginCommandRegistry {
     }
 
     public static func enabledQuickButtons(for plugins: [PluginDescriptor]) -> [PluginQuickButtonItem] {
+        collectPinnedEntries(
+            for: plugins, prefix: "qb",
+            pluginFlag: \.pinnedInOverlay,
+            commandIDs: { $0.overrides.quickButtonCommandIDs }
+        )
+    }
+
+    public static func enabledMenuBarItems(for plugins: [PluginDescriptor]) -> [PluginQuickButtonItem] {
+        collectPinnedEntries(
+            for: plugins, prefix: "mb",
+            pluginFlag: \.showInMenuBar,
+            commandIDs: { $0.overrides.menuBarCommandIDs }
+        )
+    }
+
+    private static func collectPinnedEntries(
+        for plugins: [PluginDescriptor],
+        prefix: String,
+        pluginFlag: (PluginDescriptor) -> Bool,
+        commandIDs: (PluginDescriptor) -> [String]
+    ) -> [PluginQuickButtonItem] {
         var items: [PluginQuickButtonItem] = []
         for plugin in plugins where plugin.isValid && (plugin.isBuiltin || plugin.isEnabled) {
-            if plugin.pinnedInOverlay {
+            if pluginFlag(plugin) {
                 let pName = plugin.displayName
                 items.append(PluginQuickButtonItem(
-                    id: "qb-plugin:\(plugin.id)",
-                    title: pName,
-                    shortTitle: compactLabel(pName),
-                    subtitle: plugin.displayDescription,
-                    symbolName: plugin.symbolIconName,
-                    customIconURL: plugin.customIconURL,
-                    accentColor: plugin.manifest.accentColor,
-                    pluginID: plugin.id,
-                    pluginName: pName,
-                    isBuiltin: plugin.isBuiltin,
+                    id: "\(prefix)-plugin:\(plugin.id)", title: pName, shortTitle: compactLabel(pName),
+                    subtitle: plugin.displayDescription, symbolName: plugin.symbolIconName,
+                    customIconURL: plugin.customIconURL, accentColor: plugin.manifest.accentColor,
+                    pluginID: plugin.id, pluginName: pName, isBuiltin: plugin.isBuiltin,
                     target: .plugin(pluginID: plugin.id)
                 ))
             }
-            let enabledSet = Set(plugin.overrides.quickButtonCommandIDs)
+            let enabledSet = Set(commandIDs(plugin))
             guard !enabledSet.isEmpty else { continue }
             for spec in plugin.declaredCommands where enabledSet.contains(spec.id) {
                 let reg = PluginRegisteredCommand(plugin: plugin, command: spec)
                 items.append(PluginQuickButtonItem(
-                    id: "qb-cmd:\(plugin.id)::\(spec.id)",
-                    title: reg.localizedTitle,
+                    id: "\(prefix)-cmd:\(plugin.id)::\(spec.id)", title: reg.localizedTitle,
                     shortTitle: compactLabel(reg.localizedTitle),
                     subtitle: "\(plugin.displayName) · \(reg.localizedSubtitle)",
-                    symbolName: reg.symbolName,
-                    customIconURL: reg.pluginCustomIconURL,
-                    accentColor: plugin.manifest.accentColor,
-                    pluginID: plugin.id,
-                    pluginName: plugin.displayName,
-                    isBuiltin: plugin.isBuiltin,
+                    symbolName: reg.symbolName, customIconURL: reg.pluginCustomIconURL,
+                    accentColor: plugin.manifest.accentColor, pluginID: plugin.id,
+                    pluginName: plugin.displayName, isBuiltin: plugin.isBuiltin,
                     target: .command(pluginID: plugin.id, commandID: spec.id)
                 ))
             }
@@ -261,7 +244,6 @@ public enum PluginCommandRegistry {
 
     private static func compactLabel(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.count <= 8 { return trimmed }
-        return String(trimmed.prefix(8))
+        return trimmed.count <= 8 ? trimmed : String(trimmed.prefix(8))
     }
 }

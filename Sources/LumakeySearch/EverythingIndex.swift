@@ -59,26 +59,50 @@ public struct EverythingIndex: Sendable {
         ".app", ".framework", ".bundle", ".xcodeproj", ".xcworkspace", ".playground", ".photoslibrary"
     ].map { Array($0.utf8) }
 
+    public static func normalizedExcludedSet(_ raw: Set<String>) -> Set<String> {
+        var out = Set<String>()
+        for path in raw {
+            let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let std = URL(fileURLWithPath: trimmed).standardizedFileURL.path
+            if !std.isEmpty && std != "/" { out.insert(std) }
+        }
+        return out
+    }
+
+    public static func isPathExcluded(_ standardizedPath: String, excludedPaths: Set<String>) -> Bool {
+        guard !excludedPaths.isEmpty else { return false }
+        if excludedPaths.contains(standardizedPath) { return true }
+        for excluded in excludedPaths where standardizedPath.hasPrefix(excluded + "/") {
+            return true
+        }
+        return false
+    }
+
     public static func build(
         rootURL: URL,
         maxNodes: Int = 80_000,
-        includeHidden: Bool = false
+        includeHidden: Bool = false,
+        excludedPaths: Set<String> = []
     ) throws -> EverythingIndex {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: rootURL.path, isDirectory: &isDir), isDir.boolValue else {
             throw LumakeyError.directoryNotFound(rootURL)
         }
-        return try build(rootURLs: [rootURL], maxNodes: maxNodes, includeHidden: includeHidden)
+        return try build(rootURLs: [rootURL], maxNodes: maxNodes, includeHidden: includeHidden, excludedPaths: excludedPaths)
     }
 
     public static func build(
         rootURLs: [URL],
         maxNodes: Int = 240_000,
-        includeHidden: Bool = false
+        includeHidden: Bool = false,
+        excludedPaths: Set<String> = []
     ) throws -> EverythingIndex {
+        let normalizedExclusions = normalizedExcludedSet(excludedPaths)
         var seenPaths = Set<String>()
         let validRoots: [URL] = rootURLs.filter { url in
             let std = url.standardizedFileURL.path
+            guard !isPathExcluded(std, excludedPaths: normalizedExclusions) else { return false }
             guard seenPaths.insert(std).inserted else { return false }
             var isDir: ObjCBool = false
             return FileManager.default.fileExists(atPath: std, isDirectory: &isDir) && isDir.boolValue
@@ -112,6 +136,10 @@ public struct EverythingIndex: Sendable {
                     if !includeHidden && name.hasPrefix(".") { continue }
 
                     let childPath = current.path == "/" ? "/\(name)" : "\(current.path)/\(name)"
+                    if !normalizedExclusions.isEmpty && isPathExcluded(childPath, excludedPaths: normalizedExclusions) {
+                        continue
+                    }
+
                     let rawIsDir: Bool
                     switch Int32(entry.pointee.d_type) {
                     case DT_DIR:
@@ -203,10 +231,7 @@ public struct EverythingIndex: Sendable {
             var dotPos = -1
             var idx = utf8.count - 1
             while idx > 0 {
-                if utf8[idx] == 0x2E {
-                    dotPos = idx
-                    break
-                }
+                if utf8[idx] == 0x2E { dotPos = idx; break }
                 idx &-= 1
             }
             guard dotPos > 0, dotPos + 1 < utf8.count else { return "" }

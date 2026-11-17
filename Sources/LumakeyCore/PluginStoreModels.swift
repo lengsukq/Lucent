@@ -6,6 +6,7 @@ public struct PluginStoreItem: Codable, Sendable, Hashable, Identifiable {
     public let name: String
     public let version: String
     public let minAppVersion: String?
+    public let changelog: String?
     public let description: String
     public let author: String?
     public let icon: String?
@@ -60,14 +61,15 @@ public struct PluginStoreItem: Codable, Sendable, Hashable, Identifiable {
 
     public init(
         id: String, name: String, version: String, minAppVersion: String? = nil,
-        description: String, author: String? = nil, icon: String? = nil,
-        accentColor: String? = nil, categoryTag: String? = nil,
+        changelog: String? = nil, description: String, author: String? = nil,
+        icon: String? = nil, accentColor: String? = nil, categoryTag: String? = nil,
         mode: PluginMode = .view, keywords: [String],
         capabilities: [String], resourceScopes: [String], accepts: [String]? = nil,
         homepage: String? = nil, downloadURL: String, sha256: String,
         sizeBytes: Int? = nil, locales: [String: PluginLocaleStrings]? = nil
     ) {
-        self.id = id; self.name = name; self.version = version; self.minAppVersion = minAppVersion
+        self.id = id; self.name = name; self.version = version
+        self.minAppVersion = minAppVersion; self.changelog = changelog
         self.description = description; self.author = author; self.icon = icon
         self.accentColor = accentColor; self.categoryTag = categoryTag
         self.mode = mode; self.keywords = keywords
@@ -91,23 +93,13 @@ public struct PluginStoreRegistryManifest: Codable, Sendable, Hashable {
     public let plugins: [PluginStoreItem]
 
     public init(
-        schemaVersion: Int? = 1,
-        storeId: String,
-        storeName: String,
-        description: String? = nil,
-        maintainer: String? = nil,
-        homepage: String? = nil,
-        updatedAt: String? = nil,
-        plugins: [PluginStoreItem]
+        schemaVersion: Int? = 1, storeId: String, storeName: String,
+        description: String? = nil, maintainer: String? = nil,
+        homepage: String? = nil, updatedAt: String? = nil, plugins: [PluginStoreItem]
     ) {
-        self.schemaVersion = schemaVersion
-        self.storeId = storeId
-        self.storeName = storeName
-        self.description = description
-        self.maintainer = maintainer
-        self.homepage = homepage
-        self.updatedAt = updatedAt
-        self.plugins = plugins
+        self.schemaVersion = schemaVersion; self.storeId = storeId; self.storeName = storeName
+        self.description = description; self.maintainer = maintainer
+        self.homepage = homepage; self.updatedAt = updatedAt; self.plugins = plugins
     }
 
     public func validate() -> [String] {
@@ -170,16 +162,11 @@ public struct PluginStoreSubscription: Codable, Sendable, Hashable, Identifiable
     public var manifest: PluginStoreRegistryManifest
 
     public init(
-        sourceURL: String,
-        resolvedRegistryURL: String,
-        addedAtISO8601: String,
-        lastSyncedAtISO8601: String,
-        manifest: PluginStoreRegistryManifest
+        sourceURL: String, resolvedRegistryURL: String,
+        addedAtISO8601: String, lastSyncedAtISO8601: String, manifest: PluginStoreRegistryManifest
     ) {
-        self.sourceURL = sourceURL
-        self.resolvedRegistryURL = resolvedRegistryURL
-        self.addedAtISO8601 = addedAtISO8601
-        self.lastSyncedAtISO8601 = lastSyncedAtISO8601
+        self.sourceURL = sourceURL; self.resolvedRegistryURL = resolvedRegistryURL
+        self.addedAtISO8601 = addedAtISO8601; self.lastSyncedAtISO8601 = lastSyncedAtISO8601
         self.manifest = manifest
     }
 }
@@ -247,9 +234,7 @@ public struct SinglePluginCandidate: Sendable, Hashable, Identifiable {
     }
 
     public func cleanupStagingIfNeeded() {
-        if let root = stagingRootDirectory {
-            try? FileManager.default.removeItem(at: root)
-        }
+        if let root = stagingRootDirectory { try? FileManager.default.removeItem(at: root) }
     }
 }
 

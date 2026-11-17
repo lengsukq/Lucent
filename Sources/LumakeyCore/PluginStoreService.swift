@@ -114,8 +114,6 @@ public enum PluginStoreService {
         return .installedUpToDate(version: installedVersion)
     }
 
-    // MARK: - Safe Archive Unpacking & Installation
-
     public static func computeSHA256Hex(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
@@ -175,8 +173,7 @@ public enum PluginStoreService {
         var toRemove: [URL] = []
         for case let itemURL as URL in enumerator {
             if itemURL.lastPathComponent == ".DS_Store" {
-                toRemove.append(itemURL)
-                continue
+                toRemove.append(itemURL); continue
             }
             let vals = try itemURL.resourceValues(forKeys: [.isSymbolicLinkKey])
             if vals.isSymbolicLink == true {
@@ -195,6 +192,10 @@ public enum PluginStoreService {
     }
 
     private static func locatePluginRoot(inside extractDir: URL) throws -> URL {
+        try resolvePluginRoot(inside: extractDir)
+    }
+
+    private static func resolvePluginRoot(inside extractDir: URL) throws -> URL {
         let fm = FileManager.default
         if fm.fileExists(atPath: extractDir.appendingPathComponent("plugin.json").path) {
             return extractDir
@@ -214,8 +215,10 @@ public enum PluginStoreService {
         _ item: PluginStoreItem,
         from store: PluginStoreSubscription?,
         in pluginsRoot: URL = PluginSystem.defaultPluginsDirectory(),
+        hostVersion: String = PluginSystem.currentHostAppVersion,
         fetcher: PluginURLFetcher = PluginStoreSniffer.defaultFetcher
     ) async throws -> PluginDescriptor {
+        try checkHostCompatibility(minAppVersion: item.minAppVersion, pluginID: item.id, hostVersion: hostVersion)
         let resolvedURL: URL
         if let baseStr = store?.resolvedRegistryURL, let baseURL = URL(string: baseStr),
            let rel = URL(string: item.downloadURL, relativeTo: baseURL)?.absoluteURL {
@@ -240,6 +243,7 @@ public enum PluginStoreService {
         defer { try? FileManager.default.removeItem(at: unpacked.stagingRoot) }
 
         let candidate = PluginSystem.loadPlugin(at: unpacked.pluginDir, snapshot: PluginStateSnapshot(), in: pluginsRoot, includeSecrets: false)
+        try checkHostCompatibility(minAppVersion: candidate.manifest.minAppVersion, pluginID: candidate.id, hostVersion: hostVersion)
         guard candidate.isValid else {
             throw LumakeyError.pluginInvalid("插件包校验未通过：\(candidate.validationIssues.joined(separator: "；"))")
         }
@@ -264,9 +268,11 @@ public enum PluginStoreService {
     @discardableResult
     public static func installSingleCandidate(
         _ candidate: SinglePluginCandidate,
-        in pluginsRoot: URL = PluginSystem.defaultPluginsDirectory()
+        in pluginsRoot: URL = PluginSystem.defaultPluginsDirectory(),
+        hostVersion: String = PluginSystem.currentHostAppVersion
     ) throws -> PluginDescriptor {
         defer { candidate.cleanupStagingIfNeeded() }
+        try checkHostCompatibility(minAppVersion: candidate.manifest.minAppVersion, pluginID: candidate.id, hostVersion: hostVersion)
         return try PluginSystem.importPluginDirectory(from: candidate.stagingBundleDirectory, in: pluginsRoot, overwrite: true)
     }
 }

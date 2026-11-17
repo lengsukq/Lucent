@@ -10,10 +10,14 @@ final class PluginStoreController: ObservableObject {
     @Published var stores: [PluginStoreSubscription] = []
     @Published var selectedSourceID: String = PluginStoreController.officialSourceID
     @Published var smartURLInput: String = ""
+    @Published var searchQuery: String = ""
     @Published var isResolvingURL: Bool = false
     @Published var isRefreshingStore: Bool = false
+    @Published var isCheckingAllStores: Bool = false
+    @Published var isUpdatingAll: Bool = false
     @Published var installingPluginID: String? = nil
     @Published var pendingSingleCandidate: SinglePluginCandidate? = nil
+    @Published var pendingEscalationUpdate: PluginStoreAvailableUpdate? = nil
     @Published var showFormatGuideSheet: Bool = false
     @Published var bannerMessage: String? = nil
     @Published var isErrorBanner: Bool = false
@@ -22,6 +26,24 @@ final class PluginStoreController: ObservableObject {
 
     var selectedStore: PluginStoreSubscription? {
         stores.first { $0.id == selectedSourceID }
+    }
+
+    func availableUpdates(installedPlugins: [PluginDescriptor]) -> [PluginStoreAvailableUpdate] {
+        PluginStoreService.availableUpdates(in: stores, installedPlugins: installedPlugins)
+    }
+
+    func filteredItems(in store: PluginStoreSubscription) -> [PluginStoreItem] {
+        let needle = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !needle.isEmpty else { return store.manifest.plugins }
+        return store.manifest.plugins.filter { item in
+            item.name.lowercased().contains(needle)
+                || item.localizedName().lowercased().contains(needle)
+                || item.description.lowercased().contains(needle)
+                || item.localizedDescription().lowercased().contains(needle)
+                || item.id.lowercased().contains(needle)
+                || item.keywords.contains(where: { $0.lowercased().contains(needle) })
+                || (item.categoryTag?.lowercased().contains(needle) ?? false)
+        }
     }
 
     func loadSavedStores() {
@@ -39,10 +61,7 @@ final class PluginStoreController: ObservableObject {
             submitSmartURL(viewModel: viewModel, centerCtrl: centerCtrl)
         } else if let existing = stores.first(where: { $0.id == PluginStoreDefaults.officialDemoStoreID }) {
             selectedSourceID = existing.id
-            showBanner(
-                L10n.pick("已填入官方示例仓库地址：\(existing.sourceURL)", "Filled demo store URL: \(existing.sourceURL)"),
-                isError: false
-            )
+            showBanner(L10n.pick("已填入官方示例仓库地址：\(existing.sourceURL)", "Filled demo store URL: \(existing.sourceURL)"), isError: false)
         }
     }
 
@@ -85,39 +104,39 @@ final class PluginStoreController: ObservableObject {
                 }
             } catch {
                 guard !Task.isCancelled, let self else { return }
-                if (input == PluginStoreDefaults.officialDemoSourceURL || input == PluginStoreDefaults.officialDemoRegistryURL),
-                   let demoDir = PluginStoreDefaults.bundledDemoDirectory(),
-                   let data = try? Data(contentsOf: demoDir.appendingPathComponent(PluginStoreRegistryManifest.defaultFileName)),
-                   let manifest = try? JSONDecoder().decode(PluginStoreRegistryManifest.self, from: data),
-                   manifest.validate().isEmpty {
-                    let now = ISO8601DateFormatter().string(from: Date())
-                    let sub = PluginStoreSubscription(
-                        sourceURL: PluginStoreDefaults.officialDemoSourceURL,
-                        resolvedRegistryURL: PluginStoreDefaults.officialDemoRegistryURL,
-                        addedAtISO8601: now,
-                        lastSyncedAtISO8601: manifest.updatedAt ?? now,
-                        manifest: manifest
-                    )
-                    if let updated = try? PluginStoreService.upsertStore(sub) {
-                        self.isResolvingURL = false
-                        self.stores = updated.stores
-                        self.selectedSourceID = sub.id
-                        self.smartURLInput = ""
-                        let msg = L10n.pick(
-                            "已入驻官方示例商店（使用随包离线索引，共 \(manifest.plugins.count) 款插件）",
-                            "Added official demo store (bundled offline manifest, \(manifest.plugins.count) plugins)"
-                        )
-                        self.showBanner(msg, isError: false)
-                        centerCtrl?.statusNote = msg
-                        return
-                    }
-                }
+                if self.tryFallbackToBundledOfficialStore(input: input, centerCtrl: centerCtrl) { return }
                 self.isResolvingURL = false
                 let reason = (error as? LumakeyError)?.diagnostic.reason ?? error.localizedDescription
                 self.showBanner(reason, isError: true)
                 _ = viewModel
             }
         }
+    }
+
+    private func tryFallbackToBundledOfficialStore(input: String, centerCtrl: PluginCenterController?) -> Bool {
+        guard (input == PluginStoreDefaults.officialDemoSourceURL || input == PluginStoreDefaults.officialDemoRegistryURL),
+              let demoDir = PluginStoreDefaults.bundledDemoDirectory(),
+              let data = try? Data(contentsOf: demoDir.appendingPathComponent(PluginStoreRegistryManifest.defaultFileName)),
+              let manifest = try? JSONDecoder().decode(PluginStoreRegistryManifest.self, from: data),
+              manifest.validate().isEmpty else { return false }
+        let now = ISO8601DateFormatter().string(from: Date())
+        let sub = PluginStoreSubscription(
+            sourceURL: PluginStoreDefaults.officialDemoSourceURL,
+            resolvedRegistryURL: PluginStoreDefaults.officialDemoRegistryURL,
+            addedAtISO8601: now, lastSyncedAtISO8601: manifest.updatedAt ?? now, manifest: manifest
+        )
+        guard let updated = try? PluginStoreService.upsertStore(sub) else { return false }
+        isResolvingURL = false
+        stores = updated.stores
+        selectedSourceID = sub.id
+        smartURLInput = ""
+        let msg = L10n.pick(
+            "已入驻官方示例商店（使用随包离线索引，共 \(manifest.plugins.count) 款插件）",
+            "Added official demo store (bundled offline manifest, \(manifest.plugins.count) plugins)"
+        )
+        showBanner(msg, isError: false)
+        centerCtrl?.statusNote = msg
+        return true
     }
 
     func confirmInstallSingleCandidate(viewModel: AppViewModel, centerCtrl: PluginCenterController) {
@@ -128,10 +147,7 @@ final class PluginStoreController: ObservableObject {
             smartURLInput = ""
             viewModel.reloadPluginsAndHotKeys()
             centerCtrl.select(installed)
-            let msg = L10n.pick(
-                "已安装插件：\(installed.displayName) v\(installed.manifest.version)",
-                "Installed plugin: \(installed.displayName) v\(installed.manifest.version)"
-            )
+            let msg = L10n.pick("已安装插件：\(installed.displayName) v\(installed.manifest.version)", "Installed plugin: \(installed.displayName) v\(installed.manifest.version)")
             showBanner(msg, isError: false)
             centerCtrl.statusNote = msg
             viewModel.serviceMessage = msg
@@ -147,107 +163,7 @@ final class PluginStoreController: ObservableObject {
         pendingSingleCandidate = nil
     }
 
-    func installStorePlugin(
-        _ item: PluginStoreItem,
-        from store: PluginStoreSubscription,
-        viewModel: AppViewModel,
-        centerCtrl: PluginCenterController
-    ) {
-        guard installingPluginID == nil else { return }
-        installingPluginID = item.id
-        bannerMessage = nil
-
-        Task { [weak self, weak viewModel, weak centerCtrl] in
-            do {
-                let installed = try await PluginStoreService.installStoreItem(item, from: store)
-                guard let self else { return }
-                self.installingPluginID = nil
-                viewModel?.reloadPluginsAndHotKeys()
-                centerCtrl?.select(installed)
-                let msg = L10n.pick(
-                    "已安装「\(installed.displayName)」v\(installed.manifest.version)",
-                    "Installed '\(installed.displayName)' v\(installed.manifest.version)"
-                )
-                self.showBanner(msg, isError: false)
-                centerCtrl?.statusNote = msg
-            } catch {
-                guard let self else { return }
-                self.installingPluginID = nil
-                let reason = (error as? LumakeyError)?.diagnostic.reason ?? error.localizedDescription
-                self.showBanner(reason, isError: true)
-            }
-        }
-    }
-
-    func refreshSelectedStore(centerCtrl: PluginCenterController) {
-        guard let store = selectedStore, !isRefreshingStore else { return }
-        isRefreshingStore = true
-        let storeID = store.id
-        Task { [weak self, weak centerCtrl] in
-            do {
-                let refreshed = try await PluginStoreService.refreshStore(storeID: storeID)
-                guard let self else { return }
-                self.isRefreshingStore = false
-                self.loadSavedStores()
-                let msg = L10n.pick(
-                    "已同步「\(refreshed.manifest.storeName)」（\(refreshed.manifest.plugins.count) 款插件）",
-                    "Synced '\(refreshed.manifest.storeName)' (\(refreshed.manifest.plugins.count) plugins)"
-                )
-                self.showBanner(msg, isError: false)
-                centerCtrl?.statusNote = msg
-            } catch {
-                guard let self else { return }
-                self.isRefreshingStore = false
-                let reason = (error as? LumakeyError)?.diagnostic.reason ?? error.localizedDescription
-                self.showBanner(reason, isError: true)
-            }
-        }
-    }
-
-    func removeSelectedStore(centerCtrl: PluginCenterController) {
-        guard let store = selectedStore else { return }
-        do {
-            let next = try PluginStoreService.removeStore(storeID: store.id)
-            stores = next.stores
-            selectedSourceID = stores.first?.id ?? Self.officialSourceID
-            let msg = L10n.pick("已移除商店源：\(store.manifest.storeName)", "Removed store: \(store.manifest.storeName)")
-            showBanner(msg, isError: false)
-            centerCtrl.statusNote = msg
-        } catch {
-            showBanner(error.localizedDescription, isError: true)
-        }
-    }
-
-    func copyStoreRegistryTemplate() {
-        let sample = """
-        {
-          "schemaVersion": 1,
-          "storeId": "my-custom-store",
-          "storeName": "我的自定义插件源",
-          "maintainer": "Your Name",
-          "updatedAt": "2026-11-15T12:00:00Z",
-          "plugins": [
-            {
-              "id": "demo-plugin",
-              "name": "示例插件",
-              "version": "1.0.0",
-              "description": "插件功能简介",
-              "mode": "view",
-              "keywords": ["demo"],
-              "capabilities": [],
-              "resourceScopes": [],
-              "downloadURL": "./dist/demo-plugin.zip",
-              "sha256": "<64位SHA256摘要>"
-            }
-          ]
-        }
-        """
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(sample, forType: .string)
-        showBanner(L10n.pick("已复制 lumakey-registry.json 模板到剪贴板", "Copied lumakey-registry.json template"), isError: false)
-    }
-
-    private func showBanner(_ text: String, isError: Bool) {
+    func showBanner(_ text: String, isError: Bool) {
         bannerMessage = text
         isErrorBanner = isError
     }

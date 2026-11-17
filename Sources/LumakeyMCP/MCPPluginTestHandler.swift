@@ -45,6 +45,8 @@ extension MCPServer {
         let desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory, includeSecrets: false)
         return textResult(prettyJSON([
             "id": desc.id, "kind": "external", "valid": desc.isValid, "issues": desc.validationIssues,
+            "minAppVersion": desc.manifest.minAppVersion ?? NSNull(),
+            "timeoutSeconds": desc.manifest.effectiveTimeoutSeconds,
             "hasCapabilitiesDeclaration": desc.manifest.capabilities != nil,
             "hasResourceScopesDeclaration": desc.manifest.resourceScopes != nil,
             "hasCustomBundleIcon": desc.customIconURL != nil,
@@ -57,9 +59,12 @@ extension MCPServer {
             "grantedResourceScopes": desc.grantedResourceScopes.map(\.rawValue).sorted(),
             "revokedResourceScopes": desc.revokedResourceScopes.map(\.rawValue).sorted(),
             "declaredContextKinds": desc.declaredContextKinds.map(\.rawValue),
+            "acceptExtensions": desc.manifest.acceptExtensions ?? [],
+            "acceptURLHosts": desc.manifest.acceptURLHosts ?? [],
             "effectiveKeywords": desc.effectiveKeywords,
             "commandHotKeys": desc.overrides.commandHotKeys,
             "quickButtonCommandIDs": desc.overrides.quickButtonCommandIDs,
+            "menuBarCommandIDs": desc.overrides.menuBarCommandIDs,
             "grantedCapabilities": desc.grantedCapabilities.map(\.rawValue).sorted(),
             "declaredPermissions": desc.declaredPermissions.map(\.rawValue),
             "isPureSandbox": desc.isPureSandbox
@@ -79,11 +84,11 @@ extension MCPServer {
                     for (k, v) in cmdHKs { ov.commandHotKeys[k] = v }
                 }
                 if let pin = arguments["pinnedInOverlay"] as? Bool { ov.pinnedInOverlay = pin }
+                if let mb = arguments["showInMenuBar"] as? Bool { ov.showInMenuBar = mb }
                 if let qbs = arguments["quickButtonCommandIDs"] as? [String] { ov.quickButtonCommandIDs = qbs }
+                if let mbs = arguments["menuBarCommandIDs"] as? [String] { ov.menuBarCommandIDs = mbs }
                 if let cmdSearch = arguments["commandSearchOverrides"] as? [String: Bool] {
-                    for (cmdID, flag) in cmdSearch {
-                        ov.commandSearchOverrides[cmdID] = flag
-                    }
+                    for (cmdID, flag) in cmdSearch { ov.commandSearchOverrides[cmdID] = flag }
                 }
                 if let glob = arguments["includeInGlobalSearch"] as? Bool { ov.includeInGlobalSearchOverride = glob }
                 if let idxGlob = arguments["searchIndexInGlobalSearch"] as? Bool { ov.searchIndexGlobalOverride = idxGlob }
@@ -104,7 +109,9 @@ extension MCPServer {
                 "customHotKey": updated.customHotKey ?? NSNull(),
                 "commandHotKeys": updated.commandHotKeys,
                 "pinnedInOverlay": updated.pinnedInOverlay,
+                "showInMenuBar": updated.showInMenuBar,
                 "quickButtonCommandIDs": updated.quickButtonCommandIDs,
+                "menuBarCommandIDs": updated.menuBarCommandIDs,
                 "commandSearchOverrides": updated.commandSearchOverrides,
                 "revokedResourceScopes": revokedNow,
                 "includeInGlobalSearch": updated.includeInGlobalSearch,
@@ -166,11 +173,8 @@ extension MCPServer {
             return nil
         }
         return PluginContextPayload(
-            kind: kind,
-            text: raw["text"] as? String,
-            url: raw["url"] as? String,
-            filePaths: raw["filePaths"] as? [String],
-            source: (raw["source"] as? String) ?? "mcp-test"
+            kind: kind, text: raw["text"] as? String, url: raw["url"] as? String,
+            filePaths: raw["filePaths"] as? [String], source: (raw["source"] as? String) ?? "mcp-test"
         )
     }
 
