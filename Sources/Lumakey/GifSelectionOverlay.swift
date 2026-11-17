@@ -21,19 +21,6 @@ struct GifSelectionOverlayView: View {
         return session.activeDisplayID == slice.displayID
     }
 
-    private var controlBarPosition: CGPoint {
-        guard let sel = session.selectionRect?.standardized, sel.width >= 12 else { return CGPoint(x: viewSize.width / 2, y: 44) }
-        let localSel = toLocal(sel)
-        let barW: CGFloat = min(560, viewSize.width - 24), barH: CGFloat = 46
-        let minX = barW / 2 + 12, maxX = max(minX, viewSize.width - barW / 2 - 12)
-        let x = min(max(localSel.midX, minX), maxX)
-        let belowY = localSel.maxY + barH / 2 + 12, aboveY = localSel.minY - barH / 2 - 12
-        if belowY + barH / 2 <= viewSize.height - 12 { return CGPoint(x: x, y: belowY) }
-        if aboveY - barH / 2 >= 12 { return CGPoint(x: x, y: aboveY) }
-        let minY = barH / 2 + 12, maxY = max(minY, viewSize.height - barH / 2 - 12)
-        return CGPoint(x: x, y: min(max(localSel.maxY - barH / 2 - 12, minY), maxY))
-    }
-
     var body: some View {
         ZStack(alignment: .topLeading) {
             Image(decorative: slice.image, scale: slice.scale, orientation: .up)
@@ -56,7 +43,19 @@ struct GifSelectionOverlayView: View {
                 .onContinuousHover { if case .active(let pt) = $0 { session.updateHover(at: toCanvas(pt)) } }
                 .gesture(DragGesture(minimumDistance: 0).onChanged(handleDragChanged).onEnded(handleDragEnded))
 
-            if !session.isDragging && shouldHostToolbar { presetAndActionToolbar.position(controlBarPosition) }
+            if !session.isDragging && shouldHostToolbar {
+                let activeSel: CGRect? = {
+                    guard let sel = session.selectionRect?.standardized, sel.width >= 12 else { return nil }
+                    return toLocal(sel)
+                }()
+                CaptureClampedToolbarLayout(
+                    localSelection: activeSel,
+                    horizontalAlign: .center
+                ) {
+                    presetAndActionToolbar
+                }
+                .frame(width: viewSize.width, height: viewSize.height)
+            }
         }
         .frame(width: viewSize.width, height: viewSize.height, alignment: .topLeading).clipped()
     }
@@ -67,21 +66,21 @@ struct GifSelectionOverlayView: View {
         let accent = Color(red: 1.0, green: 0.30, blue: 0.28)
         let winBadge = session.selectedWindow.map { "\($0.displayLabel) · " } ?? ""
         let badgeVisible = rect.minX < viewSize.width && rect.maxX > 0
-        let badgeX = min(max(110, rect.minX + 100), max(110, viewSize.width - 110))
-        let badgeY = rect.minY > 30 ? rect.minY - 15 : max(16, rect.minY + 16)
         return ZStack(alignment: .topLeading) {
             Rectangle().strokeBorder(accent, lineWidth: 1.8).frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
             ForEach(SelectionHandle.allCases, id: \.self) { handle in
                 Circle().fill(Color.white).overlay(Circle().strokeBorder(accent, lineWidth: 1.6)).frame(width: 9, height: 9).position(handle.point(in: rect))
             }
             if badgeVisible {
-                HStack(spacing: 6) {
-                    Circle().fill(Color.red).frame(width: 6, height: 6)
-                    Text("\(winBadge)GIF \(outW)×\(outH) px · \(session.options.fps) FPS").lineLimit(1)
+                CaptureClampedBadgeLayout(localSelection: rect) {
+                    HStack(spacing: 6) {
+                        Circle().fill(Color.red).frame(width: 6, height: 6)
+                        Text("\(winBadge)GIF \(outW)×\(outH) px · \(session.options.fps) FPS").lineLimit(1)
+                    }
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(.white)
+                    .padding(.horizontal, 9).padding(.vertical, 4).background(.black.opacity(0.78), in: Capsule())
                 }
-                .font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(.white)
-                .padding(.horizontal, 9).padding(.vertical, 4).background(.black.opacity(0.78), in: Capsule())
-                .position(x: badgeX, y: min(badgeY, viewSize.height - 18))
+                .frame(width: viewSize.width, height: viewSize.height)
             }
         }
         .frame(width: viewSize.width, height: viewSize.height, alignment: .topLeading).allowsHitTesting(false)
@@ -92,15 +91,15 @@ struct GifSelectionOverlayView: View {
         let subHint = session.overlappingWindowCount >= 2 ? " · Tab 切下层 (\(session.overlappingWindowCount))" : " · 单击锁定窗口录制"
         let label = (win.displayLabel.isEmpty ? "窗口" : win.displayLabel) + subHint
         let badgeVisible = rect.intersects(CGRect(origin: .zero, size: viewSize))
-        let badgeX = min(max(130, rect.minX + 118), max(130, viewSize.width - 130))
-        let badgeY = rect.minY > 24 ? rect.minY - 15 : max(18, rect.minY + 18)
         return ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.cyan.opacity(0.95), lineWidth: 2.2)
                 .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
             if badgeVisible {
-                Text(label).lineLimit(1).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
-                    .padding(.horizontal, 10).padding(.vertical, 4).background(.black.opacity(0.76), in: Capsule())
-                    .position(x: badgeX, y: min(badgeY, viewSize.height - 18))
+                CaptureClampedBadgeLayout(localSelection: rect) {
+                    Text(label).lineLimit(1).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
+                        .padding(.horizontal, 10).padding(.vertical, 4).background(.black.opacity(0.76), in: Capsule())
+                }
+                .frame(width: viewSize.width, height: viewSize.height)
             }
         }
         .frame(width: viewSize.width, height: viewSize.height, alignment: .topLeading).allowsHitTesting(false)
@@ -108,7 +107,7 @@ struct GifSelectionOverlayView: View {
 
     private var presetAndActionToolbar: some View {
         let hasSelection = (session.selectionRect?.standardized.width ?? 0) >= 12
-        return HStack(spacing: 8) {
+        let barContent = HStack(spacing: 8) {
             if !hasSelection {
                 Text("单击锁定应用窗 (Tab 切下层) 或跨屏框选 · Esc 取消")
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).padding(.leading, 4)
@@ -140,6 +139,13 @@ struct GifSelectionOverlayView: View {
                     .background(LinearGradient(colors: [Color(red: 1.0, green: 0.27, blue: 0.25), Color(red: 0.90, green: 0.14, blue: 0.32)], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
                 }.buttonStyle(.plain)
             }
+        }
+        return ViewThatFits(in: .horizontal) {
+            barContent.fixedSize(horizontal: true, vertical: false)
+            ScrollView(.horizontal, showsIndicators: false) {
+                barContent.fixedSize(horizontal: true, vertical: false)
+            }
+            .frame(maxWidth: max(260, viewSize.width - 48))
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
         .background(.ultraThinMaterial, in: Capsule()).background(Color.black.opacity(0.58), in: Capsule())

@@ -18,14 +18,16 @@ struct LumakeyGeneralPreferencesTests {
         #expect(prefs.showDockIcon == true)
         #expect(prefs.clipboardMaxUnpinned == 200)
         #expect(prefs.launchSilentlyInMenuBar == false)
+        #expect(prefs.showLaunchIntroAnimation == true)
         #expect(prefs.queryClearPolicy == .afterIdle30s)
         #expect(prefs.overlayScreenTarget == .cursorScreen)
 
         prefs.launchSilentlyInMenuBar = true
+        prefs.showLaunchIntroAnimation = false
         prefs.defaultEverythingScope = .volume(name: "DataSSD", mountPath: "/Volumes/DataSSD")
         prefs.overlayScreenTarget = .focusedWindowScreen
         prefs.savedOverlayTopCenter = PersistedOverlayAnchor(x: 720, y: 900)
-        prefs.menuBarIconStyle = .bolt
+        prefs.menuBarIconStyle = .prism3D
         prefs.clipboardRetentionTTL = .days7
         prefs.toggleExcludedApp(bundleID: "com.apple.Terminal")
         prefs.toggleExcludedApp(bundleID: "com.googlecode.iterm2")

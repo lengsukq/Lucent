@@ -70,6 +70,22 @@ struct StartupAndResidenceCardView: View {
 
             FlowWrapLayout(horizontalSpacing: 18, verticalSpacing: 8) {
                 Toggle(
+                    L10n.pick("启动时播放「一触流光，用完即焚」开场动画", "Play 'One Touch of Light' intro animation on launch"),
+                    isOn: Binding(
+                        get: { prefs.showLaunchIntroAnimation },
+                        set: { val in viewModel.updateGeneralPreferences { $0.showLaunchIntroAnimation = val } }
+                    )
+                )
+                .fixedSize(horizontal: true, vertical: false)
+
+                Button {
+                    viewModel.replayLaunchIntro()
+                } label: {
+                    Label(L10n.pick("预览开场动画", "Preview Intro"), systemImage: "sparkles")
+                }
+                .buttonStyle(GlassPillButtonStyle(compact: true))
+
+                Toggle(
                     L10n.pick("启动时静默驻留状态栏（不自动弹出快捷台）", "Launch silently in menu bar (don't pop up launcher)"),
                     isOn: Binding(
                         get: { prefs.launchSilentlyInMenuBar },
@@ -102,8 +118,12 @@ struct StartupAndResidenceCardView: View {
                         viewModel.updateGeneralPreferences { $0.menuBarIconStyle = style }
                     } label: {
                         HStack(spacing: 5) {
-                            Image(systemName: style.symbolName)
-                                .font(.system(size: 11.5, weight: .semibold))
+                            if style == .prism3D {
+                                LumakeyBrandIconView(size: 13.5)
+                            } else {
+                                Image(systemName: style.symbolName)
+                                    .font(.system(size: 11.5, weight: .semibold))
+                            }
                             Text(style.localizedTitle)
                         }
                     }

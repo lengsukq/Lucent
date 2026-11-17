@@ -18,27 +18,6 @@ struct ScreenshotCanvasView: View {
         return session.topology.targetSlice(forSelection: sel, fallbackPoint: session.cursorPoint)?.displayID == slice.displayID
     }
 
-    private var localToolbarPosition: CGPoint {
-        guard let sel = session.selectionRect?.standardized else { return .zero }
-        let localSel = toLocal(sel)
-        let toolbarW: CGFloat = min(760, viewSize.width - 24)
-        let toolbarH: CGFloat = session.activeTool == .move ? 48 : 82
-        let minX = toolbarW / 2 + 12
-        let maxX = max(minX, viewSize.width - toolbarW / 2 - 12)
-        let x = min(max(localSel.maxX - toolbarW / 2, minX), maxX)
-        let belowY = localSel.maxY + toolbarH / 2 + 10
-        let aboveY = localSel.minY - toolbarH / 2 - 10
-        let y: CGFloat
-        if belowY + toolbarH / 2 <= viewSize.height - 10 { y = belowY }
-        else if aboveY - toolbarH / 2 >= 10 { y = aboveY }
-        else {
-            let minY = toolbarH / 2 + 12
-            let maxY = max(minY, viewSize.height - toolbarH / 2 - 12)
-            y = min(max(localSel.maxY - toolbarH / 2 - 12, minY), maxY)
-        }
-        return CGPoint(x: x, y: y)
-    }
-
     var body: some View {
         ZStack(alignment: .topLeading) {
             Image(decorative: slice.image, scale: slice.scale, orientation: .up)
@@ -105,8 +84,18 @@ struct ScreenshotCanvasView: View {
                 )
             }
 
-            if shouldHostToolbar {
-                ScreenshotToolbarView(session: session, onAction: onAction).position(localToolbarPosition)
+            if shouldHostToolbar, let sel = session.selectionRect?.standardized {
+                CaptureClampedToolbarLayout(
+                    localSelection: toLocal(sel),
+                    horizontalAlign: session.selectedWindow != nil ? .center : .trailing
+                ) {
+                    ScreenshotToolbarView(
+                        session: session,
+                        maxAvailableWidth: viewSize.width - 28,
+                        onAction: onAction
+                    )
+                }
+                .frame(width: viewSize.width, height: viewSize.height)
             }
         }
         .frame(width: viewSize.width, height: viewSize.height, alignment: .topLeading)

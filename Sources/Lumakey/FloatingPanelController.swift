@@ -60,7 +60,15 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         if isVisible && viewModel.omniFilter == filter { hide(restorePreviousApp: true) } else { show(filter: filter) }
     }
 
-    func show(filter: OmniFilter) {
+    func showFromLaunchIntro(filter: OmniFilter = .all) {
+        show(filter: filter, motionStyle: .launcherFromIntro)
+    }
+
+    func resolvedLaunchTargetFrame() -> NSRect {
+        computedTargetFrame(width: panelWidth, height: panelHeight)
+    }
+
+    func show(filter: OmniFilter, motionStyle: WindowMotionStyle = .launcher) {
         idleTeardownTask?.cancel(); idleTeardownTask = nil
         focusRetryTask?.cancel(); focusRetryTask = nil
         let panel = ensurePanel()
@@ -81,7 +89,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         isPresenting = true
         if !NSApp.isActive { NSApp.activate(ignoringOtherApps: true) }
         if !wasActivelyVisible {
-            WindowMotionAnimator.present(panel, style: .launcher, makeKey: true)
+            WindowMotionAnimator.present(panel, style: motionStyle, makeKey: true)
         } else {
             panel.alphaValue = 1.0
             panel.makeKeyAndOrderFront(nil)
@@ -213,7 +221,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         return nil
     }
 
-    private func positionPanel(_ panel: NSPanel, width: CGFloat, height: CGFloat, animated: Bool) {
+    private func computedTargetFrame(width: CGFloat, height: CGFloat) -> NSRect {
         let screen = resolveTargetScreen()
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let activeSaved: NSPoint? = viewModel.generalPreferences.rememberOverlayPosition
@@ -223,7 +231,11 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
             ?? NSPoint(x: visible.midX, y: visible.maxY - 72)
         let x = min(max(visible.minX + 16, topCenter.x - width / 2.0), visible.maxX - width - 16)
         let y = min(max(visible.minY + 24, topCenter.y - height), visible.maxY - height - 12)
-        let targetFrame = NSRect(x: x, y: y, width: width, height: height)
+        return NSRect(x: x, y: y, width: width, height: height)
+    }
+
+    private func positionPanel(_ panel: NSPanel, width: CGFloat, height: CGFloat, animated: Bool) {
+        let targetFrame = computedTargetFrame(width: width, height: height)
         isAdjustingFrame = true
         if animated {
             WindowMotionAnimator.animateFrame(panel, to: targetFrame, duration: 0.24) { [weak self] in

@@ -45,6 +45,17 @@ struct SettingsCenterView: View {
     private var sidebar: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 2.5) {
+                HStack(spacing: 9) {
+                    LumakeyBrandIconView(size: 28, showAmbientGlow: themeManager.current == .prismPulse)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(L10n.pick("流光 Lumakey", "Lumakey")).font(.system(size: 12.5, weight: .bold))
+                        Text(L10n.pick("一触流光，用完即焚", "One Touch · Zero Trace"))
+                            .font(.system(size: 9.5, weight: .medium)).foregroundStyle(LiquidColors.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                Divider().opacity(0.22).padding(.bottom, 3)
                 sidebarGroupHeader("核心设置")
                 ForEach(SettingsSection.coreSidebarSections) { section in
                     sectionButton(section, dotActive: coreSectionBadge(section))
@@ -112,7 +123,11 @@ struct SettingsCenterView: View {
             }
         } label: {
             HStack(alignment: .center, spacing: 9) {
-                SquircleBadge(symbol: section.symbolName, topColor: section.badgeColors.top, bottomColor: section.badgeColors.bottom, size: 24)
+                if section == .about {
+                    LumakeyBrandIconView(size: 24)
+                } else {
+                    SquircleBadge(symbol: section.symbolName, topColor: section.badgeColors.top, bottomColor: section.badgeColors.bottom, size: 24)
+                }
                 Text(section.title).font(.system(size: 12.5, weight: active ? .semibold : .regular)).lineLimit(1)
                 Spacer(minLength: 2)
                 if let dotActive {

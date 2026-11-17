@@ -3,6 +3,10 @@ import Foundation
 import LumakeyCore
 
 extension AppViewModel {
+    func replayLaunchIntro() {
+        onReplayLaunchIntro?()
+    }
+
     func updateGeneralPreferences(_ mutate: (inout GeneralPreferences) -> Void) {
         let prev = generalPreferences
         var next = prev

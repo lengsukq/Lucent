@@ -115,13 +115,7 @@ struct ThemeSettingsCardView: View {
 
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: isPrism ? 5 : 3.5, style: .continuous)
-                        .fill(
-                            isPrism
-                                ? LinearGradient(colors: [.cyan, .purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                : LinearGradient(colors: [Color.blue, Color.blue.opacity(0.85)], startPoint: .top, endPoint: .bottom)
-                        )
-                        .frame(width: 15, height: 15)
+                    LumakeyBrandIconView(size: 16)
                     Capsule()
                         .fill(isPrism ? Color.white.opacity(0.26) : Color.black.opacity(0.10))
                         .frame(width: 78, height: 6)

@@ -227,6 +227,59 @@ struct LumakeyMultiDisplayAndCleanCodeTests {
         #expect(CaptureSelectionGeometry.resolvedWindowCaptureSize(filterContentRect: .zero, fallbackWindowFrame: .zero) == nil)
     }
 
+    @Test("clampedFloatingToolbarCenter and clampedSelectionBadgeCenter keep Screenshot & GIF overlays inside left/right/top/bottom edges")
+    func floatingToolbarAndBadgeEdgeAvoidance() {
+        let viewport = CGSize(width: 1440, height: 900)
+        let wideToolbar = CGSize(width: 900, height: 48)
+        let gifToolbar = CGSize(width: 680, height: 50)
+        let badge = CGSize(width: 300, height: 24)
+
+        // 1. Left-edge window: trailing-aligned or center-aligned toolbar must NOT clip off left edge
+        let leftEdgeWin = CGRect(x: 0, y: 120, width: 280, height: 520)
+        let leftToolbarCenter = CaptureSelectionGeometry.clampedFloatingToolbarCenter(
+            selection: leftEdgeWin, viewportSize: viewport, toolbarSize: wideToolbar, horizontalAlign: .center
+        )
+        #expect(leftToolbarCenter.x - wideToolbar.width * 0.5 >= 14.0 - 0.001)
+        #expect(leftToolbarCenter.x + wideToolbar.width * 0.5 <= viewport.width - 14.0 + 0.001)
+
+        // 2. Right-edge window: center-aligned Screenshot/GIF toolbar must shift left to stay inside right margin
+        let rightEdgeWin = CGRect(x: 1120, y: 140, width: 320, height: 540)
+        let rightScreenshotCenter = CaptureSelectionGeometry.clampedFloatingToolbarCenter(
+            selection: rightEdgeWin, viewportSize: viewport, toolbarSize: wideToolbar, horizontalAlign: .center
+        )
+        #expect(rightScreenshotCenter.x + wideToolbar.width * 0.5 <= viewport.width - 14.0 + 0.001)
+        #expect(rightScreenshotCenter.x - wideToolbar.width * 0.5 >= 14.0 - 0.001)
+
+        let rightGifCenter = CaptureSelectionGeometry.clampedFloatingToolbarCenter(
+            selection: rightEdgeWin, viewportSize: viewport, toolbarSize: gifToolbar, horizontalAlign: .trailing
+        )
+        #expect(rightGifCenter.x + gifToolbar.width * 0.5 <= viewport.width - 14.0 + 0.001)
+
+        // 3. Maximized window touching all four edges: toolbar stays inside bottom margin & badge stays inside top margin
+        let fullWin = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let fullCenter = CaptureSelectionGeometry.clampedFloatingToolbarCenter(
+            selection: fullWin, viewportSize: viewport, toolbarSize: wideToolbar, horizontalAlign: .center
+        )
+        #expect(fullCenter.y + wideToolbar.height * 0.5 <= viewport.height - 14.0 + 0.001)
+        #expect(fullCenter.y - wideToolbar.height * 0.5 >= 14.0 - 0.001)
+
+        let rightBadgeCenter = CaptureSelectionGeometry.clampedSelectionBadgeCenter(
+            selection: CGRect(x: 1320, y: 8, width: 120, height: 220),
+            viewportSize: viewport, badgeSize: badge
+        )
+        #expect(rightBadgeCenter.x + badge.width * 0.5 <= viewport.width - 12.0 + 0.001)
+        #expect(rightBadgeCenter.x - badge.width * 0.5 >= 12.0 - 0.001)
+        #expect(rightBadgeCenter.y - badge.height * 0.5 >= 12.0 - 0.001)
+
+        // 4. Overhanging cross-display window extending beyond left/right edges clamps cleanly inside viewport
+        let overhanging = CGRect(x: -180, y: 100, width: 420, height: 400)
+        let overhangCenter = CaptureSelectionGeometry.clampedFloatingToolbarCenter(
+            selection: overhanging, viewportSize: viewport, toolbarSize: gifToolbar, horizontalAlign: .center
+        )
+        #expect(overhangCenter.x - gifToolbar.width * 0.5 >= 14.0 - 0.001)
+        #expect(overhangCenter.x + gifToolbar.width * 0.5 <= viewport.width - 14.0 + 0.001)
+    }
+
     @Test("Zero-legacy verification: deprecated schemas and bundle-root search indexes are strictly ignored")
     func zeroLegacyCleanCodeAssertions() throws {
         let dir = FileManager.default.temporaryDirectory

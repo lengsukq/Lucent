@@ -119,16 +119,20 @@ public enum OverlayScreenTarget: String, Codable, CaseIterable, Identifiable, Se
 
 public enum MenuBarIconStyle: String, Codable, CaseIterable, Identifiable, Sendable {
     case sparkles = "sparkles"
+    case prism3D = "lumakey.prism3d"
     case command = "command"
     case bolt = "bolt.circle.fill"
     case crosshair = "circle.grid.cross"
 
     public var id: String { rawValue }
-    public var symbolName: String { rawValue }
+    public var symbolName: String {
+        self == .prism3D ? "sparkles" : rawValue
+    }
 
     public var localizedTitle: String {
         switch self {
         case .sparkles: L10n.pick("流光星芒", "Sparkles")
+        case .prism3D: L10n.pick("3D 流光键帽", "3D Keycap")
         case .command: L10n.pick("指令徽标", "Command")
         case .bolt: L10n.pick("极速闪电", "Bolt")
         case .crosshair: L10n.pick("极简准星", "Crosshair")

@@ -16,8 +16,10 @@ final class GifHUDPanel: NSPanel {
 
     @MainActor
     static func present(near region: NSRect, visibleFrame: NSRect, controller: GifCaptureController) -> GifHUDPanel {
+        let hosting = NSHostingView(rootView: LocalizedRootContainer { GifRecordingHUDView(controller: controller) })
+        let fittedWidth = max(640, ceil(hosting.fittingSize.width) + 28)
         let hudFrame = MultiDisplayLayout.clampedHUDFrame(
-            preferredSize: CGSize(width: 820, height: 64),
+            preferredSize: CGSize(width: fittedWidth, height: 64),
             near: region,
             visibleFrame: visibleFrame
         )
@@ -33,7 +35,7 @@ final class GifHUDPanel: NSPanel {
         panel.sharingType = .none
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
-        panel.contentView = NSHostingView(rootView: LocalizedRootContainer { GifRecordingHUDView(controller: controller) })
+        panel.contentView = hosting
         WindowMotionAnimator.present(panel, style: .dynamicIsland, makeKey: false)
         return panel
     }

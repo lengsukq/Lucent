@@ -5,11 +5,101 @@ enum ScreenshotToolbarAction: Sendable {
     case undo, redo, clear, syncClipboard, ocr, cutout, pin, save, cancel, copy
 }
 
+/// Zero-macro synchronous SwiftUI `Layout` that measures the exact rendered size of the
+/// Screenshot or GIF Recording floating toolbar and clamps its X/Y coordinates strictly
+/// inside the display viewport margins (preventing left/right edge clipping on window snaps).
+struct CaptureClampedToolbarLayout: Layout {
+    var localSelection: CGRect?
+    var horizontalAlign: FloatingOverlayHorizontalAlign
+    var edgeMargin: CGFloat = 14
+    var selectionGap: CGFloat = 10
+    var fallbackTopY: CGFloat = 44
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let subview = subviews.first else { return }
+        let maxAvailW = max(120, bounds.width - edgeMargin * 2)
+        let ideal = subview.sizeThatFits(.unspecified)
+        let proposedW = min(ideal.width, maxAvailW)
+        let fitted = ideal.width > maxAvailW
+            ? subview.sizeThatFits(ProposedViewSize(width: proposedW, height: nil))
+            : ideal
+        let center = CaptureSelectionGeometry.clampedFloatingToolbarCenter(
+            selection: localSelection,
+            viewportSize: bounds.size,
+            toolbarSize: fitted,
+            horizontalAlign: horizontalAlign,
+            edgeMargin: edgeMargin,
+            selectionGap: selectionGap,
+            fallbackTopY: fallbackTopY
+        )
+        subview.place(
+            at: CGPoint(x: bounds.minX + center.x, y: bounds.minY + center.y),
+            anchor: .center,
+            proposal: ProposedViewSize(width: fitted.width, height: fitted.height)
+        )
+    }
+}
+
+/// Zero-macro synchronous SwiftUI `Layout` that clamps window/selection info badges away from left/right edges.
+struct CaptureClampedBadgeLayout: Layout {
+    var localSelection: CGRect
+    var edgeMargin: CGFloat = 12
+    var verticalGap: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let subview = subviews.first else { return }
+        let maxBadgeW = max(120, bounds.width - edgeMargin * 2)
+        let ideal = subview.sizeThatFits(.unspecified)
+        let fitted = ideal.width > maxBadgeW
+            ? subview.sizeThatFits(ProposedViewSize(width: maxBadgeW, height: nil))
+            : ideal
+        let center = CaptureSelectionGeometry.clampedSelectionBadgeCenter(
+            selection: localSelection,
+            viewportSize: bounds.size,
+            badgeSize: fitted,
+            edgeMargin: edgeMargin,
+            verticalGap: verticalGap
+        )
+        subview.place(
+            at: CGPoint(x: bounds.minX + center.x, y: bounds.minY + center.y),
+            anchor: .center,
+            proposal: ProposedViewSize(width: fitted.width, height: fitted.height)
+        )
+    }
+}
+
 struct ScreenshotToolbarView: View {
     @ObservedObject var session: ScreenshotSessionState
+    var maxAvailableWidth: CGFloat = 4096
     let onAction: (ScreenshotToolbarAction) -> Void
 
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            toolbarBodyContent
+                .fixedSize(horizontal: true, vertical: false)
+            ScrollView(.horizontal, showsIndicators: false) {
+                toolbarBodyContent
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .frame(maxWidth: max(260, maxAvailableWidth))
+        }
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 1))
+        .shadow(color: .black.opacity(0.32), radius: 18, y: 8)
+        .animation(LiquidMotion.snappySpring, value: session.activeTool)
+        .transition(.opacity.combined(with: .scale(scale: 0.94)))
+    }
+
+    private var toolbarBodyContent: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 3) {
                 ForEach(AnnotationToolKind.allCases) { tool in
@@ -129,13 +219,6 @@ struct ScreenshotToolbarView: View {
                 .transition(LiquidMotion.floatingPillTransition)
             }
         }
-        .padding(.horizontal, 10).padding(.vertical, 8)
-        .fixedSize(horizontal: true, vertical: false)
-        .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 1))
-        .shadow(color: .black.opacity(0.32), radius: 18, y: 8)
-        .animation(LiquidMotion.snappySpring, value: session.activeTool)
-        .transition(.opacity.combined(with: .scale(scale: 0.94)))
     }
 
     private func toolButton(_ tool: AnnotationToolKind) -> some View {

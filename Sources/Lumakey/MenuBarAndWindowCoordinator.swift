@@ -70,14 +70,13 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             onMenuBarUpdate: { [weak self] text in self?.statusItem?.button?.title = text.map { " " + $0 } ?? "" },
             onOpenNetworkMonitor: { [weak self] in self?.open(route: .networkMonitor) }
         )
-        if !viewModel.generalPreferences.launchSilentlyInMenuBar {
-            panelController.show(filter: .all)
-        }
+        performInitialLaunchPresentation()
     }
 
     func showLauncher(filter: OmniFilter = .all) { panelController.show(filter: filter) }
 
     func shutdown() {
+        LaunchIntroController.shared.cancelImmediately()
         hotKeyManager.unregisterAll(); viewModel.shutdownAllServicesAndTasks()
         SelectionQuickBarController.shared.stopAll()
         for (_, ctrl) in pluginPanelControllers { ctrl.stop() }
@@ -106,6 +105,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         viewModel.onShowOverlayRequest = { [weak self] filter in self?.panelController.show(filter: filter) }
         viewModel.onRecenterFloatingPanel = { [weak self] in self?.panelController.resetPositionToCenter() }
         viewModel.onDockVisibilityChanged = { [weak self] _ in self?.syncDockPolicy() }
+        viewModel.onReplayLaunchIntro = { [weak self] in self?.replayLaunchIntroSequence() }
         OCRResultWindowController.shared.onVisibilityChanged = { [weak self] in self?.syncDockPolicy() }
         PluginCustomWebWindowController.shared.onWindowVisibilityChanged = { [weak self] in self?.syncDockPolicy() }
         OCRResultWindowController.shared.onRouteToPlugin = { [weak self] plugin, ctx in

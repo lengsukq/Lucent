@@ -5,8 +5,7 @@ import LumakeyCore
 extension MenuBarAndWindowCoordinator: NSMenuDelegate {
     func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        let symbol = viewModel.generalPreferences.menuBarIconStyle.symbolName
-        item.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: L10n.translate("流光 Lumakey"))
+        applyStatusBarImage(to: item)
         item.button?.imagePosition = .imageLeading
         item.button?.font = NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .medium)
         updateStatusButtonTooltip(for: item)
@@ -19,8 +18,16 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
 
     func refreshStatusBarIcon() {
         guard let item = statusItem else { return }
-        let symbol = viewModel.generalPreferences.menuBarIconStyle.symbolName
-        item.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: L10n.translate("流光 Lumakey"))
+        applyStatusBarImage(to: item)
+    }
+
+    private func applyStatusBarImage(to item: NSStatusItem) {
+        let style = viewModel.generalPreferences.menuBarIconStyle
+        if style == .prism3D {
+            item.button?.image = LumakeyBrandIcon.statusBarImage(pointSize: 16.5)
+        } else {
+            item.button?.image = NSImage(systemSymbolName: style.symbolName, accessibilityDescription: L10n.translate("流光 Lumakey"))
+        }
     }
 
     func refreshLocalizedChrome() {

@@ -31,23 +31,23 @@ struct ScreenshotWindowSnapOverlay: View {
     var body: some View {
         let hint = overlapCount >= 2 ? " · Tab 切下层 (\(overlapCount))" : " · 单击截整窗"
         let visibleBadgeHost = rect.intersects(CGRect(origin: .zero, size: sliceSize))
-        let badgeX = min(max(130, rect.minX + 120), max(130, sliceSize.width - 130))
-        let badgeY = rect.minY > 28 ? rect.minY - 14 : max(18, rect.minY + 18)
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(Color.cyan.opacity(0.95), lineWidth: 2.2)
                 .frame(width: rect.width, height: rect.height)
                 .position(x: rect.midX, y: rect.midY)
             if visibleBadgeHost {
-                HStack(spacing: 5) {
-                    Image(systemName: "macwindow").font(.system(size: 10.5, weight: .bold)).foregroundStyle(.cyan)
-                    Text("\(label)\(hint)").lineLimit(1)
+                CaptureClampedBadgeLayout(localSelection: rect) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "macwindow").font(.system(size: 10.5, weight: .bold)).foregroundStyle(.cyan)
+                        Text("\(label)\(hint)").lineLimit(1)
+                    }
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(.black.opacity(0.78), in: Capsule())
                 }
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 9).padding(.vertical, 4)
-                .background(.black.opacity(0.78), in: Capsule())
-                .position(x: badgeX, y: min(badgeY, sliceSize.height - 18))
+                .frame(width: sliceSize.width, height: sliceSize.height)
             }
         }
         .frame(width: sliceSize.width, height: sliceSize.height, alignment: .topLeading)
@@ -64,8 +64,6 @@ struct ScreenshotSelectionChrome: View {
 
     var body: some View {
         let badgeVisible = rect.minX < sliceSize.width && rect.maxX > 0
-        let badgeX = min(max(110, rect.minX + 100), max(110, sliceSize.width - 110))
-        let badgeY = rect.minY > 28 ? rect.minY - 14 : max(16, rect.minY + 14)
         ZStack(alignment: .topLeading) {
             Rectangle()
                 .strokeBorder(Color.accentColor, lineWidth: 1.5)
@@ -82,22 +80,24 @@ struct ScreenshotSelectionChrome: View {
             }
 
             if badgeVisible {
-                HStack(spacing: 6) {
-                    if let windowTitle, !windowTitle.isEmpty {
-                        Image(systemName: "macwindow.badge.plus").foregroundStyle(.cyan)
-                        Text(windowTitle).lineLimit(1)
-                        Text("·").foregroundStyle(.white.opacity(0.5))
+                CaptureClampedBadgeLayout(localSelection: rect) {
+                    HStack(spacing: 6) {
+                        if let windowTitle, !windowTitle.isEmpty {
+                            Image(systemName: "macwindow.badge.plus").foregroundStyle(.cyan)
+                            Text(windowTitle).lineLimit(1)
+                            Text("·").foregroundStyle(.white.opacity(0.5))
+                        }
+                        Text(pixelSizeText)
+                        if mode == .quickOCR {
+                            Text("OCR").foregroundStyle(.purple)
+                        }
                     }
-                    Text(pixelSizeText)
-                    if mode == .quickOCR {
-                        Text("OCR").foregroundStyle(.purple)
-                    }
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(.black.opacity(0.76), in: RoundedRectangle(cornerRadius: 6))
                 }
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(.black.opacity(0.76), in: RoundedRectangle(cornerRadius: 6))
-                .position(x: badgeX, y: min(badgeY, sliceSize.height - 18))
+                .frame(width: sliceSize.width, height: sliceSize.height)
             }
         }
         .frame(width: sliceSize.width, height: sliceSize.height, alignment: .topLeading)

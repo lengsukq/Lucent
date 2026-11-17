@@ -56,8 +56,17 @@ struct SettingsDetailSectionsView: View {
         ScrollView {
             VStack(spacing: 14) {
                 VStack(spacing: 10) {
-                    SquircleBadge(symbol: "sparkles", topColor: .cyan, bottomColor: .indigo, size: 60)
+                    LumakeyBrandIconView(size: 78, showAmbientGlow: true)
                     Text(L10n.pick("流光 Lumakey 0.9.0", "Lumakey 0.9.0")).font(.title2.weight(.bold))
+                    Text(L10n.pick("一触流光，用完即焚", "One Touch of Light · Zero Trace Left Behind"))
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.cyan, LiquidColors.accentPrimary, .pink],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                     Text(L10n.pick("Apple Silicon (arm64) 原生 Swift 6 · 零第三方依赖 · Build 28", "Apple Silicon (arm64) Native Swift 6 · Zero Third-Party Dependencies · Build 28"))
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
                     Text(
@@ -71,6 +80,8 @@ struct SettingsDetailSectionsView: View {
                     FlowWrapLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                         Button("立即呼出快捷台 (⌥Space)") { viewModel.showOverlay(filter: .all) }
                             .buttonStyle(GlassPillButtonStyle(prominent: true))
+                        Button(L10n.pick("重播启动动画", "Replay Intro")) { viewModel.replayLaunchIntro() }
+                            .buttonStyle(GlassPillButtonStyle())
                         Button("文件工作台 (⌥E)") { viewModel.openRoute(.workspace) }
                             .buttonStyle(GlassPillButtonStyle())
                         Button("网络流量监控 (⌥N)") { viewModel.openRoute(.networkMonitor) }

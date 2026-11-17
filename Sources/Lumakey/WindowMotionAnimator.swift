@@ -4,6 +4,7 @@ import QuartzCore
 
 enum WindowMotionStyle {
     case launcher
+    case launcherFromIntro
     case dynamicIsland
     case floatingPin
     case pulseCapsule
@@ -13,6 +14,7 @@ enum WindowMotionStyle {
     var enterScale: CGFloat {
         switch self {
         case .launcher: 0.958
+        case .launcherFromIntro: 0.912
         case .dynamicIsland: 0.91
         case .floatingPin: 0.915
         case .pulseCapsule: 0.925
@@ -23,7 +25,7 @@ enum WindowMotionStyle {
 
     var exitScale: CGFloat {
         switch self {
-        case .launcher: 0.970
+        case .launcher, .launcherFromIntro: 0.970
         case .dynamicIsland: 0.92
         case .floatingPin: 0.91
         case .pulseCapsule: 0.935
@@ -35,6 +37,7 @@ enum WindowMotionStyle {
     var enterOffsetY: CGFloat {
         switch self {
         case .launcher: 8
+        case .launcherFromIntro: 12
         case .dynamicIsland: 12
         case .floatingPin: -5
         case .pulseCapsule: 6
@@ -45,7 +48,7 @@ enum WindowMotionStyle {
 
     var exitOffsetY: CGFloat {
         switch self {
-        case .launcher: 6
+        case .launcher, .launcherFromIntro: 6
         case .dynamicIsland: 10
         case .floatingPin: 4
         case .pulseCapsule: 5
@@ -57,6 +60,7 @@ enum WindowMotionStyle {
     var enterFadeDuration: TimeInterval {
         switch self {
         case .launcher: 0.19
+        case .launcherFromIntro: 0.24
         case .dynamicIsland: 0.21
         case .floatingPin: 0.20
         case .pulseCapsule: 0.18
@@ -67,7 +71,7 @@ enum WindowMotionStyle {
 
     var exitDuration: TimeInterval {
         switch self {
-        case .launcher: 0.135
+        case .launcher, .launcherFromIntro: 0.135
         case .dynamicIsland: 0.145
         case .floatingPin: 0.145
         case .pulseCapsule: 0.14

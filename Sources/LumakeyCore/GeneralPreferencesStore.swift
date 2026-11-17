@@ -10,6 +10,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
 
     public var schemaVersion: Int
     public var launchSilentlyInMenuBar: Bool
+    public var showLaunchIntroAnimation: Bool
     public var showDockIcon: Bool
     public var defaultEverythingScope: PersistedEverythingScope
 
@@ -41,6 +42,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public init(
         schemaVersion: Int = 1,
         launchSilentlyInMenuBar: Bool = false,
+        showLaunchIntroAnimation: Bool = true,
         showDockIcon: Bool = false,
         defaultEverythingScope: PersistedEverythingScope = .allVolumes,
         queryClearPolicy: OverlayQueryClearPolicy = .afterIdle30s,
@@ -66,6 +68,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     ) {
         self.schemaVersion = schemaVersion
         self.launchSilentlyInMenuBar = launchSilentlyInMenuBar
+        self.showLaunchIntroAnimation = showLaunchIntroAnimation
         self.showDockIcon = showDockIcon
         self.defaultEverythingScope = defaultEverythingScope
         self.queryClearPolicy = queryClearPolicy
@@ -91,7 +94,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case schemaVersion, launchSilentlyInMenuBar, showDockIcon, defaultEverythingScope
+        case schemaVersion, launchSilentlyInMenuBar, showLaunchIntroAnimation, showDockIcon, defaultEverythingScope
         case queryClearPolicy, overlayScreenTarget, rememberOverlayPosition, savedOverlayTopCenter, menuBarIconStyle
         case clipboardMaxUnpinned, clipboardRetentionTTL, clipboardExcludedBundleIDs
         case defaultCaptureSaveDirectoryPath, quickSaveCaptureWithoutDialog, screenshotExcludeWindowShadow, gifDefaultOptions
@@ -106,6 +109,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.init(
             schemaVersion: (try? c.decodeIfPresent(Int.self, forKey: .schemaVersion)) ?? 1,
             launchSilentlyInMenuBar: (try? c.decodeIfPresent(Bool.self, forKey: .launchSilentlyInMenuBar)) ?? false,
+            showLaunchIntroAnimation: (try? c.decodeIfPresent(Bool.self, forKey: .showLaunchIntroAnimation)) ?? true,
             showDockIcon: (try? c.decodeIfPresent(Bool.self, forKey: .showDockIcon)) ?? false,
             defaultEverythingScope: (try? c.decodeIfPresent(PersistedEverythingScope.self, forKey: .defaultEverythingScope)) ?? .allVolumes,
             queryClearPolicy: (try? c.decodeIfPresent(OverlayQueryClearPolicy.self, forKey: .queryClearPolicy)) ?? .afterIdle30s,

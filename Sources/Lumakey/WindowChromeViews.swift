@@ -40,8 +40,8 @@ struct SecondaryWindowScaffold<Content: View>: View {
         let reduceTransparency = SystemDisplayPreferences.shared.reduceTransparency
         let resolvedTitle = L10n.translate(title, for: languageManager.current)
         return HStack(spacing: 7) {
-            Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(LiquidColors.accentPrimary)
-                .frame(width: 20, height: 20).background(LiquidColors.accentPrimary.opacity(0.14), in: Circle())
+            LumakeyBrandIconView(size: 19)
+            Image(systemName: symbol).font(.system(size: 10.5, weight: .semibold)).foregroundStyle(LiquidColors.accentPrimary)
             Text(resolvedTitle).font(.system(size: 12, weight: .semibold)).foregroundStyle(LiquidColors.textPrimary).lineLimit(1)
             if let subtitle, !subtitle.isEmpty {
                 Text("·").foregroundStyle(LiquidColors.textSecondary)

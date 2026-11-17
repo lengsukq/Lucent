@@ -11,6 +11,7 @@ final class LumakeyAppDelegate: NSObject, NSApplicationDelegate {
     private var hasShutdown = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.applicationIconImage = LumakeyBrandIcon.appIconImage()
         installStandardEditMainMenu()
         installTerminationSignals()
         let coord = MenuBarAndWindowCoordinator(viewModel: viewModel)

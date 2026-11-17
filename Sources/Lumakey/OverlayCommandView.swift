@@ -69,12 +69,18 @@ struct OverlayCommandView: View {
         let searchShape = RoundedRectangle(cornerRadius: LiquidRadii.searchBar, style: .continuous)
         let hasQuery = !viewModel.overlayQuery.isEmpty
         return HStack(alignment: .center, spacing: 10) {
-            SquircleBadge(
-                symbol: viewModel.activeScopedPlugin?.manifest.icon ?? viewModel.omniFilter.symbolName,
-                topColor: filterBadgeColors.0,
-                bottomColor: filterBadgeColors.1,
-                size: 36
-            )
+            Group {
+                if viewModel.activeScopedPlugin == nil && viewModel.omniFilter == .all {
+                    LumakeyBrandIconView(size: 36, showAmbientGlow: themeManager.current == .prismPulse)
+                } else {
+                    SquircleBadge(
+                        symbol: viewModel.activeScopedPlugin?.manifest.icon ?? viewModel.omniFilter.symbolName,
+                        topColor: filterBadgeColors.0,
+                        bottomColor: filterBadgeColors.1,
+                        size: 36
+                    )
+                }
+            }
             .contentTransition(.symbolEffect(.replace))
             .onTapGesture { viewModel.bumpFocusToken() }
 
