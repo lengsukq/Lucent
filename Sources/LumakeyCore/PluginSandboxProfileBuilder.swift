@@ -80,7 +80,11 @@ public enum PluginSandboxProfileBuilder {
         if !allowedScopes.contains(.subprocess) {
             lines.append("(deny process-exec* (subpath \"/opt/homebrew\") (subpath \"/usr/local\") (subpath \"/Applications\") (subpath \"/usr/sbin\"))")
             lines.append("(deny process-exec* (literal \"/usr/bin/curl\") (literal \"/usr/bin/ssh\") (literal \"/usr/bin/scp\") (literal \"/usr/bin/git\") (literal \"/usr/bin/sftp\"))")
-            lines.append("(allow process-exec* (literal \"/Applications/Xcode.app/Contents/Developer/usr/bin/python3\") (subpath \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework\"))")
+            for devDir in discoverXcodeDeveloperDirectories() {
+                let pyBin = "\(devDir)/usr/bin/python3"
+                let pyFw = "\(devDir)/Library/Frameworks/Python3.framework"
+                lines.append("(allow process-exec* (literal \"\(escapeSBPL(pyBin))\") (subpath \"\(escapeSBPL(pyFw))\"))")
+            }
             lines.append("(allow process-exec* (subpath \"\(escapeSBPL(plugPath))\"))")
         }
 
@@ -132,6 +136,19 @@ public enum PluginSandboxProfileBuilder {
             )
         }
         return (entryURL, arguments, profile)
+    }
+
+    private static func discoverXcodeDeveloperDirectories() -> [String] {
+        var dirs: [String] = ["/Applications/Xcode.app/Contents/Developer"]
+        var seen: Set<String> = ["/Applications/Xcode.app/Contents/Developer"]
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: "/Applications")) ?? []
+        for name in entries.sorted() where name.hasPrefix("Xcode") && name.hasSuffix(".app") {
+            let candidate = "/Applications/\(name)/Contents/Developer"
+            if seen.insert(candidate).inserted {
+                dirs.append(candidate)
+            }
+        }
+        return dirs
     }
 
     private static func canonicalPath(_ url: URL) -> String {
