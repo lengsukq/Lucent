@@ -77,11 +77,12 @@ public final class MosEngine: @unchecked Sendable {
     private func ensureSystemObserversInstalled() {
         guard !observersInstalled else { return }
         observersInstalled = true
-        let scheduleRefresh: @Sendable () -> Void = { [weak self] in
-            for delay in [0.15, 0.75] {
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                    self?.refreshTapStateSync()
-                    self?.onStatusChanged?()
+        let scheduleRefresh: @Sendable () -> Void = {
+            for delayMs in [150, 750] {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(delayMs))
+                    MosEngine.shared.refreshTapStateSync()
+                    MosEngine.shared.onStatusChanged?()
                 }
             }
         }
