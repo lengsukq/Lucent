@@ -250,3 +250,28 @@ struct LiquidStatusPill: View {
         }
     }
 }
+
+struct GlassDropdownMenu<MenuContent: View>: View {
+    let title: String
+    let value: String
+    @ViewBuilder var content: () -> MenuContent
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(title).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
+            Menu { content() } label: {
+                HStack(spacing: 4) {
+                    Text(value).lineLimit(1)
+                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
+                }
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(LiquidColors.textPrimary)
+                .padding(.horizontal, 9).padding(.vertical, 4.5)
+                .background(LiquidColors.pillSurface, in: Capsule())
+                .overlay { Capsule().strokeBorder(LiquidColors.pillBorder, lineWidth: 0.85) }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+    }
+}

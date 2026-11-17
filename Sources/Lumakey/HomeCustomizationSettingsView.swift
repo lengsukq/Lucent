@@ -116,40 +116,57 @@ struct HomeCustomizationSettingsView: View {
             Label(L10n.pick("四大分区显隐、顺序与网格密度", "Sections Visibility, Order & Density"), systemImage: "rectangle.3.group.fill")
                 .font(.callout.weight(.semibold))
 
-            HStack(spacing: 14) {
-                Picker(L10n.pick("Bento 列数", "Bento Columns"), selection: Binding(
-                    get: { profile.bentoColumns },
-                    set: { col in viewModel.mutateHomeLayout { $0.activeProfile.bentoColumns = col } }
-                )) {
-                    ForEach(HomeBentoColumns.allCases) { c in Text(c.title).tag(c) }
+            FlowWrapLayout(horizontalSpacing: 16, verticalSpacing: 8) {
+                HStack(spacing: 6) {
+                    Text(L10n.pick("Bento 列数：", "Bento Columns:"))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(LiquidColors.textSecondary)
+                    ForEach(HomeBentoColumns.allCases) { col in
+                        Button(col.title) {
+                            viewModel.mutateHomeLayout { $0.activeProfile.bentoColumns = col }
+                        }
+                        .buttonStyle(GlassPillButtonStyle(prominent: profile.bentoColumns == col, compact: true))
+                    }
                 }
-                .pickerStyle(.segmented)
 
-                Picker(L10n.pick("高频坞容量", "Dock Rows"), selection: Binding(
-                    get: { profile.dockRows },
-                    set: { rows in viewModel.mutateHomeLayout { $0.activeProfile.dockRows = rows } }
-                )) {
-                    Text(L10n.pick("1 排 (8 格)", "1 Row (8)")).tag(1)
-                    Text(L10n.pick("2 排 (16 格)", "2 Rows (16)")).tag(2)
+                HStack(spacing: 6) {
+                    Text(L10n.pick("高频坞容量：", "Dock Rows:"))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(LiquidColors.textSecondary)
+                    ForEach([1, 2], id: \.self) { rows in
+                        let title = rows == 1 ? L10n.pick("1 排 (8 格)", "1 Row (8)") : L10n.pick("2 排 (16 格)", "2 Rows (16)")
+                        Button(title) {
+                            viewModel.mutateHomeLayout { $0.activeProfile.dockRows = rows }
+                        }
+                        .buttonStyle(GlassPillButtonStyle(prominent: profile.dockRows == rows, compact: true))
+                    }
                 }
-                .pickerStyle(.segmented)
             }
-            .font(.caption)
 
-            HStack(spacing: 16) {
-                Picker(L10n.pick("混合坞补位", "Dock Fill"), selection: Binding(
-                    get: { profile.dockFillMode },
-                    set: { mode in viewModel.mutateHomeLayout { $0.activeProfile.dockFillMode = mode } }
-                )) {
-                    ForEach(HomeDockFillMode.allCases) { m in Text(m.title).tag(m) }
+            FlowWrapLayout(horizontalSpacing: 16, verticalSpacing: 8) {
+                HStack(spacing: 6) {
+                    Text(L10n.pick("混合坞补位：", "Dock Fill:"))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(LiquidColors.textSecondary)
+                    ForEach(HomeDockFillMode.allCases) { mode in
+                        Button(mode.title) {
+                            viewModel.mutateHomeLayout { $0.activeProfile.dockFillMode = mode }
+                        }
+                        .buttonStyle(GlassPillButtonStyle(prominent: profile.dockFillMode == mode, compact: true))
+                    }
                 }
-                .pickerStyle(.segmented)
 
-                Toggle(L10n.pick("精简底部状态栏重复按钮", "Compact footer bar"), isOn: Binding(
-                    get: { profile.compactFooterBar },
-                    set: { val in viewModel.mutateHomeLayout { $0.activeProfile.compactFooterBar = val } }
-                ))
-                .font(.caption)
+                HStack(spacing: 7) {
+                    Text(L10n.pick("精简底部状态栏重复按钮", "Compact footer bar"))
+                        .font(.caption)
+                    Toggle("", isOn: Binding(
+                        get: { profile.compactFooterBar },
+                        set: { val in viewModel.mutateHomeLayout { $0.activeProfile.compactFooterBar = val } }
+                    ))
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .labelsHidden()
+                }
             }
 
             VStack(spacing: 5) {

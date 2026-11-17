@@ -132,25 +132,43 @@ struct HomeItemEditorSheet: View {
                 if validPlugins.isEmpty {
                     Text(L10n.pick("当前暂无已启用插件", "No enabled plugins available")).font(.caption).foregroundStyle(.secondary)
                 } else {
-                    HStack(spacing: 8) {
-                        Picker(L10n.pick("选择插件", "Plugin"), selection: $form.selectedPluginID) {
-                            ForEach(validPlugins) { p in Text(p.displayName).tag(p.id) }
+                    HStack(spacing: 10) {
+                        let currentName = validPlugins.first(where: { $0.id == form.selectedPluginID })?.displayName
+                            ?? validPlugins.first?.displayName ?? ""
+                        GlassDropdownMenu(title: L10n.pick("选择插件：", "Plugin:"), value: currentName) {
+                            ForEach(validPlugins) { p in
+                                Button(p.displayName) {
+                                    if form.selectedPluginID != p.id {
+                                        form.selectedPluginID = p.id
+                                        form.selectedCommandID = ""
+                                    }
+                                }
+                            }
                         }
-                        .onChange(of: form.selectedPluginID) { _, _ in form.selectedCommandID = "" }
 
                         let cmds = viewModel.pluginCommands.filter { $0.pluginID == form.selectedPluginID }
                         if !cmds.isEmpty {
-                            Picker(L10n.pick("动作", "Action"), selection: $form.selectedCommandID) {
-                                Text(L10n.pick("整个插件入口", "Plugin Entry")).tag("")
-                                ForEach(cmds) { c in Text(c.localizedTitle).tag(c.command.id) }
+                            let currentAction = cmds.first(where: { $0.command.id == form.selectedCommandID })?.localizedTitle
+                                ?? L10n.pick("整个插件入口", "Plugin Entry")
+                            GlassDropdownMenu(title: L10n.pick("动作：", "Action:"), value: currentAction) {
+                                Button(L10n.pick("整个插件入口", "Plugin Entry")) { form.selectedCommandID = "" }
+                                Divider()
+                                ForEach(cmds) { c in
+                                    Button(c.localizedTitle) { form.selectedCommandID = c.command.id }
+                                }
                             }
                         }
                     }
                     if form.selectedCommandID.isEmpty {
-                        Picker(L10n.pick("点击行为", "Click Behavior"), selection: $form.pluginBehavior) {
-                            ForEach(HomePluginLaunchBehavior.allCases) { b in Text(b.title).tag(b) }
+                        FlowWrapLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                            Text(L10n.pick("点击行为：", "Click Behavior:"))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(LiquidColors.textSecondary)
+                            ForEach(HomePluginLaunchBehavior.allCases) { beh in
+                                Button(beh.title) { form.pluginBehavior = beh }
+                                    .buttonStyle(GlassPillButtonStyle(prominent: form.pluginBehavior == beh, compact: true))
+                            }
                         }
-                        .pickerStyle(.segmented)
                     }
                 }
             }
@@ -192,11 +210,17 @@ struct HomeItemEditorSheet: View {
             }
         case .pathOrQuery:
             VStack(alignment: .leading, spacing: 7) {
-                Picker("", selection: $form.isLocalPathMode) {
-                    Text(L10n.pick("本地文件夹 / 文件路径", "Local Folder / File")).tag(true)
-                    Text(L10n.pick("预设搜索词 / 短语", "Preset Search Query")).tag(false)
+                HStack(spacing: 6) {
+                    Button(L10n.pick("本地文件夹 / 文件路径", "Local Folder / File")) {
+                        form.isLocalPathMode = true
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: form.isLocalPathMode, compact: true))
+
+                    Button(L10n.pick("预设搜索词 / 短语", "Preset Search Query")) {
+                        form.isLocalPathMode = false
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: !form.isLocalPathMode, compact: true))
                 }
-                .pickerStyle(.segmented).labelsHidden()
                 if form.isLocalPathMode {
                     HStack(spacing: 8) {
                         GlassInputField(symbol: "folder", placeholder: "~/Documents/code", text: $form.localPathText)
