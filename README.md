@@ -1,104 +1,115 @@
 # 流光 Lumakey
 
-> **交互式产品介绍页**：[https://lengsukq.github.io/Lumakey/](https://lengsukq.github.io/Lumakey/)（3D 体验主页）｜ [2D 图文详解与实验台](https://lengsukq.github.io/Lumakey/overview.html) ｜ **示例插件商店**：[`plugin-demo/`](plugin-demo/README.md) ｜ **工程文档**：[文档总览](docs/INDEX.md)
+> **交互式产品介绍页**：[https://lengsukq.github.io/Lumakey/](https://lengsukq.github.io/Lumakey/)（3D 体验主页）｜ [2D 图文详解与实验台](https://lengsukq.github.io/Lumakey/overview.html) ｜ **官方插件商店**：[`plugin-demo/`](plugin-demo/README.md) ｜ **技术文档**：[文档总览](docs/INDEX.md)
 
-**一触流光，用完即焚 —— 专为 macOS Apple Silicon (`arm64`) 打造的零第三方依赖 Swift 6 原生效率中枢与 AI 插件平台。**
+**一触流光，用完即焚 —— 一款专为 Apple Silicon Mac 打造的轻巧、顺手、不臃肿的快捷效率工具。**
 
-`Lumakey`（`app.lumakey.macos`）驻留于菜单栏、以全局热键毫秒呼出。我们不试图把用户塞进一座臃肿的全家桶大窗，而是打磨一块**极度克制、原生高速、用完即焚**的微内核底座，把高频的系统能力做到零抖动直达，把长尾与个性化工作流通过 **Plugin v3.6** 与内置 **`lumakey-mcp`** 完整交还给你。
-
----
-
-## 核心产品思想
-
-1. **底座极度克制，边界无限生长**
-   核心只保留系统级高频刚需（全搜、剪贴板、多屏截图标注/录屏/OCR、物理鼠标平滑、独立阅读/看图/影院窗与按需工作台），个性化场景交由 **Plugin v3.6** 一等公民生态按需生长。**未安装或已停用的插件零内存、零轮询、零界面打扰**；一旦启用，即享有与内置能力完全平权的全局搜索、子命令热键、上下文联动与设置体验。
-2. **一触流光，用完即焚（自洁内存架构）**
-   所有悬浮窗、监控读数与快捷按钮在**新装时默认全关**，只在你需要时唤醒，离开后自动释放：
-   - 主悬浮面板隐藏 `30s` 自动销毁视图树；
-   - `LMKYIDX3` 全盘 `mmap` 索引空闲 `90s` 或收到系统内存压力信号即刻卸载堆页（冷启动仅读 4 KB 头部 O(1) 探测）；
-   - Markdown 阅读窗、只读看图窗、4K 影院与外部插件自由窗口/悬浮面板在关窗瞬间置空视图并终止轮询任务；
-   - 全部外部脚本由 `ProcessSupervisor` 托管（默认 `8s` 超时强杀、双管道无死锁排空与关闭即精确取消）。
-3. **恒定几何与确定性肌肉记忆**
-   主面板严格锁定 **`880 × 544`** 恒定尺寸，内嵌子过滤条切换分类时外框与主分割线绝对静止；配合 `LauncherSelectionAnchor` 锚定选中项 ID，后台异步索引刷新绝不抢夺焦点；支持中文输入法预编辑态守卫、`⌘1..9` 快选、`↩` / `⌥↩` 直粘回原窗口、`⌘C` 复制与 `⌘Return` 次级动作，让每一次呼出都形成稳定的键盘肌肉记忆。
-4. **Native Services First，零第三方包依赖**
-   全仓**零第三方 SwiftPM / CocoaPods 依赖**，拒绝跨平台套壳与重型运行时，直接驱动 macOS 14+ 与 Apple Silicon 原生系统框架（`ScreenCaptureKit`、`SCStream` + `VideoToolbox`、`Vision`、`AVKit`、`Darwin Mach`/`IOKit`、`Carbon`、`CGEventTap`、`FSEvents`、`Compression LZFSE`、`CryptoKit`、`sandbox-exec`）。
-5. **双轨安全模型与开放 AI 共创**
-   - **「macOS 认宿主，宿主审插件」**：外部插件不直接向系统索取高危 TCC 权限，涉及辅助功能（划词读取/粘贴回填）、屏幕录制与系统通知均由签名宿主 `Lumakey.app` 统一代申并按插件粒度隔离分发；
-   - **最小权限 + OS 级隔离**：脚本运行期受 `PluginSandboxProfileBuilder`（Seatbelt）与纯净环境变量白名单约束，敏感密钥密封于双轨 256-bit CSPRNG + `AES-GCM` 加密保险箱（`LMKYVLT2`）；
-   - **一句话十秒造插件**：内置 12 项工具的原生 stdio `lumakey-mcp` 服务器让 Claude Code、Cursor、Codex、Gemini CLI 直接在本地生成、审计、实测并通过 `FSEvents` 350ms 热重载生效。
+按一下 `⌥Space`，搜应用、找文件、翻剪贴板、算数字、截图钉屏、录 GIF 动图、离线识字、或者顺手跑一下自己的小工具；松手切回工作后，它就安静退到菜单栏，自动释放内存，绝不在后台默默拖慢你的 Mac。
 
 ---
 
-## 设计哲学与视觉体验
+## 我们为什么做 Lumakey（核心产品思想）
 
-- **AppKit 真圆角穿透毛玻璃**：以 `NSVisualEffectView`（`.popover` + 9-slice `28pt` 连续曲率 `maskImage`）彻底消除方角渗漏，搜索栏采用禁用透明模糊混叠的 `CrispSearchTextField`，并严格遵守 Apple `.continuous` 同心圆角层级（`28pt` → `24pt` → `22pt` → `18pt` → `14pt` → `12pt`）。
-- **双生液态玻璃主题 & 免重启中英双语**：
-  - **凝霜留白 (`Pure Frost`)**：零色晕、高对比 Studio 级浅色瓷感；
-  - **霓彩流光 (`Prism Pulse`)**：棱镜高光与深邃光谱暗色玻璃；
-  - 首次打开自动跟随 macOS 语言，支持在设置中心、菜单栏或搜索栏免重启切换「简体中文 / English」与双主题，并自动同步响应 macOS「减少透明度 / 增强对比度」无障碍选项，同时实时透传给外部插件。
-- **智能程序坞 (Dock) 驻留**：平时仅以轻量 `LSUIElement` 驻留菜单栏，打开标准独立窗口时自动在程序坞显现图标，关窗后自动恢复轻量静默。
+市面上的效率工具常常走向两个极端：要么功能太单一，桌面得开五六个软件才凑齐；要么拼命往里面塞东西，装完开机多了一堆关不掉的悬浮球、后台常驻进程和用不上的大按钮。
 
----
+**流光 Lumakey** 想做的是第三种选择——**底座极度克制，能力按需生长**：
 
-## 核心能力全景
-
-- **单一统一全搜快捷中枢 (`⌥Space`)**：
-  - 基于前台活跃时长/频次 `log2` 加权、近度衰减与图钉常驻排序常用应用；支持汉字/多音字双音索引与拼音首字母；
-  - 默认开启 `全盘 + 外置盘` 免前缀极速检索（`LMKYIDX3` `mmap` 快照 + `FSEvents` 增量同步），同时内聚百分比/科学函数算式求值、10 维度中英单位与进制换算（含 CSS `px/rem/em/pt`、角度与速度）、本地路径/网址直达与 9 种网页搜索前缀、离线开发工具箱（时间戳/UUID/随机密码/Base64/URL/JWT/JSON/MD5/SHA-256/`#HEX` 色板/高清二维码）、`;` 快捷短语、全格式富媒体剪贴板历史（`↩` 原窗直粘、`⌥↩` 纯文本直粘、`⌘⌫` 删除、`⌘Z` 15 级撤回、`#RGB`/`rgb()`/`HSL` 复制、语音朗读及密码管理器/高危私钥过滤）与插件子功能直达。
-- **Plugin v3.6 双轨插件生态、自由画布 HUD 与官方商店 (`plugin-demo/`)**：
-  - **双轨呈现**：既可仅凭 `plugin.json` 输出轻量 JSON 渲染默认卡片与**独立置顶实时悬浮面板 (`lumakey://panel/<id>`)**，也可通过 `window` / `floatingWindow` 开启**不限 UI 样式的 `WKWebView` 自由窗口或无边框透明置顶挂件 (`lumakey://window/<id>` + `window.lumakey` 双向 JS SDK)**；
-  - **自定义商店智能入驻 + [8 款官方旗舰插件 (`plugin-demo/`)](plugin-demo/README.md)**：「精选市场」顶部统一智能地址栏自动识别仓库、商店清单（`lumakey-registry.json`）或 `.zip` 包，提供 `SHA-256` 与权限防伪装核验及无损升级。官方商店内置 `ai-quota`（Codex/Claude Code/agy/dsh 实时额度自由挂件与 DeepSeek 余额）、`browser-hub`（三端浏览器书签/历史 0ms 全搜）、`lumalink-companion`（LumaLink 多屏远控/RDP/防窥）、`notion-bookmarks`、`translate-hub`（划词/OCR 多源译站与 Anki 导出）、`mac-pilot`（系统控制/16 项设置直达/访达助手）、`quick-remind`（自然语言倒计时/原生提醒事项/系统通知）与 `screen-shield`（多屏全屏状态屏遮罩）。
-- **多显示器原生 DPI 截图标注、流式 GIF 录制与离线 OCR (`⌥A` / `⌥G` / `⌥O`)**：
-  - 基于 `ScreenCaptureKit`、`MultiDisplayLayout` 与 `ScreenTopologyAndWindowMatcher` 实现逐屏原生 `backingScaleFactor` 独立 DPI 分片冻屏（支持负坐标副屏、纵向堆叠、`1x`/`2x` 混合屏与热插拔守护）、`Tab` 前后 Z 序窗口切换与 `SCContentFilter(desktopIndependentWindow:)` 无遮挡独立窗口捕获（可选去阴影）；
-  - 内置 `R` 恢复上次选区、放大镜取色（`C` 复制 `#HEX` / `⇧C` 复制 `rgb()`）、10 种标注工具（`1–0` 秒切）、`⌘Z`/`⇧⌘Z` 撤销重做、PNG 真实 DPI 写入与 1:1 悬浮钉图（`T` 键半透明穿透对照与「发送到扩展插件」）；
-  - **原生流式区域 GIF 录制 (`⌥G`)**：`SCStream` + `VideoToolbox` + `ImageIO` 硬件流式采集与跨屏分片裁剪（配套 `sharingType = .none` 穿透边界框），支持灵动岛 HUD、640p/960p/HD 缩放与静止帧合并；
-  - **亚秒级离线 Vision OCR**：绑定 CPU 阶段避开 ANE 卡顿，框选松手即自动识别中英文字与条码并弹出独立结果窗。
-- **按需独立工具与系统原生增强**：
-  - **物理鼠标 120Hz 平滑滚轮 & 方向反转**：通过 `CGEvent.tapCreate` 区分 `scrollWheelEventIsContinuous == 0`，**完全保留触控板自然滚动**，支持 `⇧` 横向、`⌥` 3× 加速与应用排除列表，静止 0 功耗；
-  - **系统脉搏 (`⌥M`) & 网络去向 (`⌥N`) & 应用缓存管理**：Darwin Mach/`IOKit` 采样 CPU P/E 核负载、频率 (`GHz`)、GPU、内存/Swap 与整机功耗 (`W`)；免提权实时监控进程上下行速率与远端去向；分桶盘点并清理应用缓存；
-  - **文件工作台 (`⌥E`) & 零 WebKit 阅读/4K 影院窗**：按需开启单双栏文件管理（`⌘`/区间多选、矩形框选、拖拽互传、批量重命名预检、废纸篓安全删除与只读 NTFS 护航）；纯 Swift `MarkdownDocumentParser` 阅读窗与序列化 `Hev1ResourceLoader` 硬解 `'hev1'` 4K HEVC 影院窗。
-- **安全治理、三层热键冲突检测与 `.lumakeybackup` v2 云备份**：
-  - 全部 10 项核心热键与插件子功能热键支持可视化录制与三层冲突检测（应用内/系统符号热键/Carbon 占用）；
-  - 支持带顶层 `SHA-256` 校验与 `LZFSE` 压缩的 `.lumakeybackup` v2 归档（含 `PluginData`、外部路径文件、可选口令端到端加密迁移密钥与恢复前本地防呆快照），并原生直连 RFC 4918 WebDAV 云同步。
+1. **只保留每天必用的核心，把选择权还给你**
+   软件自身只打磨最核心的底座能力（全搜、剪贴板、多屏截图标注/录屏/识字、鼠标平滑滚轮与独立看图/看文档窗口），其他个性化工具都做成**可装可卸、默认关闭的轻量插件**。没用到、没开启的功能，**零内存占用、零后台轮询、零界面打扰**；一旦开启，用起来就和原生功能一模一样顺手。
+2. **用完即走，安静省电不赖内存**
+   我们讨厌越用越卡的工具，所以为每一处资源都加上了「用完自动清理」的机制：
+   - 主悬浮面板收起 `30 秒` 后自动销毁界面缓存；
+   - 全盘文件索引空闲 `90 秒` 或电脑内存吃紧时自动卸载，下次搜索再瞬间唤醒；
+   - 独立打开的文档窗、看图窗、视频窗或插件浮窗，只要关掉就立刻回收全部内存；
+   - 所有可选的桌面监控窗、菜单栏读数、快捷按钮，新安装时**全部默认关闭**，绝不强行占满你的屏幕。
+3. **不乱跳的窗口，稳稳当当的肌肉记忆**
+   用键盘效率工具最怕窗口忽大忽小、或者搜到一半列表突然刷新跳走。Lumakey 主窗口始终保持固定尺寸，切换分类时分割线纹丝不动；打中文拼音时不会误触发回车，搜索过程中后台索引更新也不会打断你当前选中的那一行——久而久之，盲按快捷键就能直达目标。
+4. **纯正 Mac 原生体验，不拿网页套壳凑数**
+   我们不用笨重的网页浏览器内核来套桌面壳子，而是完全针对 macOS 与 M 系列芯片原生编写，安装包小巧轻快（仅约 10 MB）。毛玻璃窗口顺滑跟手，同时内置了浅色系的 **「凝霜留白」** 和深色系的 **「霓彩流光」** 两套外观，并支持 **简体中文 / English** 免重启随时切换。
+5. **你的数据你做主，还能用 AI 一句话造工具**
+   - **安全可控**：外部插件默认没有任何权限，需要读写剪贴板、截屏还是联网，都要经过你的确认，并且只能在严格隔离的小环境里运行；填入的 API Key 等敏感信息也会在本机加密存放，不留明文；
+   - **人人都能定制**：如果你平常用 Claude Code、Cursor、Codex 或 Gemini CLI 等 AI 助手，可以直接连接软件内置的 AI 扩展接口——**用大白话说清你想要什么，十秒左右 AI 就能帮你写好并自动加载进快捷键里**。
 
 ---
 
-## 明确的产品界限（我们坚持“不做”的事）
+## 日常能用它做什么
 
-- **不做重型全屏桌面总管**：主入口永远是快捷键秒呼的悬浮快捷中枢，双栏文件管理仅作为按需唤起、关闭即释放的附加工具。
-- **不在内置阅读器引入 WebKit**：内置 Markdown/文本/图片/视频独立窗口严格零 `WKWebView`（仅外部插件显式申请并获授权 `window`/`floatingWindow` 时按需宿主托管，关窗即毁）。
-- **不做图像编辑与视频剪辑**：仅提供无损只读看图、轻量截图标注/GIF 录制与高效硬解播放。
-- **不做常驻后台全盘数据库守护进程**：不部署 `launchd` 后台建库服务，索引仅按需驻留并在空闲时自动卸载。
-- **只聚焦 Apple Silicon (`arm64`) / macOS 14+**：构建与校验门禁显式拒绝 `x86_64` 与 Rosetta 转译，彻底告别历史架构包袱。
+### 1. 一个搜索框搞定高频小事（`⌥Space`）
+不用记一堆复杂前缀，打开搜索框直接输入就能用：
+- **找软件 & 搜全盘文件**：支持中文双音字和拼音首字母，接上移动硬盘也能直接搜到里面的文件；
+- **随时查剪贴板**：复制过的文字、颜色代码、图片、动图和文件都能找回；按回车直接粘贴回刚才在用的软件，误删还能撤回（最多 15 步），并自动跳过密码管理器里的密码；
+- **算账与单位换算**：直接输入算式、百分比或科学计算，也能中英文直接换算长度、重量、存储大小、温度、时间、网页尺寸等 10 类单位；
+- **快捷短语与离线小工具**：打 `;` 调出常用短语；离线生成随机密码、二维码、查时间戳、转换编码或取色；
+- **常用快捷键**：主面板支持 `⌘1`–`⌘9` 快速选中、`⌘C` 直接复制、`⌘Return` 打开次级操作。
+
+### 2. 多屏幕一样清晰好用的截屏、动图录屏与识字（`⌥A` / `⌥G` / `⌥O`）
+- **截图、标注与屏幕贴图（`⌥A`）**：
+  - 哪怕外接了不同分辨率、上下或左右拼接的多块显示器，也能逐屏高清框选，不会糊也不会偏；
+  - 鼠标移到窗口上点一下，就能完整抠出无遮挡的独立应用窗口（保留圆角，还支持一键去掉阴影）；
+  - 自带矩形、椭圆、箭头、画笔、荧光笔、马赛克、聚光灯、序号、文字等 10 种标注工具和放大镜取色，还能把截图直接“钉”在屏幕最前面（按 `T` 键半透明穿透对照）；
+- **轻量 GIF 动图录屏（`⌥G`）**：框选一块区域或选中一个窗口直接录成 GIF 动图，自动压缩静止画面，发微信或写文档都很轻巧；
+- **一秒离线识字（`⌥O`）**：框选屏幕上的文字或二维码，无需联网就能在本地提取出来直接编辑复制。
+
+### 3. 外接普通鼠标也能像触控板一样丝滑
+- 很多外接鼠标在 Mac 上滚轮一格一格卡顿、方向还和触控板相反。Lumakey 内置了独立的外接鼠标平滑滚轮：**只优化物理鼠标，完全不动苹果触控板原本的丝滑手感和方向**，还支持单独反转鼠标滚轮方向、按住 `Shift` 横向滚动、按住 `Option` 加速滚轮。
+
+### 4. 需要时再打开的独立工具窗
+- **极简读文档 / 看图 / 播视频**：独立原生窗口打开 Markdown 笔记、图片和 4K 视频，不卡顿，关窗立刻释放内存；
+- **双栏文件整理台（`⌥E`）**：需要整理文件时呼出，支持框选多选、拖拽复制移动、批量重命名和放进废纸篓；遇到 Mac 默认只读的 NTFS 移动硬盘会自动护航，避免误写损坏；
+- **电脑状态 & 实时网速窗（`⌥M` / `⌥N`）**：按需查看芯片负载、功耗和每个软件当前的网速与联网去向，还能顺手清理应用产生的临时缓存；
+- **8 款开箱即用的官方插件（[`plugin-demo/`](plugin-demo/README.md)）**：包括实时 AI 编程额度与 DeepSeek 余额悬浮挂件（`ai-quota`）、三端浏览器书签历史搜索（`browser-hub`）、划词/截图翻译（`translate-hub`）、Mac 系统快捷控制（`mac-pilot`）、自然语言倒计时提醒（`quick-remind`）、清洁屏幕防误触遮罩（`screen-shield`）、LumaLink 远程控制伴侣（`lumalink-companion`）与 Notion 书签同步（`notion-bookmarks`）；
+- **一键备份与网盘同步**：可以把软件配置、快捷键、插件数据打包成一个加密备份文件带去新电脑，或通过 WebDAV（如坚果云、NAS）同步。
 
 ---
 
-## 模块架构与快速开始
+## 我们坚持不做的事
 
-工程拆分为九个单向无环（DAG）Swift 6 目标（`LumakeyFoundation` → `LumakeySearch` / `LumakeySystem` / `LumakeyMedia` → `LumakeyCore` → `Lumakey` / `lumakey-mcp` + `LumakeyTests` / `LumakeyCheck`），并由校验门禁自动审计反向导入与**单文件 `<= 300` 行** Clean Code 红线（详见 [系统架构与 Clean Code 约束](docs/ARCHITECTURE.md)）。
+- **不做占满全屏的重型文件大管家**：快捷面板永远是第一入口，双栏文件整理只是随手借用的附加工具；
+- **不做重型修图或视频剪辑**：只做好无损看图、轻便截图标注、GIF 录屏和流畅播片；
+- **不在后台偷偷一直扫盘建库**：没有开机自启的常驻扫描服务，一切按需加载、空闲即休眠；
+- **专注 Apple Silicon Mac（M 系列芯片，macOS 14 及以上）**：轻装上阵，不背老架构兼容包袱。
+
+---
+
+## 安装与使用
+
+### 普通用户安装
+
+1. 前往本仓库 [Releases](https://github.com/lengsukq/Lumakey/releases/latest) 或 [产品介绍页](https://lengsukq.github.io/Lumakey/overview.html#download) 下载最新的 `Lumakey.dmg`。
+2. 打开安装包，将 **Lumakey** 拖入 **「应用程序 (Applications)」** 文件夹。
+3. 首次打开若遇到系统提示未公证的开源应用，可在 **「系统设置 › 隐私与安全性」** 底部点击 **「仍要打开」**（或右键点击应用图标选择「打开」），之后即可通过菜单栏或快捷键 `⌥Space` 随时唤醒。
+
+<details>
+<summary><strong>开发者构建、校验与工程文档</strong>（点击展开）</summary>
+
+工程采用纯原生 Swift 6 九目标单向无环（DAG）模块化结构，零第三方依赖，并强制执行单 `.swift` 文件 `<= 300` 行约束。更多细节请参阅：
+- [文档总览](docs/INDEX.md) ｜ [产品定位与边界](docs/PRODUCT.md) ｜ [系统架构与 Clean Code 约束](docs/ARCHITECTURE.md)
+- [液态玻璃设计规范](docs/DESIGN_SYSTEM.md) ｜ [插件系统与 MCP 接口规范](docs/PLUGIN_AND_MCP.md) ｜ [本地开发与分发指南](docs/DEVELOPMENT.md) ｜ [当前实现状态](docs/STATUS.md)
 
 ```bash
 # 1. 文档与链接自检
 python3 -B scripts/check-docs.py
 
-# 2. 标准 Swift Testing 单元测试与性能延迟基准
+# 2. 单元测试与性能延迟基准
 swift test --arch arm64
 
-# 3. 模块单向依赖边界、Clean Code（<=300行/文件）、编译与 MCP 真实子进程联调校验
+# 3. 模块依赖边界、300 行 Clean Code、全目标编译与 MCP 联调校验
 bash scripts/verify-macos.sh
 
-# 4. 本地构建独立 macOS arm64 .app 产物 (dist/Lumakey.app)
+# 4. 本地构建 .app (dist/Lumakey.app)
 bash scripts/build-macos.sh
 
-# 5. 打包 dist/Lumakey.dmg 并同步安装到本机 /Applications/Lumakey.app
+# 5. 打包 DMG 并安装到本机 /Applications/Lumakey.app
 bash scripts/install-macos.sh
 
-# 6. 构建面向他人的公开发行版（自动启用 Hardened Runtime，支持 Developer ID 签名与 Apple 公证装订）
+# 6. 构建对外公开发行版（支持 Developer ID 签名与 Apple 公证装订）
 # APPLE_NOTARY_PROFILE="lumakey-notary" bash scripts/release-macos.sh
 bash scripts/release-macos.sh
 ```
 
-更多设计与开发指南请从 [文档总览](docs/INDEX.md) 开始，参与共建请参阅 [贡献指南](CONTRIBUTING.md)。
+参与开发与贡献请参阅 [贡献指南](CONTRIBUTING.md)。
+
+</details>
 
 ## 开源许可
 
