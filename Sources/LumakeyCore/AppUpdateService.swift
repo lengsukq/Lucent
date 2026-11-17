@@ -195,4 +195,61 @@ public enum AppUpdateService {
         try FileManager.default.moveItem(at: tempFileURL, to: dstURL)
         return dstURL
     }
+
+    /// Returns the shell one-liner for locally signing an Ad-hoc bundle so TCC permissions persist across updates.
+    public static func localResignCommand(forAppBundleURL bundleURL: URL? = nil) -> String {
+        guard let url = bundleURL?.standardizedFileURL, url.pathExtension == "app" else {
+            return localResignOneLiner
+        }
+        if url.path == "/Applications/Lumakey.app" {
+            return localResignOneLiner
+        }
+        return "\(localResignOneLiner) -s -- \(shellSingleQuoted(url.path))"
+    }
+
+    /// Builds the self-contained `.command` shell script launched in Terminal to apply a TCC-stable local signature.
+    public static func buildLocalResignTerminalScript(forAppBundleURL bundleURL: URL? = nil) -> String {
+        let command = localResignCommand(forAppBundleURL: bundleURL)
+        let quotedCommandDisplay = shellSingleQuoted(command)
+        return """
+        #!/usr/bin/env bash
+        set -uo pipefail
+        clear
+        echo "=== Lumakey 本机固定签名与永久授权配置 / Local TCC-Stable Signing ==="
+        echo ""
+        echo "将执行以下命令："
+        printf '  %s\\n' \(quotedCommandDisplay)
+        echo ""
+        echo "说明：此操作会复用或创建本机证书“Lumakey Local Signer”并对 Lumakey.app 原地签名，"
+        echo "以便系统“辅助功能 / 屏幕录制”等权限在后续版本更新后保留。"
+        echo "若系统弹出钥匙串授权或管理员密码确认，请按提示允许。"
+        echo ""
+        \(command)
+        EXIT_CODE=$?
+        echo ""
+        if [ "$EXIT_CODE" -eq 0 ]; then
+          echo "✓ 配置完成！Lumakey 已重新签名并重启，现在可以关闭此终端窗口。"
+        else
+          echo "✗ 执行失败（退出码：$EXIT_CODE）。请根据上方报错信息检查后重试。"
+        fi
+        """
+    }
+
+    /// Writes an executable `.command` launcher file for Terminal.app and returns its URL.
+    @discardableResult
+    public static func writeLocalResignTerminalScript(
+        forAppBundleURL bundleURL: URL? = nil,
+        directory: URL = FileManager.default.temporaryDirectory
+    ) throws -> URL {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let scriptURL = directory.appendingPathComponent("lumakey-local-resign.command", isDirectory: false)
+        let content = buildLocalResignTerminalScript(forAppBundleURL: bundleURL)
+        try Data(content.utf8).write(to: scriptURL, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+        return scriptURL
+    }
+
+    private static func shellSingleQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
 }

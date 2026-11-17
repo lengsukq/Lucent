@@ -54,4 +54,35 @@ struct LumakeyAppUpdateTests {
         let alertLayout = compact.resolvedLayout(context: MenuBarRuntimeContext(availableAppUpdateVersion: "1.2.0"))
         #expect(alertLayout.topLevelItems.contains(.checkForUpdates))
     }
+
+    @Test("Local TCC-resign command formatting and executable Terminal launcher script generation")
+    func localResignCommandAndTerminalScript() throws {
+        #expect(AppUpdateService.localResignCommand(forAppBundleURL: nil) == AppUpdateService.localResignOneLiner)
+        #expect(
+            AppUpdateService.localResignCommand(forAppBundleURL: URL(fileURLWithPath: "/Applications/Lumakey.app"))
+                == AppUpdateService.localResignOneLiner
+        )
+
+        let customAppURL = URL(fileURLWithPath: "/Users/tester/My Apps/Bob's/Lumakey.app")
+        let customCmd = AppUpdateService.localResignCommand(forAppBundleURL: customAppURL)
+        #expect(customCmd == "\(AppUpdateService.localResignOneLiner) -s -- '/Users/tester/My Apps/Bob'\\''s/Lumakey.app'")
+
+        let tmpDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lumakey-resign-script-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let scriptURL = try AppUpdateService.writeLocalResignTerminalScript(
+            forAppBundleURL: customAppURL,
+            directory: tmpDir
+        )
+        #expect(scriptURL.lastPathComponent == "lumakey-local-resign.command")
+        let attrs = try FileManager.default.attributesOfItem(atPath: scriptURL.path)
+        let perms = (attrs[.posixPermissions] as? NSNumber)?.intValue ?? 0
+        #expect((perms & 0o111) != 0)
+
+        let scriptBody = try String(contentsOf: scriptURL, encoding: .utf8)
+        #expect(scriptBody.hasPrefix("#!/usr/bin/env bash\n"))
+        #expect(scriptBody.contains(customCmd))
+        #expect(scriptBody.contains("EXIT_CODE=$?"))
+    }
 }

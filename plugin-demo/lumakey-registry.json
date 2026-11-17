@@ -110,7 +110,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "3f7a830351ae7de003065709b1062c04ef78fc3d5e6485584d0f50f40fb55db1",
+      "sha256" : "73d24d6bf7b2344b078ac6ebdb94f52f92ed7ff2c5658dde25dbf9f3177624c1",
       "sizeBytes" : 71192,
       "version" : "1.2.0"
     },
@@ -198,7 +198,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "14c52c18ae95b63e1b95e28997d9025e332d520fa053f1cd17ee819ae7263774",
+      "sha256" : "9572cd7235e4379d05b87183e299bc4765c6e38313cc7dc25b0bd3c5a60c7640",
       "sizeBytes" : 20333,
       "version" : "1.0.0"
     },
@@ -279,7 +279,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "8b3deebf56f02dc76b82ae5a93aa973f146d1bccfa07effca5e8fd004a2eefe5",
+      "sha256" : "f7e6200a50dafbc46524e2f0ba5acd5b85bdf7266192b94ef42672eb00df11c9",
       "sizeBytes" : 18291,
       "version" : "2.2.0"
     },
@@ -367,7 +367,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "f30394ac9d2973f3049bb98608ef835f28ca3f0c901f2ecfc00b2da157825e35",
+      "sha256" : "ce081de96be98e338d08907b1e42b69be11e2ee68340d660243326a5899efdee",
       "sizeBytes" : 15739,
       "version" : "1.0.0"
     },
@@ -448,7 +448,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "1e35e6fbc5917c69c5a2f0141a621e4f45ab1e24ef3668b43b5310fcca3bfe06",
+      "sha256" : "2c64d704f6289a7e6de0c8120fa507c7a5c41783ff77d3435cc51dc0ed7d2f1c",
       "sizeBytes" : 26475,
       "version" : "1.4.0"
     },
@@ -521,7 +521,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "6fb2de57f53b53a02006a42bc0d5d1313b571565457a69940e69cbeae523349b",
+      "sha256" : "51e607cdaddad09e50147a4b207862e52f4fa3c33ef50778f09aaa6b4b5133fb",
       "sizeBytes" : 12958,
       "version" : "1.0.0"
     },
@@ -610,7 +610,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "a5a53319f6c2246bc72ee42b023bdedd403d0689d9ac26f234a43af30f83edd3",
+      "sha256" : "fb6687a420c9c66fcde33ab703c29116a7172f06351c194f43e664735be29fb3",
       "sizeBytes" : 10694,
       "version" : "1.0.0"
     },
@@ -711,7 +711,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "7c31d7a88d5d98bda15bb0e966fc4b69a7a5d45c8b4aff226642d0083497c3de",
+      "sha256" : "f54bcb2be15ffa528fc2c163ff40b4d70f9ec94e4e8fee732a69030be5d7f1e8",
       "sizeBytes" : 17945,
       "version" : "1.0.0"
     }
@@ -719,5 +719,5 @@
   "schemaVersion" : 1,
   "storeId" : "lumakey-demo-store",
   "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-17T12:15:10Z"
+  "updatedAt" : "2026-11-17T12:38:55Z"
 }

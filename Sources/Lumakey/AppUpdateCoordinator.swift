@@ -177,14 +177,69 @@ final class AppUpdateCoordinator: ObservableObject {
     }
 
     func copyLocalResignCommand(viewModel: AppViewModel) {
+        let command = AppUpdateService.localResignCommand(forAppBundleURL: Bundle.main.bundleURL)
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(AppUpdateService.localResignOneLiner, forType: .string)
+        NSPasteboard.general.setString(command, forType: .string)
         let msg = L10n.pick(
-            "✓ 已复制保权限重签命令，拖入新版 Lumakey.app 后在终端粘贴运行即可延续系统权限",
+            "✓ 已复制保权限重签命令，可在终端粘贴运行以固定签名并延续系统权限",
             "✓ Copied TCC-preserving local resign command to clipboard"
         )
         statusBanner = msg
         isErrorBanner = false
+        viewModel.serviceMessage = msg
+    }
+
+    func runLocalResignCommandInTerminal(viewModel: AppViewModel) {
+        do {
+            let scriptURL = try AppUpdateService.writeLocalResignTerminalScript(
+                forAppBundleURL: Bundle.main.bundleURL
+            )
+            let terminalURL = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
+            if FileManager.default.fileExists(atPath: terminalURL.path) {
+                let config = NSWorkspace.OpenConfiguration()
+                config.activates = true
+                NSWorkspace.shared.open([scriptURL], withApplicationAt: terminalURL, configuration: config) { [weak self] _, error in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        if let error {
+                            self.handleTerminalLaunchFallback(error: error, viewModel: viewModel)
+                        } else {
+                            let msg = L10n.pick(
+                                "✓ 已在终端启动本机保权限重签命令，请按终端及系统弹窗提示确认完成",
+                                "✓ Launched local TCC-stable signing script in Terminal. Follow prompts there to finish."
+                            )
+                            self.statusBanner = msg
+                            self.isErrorBanner = false
+                            viewModel.serviceMessage = msg
+                        }
+                    }
+                }
+            } else if NSWorkspace.shared.open(scriptURL) {
+                let msg = L10n.pick(
+                    "✓ 已启动本机保权限重签命令，请按终端提示确认完成",
+                    "✓ Launched local TCC-stable signing script in Terminal."
+                )
+                statusBanner = msg
+                isErrorBanner = false
+                viewModel.serviceMessage = msg
+            } else {
+                copyLocalResignCommand(viewModel: viewModel)
+            }
+        } catch {
+            handleTerminalLaunchFallback(error: error, viewModel: viewModel)
+        }
+    }
+
+    private func handleTerminalLaunchFallback(error: Error, viewModel: AppViewModel) {
+        let command = AppUpdateService.localResignCommand(forAppBundleURL: Bundle.main.bundleURL)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
+        let msg = L10n.pick(
+            "无法直接拉起终端（\(error.localizedDescription)），已将命令复制到剪贴板，请手动在终端粘贴执行",
+            "Could not launch Terminal (\(error.localizedDescription)). Copied command to clipboard instead."
+        )
+        statusBanner = msg
+        isErrorBanner = true
         viewModel.serviceMessage = msg
     }
 

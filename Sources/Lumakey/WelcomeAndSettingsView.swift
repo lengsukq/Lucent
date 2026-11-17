@@ -194,6 +194,9 @@ struct SettingsCenterView: View {
                     Button("关闭所有屏幕钉图") { PinWindowController.shared.closeAll() }
                         .buttonStyle(GlassPillButtonStyle())
                 }
+                if !CodeSigningInspector.inspect().isStableForTCC {
+                    GeneralSigningStatusCardView(viewModel: viewModel)
+                }
                 StartupAndResidenceCardView(viewModel: viewModel)
                 SoftwareAndPluginUpdateCardView(viewModel: viewModel)
                 LanguageSettingsCardView(viewModel: viewModel)
@@ -201,7 +204,9 @@ struct SettingsCenterView: View {
                 MenuBarCustomizationCardView(viewModel: viewModel)
                 LauncherAndCaptureDefaultsCardView(viewModel: viewModel)
                 GeneralSearchScopeCardView(viewModel: viewModel)
-                GeneralSigningStatusCardView()
+                if CodeSigningInspector.inspect().isStableForTCC {
+                    GeneralSigningStatusCardView(viewModel: viewModel)
+                }
             }
             .padding(.trailing, 4)
         }
