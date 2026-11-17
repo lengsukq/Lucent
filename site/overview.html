@@ -3,38 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>流光 Lumakey — 2D 图文详解与交互实验台</title>
-  <meta name="description" content="以精悍 Swift 6 原生微内核为底座，通过 Plugin v3.4 开放架构与内置 lumakey-mcp AI 协议桥，按需自由拼装、一句话生成专属于你的 macOS 快捷效率中枢。" />
-  <meta property="og:title" content="流光 Lumakey — 自由构建属于你的 macOS 原生效率中枢" />
-  <meta property="og:description" content="Plugin v3.4 原生一等公民插件系统 · 内置 lumakey-mcp AI 造插件 · 凝霜留白 / 霓彩流光双生美学 · 零第三方依赖。" />
+  <title>流光 Lumakey — 2D 图文详解与启动面板定制实验台</title>
+  <meta name="description" content="普通人秒上手、极客可深度折腾的 Apple Silicon Mac 原生快捷中枢：支持启动面板四分区自由定制、顶部菜单栏编排、全盘秒搜、多屏截图标注与离线识字、Plugin v3.7 透明悬浮挂件及内置 16 项 lumakey-mcp AI 工具。" />
+  <meta property="og:title" content="流光 Lumakey — 轻巧顺手、从启动面板到插件皆可定制的 Mac 效率中枢" />
+  <meta property="og:description" content="启动面板四分区自由编排 · 8 款官方扩展 + Plugin v3.7 透明桌面挂件 · 内置 16 项 MCP 工具一句话造插件排主页 · 纯 Swift 6 零依赖。" />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="./assets/icon.svg" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="scroll-beam" id="scrollBeam" aria-hidden="true"></div>
+
+  <!-- Dual-Theme Volumetric Liquid-Glass Atmosphere -->
   <div class="studio-daylight" aria-hidden="true"></div>
   <div class="ambient-backdrop" aria-hidden="true">
     <div class="aurora-orb orb-1" id="orb1"></div>
     <div class="aurora-orb orb-2" id="orb2"></div>
+    <div class="aurora-orb orb-3" id="orb3"></div>
   </div>
   <div class="ambient-grid" aria-hidden="true"></div>
+  <div class="optical-grain" aria-hidden="true"></div>
 
   <header class="site-header">
     <nav class="nav-capsule" aria-label="主导航">
       <a href="#hero" class="brand-link">
         <img src="./assets/icon.svg" alt="Lumakey Icon" class="brand-icon" width="28" height="28" />
         <span>Lumakey <span data-i18n="brand_cn">流光</span></span>
-        <span class="brand-tag mono">Plugin v3.4</span>
+        <span class="brand-tag mono">Plugin v3.7 · 16 MCP</span>
       </a>
 
       <div class="nav-links" id="navLinks">
-        <a href="#hero" class="active" data-i18n="nav_launcher">全能底座</a>
-        <a href="#builder" data-i18n="nav_builder">自由拼装</a>
-        <a href="#theatre" data-i18n="nav_theatre">插件共创</a>
-        <a href="#capabilities" data-i18n="nav_bento">原生引擎</a>
-        <a href="#philosophy" data-i18n="nav_philosophy">核心思想</a>
-        <a href="#architecture" data-i18n="nav_arch">工程架构</a>
+        <span class="nav-glider" id="navGlider" aria-hidden="true"></span>
+        <a href="#hero" class="active" data-i18n="nav_launcher">启动面板</a>
+        <a href="#builder" data-i18n="nav_builder">高度定制</a>
+        <a href="#theatre" data-i18n="nav_theatre">AI 共创</a>
+        <a href="#capabilities" data-i18n="nav_bento">日常利器</a>
+        <a href="#philosophy" data-i18n="nav_philosophy">设计哲学</a>
+        <a href="#architecture" data-i18n="nav_arch">极客架构</a>
       </div>
 
       <div class="nav-actions">
@@ -49,7 +54,7 @@
         <button type="button" class="pill-btn mono" id="langToggleBtn" title="切换语言 / Switch Language">
           EN
         </button>
-        <a href="#download" data-gh-path="/releases/latest" class="btn-primary-sm">
+        <a href="#download" data-gh-path="/releases/latest" class="btn-primary-sm magnetic-btn">
           <span data-i18n="nav_download">下载 DMG</span>
         </a>
       </div>
@@ -57,77 +62,82 @@
   </header>
 
   <main>
-    <!-- ACT I · Hero: Native Micro-Core + Freely Build Your Own Lumakey -->
+    <!-- ACT I · Hero: Approachable Everyday Speed + Live Launch Panel Customization -->
     <section class="hero-section" id="hero">
       <div class="container">
         <div class="hero-copy" id="heroCopy">
-          <div class="hero-badges">
+          <div class="hero-badges hero-stagger" style="--stagger: 0ms">
             <span class="hero-badge">
               <i class="pulse-dot"></i>
-              <span data-i18n="hero_badge_1">Plugin v3.4 开放插件底座 · 内置 lumakey-mcp</span>
+              <span data-i18n="hero_badge_1">全新启动面板自定义 · Plugin v3.7 · 16 项 MCP 工具</span>
             </span>
             <span class="hero-badge">
               <span>Swift 6</span>
-              <code class="mono">arm64 · macOS 14+</code>
+              <code class="mono">arm64 · ~10 MB</code>
             </span>
             <span class="hero-badge">
-              <kbd class="keycap">⌥</kbd><kbd class="keycap">Space</kbd>
-              <span data-i18n="hero_badge_3">零抖动秒呼</span>
+              <kbd class="keycap" data-key-watch="Alt">⌥</kbd><kbd class="keycap" data-key-watch="Space">Space</kbd>
+              <span data-i18n="hero_badge_3">秒呼即走 · 不占后台</span>
             </span>
           </div>
 
-          <h1 class="hero-title">
-            <span data-i18n="hero_title_1">精悍原生底座，</span><span class="gradient-text" data-i18n="hero_title_2">自由生长出你的 Lumakey。</span>
+          <h1 class="hero-title hero-stagger" style="--stagger: 80ms">
+            <span data-i18n="hero_title_1">轻巧顺手的 Mac 效率底座，</span><span class="gradient-text shimmer-text" data-i18n="hero_title_2">从启动面板到插件全随你定。</span>
           </h1>
 
-          <p class="hero-subtitle" data-i18n="hero_subtitle">
-            我们拒绝把所有人塞进同一套臃肿的全家桶。Lumakey 提供零依赖的 Swift 6 极速核心（全盘秒搜、截图标注、离线 OCR、平滑滚轮），并通过一等公民插件架构与内置 MCP AI 协议桥，让你按需拼装、甚至一句话定制完全属于自己的专属效率中枢——不装不占，装上即原生。
+          <p class="hero-subtitle hero-stagger" style="--stagger: 160ms" data-i18n="hero_subtitle">
+            按一下 ⌥Space，找软件、搜电脑与移动硬盘文件、翻剪贴板、截屏识字、算账换算一框搞定；用完切走自动释放内存。更把选择权彻底交还给你：启动面板怎么排、顶部菜单留哪几项、快捷键怎么顺手全可自由编排，还能对 AI 说一句话十秒造出你独有的新工具。
           </p>
 
-          <div class="hero-cta-row">
-            <a href="#builder" class="btn-hero-primary">
+          <div class="hero-cta-row hero-stagger" style="--stagger: 230ms">
+            <a href="#builder" class="btn-hero-primary magnetic-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
-              <span data-i18n="cta_builder">亲手拼装你的专属 Lumakey</span>
+              <span data-i18n="cta_builder">亲手定制你的专属 Lumakey</span>
             </a>
-            <a href="./index.html" class="btn-hero-3d">
+            <a href="./index.html" class="btn-hero-3d magnetic-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-              <span data-i18n="cta_3d_exp">开启 Three.js 3D 沉浸体验</span>
+              <span data-i18n="cta_3d_exp">返回 3D 沉浸式主页</span>
             </a>
-            <a href="#download" data-gh-path="/releases/latest" class="btn-hero-secondary">
+            <a href="#download" data-gh-path="/releases/latest" class="btn-hero-secondary magnetic-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               <span data-i18n="cta_download">下载 macOS 安装包 (.dmg)</span>
             </a>
           </div>
         </div>
 
-        <div class="launcher-presets" role="tablist" aria-label="交互式 880×544 中枢场景预设">
-          <span class="preset-label" data-i18n="preset_try">实时体验底座 + 插件联动：</span>
-          <button type="button" class="preset-chip active" data-preset="bento" data-i18n="preset_bento">专属 Bento 面板</button>
-          <button type="button" class="preset-chip" data-preset="translate" data-i18n="preset_translate">流光译站 · 划词/OCR</button>
-          <button type="button" class="preset-chip" data-preset="remind" data-i18n="preset_remind">闪电提醒 · 10m 喝水</button>
-          <button type="button" class="preset-chip" data-preset="browser" data-i18n="preset_browser">三端书签 0ms 全搜</button>
-          <button type="button" class="preset-chip" data-preset="dev" data-i18n="preset_dev">算式换算与色板</button>
+        <div class="launcher-presets hero-stagger" style="--stagger: 300ms" role="tablist" aria-label="交互式启动面板布局与搜索场景切换">
+          <span class="preset-label" data-i18n="preset_try">切换启动面板布局 / 试搜指令：</span>
+          <button type="button" class="preset-chip active" data-preset="bento" data-i18n="preset_bento">✦ 均衡默认主页</button>
+          <button type="button" class="preset-chip" data-preset="home_min" data-i18n="preset_home_min">◐ 极简 16 格混合坞</button>
+          <button type="button" class="preset-chip" data-preset="home_dev" data-i18n="preset_home_dev">⌘ 开发者主页与书签架</button>
+          <button type="button" class="preset-chip" data-preset="home_shelf" data-i18n="preset_home_shelf">📑 4 列磁贴与分类架</button>
+          <button type="button" class="preset-chip" data-preset="translate" data-i18n="preset_translate">🌐 划词/OCR 翻译</button>
+          <button type="button" class="preset-chip" data-preset="remind" data-i18n="preset_remind">⏰ 10m 喝水提醒</button>
+          <button type="button" class="preset-chip" data-preset="dev" data-i18n="preset_dev">∑ 算式与色板换算</button>
         </div>
 
-        <div class="launcher-perspective">
-          <div class="luma-panel" id="heroPanel">
+        <div class="launcher-perspective hero-stagger" style="--stagger: 370ms" id="launcherStageWrap">
+          <div class="launcher-halo" aria-hidden="true"></div>
+          <div class="luma-panel glass-specular" id="heroPanel">
+            <div class="panel-sheen" aria-hidden="true"></div>
             <div class="panel-grabber">
               <div class="panel-grabber-pill"></div>
-              <span class="panel-dimension-tag mono">880 × 544 · Micro-Core + Native Plugin Citizen</span>
+              <span class="panel-dimension-tag mono">880 × 544 · Custom Home Profiles + 0ms Search</span>
             </div>
 
-            <div class="panel-search-bar">
+            <div class="panel-search-bar" id="panelSearchBar">
               <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input
                 type="text"
                 id="launcherInput"
                 class="launcher-input"
-                placeholder="搜应用、全盘文件、算式，或直接输入插件指令：tr 翻译 / rem 10m 喝水 / bh 书签..."
+                placeholder="直接打字搜软件、移动硬盘文件、算式，或试输：tr 翻译 / aiq 额度 / rem 10m 喝水..."
                 autocomplete="off"
                 spellcheck="false"
                 aria-label="Lumakey 交互演示搜索框"
               />
               <div class="scope-capsules" id="scopeCapsules">
+                <span class="scope-glider" id="scopeGlider" aria-hidden="true"></span>
                 <button type="button" class="scope-pill active" data-scope="all" data-i18n="scope_all">全部</button>
                 <button type="button" class="scope-pill" data-scope="plugins" data-i18n="scope_plugins">插件</button>
                 <button type="button" class="scope-pill" data-scope="files" data-i18n="scope_files">文件</button>
@@ -143,74 +153,74 @@
             <div class="panel-footer">
               <div class="footer-hints">
                 <span><kbd class="keycap">↵</kbd> <em class="hint-label" data-i18n="hint_open">执行 / 打开</em></span>
-                <span><kbd class="keycap">⌘1-9</kbd> <em class="hint-label" data-i18n="hint_quick">快选</em></span>
-                <span><kbd class="keycap">⇥</kbd> <em class="hint-label" data-i18n="hint_tab">零抖动切分类</em></span>
-                <span><kbd class="keycap">⌥Space</kbd> <em class="hint-label" data-i18n="hint_focus">聚焦体验框</em></span>
+                <span><kbd class="keycap">⌘1-9</kbd> <em class="hint-label" data-i18n="hint_quick">盲按快选</em></span>
+                <span><kbd class="keycap">Right Click</kbd> <em class="hint-label" data-i18n="hint_tab">右键钉上主页</em></span>
+                <span><kbd class="keycap" data-key-watch="Space">⌥Space</kbd> <em class="hint-label" data-i18n="hint_focus">聚焦体验框</em></span>
               </div>
-              <span class="mono" id="panelEngineStatus">Core + 4 Active Plugins · 0ms Ready</span>
+              <span class="mono status-heartbeat" id="panelEngineStatus">Home: Balanced · 5 Active Plugins</span>
             </div>
           </div>
         </div>
 
-        <div class="scroll-cue">
+        <div class="scroll-cue hero-stagger" style="--stagger: 450ms">
           <div class="scroll-mouse"><div class="scroll-wheel-dot"></div></div>
-          <span data-i18n="scroll_hint">向下滚动，亲手自由组装你的专属 Lumakey</span>
+          <span data-i18n="scroll_hint">向下滚动，体验全维度自由定制与 AI 一句话共创</span>
         </div>
       </div>
     </section>
 
-    <!-- ACT II · CORE INTERACTIVE WORKBENCH: Build Your Own Lumakey -->
+    <!-- ACT II · DEEP CUSTOMIZATION WORKBENCH: Plugins, Menu Bar, Hotkeys & Freeform HUD -->
     <section class="builder-section section-band" id="builder">
       <div class="container">
         <div class="builder-header-row reveal-up">
           <div>
-            <span class="section-eyebrow" data-i18n="builder_eyebrow">BUILD YOUR OWN LUMAKEY · 模块化自由拼装台</span>
-            <h2 class="section-title" data-i18n="builder_title">一千个人手里，有一千种形态的 Lumakey</h2>
+            <span class="section-eyebrow" data-i18n="builder_eyebrow">DEEP CUSTOMIZATION WORKBENCH · 全维度高度自定义拼装台</span>
+            <h2 class="section-title" data-i18n="builder_title"><span class="title-clause">一千个人手里，</span><span class="title-clause">有一千种长相的 Lumakey</span></h2>
             <p class="section-desc" data-i18n="builder_desc">
-              所有扩展能力默认零打扰：不启用即零内存、零后台进程；开启瞬间即可挂载为搜索框快捷按钮、独立静默热键、0ms 免前缀检索源，甚至直接注入「离线 OCR / 剪贴板 / 访达右键」上下文菜单。试试勾选或切换下方预设方案：
+              讨厌装完多出一堆关不掉的按钮和后台进程？这里所有扩展默认零打扰：不开启即零内存、零后台轮询；开启后可按需钉入启动面板或顶部状态栏菜单、自由修改唤醒词、录制不抢焦点的静默快捷键，甚至弹出无边框透明桌面挂件。点按下方开关亲手试拼：
             </p>
           </div>
-          <a href="./index.html?scene=plugins" class="section-3d-jump">
+          <a href="./index.html?scene=plugins" class="section-3d-jump magnetic-btn">
             <span class="nav-3d-spark">✦</span>
             <span data-i18n="jump_3d_plugins">返回 3D 主页 · 插件生态 →</span>
           </a>
         </div>
 
         <div class="builder-profile-bar reveal-up" id="builderProfileBar" role="group" aria-label="一键切换组合方案">
-          <button type="button" class="builder-profile-btn" data-profile="minimal" data-i18n="prof_minimal">◐ 极简纯粹底座 (0 插件)</button>
-          <button type="button" class="builder-profile-btn active" data-profile="daily" data-i18n="prof_daily">✦ 日常高频效率套装</button>
-          <button type="button" class="builder-profile-btn" data-profile="dev" data-i18n="prof_dev">⌘ 极客与远控开发流</button>
-          <button type="button" class="builder-profile-btn" data-profile="full" data-i18n="prof_full">⚡ 7 款官方旗舰 + AI 自制满配</button>
+          <button type="button" class="builder-profile-btn" data-profile="minimal" data-i18n="prof_minimal">◐ 纯粹微内核底座 (0 插件)</button>
+          <button type="button" class="builder-profile-btn active" data-profile="daily" data-i18n="prof_daily">✦ 日常省心高频套装</button>
+          <button type="button" class="builder-profile-btn" data-profile="dev" data-i18n="prof_dev">⌘ 极客 AI 与远控开发流</button>
+          <button type="button" class="builder-profile-btn" data-profile="full" data-i18n="prof_full">⚡ 8 款官方旗舰 + AI 自制满配</button>
         </div>
 
-        <div class="builder-layout reveal-up">
-          <div class="builder-catalog-card">
+        <div class="builder-layout reveal-up" data-spotlight-group>
+          <div class="builder-catalog-card spotlight-surface">
             <div class="builder-catalog-head">
-              <span class="builder-catalog-title" data-i18n="cat_head_title">插件仓库与 AI 自制扩展（点击查看详情 / 开关挂载）</span>
-              <span class="accent-pill mono" id="enabledCountBadge">4 / 8 Active</span>
+              <span class="builder-catalog-title" data-i18n="cat_head_title">8 款官方旗舰扩展 + AI 自制示例（点击查看能力 / 开关挂载）</span>
+              <span class="accent-pill mono" id="enabledCountBadge">5 / 9 Active</span>
             </div>
             <div class="plugin-toggle-list" id="pluginToggleList"></div>
           </div>
 
-          <div class="builder-preview-card">
+          <div class="builder-preview-card spotlight-surface">
             <div class="preview-head-bar">
               <div>
-                <span class="ok-pill" data-i18n="prev_live_badge">● 实时预览：你的专属 Lumakey 形态</span>
+                <span class="ok-pill live-dot-pill" data-i18n="prev_live_badge">● 实时联动：上方启动面板与菜单栏形态</span>
               </div>
               <span class="subtle-chip mono" id="previewDaemonStat">0 Resident Daemons</span>
             </div>
 
             <div class="assembled-zone">
               <div class="assembled-zone-title">
-                <span data-i18n="zone_quick_title">按需挂载至 ⌥Space 快捷按钮栏（默认关闭不挤占）</span>
-                <span class="mono" id="quickMountCount">4 Mounted</span>
+                <span data-i18n="zone_quick_title">按需挂载至启动面板胶囊架 &amp; 状态栏菜单（默认关闭不挤占）</span>
+                <span class="mono" id="quickMountCount">5 Mounted</span>
               </div>
               <div class="mounted-pills" id="mountedQuickPills"></div>
             </div>
 
             <div class="assembled-zone">
               <div class="assembled-zone-title">
-                <span data-i18n="zone_accepts_title">跨模块原生联动（自动注入 OCR / 剪贴板 / 双栏工作台）</span>
+                <span data-i18n="zone_accepts_title">跨模块右键联动（自动接入离线识字 / 剪贴板 / 双栏文件台）</span>
                 <span class="mono">accepts[]</span>
               </div>
               <div class="mounted-pills" id="mountedAcceptsPills"></div>
@@ -224,16 +234,16 @@
       </div>
     </section>
 
-    <!-- ACT III · Sticky Scroll-Scrubbed Plugin Creation & Security Story -->
+    <!-- ACT III · Sticky Scroll-Scrubbed AI Co-Creation, Home Orchestration & Security -->
     <section class="theatre-section" id="theatre">
       <div class="theatre-sticky">
         <div class="container">
           <div class="theatre-head theatre-head-flex">
             <div>
-              <span class="section-eyebrow" data-i18n="theatre_eyebrow">SCROLL-DRIVEN PLUGIN ARCHITECTURE · 滚动拆解插件共创闭环</span>
-              <h2 class="section-title" data-i18n="theatre_title">不仅能装别人的插件，更能让 AI 十秒为你造一个</h2>
+              <span class="section-eyebrow" data-i18n="theatre_eyebrow">AI CO-CREATION &amp; PLUGIN V3.7 · 不会写代码也能深度定制</span>
+              <h2 class="section-title" data-i18n="theatre_title"><span class="title-clause">不仅能装现成插件，</span><span class="title-clause">还能一句话让 AI 造工具、排主页</span></h2>
             </div>
-            <a href="./index.html?scene=mcp" class="section-3d-jump">
+            <a href="./index.html?scene=mcp" class="section-3d-jump magnetic-btn">
               <span class="nav-3d-spark">✦</span>
               <span data-i18n="jump_3d_mcp">返回 3D 主页 · MCP 共创 →</span>
             </a>
@@ -248,98 +258,98 @@
               <article class="step-card active" data-step="0">
                 <div class="step-header">
                   <span class="step-index mono">01 / LUMAKEY-MCP AI CO-CREATION</span>
-                  <span class="accent-pill mono">12 Tools</span>
+                  <span class="accent-pill mono">16 Tools</span>
                 </div>
-                <h3 class="step-title" data-i18n="s1_title">内置 lumakey-mcp：对 AI 说一句话，十秒生成专属插件</h3>
+                <h3 class="step-title" data-i18n="s1_title">内置 16 项 MCP 工具：一句话十秒造插件，也能一句话排好启动面板</h3>
                 <p class="step-desc" data-i18n="s1_desc">
-                  安装包原生内置 JSON-RPC 2.0 MCP 服务，向 Claude Code、Cursor 或 Codex 暴露 plugin-v3 规范与 12 项脚手架、静态校验与沙箱实测工具，写完即刻经 FSEvents 热重载生效。
+                  安装包自带零依赖 lumakey-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出你想要的小工具或主页布局，AI 自动生成代码、过沙箱实测并热刷新生效。
                 </p>
               </article>
 
               <article class="step-card" data-step="1">
                 <div class="step-header">
-                  <span class="step-index mono">02 / FIRST-CLASS NATIVE CITIZEN</span>
-                  <span class="accent-pill mono">Spec v3.4</span>
+                  <span class="step-index mono">02 / PLUGIN V3.7 &amp; FREEFORM HUD</span>
+                  <span class="accent-pill mono">Spec v3.7</span>
                 </div>
-                <h3 class="step-title" data-i18n="s2_title">一等公民原生融合：自动配置面板、子命令静默热键与深链</h3>
+                <h3 class="step-title" data-i18n="s2_title">零前端自动生成设置页，亦支持无边框透明玻璃桌面悬浮挂件</h3>
                 <p class="step-desc" data-i18n="s2_desc">
-                  声明 plugin.json 即可自动渲染带连续滑块、加密凭据框与路径选择器的原生设置页；每个子命令均可独立录制全局热键并静默执行，还能通过原生深链直接唤起 Markdown 阅读窗与悬浮钉图。
+                  一份 plugin.json 自动渲染滑块、加密密钥框与子功能静默热键；进阶玩家还可开启 window / floatingWindow 自由画布，打造 120Hz 顺滑拖拽、点击穿透的置顶悬浮小窗（关窗即释放内存）。
                 </p>
               </article>
 
               <article class="step-card" data-step="2">
                 <div class="step-header">
-                  <span class="step-index mono">03 / SMART SNIFFER &amp; OPEN STORE</span>
+                  <span class="step-index mono">03 / SMART SNIFFER &amp; LOSSLESS UPGRADE</span>
                   <span class="accent-pill mono">SHA-256</span>
                 </div>
-                <h3 class="step-title" data-i18n="s3_title">单地址框四级智能嗅探：粘贴任意仓库链接即可订阅</h3>
+                <h3 class="step-title" data-i18n="s3_title">单输入框四级智能嗅探：粘贴任意 GitHub 链接即可安心订阅</h3>
                 <p class="step-desc" data-i18n="s3_desc">
-                  PluginStoreSniffer 自动分辨独立插件归档包、开源仓库子目录、lumakey-registry.json 商店索引或本地文件夹；安装前强制核验 64 位 SHA-256 与防伪装能力边界，无损升级完整保留你的自定义唤醒词与凭据。
+                  不用分清是插件压缩包、仓库子目录还是商店 JSON，粘贴进去自动识别并强制核对 64 位 SHA-256 与权限边界；后续更新插件完整保留你改过的唤醒词、快捷键与密钥。
                 </p>
               </article>
 
               <article class="step-card" data-step="3">
                 <div class="step-header">
-                  <span class="step-index mono">04 / SEATBELT, VAULT &amp; SYNC</span>
+                  <span class="step-index mono">04 / SEATBELT, VAULT &amp; WEBDAV SYNC</span>
                   <span class="ok-pill mono">AES-GCM</span>
                 </div>
-                <h3 class="step-title" data-i18n="s4_title">系统级 Seatbelt 沙箱 · 双轨加密保险箱 · 整机备份漫游</h3>
+                <h3 class="step-title" data-i18n="s4_title">内核级 Seatbelt 沙箱 · 本机加密保险箱 · 整机备份跨机漫游</h3>
                 <p class="step-desc" data-i18n="s4_desc">
-                  所有插件在 macOS 内核级沙箱与 8 秒超时监管下隔离运行，敏感凭据经 LMKYVLT2 256-bit 随机主密钥加密存储；通过 .lumakeybackup v2 (LZFSE + WebDAV) 可将自制插件、数据与配置一键同步至任意新 Mac。
+                  外部插件默认无权联网或碰隐私目录，填入的 API Key 经 256-bit AES-GCM 加密存放；通过 .lumakeybackup (LZFSE + WebDAV) 可把启动面板、菜单配置、自制插件与密钥一键带去新 Mac。
                 </p>
               </article>
             </div>
 
-            <div class="theatre-stage-box" aria-live="polite">
+            <div class="theatre-stage-box spotlight-surface" aria-live="polite">
               <div class="theatre-mobile-tabs" role="tablist" aria-label="插件共创场景切换">
-                <button type="button" class="theatre-mobile-tab active" data-scene-tab="0">01 MCP</button>
-                <button type="button" class="theatre-mobile-tab" data-scene-tab="1">02 Spec v3.4</button>
+                <button type="button" class="theatre-mobile-tab active" data-scene-tab="0">01 MCP (16)</button>
+                <button type="button" class="theatre-mobile-tab" data-scene-tab="1">02 Spec v3.7</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="2">03 Store</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="3">04 Sandbox</button>
               </div>
               <!-- Scene 0 -->
-              <div class="stage-scene active" data-scene="0">
+              <div class="stage-scene active" data-scene="0" id="mcpSceneStage">
                 <div class="scene-top-bar">
                   <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                  <span class="scene-tech-label mono">lumakey-mcp · Embedded JSON-RPC 2.0</span>
-                  <span class="ok-pill mono">Hot-Reload</span>
+                  <span class="scene-tech-label mono">lumakey-mcp · 16 Tools (Plugin + Home Layout)</span>
+                  <button type="button" class="ok-pill mono mcp-replay-btn" id="mcpReplayBtn" title="重播 AI 自动编排动画">↻ Live Reload</button>
                 </div>
 
                 <div class="scene-visual-body">
                   <div class="ai-prompt-bubble" data-i18n="sc0_prompt">
-                    “帮我做一个 Lumakey 插件：输入 pr 即可列出我名下待 Review 的代码合并请求，按回车打开，支持每 5 分钟刷新 0ms 索引，访问凭据走加密保险箱。”
+                    “帮我做一个查待审 PR 的插件（Token 存加密箱），顺便在我的启动面板新建一个『日常开发』主页，把双栏文件台、这个新插件和 GitHub 书签架排上去。”
                   </div>
 
-                  <div class="mcp-pipeline-steps">
-                    <div class="mcp-step-row">
-                      <span><strong class="mono">1. specs/plugin-v3</strong> · <span data-i18n="sc0_st1">读取内置插件协议规范与宿主可用能力清单</span></span>
+                  <div class="mcp-pipeline-steps" id="mcpPipelineSteps">
+                    <div class="mcp-step-row mcp-seq-item" style="--seq: 0">
+                      <span><strong class="mono">1. specs/plugin-v3 + home-layout-v1</strong> · <span data-i18n="sc0_st1">读取内置插件与启动面板双规范及可用能力池</span></span>
                       <span class="ok-pill mono">0.8ms</span>
                     </div>
-                    <div class="mcp-step-row">
-                      <span><strong class="mono">2. lumakey_scaffold_plugin</strong> · <span data-i18n="sc0_st2">自动生成 plugin.json + icon.svg + 执行脚本</span></span>
-                      <span class="ok-pill mono">Created</span>
-                    </div>
-                    <div class="mcp-step-row">
-                      <span><strong class="mono">3. lumakey_validate_plugin</strong> · <span data-i18n="sc0_st3">静态契约审计 + lumakey_run_plugin_test 沙箱实跑</span></span>
+                    <div class="mcp-step-row mcp-seq-item" style="--seq: 1">
+                      <span><strong class="mono">2. scaffold + validate + run_test</strong> · <span data-i18n="sc0_st2">自动生成插件并在 Seatbelt 沙箱内完成实跑验证</span></span>
                       <span class="ok-pill mono">Passed ✓</span>
+                    </div>
+                    <div class="mcp-step-row mcp-seq-item" style="--seq: 2">
+                      <span><strong class="mono">3. lumakey_update_home_layout</strong> · <span data-i18n="sc0_st3">创建新主页 Profile、挂载磁贴与书签架并实时热刷新</span></span>
+                      <span class="ok-pill mono">Synced ✓</span>
                     </div>
                   </div>
 
-                  <div class="mock-card selected-mock">
+                  <div class="mock-card selected-mock mcp-seq-item" style="--seq: 3">
                     <div class="mock-card-head">
-                      <span class="mock-card-title" data-i18n="sc0_live_t">✦ 已热重载至 ⌥Space：PR 审查雷达 (gh-pr-radar)</span>
+                      <span class="mock-card-title" data-i18n="sc0_live_t">✦ 已热刷新至 ⌥Space：新插件与「日常开发」启动面板同步就绪</span>
                       <kbd class="keycap">⌘1</kbd>
                     </div>
                     <div class="mock-card-sub" data-i18n="sc0_live_d">
-                      无需重启 Lumakey，FSEvents 毫秒级感知目录变更，立即支持 pr 关键词检索与加密凭据配置。
+                      全程无需重启 Lumakey，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。
                     </div>
                   </div>
                 </div>
 
                 <div class="scene-footer-metrics">
-                  <span class="subtle-chip">内置 3 套一键模板 (IP/DNS · 端口清理 · 速记本)</span>
-                  <span class="subtle-chip">12 项 MCP 标准工具</span>
-                  <span class="subtle-chip">零外部运行时依赖</span>
+                  <span class="subtle-chip" data-i18n="sc0_f1">12 项插件全生命周期工具</span>
+                  <span class="subtle-chip" data-i18n="sc0_f2">4 项启动面板实时编排工具</span>
+                  <span class="subtle-chip" data-i18n="sc0_f3">内置 3 套一键脚手架模板</span>
                 </div>
               </div>
 
@@ -347,18 +357,18 @@
               <div class="stage-scene" data-scene="1">
                 <div class="scene-top-bar">
                   <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                  <span class="scene-tech-label mono">plugin.json v3.4 · Auto Settings UI · Deep Links</span>
-                  <span class="accent-pill mono">Zero Boilerplate</span>
+                  <span class="scene-tech-label mono">Plugin v3.7 · Auto Settings · Freeform Glass HUD</span>
+                  <span class="accent-pill mono">High Freedom</span>
                 </div>
 
                 <div class="scene-visual-body">
                   <div class="mock-card">
                     <div class="mock-card-head">
-                      <span class="mock-card-title" data-i18n="sc1_slider_t">原生声明式配置页（点击或拖动下方滑块实时体验）</span>
+                      <span class="mock-card-title" data-i18n="sc1_slider_t">免写界面的原生设置页（拖动下方滑块实时体验）</span>
                       <span class="accent-pill mono" id="sliderValueBadge">temperature: 0.35</span>
                     </div>
                     <div class="mock-card-sub" data-i18n="sc1_slider_d">
-                      支持 text / secret (自动进 AES-GCM 保险箱) / slider / select / path / tags，修改瞬间自动持久化无需保存按钮。
+                      自动渲染输入框、AES-GCM 密钥框、连续滑块、下拉单选、路径选择器与标签组，改动瞬间自动保存。
                     </div>
                     <div class="form-slider-track" id="demoSliderTrack" role="slider" aria-label="模型温度滑块演示" aria-valuemin="0" aria-valuemax="100" aria-valuenow="35">
                       <div class="form-slider-fill" id="demoSliderFill"></div>
@@ -369,30 +379,35 @@
                   <div class="mock-row-grid">
                     <div class="mock-card">
                       <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc1_hk_t">子命令独立静默热键</span>
+                        <span class="mock-card-title" data-i18n="sc1_hk_t">子命令静默热键 &amp; 权重覆盖</span>
                         <kbd class="keycap">⌥⇧T</kbd>
                       </div>
                       <div class="mock-card-sub" data-i18n="sc1_hk_d">
-                        开启 silentWhenHotKeyTriggered 后，热键触发后台瞬时执行并弹原生 HUD，全程不打断当前全屏应用。
+                        每条细分动作都能独立绑快捷键后台静默秒跑；不改插件源码就能自定义唤醒词、菜单栏挂载与搜索排序权重。
                       </div>
                     </div>
 
-                    <div class="mock-card">
+                    <div class="mock-card hud-levitate-card">
                       <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc1_dl_t">宿主原生窗口深链</span>
-                        <code class="accent-pill mono">Reader / Pin</code>
+                        <span class="mock-card-title" data-i18n="sc1_dl_t">自由画布透明桌面挂件</span>
+                        <code class="accent-pill mono">floatingWindow</code>
                       </div>
                       <div class="mock-card-sub" data-i18n="sc1_dl_d">
-                        插件可直接唤起宿主纯原生 Markdown 阅读窗、无损看图窗与桌面半透明置顶钉图，无需自带 UI 框架。
+                        支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透，自动注入 window.lumakey 双向桥并在关窗瞬间销毁回收。
+                      </div>
+                      <div class="mini-hud-preview mono" aria-hidden="true">
+                        <span><i></i> Claude 5h 78%</span>
+                        <span>Codex 91%</span>
+                        <span>DeepSeek ¥42.8</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div class="scene-footer-metrics">
-                  <span class="subtle-chip">locales 中英双语免重启切换</span>
-                  <span class="subtle-chip">自定义 SVG / PNG 图标与强调色</span>
-                  <span class="subtle-chip">三层全局热键冲突检测</span>
+                  <span class="subtle-chip" data-i18n="sc1_f1">宿主统一代申系统 TCC 权限</span>
+                  <span class="subtle-chip" data-i18n="sc1_f2">中英双语与深浅主题实时热同步</span>
+                  <span class="subtle-chip" data-i18n="sc1_f3">三层全局热键防冲突检测</span>
                 </div>
               </div>
 
@@ -408,40 +423,41 @@
                   <div class="sniffer-demo-pills" id="snifferDemoPills">
                     <button type="button" class="sniffer-demo-btn active" data-sniff="repo" data-i18n="sniff_btn_1">试贴开源仓库子目录</button>
                     <button type="button" class="sniffer-demo-btn" data-sniff="registry" data-i18n="sniff_btn_2">试贴商店索引 JSON</button>
-                    <button type="button" class="sniffer-demo-btn" data-sniff="archive" data-i18n="sniff_btn_3">试贴 .lumakeyplugin 包</button>
+                    <button type="button" class="sniffer-demo-btn" data-sniff="archive" data-i18n="sniff_btn_3">试贴独立插件压缩包</button>
                   </div>
 
-                  <div class="sniffer-input-mock">
+                  <div class="sniffer-input-mock" id="snifferInputMock">
+                    <span class="sniffer-scan-beam" aria-hidden="true"></span>
                     <span class="mono" id="snifferUrlText">lengsukq/Lumakey/tree/main/plugin-demo</span>
-                    <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (7 Plugins)</span>
+                    <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (8 Plugins)</span>
                   </div>
 
                   <div class="mock-row-grid">
                     <div class="mock-card">
                       <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc2_verify_t">防伪装双端能力核验</span>
+                        <span class="mock-card-title" data-i18n="sc2_verify_t">防伪装双端权限核验</span>
                         <span class="ok-pill mono">Verified</span>
                       </div>
                       <div class="mock-card-sub" id="snifferDetailDesc" data-i18n="sc2_verify_d">
-                        下载落盘前强制计算 64 位 SHA-256 摘要，并比对压缩包内 plugin.json 与商店声明的沙箱权限，越权即刻拦截回滚。
+                        安装前强制核对 64 位 SHA-256 指纹，并比对包内真实权限与商店声明，任何悄悄越权夹带都会被当场拦截。
                       </div>
                     </div>
 
                     <div class="mock-card">
                       <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc2_upg_t">无损平滑版本升级</span>
+                        <span class="mock-card-title" data-i18n="sc2_upg_t">无损平滑检查更新</span>
                         <span class="accent-pill mono">Lossless</span>
                       </div>
                       <div class="mock-card-sub" data-i18n="sc2_upg_d">
-                        只读插件代码与 PluginData 数据目录严格分离，更新版本自动保留你的自定义唤醒词、子命令热键与加密凭据。
+                        只读插件代码与个人数据目录严格分离，跨商店批量更新时完整保留你的自定义唤醒词、热键与加密凭据。
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div class="scene-footer-metrics">
-                  <span class="subtle-chip">lumakey_package_plugin_for_store 一键发版</span>
-                  <span class="subtle-chip">离线 Stale 缓存容错回退</span>
+                  <span class="subtle-chip" data-i18n="sc2_f1">lumakey_package_plugin_for_store 一键发版</span>
+                  <span class="subtle-chip" data-i18n="sc2_f2">插件更新免重复勾选系统权限</span>
                 </div>
               </div>
 
@@ -456,28 +472,28 @@
                 <div class="scene-visual-body">
                   <div class="mcp-pipeline-steps">
                     <div class="mcp-step-row">
-                      <span><strong>Seatbelt Kernel Sandbox</strong> · <span data-i18n="sc3_r1">未声明网络与子进程作用域即由内核规则硬阻断，严禁触碰系统敏感凭据目录</span></span>
+                      <span><strong>Seatbelt Kernel Sandbox</strong> · <span data-i18n="sc3_r1">未声明联网或子进程即由系统内核硬阻断，无条件隔离钥匙串与敏感目录</span></span>
                       <span class="ok-pill mono">Isolated</span>
                     </div>
                     <div class="mcp-step-row">
-                      <span><strong>Host Bridge UDS (0700)</strong> · <span data-i18n="sc3_r2">8 项受控宿主桥接（OCR / 划词 / 音频 / 全搜），一次性 48-bit 令牌随进程退出即焚</span></span>
+                      <span><strong>Host Bridge UDS (0700)</strong> · <span data-i18n="sc3_r2">11 项受控宿主桥接（OCR / 划词 / 截屏 / 通知等），一次性令牌随进程结束即焚</span></span>
                       <span class="accent-pill mono">Scoped</span>
                     </div>
                     <div class="mcp-step-row">
-                      <span><strong>LMKYVLT2 Secret Vault</strong> · <span data-i18n="sc3_r3">双轨 256-bit 随机主密钥 AES-GCM 加密插件凭据，磁盘零明文残留</span></span>
+                      <span><strong>LMKYVLT2 Secret Vault</strong> · <span data-i18n="sc3_r3">双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留</span></span>
                       <span class="ok-pill mono">256-bit</span>
                     </div>
                     <div class="mcp-step-row">
-                      <span><strong>.lumakeybackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 高速压缩打包自制插件、生词本与加密配置，云盘与 NAS 一键漫游</span></span>
+                      <span><strong>.lumakeybackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游</span></span>
                       <span class="accent-pill mono">LZFSE</span>
                     </div>
                   </div>
                 </div>
 
                 <div class="scene-footer-metrics">
-                  <span class="subtle-chip">11 项系统权限全景审计面板</span>
-                  <span class="subtle-chip">8s 子进程超时兜底回收</span>
-                  <span class="subtle-chip">HKDF + AES-GCM 备份口令保护</span>
+                  <span class="subtle-chip" data-i18n="sc3_f1">21 项全景权限审计面板</span>
+                  <span class="subtle-chip" data-i18n="sc3_f2">子进程超时自动回收兜底</span>
+                  <span class="subtle-chip" data-i18n="sc3_f3">HKDF + AES-GCM 备份口令保护</span>
                 </div>
               </div>
             </div>
@@ -486,109 +502,173 @@
       </div>
     </section>
 
-    <!-- ACT IV · Built-in Native Base Engines -->
+    <!-- ACT IV · Everyday Built-in Native Tools (With Live Kinetic Micro-Visuals!) -->
     <section class="bento-section" id="capabilities">
       <div class="container">
         <div class="reveal-up">
-          <span class="section-eyebrow" data-i18n="bento_eyebrow">ZERO-DEPENDENCY NATIVE BASE · 开箱即享的五大纯原生引擎</span>
-          <h2 class="section-title" data-i18n="bento_title">插件未装之前，底座本身已是锋利瑞士军刀</h2>
+          <span class="section-eyebrow" data-i18n="bento_eyebrow">EVERYDAY NATIVE ESSENTIALS · 不装任何插件也超好用的五大原生利器</span>
+          <h2 class="section-title" data-i18n="bento_title"><span class="title-clause">把五六个日常小软件，</span><span class="title-clause">浓缩进一个 10 MB 原生底座</span></h2>
           <p class="section-desc" data-i18n="bento_desc">
-            核心高频能力由纯 Swift 6 直接调用 ScreenCaptureKit、Vision、AVKit、Darwin Mach 与 CGEventTap 实现，零第三方包依赖，并为所有插件提供免重复造轮子的原生桥接能力：
+            平时最常用的搜索、剪贴板、截屏贴图、GIF 录屏、离线识字与外接鼠标平滑滚轮全部原生内置，用起来直觉顺手，关掉即刻释放内存：
           </p>
         </div>
 
         <div class="hotkey-chord-bar reveal-up" id="hotkeyBar">
           <button type="button" class="hotkey-pill active" data-target="all">
-            <span data-i18n="hk_all">全部原生底座</span>
+            <span data-i18n="hk_all">全部内置利器</span>
           </button>
           <button type="button" class="hotkey-pill" data-target="card-search">
-            <kbd class="keycap">⌥Space</kbd> <span data-i18n="hk_search">统一全搜与工具箱</span>
+            <kbd class="keycap">⌥Space</kbd> <span data-i18n="hk_search">自定义主页与全盘秒搜</span>
           </button>
           <button type="button" class="hotkey-pill" data-target="card-capture">
-            <kbd class="keycap">⌥A</kbd> <kbd class="keycap">⌥G</kbd> <kbd class="keycap">⌥O</kbd> <span data-i18n="hk_shot">冻屏标注 · GIF · OCR</span>
+            <kbd class="keycap">⌥A</kbd> <kbd class="keycap">⌥G</kbd> <kbd class="keycap">⌥O</kbd> <span data-i18n="hk_shot">截图标注 · GIF · 离线识字</span>
           </button>
           <button type="button" class="hotkey-pill" data-target="card-pulse">
-            <kbd class="keycap">⌥M</kbd> <span data-i18n="hk_pulse">系统脉搏胶囊</span>
+            <kbd class="keycap">⌥M</kbd> <span data-i18n="hk_pulse">芯片功耗贴边胶囊</span>
           </button>
           <button type="button" class="hotkey-pill" data-target="card-net">
-            <kbd class="keycap">⌥N</kbd> <span data-i18n="hk_net">进程流量与缓存清理</span>
+            <kbd class="keycap">⌥N</kbd> <span data-i18n="hk_net">软件网速与清缓存</span>
           </button>
           <button type="button" class="hotkey-pill" data-target="card-workspace">
-            <kbd class="keycap">⌥E</kbd> <span data-i18n="hk_ws">双栏工作台 &amp; 120Hz 滚轮</span>
+            <kbd class="keycap">⌥E</kbd> <span data-i18n="hk_ws">双栏整理 &amp; 鼠标丝滑滚轮</span>
           </button>
         </div>
 
-        <div class="feature-bento-grid">
-          <article class="f-card span-6 reveal-up" id="card-search" style="--delay: 0ms">
+        <div class="feature-bento-grid" data-spotlight-group>
+          <!-- Card 1: Search & Custom Home -->
+          <article class="f-card span-6 spotlight-surface reveal-up" id="card-search" style="--delay: 0ms">
             <div>
               <div class="f-card-top">
                 <span class="squircle-badge" style="background:linear-gradient(135deg,#0066dc,#4338ca)">⌘</span>
                 <kbd class="keycap">⌥Space</kbd>
               </div>
-              <h3 data-i18n="fc1_title">恒定 880×544 全搜中枢 &amp; LMKYIDX3 内存映射秒搜</h3>
+              <div class="bento-micro-stage micro-search" aria-hidden="true">
+                <div class="ms-bar">
+                  <span class="ms-dot"></span>
+                  <span class="ms-typing mono" id="microSearchTicker">HomeCustomization.swift</span>
+                  <span class="ms-speed mono">0.2ms mmap</span>
+                </div>
+                <div class="ms-pills">
+                  <span class="ms-pill active">Bento 3×2</span>
+                  <span class="ms-pill">OmniDock 16</span>
+                  <span class="ms-pill">Undo ×15</span>
+                  <span class="ms-pill">Right-Click Pin</span>
+                </div>
+              </div>
+              <h3 data-i18n="fc1_title">可定制启动面板 · 全盘秒搜 · 15 步可撤回剪贴板</h3>
               <p data-i18n="fc1_desc">
-                无需前缀并发检索本地化拼音应用、全盘与外置盘文件（mmap 零拷贝 + FSEvents 实时增量）、富文本/图片剪贴板历史、算式进制换算、端口占用进程、; 动态短语与离线开发工具箱（JWT / 时间戳 / #HEX / 二维码）。
+                未打字时展示你自定义的 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜中文双音字/拼音应用、本机与移动硬盘文件、富媒体剪贴板历史（自动跳过密码）、10 类日常单位算式换算、;短语扩展与离线开发小工具。
               </p>
             </div>
             <div class="f-card-chips">
-              <span class="subtle-chip">LauncherSelectionAnchor 防跳行</span>
-              <span class="subtle-chip">⌘1..9 瞬时快选</span>
-              <span class="subtle-chip">90s 空闲自动卸载索引页</span>
+              <span class="subtle-chip" data-i18n="fc1_c1">4 区 × 多场景 Profile</span>
+              <span class="subtle-chip" data-i18n="fc1_c2">LMKYIDX3 mmap 零拷贝秒搜</span>
+              <span class="subtle-chip" data-i18n="fc1_c3">880×544 防跳行不抢焦点</span>
             </div>
           </article>
 
-          <article class="f-card span-6 reveal-up" id="card-capture" style="--delay: 80ms">
+          <!-- Card 2: Capture, GIF & Offline OCR -->
+          <article class="f-card span-6 spotlight-surface reveal-up" id="card-capture" style="--delay: 75ms">
             <div>
               <div class="f-card-top">
                 <span class="squircle-badge" style="background:linear-gradient(135deg,#7c3aed,#db2777)">✦</span>
                 <span><kbd class="keycap">⌥A</kbd> <kbd class="keycap">⌥G</kbd> <kbd class="keycap">⌥O</kbd></span>
               </div>
-              <h3 data-i18n="fc2_title">毫秒冻屏标注 · 零 ffmpeg 区域 GIF · 离线 OCR 钉屏</h3>
+              <div class="bento-micro-stage micro-capture" aria-hidden="true">
+                <div class="mc-crop-box">
+                  <span class="mc-corner tl"></span><span class="mc-corner tr"></span>
+                  <span class="mc-corner bl"></span><span class="mc-corner br"></span>
+                  <span class="mc-ocr-scan"></span>
+                  <span class="mc-ocr-tag mono">OCR 99.4% · 0.4s</span>
+                </div>
+                <div class="mc-hud-stack">
+                  <div class="mc-island mono"><i class="rec-dot"></i> GIF · 04.2s · 420 KB</div>
+                  <div class="mc-loupe mono"><i class="swatch-dot"></i> #38BDF8 · Copy C</div>
+                </div>
+              </div>
+              <h3 data-i18n="fc2_title">多屏超清截图标注 · 轻巧区域 GIF · 一秒离线识字贴图</h3>
               <p data-i18n="fc2_desc">
-                基于 ScreenCaptureKit 实现窗口智能吸附、像素放大镜按 C 取色、9 种矢量与实时马赛克批注、灵动岛流式 GIF89a 动图录制，以及亚秒级离线 Vision 识字与半透明原位悬浮钉图——识别结果可一键流转至任意已装插件。
+                多块不同分辨率屏幕拼接也能原画质框选与一键抠出独立圆角窗口；自带箭头、荧光笔、实时马赛克、序号、放大镜按 C 取色及半透明悬浮钉图（按 T 穿透对照），还能直接录轻巧 GIF 动图或离线提取图中文字与二维码。
               </p>
             </div>
             <div class="f-card-chips">
-              <span class="subtle-chip">640p / 960p / HD 流式 GIF</span>
-              <span class="subtle-chip">⌥+滚轮调节钉图透明度</span>
+              <span class="subtle-chip" data-i18n="fc2_c1">ScreenCaptureKit 零延迟冻屏</span>
+              <span class="subtle-chip" data-i18n="fc2_c2">零 ffmpeg 流式 GIF89a</span>
+              <span class="subtle-chip" data-i18n="fc2_c3">Vision 本地离线 OCR</span>
             </div>
           </article>
 
-          <article class="f-card reveal-up" id="card-pulse" style="--delay: 0ms">
+          <!-- Card 3: Chip Wattage & Pulse -->
+          <article class="f-card spotlight-surface reveal-up" id="card-pulse" style="--delay: 0ms">
             <div>
               <div class="f-card-top">
                 <span class="squircle-badge" style="background:linear-gradient(135deg,#059669,#10b981)">⚡</span>
                 <kbd class="keycap">⌥M</kbd>
               </div>
-              <h3 data-i18n="fc3_title">系统脉搏贴边胶囊</h3>
+              <div class="bento-micro-stage micro-pulse" aria-hidden="true">
+                <div class="mp-head mono">
+                  <span>P-Core 3.8GHz</span>
+                  <strong class="mp-watt" id="liveWattReadout">8.4 W</strong>
+                </div>
+                <svg class="mp-sparkline" viewBox="0 0 220 44" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="pulseFillGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#10b981" stop-opacity="0.34"/>
+                      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path class="mp-area" d="M0,34 Q24,18 48,26 T96,14 T144,24 T192,10 L220,16 L220,44 L0,44 Z" fill="url(#pulseFillGrad)"/>
+                  <path class="mp-line" d="M0,34 Q24,18 48,26 T96,14 T144,24 T192,10 L220,16" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h3 data-i18n="fc3_title">芯片脉搏贴边小胶囊</h3>
               <p data-i18n="fc3_desc">
-                Darwin Mach / IOKit 零子进程读取 CPU P/E 核负载、等效频率 (GHz)、GPU、Swap 与整机实时瓦数功耗 (W)，支持三边贴边隐藏与默认不打扰。
+                默认关闭不打扰；开启后以超低开销实时显示芯片大小核负载、频率、内存压力与整机瓦数功耗 (W)，靠近屏幕边缘自动贴边收起。
               </p>
             </div>
           </article>
 
-          <article class="f-card reveal-up" id="card-net" style="--delay: 80ms">
+          <!-- Card 4: App Bandwidth & Cache -->
+          <article class="f-card spotlight-surface reveal-up" id="card-net" style="--delay: 75ms">
             <div>
               <div class="f-card-top">
                 <span class="squircle-badge" style="background:linear-gradient(135deg,#0284c7,#4f46e5)">⇄</span>
                 <kbd class="keycap">⌥N</kbd>
               </div>
-              <h3 data-i18n="fc4_title">免提权流量去向 &amp; 缓存管家</h3>
+              <div class="bento-micro-stage micro-net mono" aria-hidden="true">
+                <div class="mn-row">
+                  <span>↓ 14.2 MB/s</span>
+                  <div class="mn-bar-track"><i class="mn-bar down"></i></div>
+                </div>
+                <div class="mn-row">
+                  <span>↑ 1.8 MB/s</span>
+                  <div class="mn-bar-track"><i class="mn-bar up"></i></div>
+                </div>
+              </div>
+              <h3 data-i18n="fc4_title">软件网速透视 &amp; 安全清缓存</h3>
               <p data-i18n="fc4_desc">
-                无需常驻提权服务即可实时透视各应用上下行速率与远端连接去向，配套分桶缓存盘点与安全废纸篓清理。
+                不用装复杂的抓包或后台监控服务，随时看清哪个软件正在占用网速、连向哪里，并可分门别类把临时缓存安全移入废纸篓。
               </p>
             </div>
           </article>
 
-          <article class="f-card reveal-up" id="card-workspace" style="--delay: 160ms">
+          <!-- Card 5: 120Hz Smooth Wheel & Dual Workspace -->
+          <article class="f-card spotlight-surface reveal-up" id="card-workspace" style="--delay: 150ms">
             <div>
               <div class="f-card-top">
                 <span class="squircle-badge" style="background:linear-gradient(135deg,#ea580c,#e11d48)">▤</span>
                 <kbd class="keycap">⌥E</kbd>
               </div>
-              <h3 data-i18n="fc5_title">双栏工作台 · 零 WebKit 阅读 · 120Hz 滚轮</h3>
+              <div class="bento-micro-stage micro-wheel" aria-hidden="true">
+                <svg class="mw-curve" viewBox="0 0 220 44" preserveAspectRatio="none">
+                  <path d="M0,38 L35,38 L35,26 L75,26 L75,14 L125,14 L125,6 L220,6" fill="none" stroke="currentColor" stroke-opacity="0.22" stroke-width="1.5" stroke-dasharray="3 3"/>
+                  <path class="mw-smooth-path" d="M0,38 C48,38 68,8 138,8 C176,8 196,6 220,6" fill="none" stroke="#f97316" stroke-width="2.3" stroke-linecap="round"/>
+                </svg>
+                <span class="mw-badge mono">120Hz Inertia · NTFS RO</span>
+              </div>
+              <h3 data-i18n="fc5_title">外接鼠标丝滑滚轮 &amp; 双栏文件台</h3>
               <p data-i18n="fc5_desc">
-                按需呼出双栏磁盘工作台（只读 NTFS 安全护航）、纯 Swift Markdown 阅读窗、4K HEVC 硬解影院，以及互不干扰触控板的物理鼠标 120Hz 平滑滚轮。
+                让普通外接鼠标拥有 120Hz 顺滑滚动与独立方向反转（完全不动触控板手感）；按需呼出双栏文件整理台（NTFS 移动硬盘只读护航）与秒开 Markdown / 4K 视频窗。
               </p>
             </div>
           </article>
@@ -596,57 +676,57 @@
       </div>
     </section>
 
-    <!-- ACT V · Core Philosophy, Pure Frost / Prism Pulse Switcher & Boundaries -->
+    <!-- ACT V · Core Philosophy, Dual-Theme Switcher & Boundaries -->
     <section class="philosophy-section section-band" id="philosophy">
       <div class="container">
         <div class="reveal-up">
-          <span class="section-eyebrow" data-i18n="phil_eyebrow">CORE PHILOSOPHY · 核心设计思想</span>
-          <h2 class="section-title" data-i18n="phil_title">底座极度克制，边界无限生长</h2>
+          <span class="section-eyebrow" data-i18n="phil_eyebrow">CORE PHILOSOPHY · 为什么普通用户与极客都喜欢它</span>
+          <h2 class="section-title" data-i18n="phil_title"><span class="title-clause">底座极度克制，</span><span class="title-clause">定制自由无限生长</span></h2>
           <p class="section-desc" data-i18n="phil_desc">
-            优秀的效率工具不替用户做臃肿的决定，而是提供一块零延迟、零负担的原生基石，把定义工作流的自由完整交还给你。
+            好的工具开箱就足够好懂顺手，深入使用又能把每一寸面板、每一枚热键和每一个私人工作流都调教成你最舒服的模样。
           </p>
         </div>
 
-        <div class="pillars-grid">
-          <article class="pillar-card reveal-up" style="--delay: 0ms">
-            <span class="pillar-num mono">PILLAR 01 · COMPOSABLE MICRO-CORE</span>
-            <h3 data-i18n="p1_title">微内核底座 × 一等公民插件共创</h3>
+        <div class="pillars-grid" data-spotlight-group>
+          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 0ms">
+            <span class="pillar-num mono">PILLAR 01 · TOTAL CUSTOMIZABILITY</span>
+            <h3 data-i18n="p1_title">全维度高度可定制，却绝不强迫折腾</h3>
             <p data-i18n="p1_desc">
-              核心只保留系统级高频刚需，个性化长尾场景全部交由 Plugin v3.4 与内置 lumakey-mcp 实现。未安装或已停用的模块绝不占用一丝内存或后台轮询；一旦启用，便拥有与内置功能完全平权的 UI、热键与上下文联动。
+              开箱自带精心打磨的默认体验；想折腾时，启动面板四大分区与多套场景 Profile、顶部状态栏菜单顺序、全局与子功能静默热键、唤醒词与排序权重，乃至一句话 AI 定制插件全部向你敞开。
             </p>
           </article>
 
-          <article class="pillar-card reveal-up" style="--delay: 90ms">
-            <span class="pillar-num mono">PILLAR 02 · NATIVE SWIFT 6, ZERO BLOAT</span>
-            <h3 data-i18n="p2_title">纯原生 Swift 6，零第三方依赖</h3>
+          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 80ms">
+            <span class="pillar-num mono">PILLAR 02 · NATIVE SWIFT 6, ~10 MB</span>
+            <h3 data-i18n="p2_title">约 10 MB 纯正 Mac 原生，拒绝网页套壳</h3>
             <p data-i18n="p2_desc">
-              不引入浏览器渲染栈，不拼凑跨平台兼容层。全仓零外部 SwiftPM / CocoaPods 依赖，直接驱动 Apple Silicon 硬件解码与系统图形管线，安装包小巧纯粹。
+              不用笨重的浏览器内核套桌面壳子，全仓零第三方外部依赖，100% 纯 Swift 6 直接调用 Apple Silicon 硬件加速框架，启动秒开、发热极低。
             </p>
           </article>
 
-          <article class="pillar-card reveal-up" style="--delay: 0ms">
+          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 0ms">
             <span class="pillar-num mono">PILLAR 03 · DETERMINISTIC MUSCLE MEMORY</span>
-            <h3 data-i18n="p3_title">恒定几何与丝滑原生弹簧动效</h3>
+            <h3 data-i18n="p3_title">不乱跳的窗口，稳稳当当的肌肉记忆</h3>
             <p data-i18n="p3_desc">
-              主视窗锁定 880 × 544 拒绝跳变，分类切换零位移，异步索引绝不抢焦点；同时为面板呼出收起、钉图浮现与贴边胶囊注入阻尼考究的原生弹簧微动效。
+              主窗口固定锁定 880 × 544，切分类不位移、打中文拼音不误触回车、后台刷新索引绝不抢走你正选中的那一行，配合克制跟手的原生弹簧动效，盲操行云流水。
             </p>
           </article>
 
-          <article class="pillar-card reveal-up" style="--delay: 90ms">
+          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 80ms">
             <span class="pillar-num mono">PILLAR 04 · EPHEMERAL &amp; SANDBOXED</span>
-            <h3 data-i18n="p4_title">用完即焚自洁架构与默认安全沙箱</h3>
+            <h3 data-i18n="p4_title">用完即走省内存，本机沙箱守隐私</h3>
             <p data-i18n="p4_desc">
-              浮窗隐藏 30 秒自动销毁视图树，全盘索引空闲 90 秒自动卸载堆页；外部脚本强制经由 Seatbelt 沙箱与 256-bit AES-GCM 密钥箱守护，兼顾自由度与系统级安全。
+              主面板收起 30 秒自动销毁界面缓存，文件索引空闲 90 秒自动卸载；外部插件关进 macOS Seatbelt 内核沙箱，API 密钥经 256-bit AES-GCM 加密存放本机。
             </p>
           </article>
         </div>
 
-        <div class="theme-duality-banner reveal-up">
+        <div class="theme-duality-banner spotlight-surface reveal-up">
           <div class="duality-copy">
-            <span class="section-eyebrow">PURE FROST &amp; PRISM PULSE · 双生液态玻璃主题</span>
-            <h3 class="duality-heading" data-i18n="duality_title">「凝霜留白」的纯粹瓷感，或「霓彩流光」的深邃光谱</h3>
+            <span class="section-eyebrow" data-i18n="duality_eyebrow">PURE FROST &amp; PRISM PULSE · 双生液态玻璃主题</span>
+            <h3 class="duality-heading" data-i18n="duality_title"><span class="title-clause">「凝霜留白」的温润瓷感，</span><span class="title-clause">或「霓彩流光」的深邃光谱</span></h3>
             <p class="duality-sub" data-i18n="duality_desc">
-              默认采用零色晕、高对比分层阴影的「凝霜留白 Pure Frost」工作室浅色美学；亦可一键切换至棱镜高光的「霓彩流光 Prism Pulse」深色形态。你的选择也会实时同步给所有已启用插件。
+              喜欢干净清爽的白昼质感，还是深邃通透的暗夜毛玻璃？点击右侧即可实时切换两套原生外观，软件内切换时还会自动同步给所有已开启的插件与悬浮窗。
             </p>
           </div>
 
@@ -660,40 +740,40 @@
           </div>
         </div>
 
-        <div class="boundary-panel reveal-up">
-          <h3 class="boundary-heading" data-i18n="bound_title">清晰的产品边界：把复杂留给插件按需扩展，让底座永远轻盈</h3>
+        <div class="boundary-panel spotlight-surface reveal-up">
+          <h3 class="boundary-heading" data-i18n="bound_title"><span class="title-clause">清晰克制的产品边界：</span><span class="title-clause">把自由留给定制，让底座永远轻快</span></h3>
           <p class="boundary-sub" data-i18n="bound_sub">
-            明确「底座全力做好什么」与「坚决不往底座塞什么」，是 Lumakey 长期保持毫秒级响应的根基。
+            知道「什么该做到极致」与「什么绝不往底座硬塞」，才能让你的 Mac 长久保持清爽不卡顿。
           </p>
 
           <div class="boundary-columns">
             <ul class="boundary-list">
               <li>
                 <span class="badge-yes">✓</span>
-                <span data-i18n="yes_1"><strong>微内核快捷中枢优先：</strong>菜单栏常驻、热键秒呼即走，所有扩展能力按需开关、支持自定义图标与独立静默快捷键。</span>
+                <span data-i18n="yes_1"><strong>你的界面你做主：</strong>启动面板四分区、顶部状态栏菜单、全局快捷键、唤醒词与插件挂件全部支持按需开启与自由排布。</span>
               </li>
               <li>
                 <span class="badge-yes">✓</span>
-                <span data-i18n="yes_2"><strong>AI 友好的开放协议底座：</strong>内置 lumakey-mcp 标准服务与单框智能商店嗅探，让每个人都能低门槛创造并分享工具。</span>
+                <span data-i18n="yes_2"><strong>普通人也能玩的 AI 扩展：</strong>内置 16 项 lumakey-mcp 工具与单框智能商店嗅探，一句话就能定制新插件或新主页。</span>
               </li>
               <li>
                 <span class="badge-yes">✓</span>
-                <span data-i18n="yes_3"><strong>100% 专注 Apple Silicon：</strong>纯 arm64 编译与 macOS 14+ 现代框架直连，拒绝跨架构历史包袱。</span>
+                <span data-i18n="yes_3"><strong>100% 专为 M 系列芯片打造：</strong>纯 arm64 原生编译与 macOS 14+ 系统框架直连，没有跨平台兼容包袱。</span>
               </li>
             </ul>
 
             <ul class="boundary-list">
               <li>
                 <span class="badge-no">✕</span>
-                <span data-i18n="no_1"><strong>不做强制开启的臃肿全家桶：</strong>绝不预装无法关闭的悬浮球或常驻后台守护进程，快捷按钮与插件均默认按需挂载。</span>
+                <span data-i18n="no_1"><strong>绝不做关不掉的臃肿全家桶：</strong>刚装好时零悬浮球、零菜单栏强塞读数、零后台守护进程，一切按需点亮。</span>
               </li>
               <li>
                 <span class="badge-no">✕</span>
-                <span data-i18n="no_2"><strong>不引入重型浏览器渲染内核：</strong>拒绝为看一篇 Markdown 或插件卡片而拉起数百 MB 浏览器渲染进程。</span>
+                <span data-i18n="no_2"><strong>绝不拿几百 MB 网页内核套主界面：</strong>内置文档阅读与主面板坚持纯 Swift 原生渲染；插件自由浮窗关窗即刻销毁。</span>
               </li>
               <li>
                 <span class="badge-no">✕</span>
-                <span data-i18n="no_3"><strong>不做裸奔脚本执行器与脏盘强写：</strong>拒绝无沙箱明文存储凭据，亦绝不绕过脏标记冒险强写外置 NTFS 数据盘。</span>
+                <span data-i18n="no_3"><strong>绝不裸奔跑脚本或冒险强写脏硬盘：</strong>外部脚本强制进内核沙箱、密钥加密存放，遇到带脏标记的 NTFS 盘严格只读护航。</span>
               </li>
             </ul>
           </div>
@@ -701,87 +781,108 @@
       </div>
     </section>
 
-    <!-- ACT VI · Clean Code & Acyclic DAG Architecture Blueprint -->
+    <!-- ACT VI · Geek Engineering Under the Hood: Clean Code & Acyclic DAG -->
     <section class="arch-section" id="architecture">
       <div class="container">
         <div class="builder-header-row reveal-up">
           <div>
-            <span class="section-eyebrow" data-i18n="arch_eyebrow">CLEAN CODE &amp; DAG ARCHITECTURE · 工程纪律</span>
-            <h2 class="section-title" data-i18n="arch_title">九大单向无环模块 · 单文件严控 ≤ 300 行</h2>
+            <span class="section-eyebrow" data-i18n="arch_eyebrow">UNDER THE HOOD FOR GEEKS · 给极客看的硬核工程纪律</span>
+            <h2 class="section-title" data-i18n="arch_title"><span class="title-clause">九大单向无环模块 · </span><span class="title-clause">单文件硬性严控 ≤ 300 行</span></h2>
             <p class="section-desc" data-i18n="arch_desc">
-              每次构建均由自动化脚本强制核验模块依赖拓扑、单文件代码行数、文档索引一致性以及真实 lumakey-mcp JSON-RPC 往返联调。
+              代码库与产品一样干净克制：每次构建均由自动化脚本强制核验模块单向 DAG 依赖、单 .swift 文件行数上限、文档死链与真实 lumakey-mcp JSON-RPC 往返联调。
             </p>
           </div>
-          <a href="./index.html?scene=dag" class="section-3d-jump">
+          <a href="./index.html?scene=dag" class="section-3d-jump magnetic-btn">
             <span class="nav-3d-spark">✦</span>
             <span data-i18n="jump_3d_dag">返回 3D 主页 · 原生架构 →</span>
           </a>
         </div>
 
-        <div class="metrics-strip">
-          <div class="metric-box reveal-up" style="--delay: 0ms">
-            <div class="metric-number gradient-text mono">12</div>
-            <div class="metric-caption" data-i18n="m_1">内置 lumakey-mcp AI 造插件工具</div>
+        <div class="metrics-strip" id="metricsStrip" data-spotlight-group>
+          <div class="metric-box spotlight-surface reveal-up" style="--delay: 0ms">
+            <div class="metric-number gradient-text mono" data-count-to="16">16</div>
+            <div class="metric-caption" data-i18n="m_1">内置 lumakey-mcp 造插件与排主页工具</div>
           </div>
-          <div class="metric-box reveal-up" style="--delay: 70ms">
-            <div class="metric-number gradient-text mono">0</div>
-            <div class="metric-caption" data-i18n="m_2">第三方 SwiftPM / CocoaPods 依赖</div>
+          <div class="metric-box spotlight-surface reveal-up" style="--delay: 70ms">
+            <div class="metric-number gradient-text mono" data-count-to="0">0</div>
+            <div class="metric-caption" data-i18n="m_2">第三方 SwiftPM / CocoaPods 外部依赖</div>
           </div>
-          <div class="metric-box reveal-up" style="--delay: 140ms">
-            <div class="metric-number gradient-text mono">≤ 300</div>
+          <div class="metric-box spotlight-surface reveal-up" style="--delay: 140ms">
+            <div class="metric-number gradient-text mono" data-count-prefix="≤ " data-count-to="300">≤ 300</div>
             <div class="metric-caption" data-i18n="m_3">单 .swift 源码文件硬性行数上限</div>
           </div>
-          <div class="metric-box reveal-up" style="--delay: 210ms">
+          <div class="metric-box spotlight-surface reveal-up" style="--delay: 210ms">
             <div class="metric-number gradient-text mono">30s / 90s</div>
-            <div class="metric-caption" data-i18n="m_4">浮窗销毁 / 索引自动归还堆页窗口</div>
+            <div class="metric-caption" data-i18n="m_4">浮窗销毁 / 索引自动归还内存窗口</div>
           </div>
         </div>
 
-        <div class="dag-board reveal-up">
+        <div class="dag-board spotlight-surface reveal-up">
           <div class="dag-tiers">
             <div class="dag-tier">
               <div class="dag-node">
-                <div class="dag-node-name mono">Lumakey.app</div>
-                <div class="dag-node-desc" data-i18n="dag_app">SwiftUI + AppKit 双主题前端与丝滑窗口动效矩阵</div>
+                <div class="dag-node-name mono"><i class="node-orb cyan"></i>Lumakey.app</div>
+                <div class="dag-node-desc" data-i18n="dag_app">SwiftUI + AppKit 双主题前端 · 启动面板/菜单栏定制 · 自由画布窗口</div>
               </div>
               <div class="dag-node">
-                <div class="dag-node-name mono">lumakey-mcp</div>
-                <div class="dag-node-desc" data-i18n="dag_mcp">内置 JSON-RPC 2.0 AI 插件脚手架、审计与打包服务</div>
+                <div class="dag-node-name mono"><i class="node-orb violet"></i>lumakey-mcp</div>
+                <div class="dag-node-desc" data-i18n="dag_mcp">内置 16 项 JSON-RPC 2.0 工具：AI 插件脚手架、沙箱测试与启动面板实时编排</div>
               </div>
             </div>
 
-            <div class="dag-arrow-row mono">↓ 单向无环依赖 (Acyclic DAG Verified) ↓</div>
+            <!-- Animated SVG Optical Conduit 1 -->
+            <div class="dag-conduit" aria-hidden="true">
+              <svg viewBox="0 0 600 42" preserveAspectRatio="none">
+                <path class="conduit-track" d="M180,0 C180,22 300,16 300,42 M420,0 C420,22 300,16 300,42" />
+                <path class="conduit-beam" d="M180,0 C180,22 300,16 300,42 M420,0 C420,22 300,16 300,42" />
+              </svg>
+              <span class="conduit-tag mono">Acyclic DAG Verified</span>
+            </div>
 
             <div class="dag-tier">
               <div class="dag-node dag-node-wide">
-                <div class="dag-node-name mono">LumakeyCore</div>
-                <div class="dag-node-desc" data-i18n="dag_core">Plugin v3.4 宿主桥接 · Seatbelt 沙箱 · 智能商店嗅探 · 统一搜索 · WebDAV 备份</div>
+                <div class="dag-node-name mono"><i class="node-orb indigo"></i>LumakeyCore</div>
+                <div class="dag-node-desc" data-i18n="dag_core">HomeLayout 多场景启动面板 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · 智能商店嗅探 · WebDAV 备份</div>
               </div>
             </div>
 
-            <div class="dag-arrow-row mono">↓ 正交原生领域层 ↓</div>
+            <!-- Animated SVG Optical Conduit 2 -->
+            <div class="dag-conduit" aria-hidden="true">
+              <svg viewBox="0 0 600 42" preserveAspectRatio="none">
+                <path class="conduit-track" d="M300,0 C300,20 110,18 110,42 M300,0 L300,42 M300,0 C300,20 490,18 490,42" />
+                <path class="conduit-beam" d="M300,0 C300,20 110,18 110,42 M300,0 L300,42 M300,0 C300,20 490,18 490,42" />
+              </svg>
+              <span class="conduit-tag mono">Orthogonal Native Domains</span>
+            </div>
 
             <div class="dag-tier">
               <div class="dag-node">
-                <div class="dag-node-name mono">LumakeySearch</div>
-                <div class="dag-node-desc" data-i18n="dag_search">LMKYIDX3 mmap 快照 · FSEvents · 批量改名预检</div>
+                <div class="dag-node-name mono"><i class="node-orb sky"></i>LumakeySearch</div>
+                <div class="dag-node-desc" data-i18n="dag_search">LMKYIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检</div>
               </div>
               <div class="dag-node">
-                <div class="dag-node-name mono">LumakeyMedia</div>
-                <div class="dag-node-desc" data-i18n="dag_media">冻屏标注合成 · Vision OCR · hev1 硬解 · 原生 Markdown</div>
+                <div class="dag-node-name mono"><i class="node-orb rose"></i>LumakeyMedia</div>
+                <div class="dag-node-desc" data-i18n="dag_media">逐屏冻屏标注合成 · Vision 离线 OCR · hev1 4K 硬解 · 纯原生 Markdown</div>
               </div>
               <div class="dag-node">
-                <div class="dag-node-name mono">LumakeySystem</div>
-                <div class="dag-node-desc" data-i18n="dag_sys">Mach/IOKit 遥测 · 进程流量 · 120Hz 滚轮 · 热键冲突探测</div>
+                <div class="dag-node-name mono"><i class="node-orb emerald"></i>LumakeySystem</div>
+                <div class="dag-node-desc" data-i18n="dag_sys">Mach/IOKit 功耗遥测 · 进程网速去向 · 120Hz 鼠标平滑滚轮 · 三层热键防冲突</div>
               </div>
             </div>
 
-            <div class="dag-arrow-row mono">↓ 零业务耦合安全底座 ↓</div>
+            <!-- Animated SVG Optical Conduit 3 -->
+            <div class="dag-conduit" aria-hidden="true">
+              <svg viewBox="0 0 600 42" preserveAspectRatio="none">
+                <path class="conduit-track" d="M110,0 C110,22 300,18 300,42 M300,0 L300,42 M490,0 C490,22 300,18 300,42" />
+                <path class="conduit-beam" d="M110,0 C110,22 300,18 300,42 M300,0 L300,42 M490,0 C490,22 300,18 300,42" />
+              </svg>
+              <span class="conduit-tag mono">Zero-Coupling Security Base</span>
+            </div>
 
             <div class="dag-tier">
               <div class="dag-node dag-node-wide">
-                <div class="dag-node-name mono">LumakeyFoundation</div>
-                <div class="dag-node-desc" data-i18n="dag_found">凝霜/流光双主题模型 · 中英双语 · LMKYVLT2 AES-GCM 密钥箱 · ProcessSupervisor</div>
+                <div class="dag-node-name mono"><i class="node-orb amber"></i>LumakeyFoundation</div>
+                <div class="dag-node-desc" data-i18n="dag_found">凝霜/流光双主题模型 · 中英双语免重启 · LMKYVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor</div>
               </div>
             </div>
           </div>
@@ -792,24 +893,24 @@
     <!-- ACT VII · Download & Adaptive Code Studio -->
     <section class="download-section" id="download">
       <div class="container">
-        <div class="download-card reveal-up">
+        <div class="download-card spotlight-surface reveal-up">
           <div>
-            <span class="section-eyebrow" data-i18n="dl_eyebrow">START BUILDING YOUR LUMAKEY · 立即启程</span>
+            <span class="section-eyebrow" data-i18n="dl_eyebrow">START BUILDING YOUR LUMAKEY · 立即免费使用</span>
             <h2 class="section-title download-title" data-i18n="dl_title">
-              下载极速底座，组装只属于你的效率流
+              下载 10 MB 轻巧底座，<br/>搭出最懂你的效率流
             </h2>
             <p class="section-desc download-desc" data-i18n="dl_desc">
-              MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。右侧可查看 AI MCP 造插件配置、7 款官方旗舰插件安装及源码构建命令：
+              MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。普通用户拖入应用程序即可开箱使用；右侧附上 AI 接入、8 款官方插件安装及升级免重复授权命令：
             </p>
 
             <div class="download-actions">
-              <a href="#download" data-gh-path="/releases/latest" class="btn-hero-primary">
+              <a href="#download" data-gh-path="/releases/latest" class="btn-hero-primary magnetic-btn">
                 <span data-i18n="dl_btn_dmg">下载最新 DMG 安装包</span>
               </a>
-              <a href="#download" data-gh-path="/blob/main/plugin-demo/README.md" class="btn-hero-secondary">
-                <span data-i18n="dl_btn_store">浏览官方插件示例库</span>
+              <a href="#download" data-gh-path="/blob/main/plugin-demo/README.md" class="btn-hero-secondary magnetic-btn">
+                <span data-i18n="dl_btn_store">浏览 8 款官方插件库</span>
               </a>
-              <a href="#download" data-gh-path="" class="btn-hero-secondary">
+              <a href="#download" data-gh-path="" class="btn-hero-secondary magnetic-btn">
                 <span data-i18n="dl_btn_star">GitHub 点亮 Star ★</span>
               </a>
             </div>
@@ -818,10 +919,11 @@
           <div class="code-studio">
             <div class="studio-head">
               <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-              <div class="studio-tabs">
-                <button type="button" class="term-tab active" data-term="mcp" data-i18n="term_tab_mcp">AI MCP 造插件</button>
-                <button type="button" class="term-tab" data-term="plugins" data-i18n="term_tab_plugins">安装 7 款官方插件</button>
-                <button type="button" class="term-tab" data-term="install" data-i18n="term_tab_install">源码一键构建</button>
+              <div class="studio-tabs" id="studioTabs">
+                <span class="studio-tab-glider" id="studioTabGlider" aria-hidden="true"></span>
+                <button type="button" class="term-tab active" data-term="mcp" data-i18n="term_tab_mcp">接入 AI 造插件/排主页</button>
+                <button type="button" class="term-tab" data-term="plugins" data-i18n="term_tab_plugins">安装 8 款官方插件</button>
+                <button type="button" class="term-tab" data-term="install" data-i18n="term_tab_install">免重复授权 &amp; 源码构建</button>
               </div>
               <button type="button" class="copy-cmd-btn" id="copyCmdBtn" data-i18n="term_copy">复制代码</button>
             </div>
@@ -836,7 +938,7 @@
     <div class="container footer-inner">
       <div class="footer-brand">
         <img src="./assets/icon.svg" alt="" width="22" height="22" />
-        <span><strong>Lumakey 流光</strong> · Native Swift 6 Micro-Core &amp; Open Plugin v3.4 · MIT License</span>
+        <span><strong data-i18n="foot_brand">Lumakey 流光</strong> · Native Swift 6 Customizable Hub &amp; Open Plugin v3.7 · MIT License</span>
       </div>
       <div class="footer-links">
         <a href="./index.html" data-i18n="foot_3d_exp">返回 3D 主页</a>

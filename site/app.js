@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Lumakey Showcase — Interactive Plugin Workbench, 880×544 Hub Simulator,
-   Scroll-Scrubbed Co-Creation Tour, Pure Frost / Prism Pulse & Bilingual UI
+   Lumakey Showcase — Interactive Launch Panel Customizer, Deep Customization
+   Workbench, 880×544 Hub Simulator, Plugin v3.7 + 16 MCP Tools & Bilingual UI
    ========================================================================== */
 (() => {
   'use strict';
@@ -22,7 +22,7 @@
     } catch (_) {}
   }
 
-  let savedPluginIds = ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'];
+  let savedPluginIds = ['ai-quota', 'translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'];
   try {
     const rawSaved = safeGet('lumakey-enabled-plugins-v1');
     if (rawSaved) {
@@ -35,6 +35,7 @@
     theme: safeGet('lumakey-showcase-theme-v2', 'pure-frost'),
     lang: safeGet('lumakey-showcase-lang-v2', 'zh'),
     preset: 'bento',
+    homeProfile: 'balanced',
     scope: 'all',
     query: '',
     termMode: 'mcp',
@@ -42,14 +43,12 @@
     snifferMode: 'repo',
     sliderRatio: 0.35,
     builderProfile: 'daily',
-    focusedPluginId: 'translate-hub',
+    focusedPluginId: 'ai-quota',
     enabledPlugins: new Set(savedPluginIds)
   };
 
   function saveEnabledPlugins() {
-    try {
-      localStorage.setItem('lumakey-enabled-plugins-v1', JSON.stringify([...state.enabledPlugins]));
-    } catch (_) {}
+    safeSet('lumakey-enabled-plugins-v1', JSON.stringify([...state.enabledPlugins]));
   }
 
   // Hydrate repository links cleanly
@@ -66,318 +65,384 @@
   const I18N = {
     zh: {
       brand_cn: '流光',
-      nav_launcher: '全能底座',
-      nav_builder: '自由拼装',
-      nav_theatre: '插件共创',
-      nav_bento: '原生引擎',
-      nav_philosophy: '核心思想',
-      nav_arch: '工程架构',
+      nav_launcher: '启动面板',
+      nav_builder: '高度定制',
+      nav_theatre: 'AI 共创',
+      nav_bento: '日常利器',
+      nav_philosophy: '设计哲学',
+      nav_arch: '极客架构',
       nav_3d_exp: '返回 3D 主页',
       nav_download: '下载 DMG',
       theme_frost: '凝霜留白',
       theme_prism: '霓彩流光',
-      hero_badge_1: 'Plugin v3.4 开放插件底座 · 内置 lumakey-mcp',
-      hero_badge_3: '零抖动秒呼',
-      hero_title_1: '精悍原生底座，',
-      hero_title_2: '自由生长出你的 Lumakey。',
-      hero_subtitle: '我们拒绝把所有人塞进同一套臃肿的全家桶。Lumakey 提供零依赖的 Swift 6 极速核心（全盘秒搜、截图标注、离线 OCR、平滑滚轮），并通过一等公民插件架构与内置 MCP AI 协议桥，让你按需拼装、甚至一句话定制完全属于自己的专属效率中枢——不装不占，装上即原生。',
-      cta_builder: '亲手拼装你的专属 Lumakey',
+      hero_badge_1: '全新启动面板自定义 · Plugin v3.7 · 16 项 MCP 工具',
+      hero_badge_3: '秒呼即走 · 不占后台',
+      hero_title_1: '轻巧顺手的 Mac 效率底座，',
+      hero_title_2: '从启动面板到插件全随你定。',
+      hero_subtitle: '按一下 ⌥Space，找软件、搜电脑与移动硬盘文件、翻剪贴板、截屏识字、算账换算一框搞定；用完切走自动释放内存。更把选择权彻底交还给你：启动面板怎么排、顶部菜单留哪几项、快捷键怎么顺手全可自由编排，还能对 AI 说一句话十秒造出你独有的新工具。',
+      cta_builder: '亲手定制你的专属 Lumakey',
       cta_3d_exp: '返回 3D 沉浸式主页',
       cta_download: '下载 macOS 安装包 (.dmg)',
       jump_3d_plugins: '返回 3D 主页 · 插件生态 →',
       jump_3d_mcp: '返回 3D 主页 · MCP 共创 →',
       jump_3d_dag: '返回 3D 主页 · 原生架构 →',
       foot_3d_exp: '返回 3D 主页',
-      preset_try: '实时体验底座 + 插件联动：',
-      preset_bento: '专属 Bento 面板',
-      preset_translate: '流光译站 · 划词/OCR',
-      preset_remind: '闪电提醒 · 10m 喝水',
-      preset_browser: '三端书签 0ms 全搜',
-      preset_dev: '算式换算与色板',
+      preset_try: '切换启动面板布局 / 试搜指令：',
+      preset_bento: '✦ 均衡默认主页',
+      preset_home_min: '◐ 极简 16 格混合坞',
+      preset_home_dev: '⌘ 开发者主页与书签架',
+      preset_home_shelf: '📑 4 列磁贴与分类架',
+      preset_translate: '🌐 划词/OCR 翻译',
+      preset_remind: '⏰ 10m 喝水提醒',
+      preset_dev: '∑ 算式与色板换算',
       scope_all: '全部',
       scope_plugins: '插件',
       scope_files: '文件',
       scope_clip: '剪贴板',
       hint_open: '执行 / 打开',
-      hint_quick: '快选',
-      hint_tab: '零抖动切分类',
+      hint_quick: '盲按快选',
+      hint_tab: '右键钉上主页',
       hint_focus: '聚焦体验框',
-      scroll_hint: '向下滚动，亲手自由组装你的专属 Lumakey',
-      builder_eyebrow: 'BUILD YOUR OWN LUMAKEY · 模块化自由拼装台',
-      builder_title: '一千个人手里，有一千种形态的 Lumakey',
-      builder_desc: '所有扩展能力默认零打扰：不启用即零内存、零后台进程；开启瞬间即可挂载为搜索框快捷按钮、独立静默热键、0ms 免前缀检索源，甚至直接注入「离线 OCR / 剪贴板 / 访达右键」上下文菜单。试试勾选或切换下方预设方案：',
-      prof_minimal: '◐ 极简纯粹底座 (0 插件)',
-      prof_daily: '✦ 日常高频效率套装',
-      prof_dev: '⌘ 极客与远控开发流',
-      prof_full: '⚡ 7 款官方旗舰 + AI 自制满配',
-      cat_head_title: '插件仓库与 AI 自制扩展（点击查看详情 / 开关挂载）',
-      prev_live_badge: '● 实时预览：你的专属 Lumakey 形态',
-      zone_quick_title: '按需挂载至 ⌥Space 快捷按钮栏（默认关闭不挤占）',
-      zone_accepts_title: '跨模块原生联动（自动注入 OCR / 剪贴板 / 双栏工作台）',
-      theatre_eyebrow: 'SCROLL-DRIVEN PLUGIN ARCHITECTURE · 滚动拆解插件共创闭环',
-      theatre_title: '不仅能装别人的插件，更能让 AI 十秒为你造一个',
-      s1_title: '内置 lumakey-mcp：对 AI 说一句话，十秒生成专属插件',
-      s1_desc: '安装包原生内置 JSON-RPC 2.0 MCP 服务，向 Claude Code、Cursor 或 Codex 暴露 plugin-v3 规范与 12 项脚手架、静态校验与沙箱实测工具，写完即刻经 FSEvents 热重载生效。',
-      s2_title: '一等公民原生融合：自动配置面板、子命令静默热键与深链',
-      s2_desc: '声明 plugin.json 即可自动渲染带连续滑块、加密凭据框与路径选择器的原生设置页；每个子命令均可独立录制全局热键并静默执行，还能通过原生深链直接唤起 Markdown 阅读窗与悬浮钉图。',
-      s3_title: '单地址框四级智能嗅探：粘贴任意仓库链接即可订阅',
-      s3_desc: 'PluginStoreSniffer 自动分辨独立插件归档包、开源仓库子目录、lumakey-registry.json 商店索引或本地文件夹；安装前强制核验 64 位 SHA-256 与防伪装能力边界，无损升级完整保留你的自定义唤醒词与凭据。',
-      s4_title: '系统级 Seatbelt 沙箱 · 双轨加密保险箱 · 整机备份漫游',
-      s4_desc: '所有插件在 macOS 内核级沙箱与 8 秒超时监管下隔离运行，敏感凭据经 LMKYVLT2 256-bit 随机主密钥加密存储；通过 .lumakeybackup v2 (LZFSE + WebDAV) 可将自制插件、数据与配置一键同步至任意新 Mac。',
-      sc0_prompt: '“帮我做一个 Lumakey 插件：输入 pr 即可列出我名下待 Review 的代码合并请求，按回车打开，支持每 5 分钟刷新 0ms 索引，访问凭据走加密保险箱。”',
-      sc0_st1: '读取内置插件协议规范与宿主可用能力清单',
-      sc0_st2: '自动生成 plugin.json + icon.svg + 执行脚本',
-      sc0_st3: '静态契约审计 + lumakey_run_plugin_test 沙箱实跑',
-      sc0_live_t: '✦ 已热重载至 ⌥Space：PR 审查雷达 (gh-pr-radar)',
-      sc0_live_d: '无需重启 Lumakey，FSEvents 毫秒级感知目录变更，立即支持 pr 关键词检索与加密凭据配置。',
-      sc1_slider_t: '原生声明式配置页（点击或拖动下方滑块实时体验）',
-      sc1_slider_d: '支持 text / secret (自动进 AES-GCM 保险箱) / slider / select / path / tags，修改瞬间自动持久化无需保存按钮。',
-      sc1_hk_t: '子命令独立静默热键',
-      sc1_hk_d: '开启 silentWhenHotKeyTriggered 后，热键触发后台瞬时执行并弹原生 HUD，全程不打断当前全屏应用。',
-      sc1_dl_t: '宿主原生窗口深链',
-      sc1_dl_d: '插件可直接唤起宿主纯原生 Markdown 阅读窗、无损看图窗与桌面半透明置顶钉图，无需自带 UI 框架。',
+      scroll_hint: '向下滚动，体验全维度自由定制与 AI 一句话共创',
+      builder_eyebrow: 'DEEP CUSTOMIZATION WORKBENCH · 全维度高度自定义拼装台',
+      builder_title: '一千个人手里，|有一千种长相的 Lumakey',
+      builder_desc: '讨厌装完多出一堆关不掉的按钮和后台进程？这里所有扩展默认零打扰：不开启即零内存、零后台轮询；开启后可按需钉入启动面板或顶部状态栏菜单、自由修改唤醒词、录制不抢焦点的静默快捷键，甚至弹出无边框透明桌面挂件。点按下方开关亲手试拼：',
+      prof_minimal: '◐ 纯粹微内核底座 (0 插件)',
+      prof_daily: '✦ 日常省心高频套装',
+      prof_dev: '⌘ 极客 AI 与远控开发流',
+      prof_full: '⚡ 8 款官方旗舰 + AI 自制满配',
+      cat_head_title: '8 款官方旗舰扩展 + AI 自制示例（点击查看能力 / 开关挂载）',
+      prev_live_badge: '● 实时联动：上方启动面板与菜单栏形态',
+      zone_quick_title: '按需挂载至启动面板胶囊架 & 状态栏菜单（默认关闭不挤占）',
+      zone_accepts_title: '跨模块右键联动（自动接入离线识字 / 剪贴板 / 双栏文件台）',
+      theatre_eyebrow: 'AI CO-CREATION & PLUGIN V3.7 · 不会写代码也能深度定制',
+      theatre_title: '不仅能装现成插件，|还能一句话让 AI 造工具、排主页',
+      s1_title: '内置 16 项 MCP 工具：一句话十秒造插件，也能一句话排好启动面板',
+      s1_desc: '安装包自带零依赖 lumakey-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出你想要的小工具或主页布局，AI 自动生成代码、过沙箱实测并热刷新生效。',
+      s2_title: '零前端自动生成设置页，亦支持无边框透明玻璃桌面悬浮挂件',
+      s2_desc: '一份 plugin.json 自动渲染滑块、加密密钥框与子功能静默热键；进阶玩家还可开启 window / floatingWindow 自由画布，打造 120Hz 顺滑拖拽、点击穿透的置顶悬浮小窗（关窗即释放内存）。',
+      s3_title: '单输入框四级智能嗅探：粘贴任意 GitHub 链接即可安心订阅',
+      s3_desc: '不用分清是插件压缩包、仓库子目录还是商店 JSON，粘贴进去自动识别并强制核对 64 位 SHA-256 与权限边界；后续更新插件完整保留你改过的唤醒词、快捷键与密钥。',
+      s4_title: '内核级 Seatbelt 沙箱 · 本机加密保险箱 · 整机备份跨机漫游',
+      s4_desc: '外部插件默认无权联网或碰隐私目录，填入的 API Key 经 256-bit AES-GCM 加密存放；通过 .lumakeybackup (LZFSE + WebDAV) 可把启动面板、菜单配置、自制插件与密钥一键带去新 Mac。',
+      sc0_prompt: '“帮我做一个查待审 PR 的插件（Token 存加密箱），顺便在我的启动面板新建一个『日常开发』主页，把双栏文件台、这个新插件和 GitHub 书签架排上去。”',
+      sc0_st1: '读取内置插件与启动面板双规范及可用能力池',
+      sc0_st2: '自动生成插件并在 Seatbelt 沙箱内完成实跑验证',
+      sc0_st3: '创建新主页 Profile、挂载磁贴与书签架并实时热刷新',
+      sc0_live_t: '✦ 已热刷新至 ⌥Space：新插件与「日常开发」启动面板同步就绪',
+      sc0_live_d: '全程无需重启 Lumakey，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。',
+      sc0_f1: '12 项插件全生命周期工具',
+      sc0_f2: '4 项启动面板实时编排工具',
+      sc0_f3: '内置 3 套一键脚手架模板',
+      sc1_slider_t: '免写界面的原生设置页（拖动下方滑块实时体验）',
+      sc1_slider_d: '自动渲染输入框、AES-GCM 密钥框、连续滑块、下拉单选、路径选择器与标签组，改动瞬间自动保存。',
+      sc1_hk_t: '子命令静默热键 & 权重覆盖',
+      sc1_hk_d: '每条细分动作都能独立绑快捷键后台静默秒跑；不改插件源码就能自定义唤醒词、菜单栏挂载与搜索排序权重。',
+      sc1_dl_t: '自由画布透明桌面挂件',
+      sc1_dl_d: '支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透，自动注入 window.lumakey 双向桥并在关窗瞬间销毁回收。',
+      sc1_f1: '宿主统一代申系统 TCC 权限',
+      sc1_f2: '中英双语与深浅主题实时热同步',
+      sc1_f3: '三层全局热键防冲突检测',
       sniff_btn_1: '试贴开源仓库子目录',
       sniff_btn_2: '试贴商店索引 JSON',
-      sniff_btn_3: '试贴 .lumakeyplugin 包',
-      sc2_verify_t: '防伪装双端能力核验',
-      sc2_verify_d: '下载落盘前强制计算 64 位 SHA-256 摘要，并比对压缩包内 plugin.json 与商店声明的沙箱权限，越权即刻拦截回滚。',
-      sc2_upg_t: '无损平滑版本升级',
-      sc2_upg_d: '只读插件代码与 PluginData 数据目录严格分离，更新版本自动保留你的自定义唤醒词、子命令热键与加密凭据。',
-      sc3_r1: '未声明网络与子进程作用域即由内核规则硬阻断，严禁触碰系统敏感凭据目录',
-      sc3_r2: '8 项受控宿主桥接（OCR / 划词 / 音频 / 全搜），一次性 48-bit 令牌随进程退出即焚',
-      sc3_r3: '双轨 256-bit 随机主密钥 AES-GCM 加密插件凭据，磁盘零明文残留',
-      sc3_r4: 'LZFSE 高速压缩打包自制插件、生词本与加密配置，云盘与 NAS 一键漫游',
-      bento_eyebrow: 'ZERO-DEPENDENCY NATIVE BASE · 开箱即享的五大纯原生引擎',
-      bento_title: '插件未装之前，底座本身已是锋利瑞士军刀',
-      bento_desc: '核心高频能力由纯 Swift 6 直接调用 ScreenCaptureKit、Vision、AVKit、Darwin Mach 与 CGEventTap 实现，零第三方包依赖，并为所有插件提供免重复造轮子的原生桥接能力：',
-      hk_all: '全部原生底座',
-      hk_search: '统一全搜与工具箱',
-      hk_shot: '冻屏标注 · GIF · OCR',
-      hk_pulse: '系统脉搏胶囊',
-      hk_net: '进程流量与缓存清理',
-      hk_ws: '双栏工作台 & 120Hz 滚轮',
-      fc1_title: '恒定 880×544 全搜中枢 & LMKYIDX3 内存映射秒搜',
-      fc1_desc: '无需前缀并发检索本地化拼音应用、全盘与外置盘文件（mmap 零拷贝 + FSEvents 实时增量）、富文本/图片剪贴板历史、算式进制换算、端口占用进程、; 动态短语与离线开发工具箱（JWT / 时间戳 / #HEX / 二维码）。',
-      fc2_title: '毫秒冻屏标注 · 零 ffmpeg 区域 GIF · 离线 OCR 钉屏',
-      fc2_desc: '基于 ScreenCaptureKit 实现窗口智能吸附、像素放大镜按 C 取色、9 种矢量与实时马赛克批注、灵动岛流式 GIF89a 动图录制，以及亚秒级离线 Vision 识字与半透明原位悬浮钉图——识别结果可一键流转至任意已装插件。',
-      fc3_title: '系统脉搏贴边胶囊',
-      fc3_desc: 'Darwin Mach / IOKit 零子进程读取 CPU P/E 核负载、等效频率 (GHz)、GPU、Swap 与整机实时瓦数功耗 (W)，支持三边贴边隐藏与默认不打扰。',
-      fc4_title: '免提权流量去向 & 缓存管家',
-      fc4_desc: '无需常驻提权服务即可实时透视各应用上下行速率与远端连接去向，配套分桶缓存盘点与安全废纸篓清理。',
-      fc5_title: '双栏工作台 · 零 WebKit 阅读 · 120Hz 滚轮',
-      fc5_desc: '按需呼出双栏磁盘工作台（只读 NTFS 安全护航）、纯 Swift Markdown 阅读窗、4K HEVC 硬解影院，以及互不干扰触控板的物理鼠标 120Hz 平滑滚轮。',
-      phil_eyebrow: 'CORE PHILOSOPHY · 核心设计思想',
-      phil_title: '底座极度克制，边界无限生长',
-      phil_desc: '优秀的效率工具不替用户做臃肿的决定，而是提供一块零延迟、零负担的原生基石，把定义工作流的自由完整交还给你。',
-      p1_title: '微内核底座 × 一等公民插件共创',
-      p1_desc: '核心只保留系统级高频刚需，个性化长尾场景全部交由 Plugin v3.4 与内置 lumakey-mcp 实现。未安装或已停用的模块绝不占用一丝内存或后台轮询；一旦启用，便拥有与内置功能完全平权的 UI、热键与上下文联动。',
-      p2_title: '纯原生 Swift 6，零第三方依赖',
-      p2_desc: '不引入浏览器渲染栈，不拼凑跨平台兼容层。全仓零外部 SwiftPM / CocoaPods 依赖，直接驱动 Apple Silicon 硬件解码与系统图形管线，安装包小巧纯粹。',
-      p3_title: '恒定几何与丝滑原生弹簧动效',
-      p3_desc: '主视窗锁定 880 × 544 拒绝跳变，分类切换零位移，异步索引绝不抢焦点；同时为面板呼出收起、钉图浮现与贴边胶囊注入阻尼考究的原生弹簧微动效。',
-      p4_title: '用完即焚自洁架构与默认安全沙箱',
-      p4_desc: '浮窗隐藏 30 秒自动销毁视图树，全盘索引空闲 90 秒自动卸载堆页；外部脚本强制经由 Seatbelt 沙箱与 256-bit AES-GCM 密钥箱守护，兼顾自由度与系统级安全。',
-      duality_title: '「凝霜留白」的纯粹瓷感，或「霓彩流光」的深邃光谱',
-      duality_desc: '默认采用零色晕、高对比分层阴影的「凝霜留白 Pure Frost」工作室浅色美学；亦可一键切换至棱镜高光的「霓彩流光 Prism Pulse」深色形态。你的选择也会实时同步给所有已启用插件。',
+      sniff_btn_3: '试贴独立插件压缩包',
+      sc2_verify_t: '防伪装双端权限核验',
+      sc2_verify_d: '安装前强制核对 64 位 SHA-256 指纹，并比对包内真实权限与商店声明，任何悄悄越权夹带都会被当场拦截。',
+      sc2_upg_t: '无损平滑检查更新',
+      sc2_upg_d: '只读插件代码与个人数据目录严格分离，跨商店批量更新时完整保留你的自定义唤醒词、热键与加密凭据。',
+      sc2_f1: 'lumakey_package_plugin_for_store 一键发版',
+      sc2_f2: '插件更新免重复勾选系统权限',
+      sc3_r1: '未声明联网或子进程即由系统内核硬阻断，无条件隔离钥匙串与敏感目录',
+      sc3_r2: '11 项受控宿主桥接（OCR / 划词 / 截屏 / 通知等），一次性令牌随进程结束即焚',
+      sc3_r3: '双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留',
+      sc3_r4: 'LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游',
+      sc3_f1: '21 项全景权限审计面板',
+      sc3_f2: '子进程超时自动回收兜底',
+      sc3_f3: 'HKDF + AES-GCM 备份口令保护',
+      bento_eyebrow: 'EVERYDAY NATIVE ESSENTIALS · 不装任何插件也超好用的五大原生利器',
+      bento_title: '把五六个日常小软件，|浓缩进一个 10 MB 原生底座',
+      bento_desc: '平时最常用的搜索、剪贴板、截屏贴图、GIF 录屏、离线识字与外接鼠标平滑滚轮全部原生内置，用起来直觉顺手，关掉即刻释放内存：',
+      hk_all: '全部内置利器',
+      hk_search: '自定义主页与全盘秒搜',
+      hk_shot: '截图标注 · GIF · 离线识字',
+      hk_pulse: '芯片功耗贴边胶囊',
+      hk_net: '软件网速与清缓存',
+      hk_ws: '双栏整理 & 鼠标丝滑滚轮',
+      fc1_title: '可定制启动面板 · 全盘秒搜 · 15 步可撤回剪贴板',
+      fc1_desc: '未打字时展示你自定义的 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜中文双音字/拼音应用、本机与移动硬盘文件、富媒体剪贴板历史（自动跳过密码）、10 类日常单位算式换算、;短语扩展与离线开发小工具。',
+      fc1_c1: '4 区 × 多场景 Profile',
+      fc1_c2: 'LMKYIDX3 mmap 零拷贝秒搜',
+      fc1_c3: '880×544 防跳行不抢焦点',
+      fc2_title: '多屏超清截图标注 · 轻巧区域 GIF · 一秒离线识字贴图',
+      fc2_desc: '多块不同分辨率屏幕拼接也能原画质框选与一键抠出独立圆角窗口；自带箭头、荧光笔、实时马赛克、序号、放大镜按 C 取色及半透明悬浮钉图（按 T 穿透对照），还能直接录轻巧 GIF 动图或离线提取图中文字与二维码。',
+      fc2_c1: 'ScreenCaptureKit 零延迟冻屏',
+      fc2_c2: '零 ffmpeg 流式 GIF89a',
+      fc2_c3: 'Vision 本地离线 OCR',
+      fc3_title: '芯片脉搏贴边小胶囊',
+      fc3_desc: '默认关闭不打扰；开启后以超低开销实时显示芯片大小核负载、频率、内存压力与整机瓦数功耗 (W)，靠近屏幕边缘自动贴边收起。',
+      fc4_title: '软件网速透视 & 安全清缓存',
+      fc4_desc: '不用装复杂的抓包或后台监控服务，随时看清哪个软件正在占用网速、连向哪里，并可分门别类把临时缓存安全移入废纸篓。',
+      fc5_title: '外接鼠标丝滑滚轮 & 双栏文件台',
+      fc5_desc: '让普通外接鼠标拥有 120Hz 顺滑滚动与独立方向反转（完全不动触控板手感）；按需呼出双栏文件整理台（NTFS 移动硬盘只读护航）与秒开 Markdown / 4K 视频窗。',
+      phil_eyebrow: 'CORE PHILOSOPHY · 为什么普通用户与极客都喜欢它',
+      phil_title: '底座极度克制，|定制自由无限生长',
+      phil_desc: '好的工具开箱就足够好懂顺手，深入使用又能把每一寸面板、每一枚热键和每一个私人工作流都调教成你最舒服的模样。',
+      p1_title: '全维度高度可定制，却绝不强迫折腾',
+      p1_desc: '开箱自带精心打磨的默认体验；想折腾时，启动面板四大分区与多套场景 Profile、顶部状态栏菜单顺序、全局与子功能静默热键、唤醒词与排序权重，乃至一句话 AI 定制插件全部向你敞开。',
+      p2_title: '约 10 MB 纯正 Mac 原生，拒绝网页套壳',
+      p2_desc: '不用笨重的浏览器内核套桌面壳子，全仓零第三方外部依赖，100% 纯 Swift 6 直接调用 Apple Silicon 硬件加速框架，启动秒开、发热极低。',
+      p3_title: '不乱跳的窗口，稳稳当当的肌肉记忆',
+      p3_desc: '主窗口固定锁定 880 × 544，切分类不位移、打中文拼音不误触回车、后台刷新索引绝不抢走你正选中的那一行，配合克制跟手的原生弹簧动效，盲操行云流水。',
+      p4_title: '用完即走省内存，本机沙箱守隐私',
+      p4_desc: '主面板收起 30 秒自动销毁界面缓存，文件索引空闲 90 秒自动卸载；外部插件关进 macOS Seatbelt 内核沙箱，API 密钥经 256-bit AES-GCM 加密存放本机。',
+      duality_eyebrow: 'PURE FROST & PRISM PULSE · 双生液态玻璃主题',
+      duality_title: '「凝霜留白」的温润瓷感，|或「霓彩流光」的深邃光谱',
+      duality_desc: '喜欢干净清爽的白昼质感，还是深邃通透的暗夜毛玻璃？点击右侧即可实时切换两套原生外观，软件内切换时还会自动同步给所有已开启的插件与悬浮窗。',
       btn_frost: '◐ 凝霜留白 Pure Frost',
       btn_prism: '✦ 霓彩流光 Prism Pulse',
-      bound_title: '清晰的产品边界：把复杂留给插件按需扩展，让底座永远轻盈',
-      bound_sub: '明确「底座全力做好什么」与「坚决不往底座塞什么」，是 Lumakey 长期保持毫秒级响应的根基。',
-      yes_1: '<strong>微内核快捷中枢优先：</strong>菜单栏常驻、热键秒呼即走，所有扩展能力按需开关、支持自定义图标与独立静默快捷键。',
-      yes_2: '<strong>AI 友好的开放协议底座：</strong>内置 lumakey-mcp 标准服务与单框智能商店嗅探，让每个人都能低门槛创造并分享工具。',
-      yes_3: '<strong>100% 专注 Apple Silicon：</strong>纯 arm64 编译与 macOS 14+ 现代框架直连，拒绝跨架构历史包袱。',
-      no_1: '<strong>不做强制开启的臃肿全家桶：</strong>绝不预装无法关闭的悬浮球或常驻后台守护进程，快捷按钮与插件均默认按需挂载。',
-      no_2: '<strong>不引入重型浏览器渲染内核：</strong>拒绝为看一篇 Markdown 或插件卡片而拉起数百 MB 浏览器渲染进程。',
-      no_3: '<strong>不做裸奔脚本执行器与脏盘强写：</strong>拒绝无沙箱明文存储凭据，亦绝不绕过脏标记冒险强写外置 NTFS 数据盘。',
-      arch_eyebrow: 'CLEAN CODE & DAG ARCHITECTURE · 工程纪律',
-      arch_title: '九大单向无环模块 · 单文件严控 ≤ 300 行',
-      arch_desc: '每次构建均由自动化脚本强制核验模块依赖拓扑、单文件代码行数、文档索引一致性以及真实 lumakey-mcp JSON-RPC 往返联调。',
-      m_1: '内置 lumakey-mcp AI 造插件工具',
-      m_2: '第三方 SwiftPM / CocoaPods 依赖',
+      bound_title: '清晰克制的产品边界：|把自由留给定制，让底座永远轻快',
+      bound_sub: '知道「什么该做到极致」与「什么绝不往底座硬塞」，才能让你的 Mac 长久保持清爽不卡顿。',
+      yes_1: '<strong>你的界面你做主：</strong>启动面板四分区、顶部状态栏菜单、全局快捷键、唤醒词与插件挂件全部支持按需开启与自由排布。',
+      yes_2: '<strong>普通人也能玩的 AI 扩展：</strong>内置 16 项 lumakey-mcp 工具与单框智能商店嗅探，一句话就能定制新插件或新主页。',
+      yes_3: '<strong>100% 专为 M 系列芯片打造：</strong>纯 arm64 原生编译与 macOS 14+ 系统框架直连，没有跨平台兼容包袱。',
+      no_1: '<strong>绝不做关不掉的臃肿全家桶：</strong>刚装好时零悬浮球、零菜单栏强塞读数、零后台守护进程，一切按需点亮。',
+      no_2: '<strong>绝不拿几百 MB 网页内核套主界面：</strong>内置文档阅读与主面板坚持纯 Swift 原生渲染；插件自由浮窗关窗即刻销毁。',
+      no_3: '<strong>绝不裸奔跑脚本或冒险强写脏硬盘：</strong>外部脚本强制进内核沙箱、密钥加密存放，遇到带脏标记的 NTFS 盘严格只读护航。',
+      arch_eyebrow: 'UNDER THE HOOD FOR GEEKS · 给极客看的硬核工程纪律',
+      arch_title: '九大单向无环模块 · |单文件硬性严控 ≤ 300 行',
+      arch_desc: '代码库与产品一样干净克制：每次构建均由自动化脚本强制核验模块单向 DAG 依赖、单 .swift 文件行数上限、文档死链与真实 lumakey-mcp JSON-RPC 往返联调。',
+      m_1: '内置 lumakey-mcp 造插件与排主页工具',
+      m_2: '第三方 SwiftPM / CocoaPods 外部依赖',
       m_3: '单 .swift 源码文件硬性行数上限',
-      m_4: '浮窗销毁 / 索引自动归还堆页窗口',
-      dag_app: 'SwiftUI + AppKit 双主题前端与丝滑窗口动效矩阵',
-      dag_mcp: '内置 JSON-RPC 2.0 AI 插件脚手架、审计与打包服务',
-      dag_core: 'Plugin v3.4 宿主桥接 · Seatbelt 沙箱 · 智能商店嗅探 · 统一搜索 · WebDAV 备份',
-      dag_search: 'LMKYIDX3 mmap 快照 · FSEvents · 批量改名预检',
-      dag_media: '冻屏标注合成 · Vision OCR · hev1 硬解 · 原生 Markdown',
-      dag_sys: 'Mach/IOKit 遥测 · 进程流量 · 120Hz 滚轮 · 热键冲突探测',
-      dag_found: '凝霜/流光双主题模型 · 中英双语 · LMKYVLT2 AES-GCM 密钥箱 · ProcessSupervisor',
-      dl_eyebrow: 'START BUILDING YOUR LUMAKEY · 立即启程',
-      dl_title: '下载极速底座，组装只属于你的效率流',
-      dl_desc: 'MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。右侧可查看 AI MCP 造插件配置、7 款官方旗舰插件安装及源码构建命令：',
+      m_4: '浮窗销毁 / 索引自动归还内存窗口',
+      dag_app: 'SwiftUI + AppKit 双主题前端 · 启动面板/菜单栏定制 · 自由画布窗口',
+      dag_mcp: '内置 16 项 JSON-RPC 2.0 工具：AI 插件脚手架、沙箱测试与启动面板实时编排',
+      dag_core: 'HomeLayout 多场景启动面板 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · 智能商店嗅探 · WebDAV 备份',
+      dag_search: 'LMKYIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检',
+      dag_media: '逐屏冻屏标注合成 · Vision 离线 OCR · hev1 4K 硬解 · 纯原生 Markdown',
+      dag_sys: 'Mach/IOKit 功耗遥测 · 进程网速去向 · 120Hz 鼠标平滑滚轮 · 三层热键防冲突',
+      dag_found: '凝霜/流光双主题模型 · 中英双语免重启 · LMKYVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor',
+      dl_eyebrow: 'START BUILDING YOUR LUMAKEY · 立即免费使用',
+      dl_title: '下载 10 MB 轻巧底座，\n搭出最懂你的效率流',
+      dl_desc: 'MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。拖入应用程序即可使用，后续支持应用内一键下载 DMG 自动更新并保留本机权限（缺 Python 3 时亦有一键安装向导）；右侧附上 AI 接入与源码命令：',
       dl_btn_dmg: '下载最新 DMG 安装包',
-      dl_btn_store: '浏览官方插件示例库',
+      dl_btn_store: '浏览 8 款官方插件库',
       dl_btn_star: 'GitHub 点亮 Star ★',
-      term_tab_mcp: 'AI MCP 造插件',
-      term_tab_plugins: '安装 7 款官方插件',
-      term_tab_install: '源码一键构建',
+      term_tab_mcp: '接入 AI 造插件/排主页',
+      term_tab_plugins: '安装 8 款官方插件',
+      term_tab_install: '免重复授权 & 源码构建',
       term_copy: '复制代码',
+      foot_brand: 'Lumakey 流光',
       foot_plugin_doc: '插件与 MCP 规范',
       foot_docs: '工程文档',
       foot_contrib: '参与共建',
-      placeholder_search: '搜应用、全盘文件、算式，或直接输入插件指令：tr 翻译 / rem 10m 喝水 / bh 书签...'
+      placeholder_search: '直接打字搜软件、移动硬盘文件、算式，或试输：tr 翻译 / aiq 额度 / rem 10m 喝水...'
     },
     en: {
       brand_cn: '',
-      nav_launcher: 'Micro-Core',
+      nav_launcher: 'Launch Panel',
       nav_builder: 'Customize',
-      nav_theatre: 'Plugin & MCP',
-      nav_bento: 'Base Engines',
+      nav_theatre: 'AI & MCP',
+      nav_bento: 'Native Tools',
       nav_philosophy: 'Philosophy',
       nav_arch: 'Architecture',
-      nav_3d_exp: '3D Main Stage',
-      nav_download: 'Download DMG',
+      nav_3d_exp: '3D Stage',
+      nav_download: 'Get DMG',
       theme_frost: 'Pure Frost',
       theme_prism: 'Prism Pulse',
-      hero_badge_1: 'Plugin v3.4 Open Platform · Embedded lumakey-mcp',
-      hero_badge_3: 'Zero-Jitter Chord',
-      hero_title_1: 'Razor-Sharp Native Core. ',
-      hero_title_2: 'Freely Shape Your Own Lumakey.',
-      hero_subtitle: 'Instead of forcing everyone into a bloated all-in-one suite, Lumakey pairs a zero-dependency Swift 6 micro-core (mmap disk search, ScreenCaptureKit annotation, offline OCR, 120Hz smooth mouse wheel) with a first-class Plugin v3.4 architecture and embedded MCP server — assemble only what you love, or build a custom plugin with one AI sentence.',
-      cta_builder: 'Assemble Your Own Lumakey',
+      hero_badge_1: 'New Launch Panel Customizer · Plugin v3.7 · 16 MCP Tools',
+      hero_badge_3: 'Instant Wake · Zero Bloat',
+      hero_title_1: 'Effortless Everyday Mac Hub. ',
+      hero_title_2: 'Customizable from Launch Panel to Plugins.',
+      hero_subtitle: 'Press ⌥Space to launch apps, search internal & external drives, pull up clipboard history, capture & OCR your screen, or convert units in one bar — then release memory automatically when done. Want it tailored? Customize every Launch Panel zone, trim the menu bar, bind silent hotkeys, or ask AI to build a custom plugin in 10 seconds.',
+      cta_builder: 'Customize Your Own Lumakey',
       cta_3d_exp: 'Back to 3D Main Stage',
       cta_download: 'Download for macOS (.dmg)',
       jump_3d_plugins: 'View in 3D Main Stage →',
       jump_3d_mcp: 'Open in 3D Main Stage →',
       jump_3d_dag: 'Inspect in 3D Main Stage →',
       foot_3d_exp: '3D Main Stage',
-      preset_try: 'Try Core + Plugin Workflows:',
-      preset_bento: 'Custom Bento Hub',
-      preset_translate: 'Translate Hub · Selection/OCR',
-      preset_remind: 'Quick Remind · 10m Water',
-      preset_browser: 'Browser Hub · 0ms Bookmarks',
-      preset_dev: 'Math & #HEX Swatch',
+      preset_try: 'Switch Launch Panel Layout / Try Search:',
+      preset_bento: '✦ Balanced Home',
+      preset_home_min: '◐ Minimal 16-Slot Dock',
+      preset_home_dev: '⌘ Developer Home & Shelves',
+      preset_home_shelf: '📑 4-Col Bento & Bookmarks',
+      preset_translate: '🌐 Selection/OCR Translate',
+      preset_remind: '⏰ 10m Water Reminder',
+      preset_dev: '∑ Math & #HEX Swatch',
       scope_all: 'All',
       scope_plugins: 'Plugins',
       scope_files: 'Files',
       scope_clip: 'Clipboard',
       hint_open: 'Run / Open',
       hint_quick: 'Quick Pick',
-      hint_tab: '0-Jitter Scope',
+      hint_tab: 'Right-Click Pin to Home',
       hint_focus: 'Focus Input',
-      scroll_hint: 'Scroll down to assemble your custom Lumakey live',
-      builder_eyebrow: 'BUILD YOUR OWN LUMAKEY · INTERACTIVE WORKBENCH',
-      builder_title: 'A Thousand Workflows, A Thousand Custom Lumakeys',
-      builder_desc: 'Every extension is opt-in by design: zero RAM and zero background polling when disabled; instant Quick Buttons, silent global hotkeys, 0ms search index, and cross-module OCR / Clipboard / Finder actions when enabled. Toggle modules or pick a preset:',
+      scroll_hint: 'Scroll down to explore deep customization & 1-sentence AI co-creation',
+      builder_eyebrow: 'DEEP CUSTOMIZATION WORKBENCH',
+      builder_title: 'A Thousand Workflows, |A Thousand Custom Lumakeys',
+      builder_desc: 'Tired of apps cluttering your Mac with unremovable icons and daemons? Every extension here is opt-in: zero RAM and zero polling when off; when enabled, pin it to your Launch Panel or menu bar, rename keywords, record silent hotkeys, or open frameless glass desktop widgets. Toggle modules below:',
       prof_minimal: '◐ Pure Micro-Core (0 Plugins)',
-      prof_daily: '✦ Daily Productivity Pack',
-      prof_dev: '⌘ Developer & Remote Flow',
-      prof_full: '⚡ All 7 Official + AI Custom',
-      cat_head_title: 'Official Store & AI-Crafted Plugins (Click to Inspect / Toggle)',
-      prev_live_badge: '● Live Preview: Your Assembled Lumakey',
-      zone_quick_title: 'Mounted on ⌥Space Quick Bar (Off by Default, Opt-In)',
-      zone_accepts_title: 'Cross-Module Context Hooks (OCR / Clipboard / Workspace)',
-      theatre_eyebrow: 'SCROLL-DRIVEN PLUGIN ARCHITECTURE',
-      theatre_title: 'Install Curated Plugins — Or Ask AI to Build Yours in 10 Seconds',
-      s1_title: 'Embedded lumakey-mcp: One Sentence to a Live Native Plugin',
-      s1_desc: 'Ships with a zero-dependency JSON-RPC 2.0 MCP server exposing plugin-v3 specs and 12 scaffold, validation, and sandbox test tools to Claude Code, Cursor, or Codex — hot-reloaded immediately via FSEvents.',
-      s2_title: 'First-Class Citizen UI: Auto Settings, Silent Hotkeys & Deep Links',
-      s2_desc: 'Declare plugin.json to get native settings forms (continuous sliders, AES-GCM secret fields, path pickers), per-subcommand silent global hotkeys, and deep links into the native Markdown reader and floating pins.',
-      s3_title: 'Single-Box 4-Tier URL Sniffer: Paste Any Repo Link to Subscribe',
-      s3_desc: 'PluginStoreSniffer auto-detects .lumakeyplugin archives, GitHub repo subdirectories, lumakey-registry.json stores, or local folders — enforcing 64-bit SHA-256 and anti-spoofing permission checks with lossless upgrades.',
-      s4_title: 'Kernel Seatbelt Sandbox · Dual-Track Vault · Backup v2 Sync',
-      s4_desc: 'Every plugin runs inside macOS Seatbelt with 8s timeouts and 256-bit AES-GCM encrypted secrets, while .lumakeybackup v2 (LZFSE + WebDAV) carries your custom plugins, data, and keys across Macs.',
-      sc0_prompt: '"Build me a Lumakey plugin: typing pr lists my open review requests, Return opens the PR, refreshes a 0ms index every 5m, and stores my token encrypted."',
-      sc0_st1: 'Reads built-in plugin-v3 spec & host capability audit',
-      sc0_st2: 'Scaffolds plugin.json + icon.svg + entry script',
-      sc0_st3: 'Static contract check + lumakey_run_plugin_test in Seatbelt',
-      sc0_live_t: '✦ Hot-Reloaded into ⌥Space: PR Review Radar (gh-pr-radar)',
-      sc0_live_d: 'Zero app restart needed — FSEvents picks up changes immediately with 0ms search and encrypted token UI.',
-      sc1_slider_t: 'Declarative Native Settings UI (Click or Drag Slider Live)',
-      sc1_slider_d: 'Supports text, secret (AES-GCM vault), slider, select, path & tags — auto-persisted immediately without Save buttons.',
-      sc1_hk_t: 'Per-Subcommand Silent Hotkeys',
-      sc1_hk_d: 'With silentWhenHotKeyTriggered, global hotkeys execute in background and show a crisp HUD without stealing focus.',
-      sc1_dl_t: 'Native Host Window Deep Links',
-      sc1_dl_d: 'Open native Markdown reader, lossless image viewer, or translucent desktop pins without bundling any UI framework.',
+      prof_daily: '✦ Everyday Productivity Pack',
+      prof_dev: '⌘ Geek AI & Remote Flow',
+      prof_full: '⚡ All 8 Official + AI Custom',
+      cat_head_title: '8 Official Flagship Plugins + AI Custom Example (Click to Inspect / Toggle)',
+      prev_live_badge: '● Live Sync: Updates Launch Panel & Menu Bar Above',
+      zone_quick_title: 'Mounted to Launch Panel Shelf & Menu Bar (Off by Default)',
+      zone_accepts_title: 'Cross-Module Context Menu Hooks (OCR / Clipboard / Workspace)',
+      theatre_eyebrow: 'AI CO-CREATION & PLUGIN V3.7',
+      theatre_title: 'Install Curated Plugins — |Or Ask AI to Build Tools & Arrange Home',
+      s1_title: '16 Built-in MCP Tools: Build a Plugin or Arrange Your Launch Panel in One Sentence',
+      s1_desc: 'Ships with an embedded zero-dependency lumakey-mcp binary. Connect Claude Code, Cursor, Codex, or Gemini CLI and describe your tool or home layout in plain words — AI scaffolds, tests in Seatbelt, and hot-reloads live.',
+      s2_title: 'Zero-Frontend Native Settings Forms + Frameless Glass Desktop HUDs',
+      s2_desc: 'A single plugin.json auto-renders sliders, AES-GCM secret inputs, and per-subcommand silent hotkeys; power users can also declare window / floatingWindow for 120Hz draggable, click-through glass widgets destroyed on close.',
+      s3_title: 'Single-Box 4-Tier URL Sniffer: Paste Any GitHub Link to Subscribe',
+      s3_desc: 'Paste a zip archive, repo subdirectory, or store JSON — Lumakey auto-resolves it, verifies 64-bit SHA-256 digests and capability boundaries, and preserves your custom keywords, hotkeys, and secrets across upgrades.',
+      s4_title: 'Kernel Seatbelt Sandbox · 256-Bit Vault · Cross-Mac Backup Sync',
+      s4_desc: 'Plugins cannot touch the network or private folders unless declared, API keys stay inside a 256-bit AES-GCM vault, and .lumakeybackup (LZFSE + WebDAV) carries your Launch Panel, menu bar, plugins, and secrets to any Mac.',
+      sc0_prompt: '"Build me a PR review plugin (token in encrypted vault), and create a Daily Dev Launch Panel profile with Dual Workspace, this new plugin, and a GitHub bookmark shelf."',
+      sc0_st1: 'Reads built-in plugin-v3 + home-layout-v1 specs & capability audit',
+      sc0_st2: 'Scaffolds plugin & executes live test inside Seatbelt sandbox',
+      sc0_st3: 'Creates new Home Profile, mounts tiles/shelves & hot-reloads UI',
+      sc0_live_t: '✦ Live in ⌥Space: New Plugin & "Daily Dev" Launch Panel Ready',
+      sc0_live_d: 'Zero app restart needed — revert any layout tweak anytime via 1-click Undo in Settings or MCP.',
+      sc0_f1: '12 Plugin Lifecycle MCP Tools',
+      sc0_f2: '4 Live Home Layout Tools',
+      sc0_f3: '3 Built-In Scaffold Templates',
+      sc1_slider_t: 'Auto-Generated Native Settings UI (Drag Slider Below)',
+      sc1_slider_d: 'Renders text, AES-GCM secrets, continuous sliders, dropdowns, path pickers & tags — saved immediately as you tweak.',
+      sc1_hk_t: 'Silent Subcommand Hotkeys & Overrides',
+      sc1_hk_d: 'Bind global hotkeys to any subcommand for silent background execution; override keywords, menu bar pins & ranking weights without touching plugin code.',
+      sc1_dl_t: 'Freeform Transparent Desktop Widgets',
+      sc1_dl_d: 'Supports frameless blurred HUDs, always-on-top pins & click-through with window.lumakey bridge and instant teardown on close.',
+      sc1_f1: 'Host-Brokered macOS TCC Auth',
+      sc1_f2: 'Live Bilingual & Theme Sync',
+      sc1_f3: '3-Tier Hotkey Conflict Guard',
       sniff_btn_1: 'Paste Repo Subdirectory',
       sniff_btn_2: 'Paste Registry JSON',
-      sniff_btn_3: 'Paste .lumakeyplugin File',
-      sc2_verify_t: 'Anti-Spoofing Capability Audit',
-      sc2_verify_d: 'Verifies 64-bit SHA-256 digest and cross-checks packaged plugin.json permissions against registry metadata before install.',
-      sc2_upg_t: 'Lossless Version Upgrades',
-      sc2_upg_d: 'Immutable code lives separately from PluginData, preserving your custom keywords, subcommand hotkeys, and encrypted secrets.',
-      sc3_r1: 'Undeclared network/subprocess scopes blocked at kernel level; system credential stores isolated',
-      sc3_r2: '8 scoped Host Bridges (OCR, selection, audio, search) via transient 0700 UDS token',
-      sc3_r3: 'Dual-track 256-bit random master key AES-GCM secret storage with zero plaintext on disk',
-      sc3_r4: 'LZFSE archive bundles custom plugins, vocab & encrypted settings across WebDAV / NAS',
-      bento_eyebrow: 'ZERO-DEPENDENCY NATIVE BASE',
-      bento_title: 'Even Before Any Plugin, the Base Core Is Razor-Sharp',
-      bento_desc: 'Built 100% in Swift 6 atop ScreenCaptureKit, Vision, AVKit, Darwin Mach, and CGEventTap with zero third-party packages — doubling as the host bridge for all plugins:',
-      hk_all: 'All Base Engines',
-      hk_search: 'Unified Search & DevKit',
-      hk_shot: 'Capture · GIF · OCR',
-      hk_pulse: 'System Pulse',
-      hk_net: 'Socket Traffic & Cache',
-      hk_ws: 'Workspace & 120Hz Mouse',
-      fc1_title: 'Constant 880×544 Hub & LMKYIDX3 mmap Disk Search',
-      fc1_desc: 'Concurrently searches localized apps, full & external drives (mmap + FSEvents), rich clipboard history, math/unit conversions, port owners, ; snippets, and offline developer tools.',
-      fc2_title: '0ms Freeze Annotation · ffmpeg-Free GIF · Vision OCR Pins',
-      fc2_desc: 'Window-snapping capture, pixel loupe #HEX copy, 9 vector & live mosaic tools, streaming GIF89a HUD, and sub-second offline Vision OCR that hands recognized text straight to your plugins.',
-      fc3_title: 'Edge-Docking System Pulse',
-      fc3_desc: 'Zero-subprocess Mach/IOKit P/E-core load, effective GHz, GPU, Swap, and real-time wattage (W) with edge-snapping auto-hide.',
-      fc4_title: 'Rootless Socket Traffic & Cache Cleaner',
-      fc4_desc: 'Inspect live per-process bandwidth and remote endpoints without privileged daemons, paired with safe bucketed cache cleanup.',
-      fc5_title: 'Dual Workspace · Zero-WebKit Reader · 120Hz Wheel',
-      fc5_desc: 'On-demand dual-pane file workspace (read-only NTFS guard), pure-Swift Markdown reader, 4K HEVC cinema, and 120Hz smooth mouse scrolling.',
+      sniff_btn_3: 'Paste Plugin Zip Package',
+      sc2_verify_t: 'Anti-Spoofing Capability Check',
+      sc2_verify_d: 'Verifies 64-bit SHA-256 fingerprint and cross-checks packaged plugin.json permissions against store declarations before install.',
+      sc2_upg_t: 'Lossless One-Click Upgrades',
+      sc2_upg_d: 'Read-only plugin code stays separate from personal PluginData, preserving custom keywords, hotkeys, and encrypted tokens.',
+      sc2_f1: '1-Command lumakey_package_plugin_for_store',
+      sc2_f2: 'Preserves TCC Permissions Across Updates',
+      sc3_r1: 'Undeclared network or subprocess calls blocked at kernel level; Keychain & private dirs isolated',
+      sc3_r2: '11 scoped Host Bridges (OCR, selection, capture, notify) via one-time 0700 UDS token',
+      sc3_r3: 'Dual-track 256-bit random master key AES-GCM vault with zero plaintext on disk',
+      sc3_r4: 'LZFSE archive syncs Launch Panel profiles, menu bar, custom plugins & secrets via WebDAV / NAS',
+      sc3_f1: '21-Item Permission Audit Matrix',
+      sc3_f2: 'Auto Timeout Subprocess Reaping',
+      sc3_f3: 'HKDF + AES-GCM Backup Passphrase',
+      bento_eyebrow: 'EVERYDAY NATIVE ESSENTIALS',
+      bento_title: 'Replace Five Everyday Utilities |with One ~10 MB Native App',
+      bento_desc: 'App & drive search, clipboard history, multi-monitor screenshot annotation, GIF recording, offline OCR, and smooth mouse scrolling are all built right in — intuitive to use and freed from RAM on close:',
+      hk_all: 'All Built-In Tools',
+      hk_search: 'Custom Home & Disk Search',
+      hk_shot: 'Capture · GIF · Offline OCR',
+      hk_pulse: 'Chip Wattage Pill',
+      hk_net: 'App Bandwidth & Cache',
+      hk_ws: 'Dual Pane & Smooth Wheel',
+      fc1_title: 'Custom Launch Panel · Full-Disk Search · 15-Step Undo Clipboard',
+      fc1_desc: 'Shows your custom Bento tiles, hybrid Omni Dock, and bookmark shelves before typing; type immediately to search localized apps, internal & external drives, rich clipboard history (auto-skipping passwords), 10-category unit math, ;snippets, and offline dev tools.',
+      fc1_c1: '4 Zones × Multi-Scene Profiles',
+      fc1_c2: 'LMKYIDX3 mmap 0-Copy Search',
+      fc1_c3: 'Zero-Jitter 880×544 Frame',
+      fc2_title: 'Multi-Display HD Capture · Lightweight GIF · 1s Offline OCR Pins',
+      fc2_desc: 'Crisp per-display freeze capture and 1-click rounded window cutouts across mixed-DPI monitors; includes arrows, highlighter, live mosaic, step badges, C-key color loupe, translucent desktop pins (T for click-through), streaming GIF89a recording, and offline Vision OCR.',
+      fc2_c1: 'ScreenCaptureKit Freeze Capture',
+      fc2_c2: 'Zero-ffmpeg Streaming GIF89a',
+      fc2_c3: 'Local Offline Vision OCR',
+      fc3_title: 'Edge-Docking Chip Pulse Pill',
+      fc3_desc: 'Off by default; when enabled, shows P/E-core load, GHz, memory pressure, and live system wattage (W) with minimal overhead and auto-hiding edge snap.',
+      fc4_title: 'Per-App Bandwidth & Safe Cache Cleaner',
+      fc4_desc: 'See which app is using bandwidth and where it connects without root daemons, plus move categorized app caches safely to Trash.',
+      fc5_title: 'Smooth External Mouse Wheel & Dual Workspace',
+      fc5_desc: 'Brings 120Hz smooth scrolling and independent scroll direction to physical mice without altering your Apple Trackpad; summon a dual-pane file organizer (read-only NTFS guard) and instant Markdown / 4K video viewers on demand.',
       phil_eyebrow: 'CORE PHILOSOPHY',
-      phil_title: 'Minimalist Core, Infinite Personal Expression',
-      phil_desc: 'Great tools never force bloat on everyone — they give you an ultra-fast native foundation and complete freedom to shape the rest.',
-      p1_title: 'Micro-Core Base × First-Class Plugin Co-Creation',
-      p1_desc: 'Keep the core lean and empower long-tail workflows via Plugin v3.4 and lumakey-mcp. Disabled modules consume zero RAM or CPU; enabled ones fuse seamlessly as native citizens.',
-      p2_title: '100% Native Swift 6, Zero External Dependencies',
-      p2_desc: 'No browser rendering stack, no cross-platform bloat — direct Apple Silicon hardware acceleration from top to bottom.',
-      p3_title: 'Constant Geometry & Silky Native Spring Motion',
-      p3_desc: 'Locked 880 × 544 frame with ID-anchored focus so async results never hijack Return, paired with tuned native spring window choreography.',
-      p4_title: 'Ephemeral Memory & Seatbelt Defense-in-Depth',
-      p4_desc: 'View trees teardown 30s after hide, disk indexes unmap after 90s idle, and plugins run inside kernel Seatbelt + 256-bit AES-GCM vaults.',
-      duality_title: 'Porcelain Clarity in Pure Frost, or Deep Aurora in Prism Pulse',
-      duality_desc: 'Defaults to crisp, high-contrast Pure Frost studio daylight; toggle live to Prism Pulse obsidian glass anytime — propagated automatically to active plugins.',
+      phil_title: 'Restrained Native Core, |Boundless Personal Freedom',
+      phil_desc: 'Simple enough to feel effortless on minute one, deep enough to shape every panel zone, hotkey, and private workflow around your habits.',
+      p1_title: 'Deeply Customizable Without Forced Tinkering',
+      p1_desc: 'Thoughtful defaults work right away; whenever you want, customize 4 Launch Panel zones & multi-scene Profiles, status bar menu order, global & silent subcommand hotkeys, keywords, ranking weights, or AI-built plugins.',
+      p2_title: '~10 MB Pure Native Swift 6 — Zero Web Wrapper',
+      p2_desc: 'No bulky browser shell pretending to be a desktop app: zero external packages, 100% Swift 6 talking straight to Apple Silicon frameworks.',
+      p3_title: 'Zero-Jitter Geometry for Reliable Muscle Memory',
+      p3_desc: 'Locked 880 × 544 frame that never jumps across scopes, guards CJK IME Return keys, and anchors selection during async updates with crisp native spring motion.',
+      p4_title: 'Self-Cleaning Memory & Local Sandbox Privacy',
+      p4_desc: 'Tears down UI caches 30s after hide, unmaps disk index pages after 90s idle, isolates plugins inside macOS Seatbelt, and encrypts secrets via 256-bit AES-GCM.',
+      duality_eyebrow: 'PURE FROST & PRISM PULSE · DUAL LIQUID GLASS THEMES',
+      duality_title: 'Porcelain Clarity in Pure Frost, |or Deep Aurora in Prism Pulse',
+      duality_desc: 'Prefer crisp daylight porcelain or deep obsidian glass? Switch live on the right — inside the app, your theme syncs automatically across every open plugin and floating HUD.',
       btn_frost: '◐ Pure Frost (Light)',
       btn_prism: '✦ Prism Pulse (Dark)',
-      bound_title: 'Clear Product Boundaries: Keep Complexity Opt-In, Keep the Core Light',
-      bound_sub: 'Knowing what belongs in the micro-core versus opt-in plugins keeps Lumakey fast forever.',
-      yes_1: '<strong>Composable Micro-Core First:</strong> Menu-bar resident hub with opt-in Quick Buttons, custom icons, and per-subcommand silent hotkeys.',
-      yes_2: '<strong>AI-Native Open Protocol:</strong> Built-in lumakey-mcp server and single-URL store sniffer so anyone can build and share plugins effortlessly.',
-      yes_3: '<strong>100% Dedicated to Apple Silicon:</strong> Pure arm64 binaries tuned for macOS 14+ without legacy translation layers.',
-      no_1: '<strong>No Forced All-in-One Bloatware:</strong> Zero unremovable floating balls or background daemons; every widget and plugin is opt-in.',
-      no_2: '<strong>No Heavy Browser Rendering Engines:</strong> Never spawns hundreds of MBs of browser processes just to render Markdown or plugin cards.',
-      no_3: '<strong>No Unsandboxed Scripts or Unsafe Dirty-NTFS Writes:</strong> Enforces Seatbelt + encrypted vaults and protects dirty NTFS volumes.',
-      arch_eyebrow: 'CLEAN CODE & DAG ARCHITECTURE',
-      arch_title: '9 Acyclic Swift 6 Targets · Strictly ≤ 300 Lines per File',
-      arch_desc: 'Continuously verified by automated scripts checking module DAG boundaries, file line caps, doc links, and live MCP roundtrips.',
-      m_1: 'Built-in lumakey-mcp AI Plugin Tools',
+      bound_title: 'Clear Product Boundaries: |Leave Freedom to Customization, Keep the Core Light',
+      bound_sub: 'Knowing what to polish natively and what never to force into the base keeps your Mac fast.',
+      yes_1: '<strong>Your Interface, Your Rules:</strong> Launch Panel zones, status bar menu items, global hotkeys, keywords & widgets are all opt-in and reorderable.',
+      yes_2: '<strong>AI Customization Anyone Can Use:</strong> 16 built-in lumakey-mcp tools and single-box store sniffing turn plain words into plugins or layouts.',
+      yes_3: '<strong>100% Built for Apple Silicon:</strong> Pure arm64 binaries wired directly to modern macOS 14+ frameworks.',
+      no_1: '<strong>No Unremovable All-in-One Bloatware:</strong> Zero forced floating balls, menu-bar tickers, or background daemons out of the box.',
+      no_2: '<strong>No Multi-Hundred-MB Web Shell for Main UI:</strong> Native Swift renders the hub & readers; optional plugin web windows destroy immediately on close.',
+      no_3: '<strong>No Unsandboxed Scripts or Unsafe Dirty-NTFS Writes:</strong> Enforces kernel Seatbelt, encrypted vaults, and read-only protection on dirty NTFS drives.',
+      arch_eyebrow: 'UNDER THE HOOD FOR GEEKS',
+      arch_title: '9 Acyclic Swift 6 Targets · |Strictly ≤ 300 Lines per File',
+      arch_desc: 'Every build runs automated gates verifying acyclic module boundaries, per-file ≤ 300 LOC limits, doc links, and live lumakey-mcp JSON-RPC roundtrips.',
+      m_1: 'Built-in lumakey-mcp Plugin & Home Tools',
       m_2: 'External SwiftPM / CocoaPods Dependencies',
       m_3: 'Hard Max Lines per .swift Source File',
-      m_4: 'View Tree Teardown / Index Unmap Window',
-      dag_app: 'SwiftUI + AppKit Dual-Theme Frontend & Spring Window Matrix',
-      dag_mcp: 'Embedded JSON-RPC 2.0 AI Plugin Scaffold, Audit & Packager',
-      dag_core: 'Plugin v3.4 Host · Seatbelt · Smart Store Sniffer · Ranking · WebDAV Backup',
-      dag_search: 'LMKYIDX3 mmap Snapshot · FSEvents · Batch Rename Preflight',
-      dag_media: 'Freeze Annotation · Vision OCR · hev1 Cinema · Native Markdown',
-      dag_sys: 'Mach/IOKit Telemetry · Socket Traffic · 120Hz Wheel · HotKey Guard',
-      dag_found: 'Pure Frost / Prism Pulse · Bilingual · LMKYVLT2 Vault · ProcessSupervisor',
+      m_4: 'UI Cache Teardown / Index Unmap Window',
+      dag_app: 'SwiftUI + AppKit Dual-Theme UI · Launch Panel/Menu Customizer · Freeform Windows',
+      dag_mcp: 'Embedded 16 JSON-RPC 2.0 Tools: Plugin Scaffold, Sandbox Test & Live Home Layout',
+      dag_core: 'HomeLayout Multi-Profile · Plugin v3.7 Host & TCC Broker · Seatbelt · Store Sniffer · Backup',
+      dag_search: 'LMKYIDX3 mmap Snapshot · Live FSEvents · Batch Rename Preflight',
+      dag_media: 'Per-Display Freeze Capture · Offline Vision OCR · hev1 4K · Native Markdown',
+      dag_sys: 'Mach/IOKit Wattage · Socket Bandwidth · 120Hz Smooth Wheel · 3-Tier Hotkey Guard',
+      dag_found: 'Pure Frost / Prism Pulse · Instant Bilingual · LMKYVLT2 256-bit Vault · ProcessSupervisor',
       dl_eyebrow: 'START BUILDING YOUR LUMAKEY',
-      dl_title: 'Grab the Native Core, Assemble Your Personal Flow',
-      dl_desc: 'Free & open source (MIT) for macOS 14.0+ on M1 / M2 / M3 / M4 Macs. Explore AI MCP plugin creation, the 7 official plugins, or source build commands:',
+      dl_title: 'Grab the ~10 MB Native Hub,\nShape Your Personal Flow',
+      dl_desc: 'Free & open source (MIT) for macOS 14.0+ on M1 / M2 / M3 / M4 Macs. Drag to Applications to start, with in-app DMG auto-updates that preserve local TCC permissions and 1-click Python 3 setup; copy MCP, plugin, or build commands on the right:',
       dl_btn_dmg: 'Download Latest DMG',
-      dl_btn_store: 'Browse Official Plugins',
+      dl_btn_store: 'Browse 8 Official Plugins',
       dl_btn_star: 'Star on GitHub ★',
-      term_tab_mcp: 'AI MCP Config',
-      term_tab_plugins: 'Install 7 Plugins',
-      term_tab_install: 'Build from Source',
+      term_tab_mcp: 'Connect AI (Plugin + Home)',
+      term_tab_plugins: 'Install 8 Official Plugins',
+      term_tab_install: 'Keep Permissions & Build',
       term_copy: 'Copy',
+      foot_brand: 'Lumakey',
       foot_plugin_doc: 'Plugin & MCP Spec',
       foot_docs: 'Docs Index',
       foot_contrib: 'Contributing',
-      placeholder_search: 'Search apps, files, math, or run plugins: tr hello / rem 10m water / bh swift...'
+      placeholder_search: 'Type to search apps, external drives, math, or try: tr hello / aiq quota / rem 10m water...'
     }
   };
 
   /* ------------------------------------------------------------------------
-     2. Complete 7 Official Store Plugins + 1 MCP Custom Plugin Dataset
+     2. Complete 8 Official Store Plugins + 1 MCP Custom Plugin Dataset
      ------------------------------------------------------------------------ */
   const PLUGINS = [
+    {
+      id: 'ai-quota',
+      icon: '📊',
+      grad: 'linear-gradient(135deg,#ec4899,#8b5cf6)',
+      tagZh: '透明悬浮 HUD',
+      tagEn: 'Floating HUD',
+      nameZh: 'AI 额度雷达 AI Quota Radar',
+      nameEn: 'AI Quota Radar',
+      shortZh: '无边框毛玻璃桌面悬浮窗（支持紧凑折叠态），实时盯盘 Claude / Codex / agy / dsh 与 DeepSeek 余额',
+      shortEn: 'Frameless glass HUD (with compact mode) tracking Claude / Codex / agy / dsh & DeepSeek balance',
+      detailZh: '基于 Plugin v3.7 floatingWindow 打造的无边框液态玻璃桌面挂件（支持紧凑折叠态、120Hz 顺滑拖拽、点击穿透与快捷热键引导），并发读取本机 AI CLI 窗口余量与 AES-GCM 加密托管的 DeepSeek 余额，关窗即零内存。',
+      detailEn: 'Built on Plugin v3.7 floatingWindow: a 120Hz draggable, click-through glass HUD with compact mode and live hotkey guide, concurrently reading local AI CLI quotas and AES-GCM vaulted DeepSeek balance.',
+      quickZh: '📊 AI 额度浮窗',
+      quickEn: '📊 AI Quota HUD',
+      acceptsZh: [],
+      acceptsEn: [],
+      sandbox: 'Seatbelt: scoped HTTPS · Window: floatingWindow (frameless HUD)',
+      cmds: [
+        ['aiq', '查看全部 AI 额度与余额', 'Inspect all AI CLI quotas & balance'],
+        ['quotahud', '开启透明紧凑桌面挂件', 'Open frameless compact glass HUD'],
+        ['quotafloat', '弹出置顶实时监控小窗', 'Pop out floating live monitor window'],
+        ['quotarefresh', '强制刷新并推送通知', 'Force refresh & push notification']
+      ]
+    },
     {
       id: 'translate-hub',
       icon: '🌐',
@@ -386,20 +451,20 @@
       tagEn: 'Official',
       nameZh: '流光译站 Translate Hub',
       nameEn: 'Translate Hub',
-      shortZh: '跨应用划词 / 离线 OCR 截图多源翻译、本地 Ollama 与生词本',
-      shortEn: 'Cross-app selection & offline OCR translation + local Ollama & vocab',
-      detailZh: `零配置内置双语词典开箱即用，支持并行对比本地 Ollama 大模型译文、TTS 朗读、一键归档生词并通过 ${SCHEME_PREFIX}reader 在原生阅读窗打开或导出 Anki 词卡。`,
-      detailEn: `Zero-config built-in dictionary + parallel local Ollama LLM translation, TTS speech, vocabulary notebook, native ${SCHEME_PREFIX}reader view & Anki TSV/CSV export.`,
+      shortZh: '跨应用划词工具栏 / 离线 OCR 截图多源翻译、双语 TTS 朗读与生词本',
+      shortEn: 'Cross-app Selection Quick Bar & offline OCR translation + dual TTS & vocab',
+      detailZh: `选中文本即弹悬浮快捷工具栏，零配置内置双语词典开箱即用，支持并行对比本地 Ollama 大模型译文、原文/译文双语 TTS 朗读按钮、一键归档生词并通过 ${SCHEME_PREFIX}reader 打开或导出 Anki 词卡。`,
+      detailEn: `Instant Selection Quick Bar + zero-config built-in dictionary, parallel local Ollama LLM translation, dual source/target TTS buttons, vocabulary notebook, native ${SCHEME_PREFIX}reader view & Anki TSV/CSV export.`,
       quickZh: '🌐 划词秒译',
       quickEn: '🌐 Translate',
       acceptsZh: ['选中文本秒译 (text)', 'OCR 截图框选翻译 (image)'],
       acceptsEn: ['Selection Text (text)', 'OCR Capture Image (image)'],
       sandbox: 'Seatbelt: network + filesystem · Bridge: selection, ocr, audio',
       cmds: [
-        ['tr / fy', '⌥⇧T 静默划词译'],
-        ['tr ocr', '⌥⇧O 截图识字译'],
-        ['tr word', '收藏至生词本'],
-        ['tr anki', '导出 Anki 词卡']
+        ['tr / fy', '⌥⇧T 静默划词译', '⌥⇧T Silent Selection Translate'],
+        ['tr ocr', '⌥⇧O 截图识字译', '⌥⇧O Screenshot OCR Translate'],
+        ['tr word', '收藏至生词本', 'Save to Vocab Notebook'],
+        ['tr anki', '导出 Anki 词卡', 'Export Anki Flashcards']
       ]
     },
     {
@@ -420,10 +485,10 @@
       acceptsEn: [],
       sandbox: 'Seatbelt: read-only browser profiles · 0 Host Capabilities',
       cmds: [
-        ['bh <词>', '0ms 全搜三端书签'],
-        ['bh hist', '检索近期浏览历史'],
-        ['bh sync', '刷新浏览器快照'],
-        ['↵ 回车', '原浏览器精准打开']
+        ['bh <词>', '0ms 全搜三端书签', '0ms Search All 3 Browsers'],
+        ['bh hist', '检索近期浏览历史', 'Search Recent History'],
+        ['bh sync', '刷新浏览器快照', 'Refresh Browser Snapshot'],
+        ['↵ 回车', '原浏览器精准打开', 'Open in Source Browser']
       ]
     },
     {
@@ -444,10 +509,10 @@
       acceptsEn: ['Clipboard Text to Reminder (text)'],
       sandbox: 'Seatbelt: Reminders sync · Bridge: audio',
       cmds: [
-        ['rem 10m 喝水', '一句话设倒计时'],
-        ['rem pomo', '启动 25m 番茄钟'],
-        ['rem list', '待办提醒看板'],
-        ['rem snooze', '一键贪睡顺延 10m']
+        ['rem 10m 喝水', '一句话设倒计时', 'Natural Language Countdown'],
+        ['rem pomo', '启动 25m 番茄钟', 'Start 25m Pomodoro Focus'],
+        ['rem list', '待办提醒看板', 'Upcoming Reminders Board'],
+        ['rem snooze', '一键贪睡顺延 10m', 'Snooze +10m in 1 Key']
       ]
     },
     {
@@ -468,10 +533,10 @@
       acceptsEn: ['Finder File & Folder Actions (file, directory)'],
       sandbox: 'Seatbelt: scoped AppleEvents · Bridge: systemControl, clipboard',
       cmds: [
-        ['vol / mute', '精准音量与静音'],
-        ['eject', '安全退外置磁盘'],
-        ['new md', '访达原地新建文件'],
-        ['bluetooth', '0ms 直达系统设置']
+        ['vol / mute', '精准音量与静音', 'Precision Volume & Mute'],
+        ['eject', '安全退外置磁盘', 'Safely Eject Drives'],
+        ['new md', '访达原地新建文件', 'New File in Active Finder'],
+        ['bluetooth', '0ms 直达系统设置', '0ms System Settings Jump']
       ]
     },
     {
@@ -480,7 +545,7 @@
       grad: 'linear-gradient(135deg,#0d9488,#14b8a6)',
       tagZh: '防误触锁屏',
       tagEn: 'Input Shield',
-      nameZh: '状态屏 Screen Shield',
+      nameZh: '状态屏遮罩 Screen Shield',
       nameEn: 'Screen Shield',
       shortZh: '擦拭键盘屏幕防误触黑屏、任务运行中防误碰保护遮罩',
       shortEn: 'Multi-display keyboard/trackpad lock for screen cleaning or running tasks',
@@ -492,10 +557,10 @@
       acceptsEn: [],
       sandbox: 'Seatbelt: local status only · Bridge: systemControl',
       cmds: [
-        ['clean', '开启清洁屏幕遮罩'],
-        ['shield task', '任务运行防碰模式'],
-        ['shield brb', '暂离自定义标语屏'],
-        ['Hold Esc 2s', '防误触安全退出']
+        ['clean', '开启清洁屏幕遮罩', 'Keyboard Cleaning Lock'],
+        ['shield task', '任务运行防碰模式', 'Build/Task Guard Overlay'],
+        ['shield brb', '暂离自定义标语屏', 'Custom BRB Status Screen'],
+        ['Hold Esc 2s', '防误触安全退出', 'Hold Esc 2s to Unlock']
       ]
     },
     {
@@ -516,10 +581,10 @@
       acceptsEn: [],
       sandbox: 'Seatbelt: zero external scopes · Bridge: lumaLinkStatus',
       cmds: [
-        ['lumalink qr', '弹出配对码与二维码'],
-        ['lumalink net', '秒切局域网/穿透网卡'],
-        ['lumalink curtain', '远控物理防窥黑屏'],
-        ['lumalink hidpi', '切换 Retina 清晰度']
+        ['lumalink qr', '弹出配对码与二维码', 'Show 6-Digit PIN & QR'],
+        ['lumalink net', '秒切局域网/穿透网卡', 'Switch LAN / Tunnel NIC'],
+        ['lumalink curtain', '远控物理防窥黑屏', 'Privacy Curtain Blackout'],
+        ['lumalink hidpi', '切换 Retina 清晰度', 'Toggle Retina HiDPI']
       ]
     },
     {
@@ -528,7 +593,7 @@
       grad: 'linear-gradient(135deg,#334155,#0f766e)',
       tagZh: 'AES-GCM 密钥箱',
       tagEn: 'Vault Secret',
-      nameZh: 'Notion 书签收藏 Notion Vault',
+      nameZh: 'Notion 加密书签箱 Notion Vault',
       nameEn: 'Notion Bookmarks Vault',
       shortZh: '双轨 AES-GCM 加密存储凭据，一键剪贴板链接入库与离线秒搜',
       shortEn: 'AES-GCM encrypted Notion token, one-key clipboard URL save & 0ms search',
@@ -540,10 +605,10 @@
       acceptsEn: ['Save URL & Text to Notion (url, text)'],
       sandbox: 'Seatbelt: HTTPS + PluginData · Vault: 256-bit AES-GCM',
       cmds: [
-        ['bm save', '静默速存剪贴板 URL'],
-        ['bm <关键词>', '0ms 秒搜已存页面'],
-        ['bm sync', '增量同步云端数据库'],
-        ['bm tag', '默认标签自动归类']
+        ['bm save', '静默速存剪贴板 URL', 'Silently Save Clipboard URL'],
+        ['bm <关键词>', '0ms 秒搜已存页面', '0ms Search Saved Pages'],
+        ['bm sync', '增量同步云端数据库', 'Sync Cloud Database'],
+        ['bm tag', '默认标签自动归类', 'Auto-Tag Bookmarks']
       ]
     },
     {
@@ -556,26 +621,26 @@
       nameEn: 'PR Review Radar (MCP AI-Generated)',
       shortZh: '通过 lumakey-mcp 对 AI 说一句话生成的个人专属工作流插件',
       shortEn: 'Custom personal workflow plugin generated in 10s via lumakey-mcp',
-      detailZh: '演示「自由构建属于你的 Lumakey」：只需在 Claude Code 或 Cursor 中描述你的私有业务需求（内部工单、合并请求、服务器探针、智能家居），AI 自动完成脚手架、沙箱实测与热重载挂载。',
-      detailEn: 'Demonstrates building your own tool: describe any private workflow (internal tickets, MRs, homelab, SSH) and lumakey-mcp scaffolds & tests it automatically.',
+      detailZh: '演示「不会写代码也能定制」：只需在 Claude Code 或 Cursor 中描述你的私有业务需求（内部工单、合并请求、服务器探针、主页排布），AI 自动完成脚手架、沙箱实测与热重载挂载。',
+      detailEn: 'Demonstrates 1-sentence customization: describe any private workflow (tickets, MRs, homelab, or home layout) and lumakey-mcp scaffolds & tests it automatically.',
       quickZh: '🤖 待审 PR (3)',
       quickEn: '🤖 Open PRs (3)',
       acceptsZh: ['代码仓库链接快速预审 (url)'],
       acceptsEn: ['Inspect Repo Link (url)'],
       sandbox: 'Seatbelt: scoped HTTPS · Hot-Reloaded via FSEvents',
       cmds: [
-        ['pr review', '查看待我 Review 列表'],
-        ['pr mine', '查看我发起的流水线'],
-        ['pr refresh', '后台静默刷新索引'],
-        [`${SCHEME_PREFIX}reader`, '原生预览变更摘要']
+        ['pr review', '查看待我 Review 列表', 'List PRs Awaiting Review'],
+        ['pr mine', '查看我发起的流水线', 'Check My Open Pipelines'],
+        ['pr refresh', '后台静默刷新索引', 'Background Index Refresh'],
+        [`${SCHEME_PREFIX}reader`, '原生预览变更摘要', 'Native Reader Diff View']
       ]
     }
   ];
 
   const BUILDER_PROFILES = {
     minimal: [],
-    daily: ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'],
-    dev: ['translate-hub', 'browser-hub', 'mac-pilot', 'lumalink-companion', 'gh-pr-radar'],
+    daily: ['ai-quota', 'translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'],
+    dev: ['ai-quota', 'translate-hub', 'browser-hub', 'mac-pilot', 'lumalink-companion', 'gh-pr-radar'],
     full: PLUGINS.map((p) => p.id)
   };
 
@@ -632,14 +697,14 @@
     }).join('');
 
     if (quickMountCount) {
-      quickMountCount.textContent = zh ? `${enabledList.length} 个快捷按钮` : `${enabledList.length} Mounted`;
+      quickMountCount.textContent = zh ? `${enabledList.length} 个胶囊入口` : `${enabledList.length} Mounted`;
     }
     if (mountedQuickPills) {
       if (enabledList.length === 0) {
         mountedQuickPills.innerHTML = `<span class="empty-mount-note">${
           zh
-            ? '当前为纯粹微内核模式：快捷按钮栏完全隐藏，保持极致留白，仅运行五大原生底座引擎。'
-            : 'Pure Micro-Core Mode: Quick Button bar stays hidden for maximum whitespace; only the 5 native base engines run.'
+            ? '当前为纯粹微内核模式：不挂载任何插件胶囊，保持极致留白，仅运行五大日常原生利器。'
+            : 'Pure Micro-Core Mode: No plugin pills mounted; only the 5 built-in everyday native tools run.'
         }</span>`;
       } else {
         mountedQuickPills.innerHTML = enabledList
@@ -657,8 +722,8 @@
       if (hooks.length === 0) {
         mountedAcceptsPills.innerHTML = `<span class="empty-mount-note">${
           zh
-            ? '未挂载外部上下文动作（开启「流光译站 / 桌面中控台 / Notion」即可把动作注入 OCR 截图窗与剪贴板）。'
-            : 'No external context hooks mounted (enable Translate Hub, Mac Pilot, or Notion to inject actions into OCR & Clipboard).'
+            ? '未挂载外部右键联动（开启「流光译站 / 桌面中控台 / Notion」即可把动作自动注入截图识字与剪贴板）。'
+            : 'No context hooks mounted (enable Translate Hub, Mac Pilot, or Notion to inject actions into OCR & Clipboard).'
         }</span>`;
       } else {
         mountedAcceptsPills.innerHTML = hooks
@@ -686,7 +751,7 @@
         <p class="spotlight-desc">${zh ? focused.detailZh : focused.detailEn}</p>
         <div class="cmd-sub-list">
           ${focused.cmds
-            .map(([cmd, desc]) => `<div class="cmd-sub-chip"><code class="mono">${cmd}</code><span>${desc}</span></div>`)
+            .map(([cmd, descZh, descEn]) => `<div class="cmd-sub-chip"><code class="mono">${cmd}</code><span>${zh ? descZh : (descEn || descZh)}</span></div>`)
             .join('')}
         </div>
       `;
@@ -696,10 +761,10 @@
       auditSummaryBar.innerHTML = `
         <span>🛡️ ${
           zh
-            ? `Seatbelt 沙箱强隔离 · 未启用插件 (${PLUGINS.length - enabledList.length} 款) 零进程零轮询`
+            ? `Seatbelt 沙箱强隔离 · 未启用扩展 (${PLUGINS.length - enabledList.length} 款) 零进程零轮询`
             : `Seatbelt Enforced · ${PLUGINS.length - enabledList.length} disabled plugin(s) use 0 RAM`
         }</span>
-        <span class="mono">Backup v2 (.lumakeybackup) Ready</span>
+        <span class="mono">MenuBar + HomeLayout Synced</span>
       `;
     }
 
@@ -745,30 +810,57 @@
   });
 
   /* ------------------------------------------------------------------------
-     4. Interactive 880×544 Hero Launcher Simulator (Synced with Enabled Plugins!)
+     4. Interactive 880×544 Launch Panel Customizer & Unified Search Simulator
      ------------------------------------------------------------------------ */
   const PRESETS = {
-    bento: { query: '', scope: 'all' },
-    translate: { query: 'tr Ephemeral micro-core architecture', scope: 'all' },
-    remind: { query: 'rem 10m 站起来喝口水休息眼睛', scope: 'all' },
-    browser: { query: 'bh Apple Developer Human Interface', scope: 'plugins' },
-    dev: { query: '256 * 1024 bytes to mb', scope: 'all' }
+    bento: { queryZh: '', queryEn: '', scope: 'all', homeProfile: 'balanced' },
+    home_min: { queryZh: '', queryEn: '', scope: 'all', homeProfile: 'minimal' },
+    home_dev: { queryZh: '', queryEn: '', scope: 'all', homeProfile: 'developer' },
+    home_shelf: { queryZh: '', queryEn: '', scope: 'all', homeProfile: 'creatorBookmarks' },
+    translate: { queryZh: 'tr 用完即焚的微内核架构', queryEn: 'tr Ephemeral micro-core architecture', scope: 'all' },
+    remind: { queryZh: 'rem 10m 站起来喝口水休息眼睛', queryEn: 'rem 10m Hydrate and rest eyes', scope: 'all' },
+    dev: { queryZh: '256 * 1024 bytes to mb', queryEn: '256 * 1024 bytes to mb', scope: 'all' }
   };
 
   const CATALOG = [
+    {
+      id: 'item-ai-quota',
+      scopes: ['all', 'plugins'],
+      match: ['aiq', 'quota', 'claude', 'codex', 'deepseek', '额度', '雷达', '余额'],
+      badgeBg: 'linear-gradient(135deg,#ec4899,#8b5cf6)',
+      badgeText: '📊',
+      titleZh: 'AI 额度雷达：Claude 5h 剩余 78% · Codex 剩余 91% · DeepSeek ¥42.80',
+      titleEn: 'AI Quota Radar: Claude 5h 78% left · Codex 91% · DeepSeek ¥42.80',
+      subZh: 'AI Quota Radar · 回车唤起无边框透明玻璃桌面挂件 (floatingWindow)',
+      subEn: 'AI Quota Radar · Press Return to open frameless glass desktop HUD',
+      shortcut: '⌘1',
+      lens: {
+        tag: 'Plugin v3.7 · floatingWindow HUD',
+        big: '78% / ¥42.8',
+        descZh: '支持开启置顶透明毛玻璃悬浮小窗（120Hz 无边框拖拽 + 点击穿透），API Key 安全存于 256-bit AES-GCM 保险箱，关窗即释放 WebView 内存。',
+        descEn: 'Opens a 120Hz draggable, click-through frameless glass desktop widget; DeepSeek key stays in the 256-bit AES-GCM vault.',
+        kvs: [
+          ['Window Chrome', 'frameless · floatingWindow'],
+          ['Secret Storage', 'LMKYVLT2 256-bit AES-GCM'],
+          ['Close Behavior', '0 MB Immediate Teardown']
+        ]
+      }
+    },
     {
       id: 'item-translate',
       scopes: ['all', 'plugins'],
       match: ['tr', 'fy', 'translate', 'ephemeral', '翻译', '译站', 'ocr'],
       badgeBg: 'linear-gradient(135deg,#7c3aed,#a855f7)',
       badgeText: '🌐',
-      titleZh: '流光译站：用完即焚的微内核架构 (Ephemeral micro-core...)',
-      titleEn: 'Translate Hub: 用完即焚的微内核架构',
-      subZh: 'Translate Hub · 内置词典 + 本地 Ollama 双源对照 · ⌘S 存入生词本',
-      subEn: 'Translate Hub · Built-in Dict + Local Ollama LLM · ⌘S Save to Vocab',
+      titleZh: '流光译站：Ephemeral micro-core architecture (用完即焚的微内核架构)',
+      titleEn: 'Translate Hub: Ephemeral micro-core architecture (用完即焚的微内核架构)',
+      subZh: 'Translate Hub · 内置词典 + 本地 Ollama + 双语 TTS · 右键可钉上启动面板',
+      subEn: 'Translate Hub · Built-in Dict + Local Ollama + Dual TTS · Right-click to pin',
       shortcut: '⌘1',
       lens: {
-        tag: 'Plugin v3.4 · translate-hub',
+        tag: 'Plugin v3.7 · translate-hub',
+        bigZh: '双源秒译 + OCR',
+        bigEn: 'Dual-Engine + OCR',
         big: '双源秒译 + OCR',
         descZh: '既可在 ⌥Space 输入 tr 翻译，也可在任意应用选中文字按静默热键 ⌥⇧T 或从 ⌥O 离线截图识字窗一键送译。',
         descEn: 'Run via tr in ⌥Space, trigger silently via ⌥⇧T on selected text, or hand off directly from ⌥O Vision OCR.',
@@ -791,14 +883,14 @@
       subEn: 'Quick Remind · Syncs to native macOS Reminders with 0 background daemon',
       shortcut: '⌘1',
       lens: {
-        tag: 'Plugin v3.4 · quick-remind',
+        tag: 'Plugin v3.7 · quick-remind',
         big: 'T-10:00',
         descZh: '支持「10m 喝水」「18:30 拿快递」「明天 9:00 交周报」与 25m 番茄专注，退出软件亦由 macOS 准时提醒。',
         descEn: 'Supports relative ("10m") & calendar times plus 25m Pomodoro; persisted natively in macOS Reminders.',
         kvs: [
           ['Daemon Overhead', '0 MB (Native Reminders)'],
           ['Quick Action', '↵ Create · Snooze +10m'],
-          ['Voice Alert', 'Optional macOS TTS']
+          ['Pin Support', 'Right-Click → Omni Dock']
         ]
       }
     },
@@ -810,8 +902,8 @@
       badgeText: '🧭',
       titleZh: 'Human Interface Guidelines — Apple Developer (Safari 书签)',
       titleEn: 'Human Interface Guidelines — Apple Developer (Safari)',
-      subZh: 'Browser Hub · 0ms 预建索引命中 · 同时检索 Edge / Chrome 多配置档',
-      subEn: 'Browser Hub · 0ms Pre-Indexed · Searches Edge, Chrome Profiles & Safari',
+      subZh: 'Browser Hub · 0ms 预建索引命中 · 右键可钉入主页分组书签架',
+      subEn: 'Browser Hub · 0ms Pre-Indexed · Right-click to pin to Home Shelf',
       shortcut: '⌘1',
       lens: {
         tag: '0ms Pre-Indexed · browser-hub',
@@ -821,7 +913,7 @@
         kvs: [
           ['Sandbox Scope', 'Read-Only Browser DBs'],
           ['Open Behavior', 'Source Browser Direct'],
-          ['Index Refresh', 'Background Incremental']
+          ['Home Pinning', 'Custom Browser Override']
         ]
       }
     },
@@ -839,8 +931,8 @@
       lens: {
         tag: 'Native Base · Unit & DevToolkit',
         big: '0.25 MiB',
-        descZh: '底座原生内置数学表达式、存储进制换算、#HEX 对比度色板、UUID 与离线二维码生成。',
-        descEn: 'Zero-plugin native math, storage units, #HEX contrast swatches, UUIDs & offline QR generator.',
+        descZh: '底座原生内置 10 类日常单位换算、数学算式、#HEX 对比度色板、UUID 与离线二维码生成。',
+        descEn: 'Zero-plugin native math, 10-category unit conversions, #HEX contrast swatches, UUIDs & offline QR generator.',
         kvs: [
           ['Decimal (SI)', '0.262144 MB'],
           ['Binary (IEC)', '0.25 MiB / 256 KiB'],
@@ -851,22 +943,22 @@
     {
       id: 'file-1',
       scopes: ['all', 'files'],
-      match: ['swift', 'lmky', 'file', 'plugin', '文件'],
+      match: ['swift', 'lmky', 'file', 'plugin', 'home', '文件'],
       badgeBg: 'linear-gradient(135deg,#ea580c,#db2777)',
       badgeText: 'S',
-      titleZh: 'PluginHostService.swift',
-      titleEn: 'PluginHostService.swift',
-      subZh: 'Sources/LumakeyCore · LMKYIDX3 mmap 零拷贝全盘秒搜命中',
-      subEn: 'Sources/LumakeyCore · Instant LMKYIDX3 mmap full-disk hit',
+      titleZh: 'HomeCustomizationSettingsView.swift',
+      titleEn: 'HomeCustomizationSettingsView.swift',
+      subZh: 'Sources/Lumakey · LMKYIDX3 mmap 零拷贝全盘与外置硬盘秒搜命中',
+      subEn: 'Sources/Lumakey · Instant LMKYIDX3 mmap internal & external drive hit',
       shortcut: '⌘2',
       lens: {
         tag: 'LMKYIDX3 · Zero-WebKit Reader',
         big: '≤ 300 Lines',
-        descZh: '按 ↵ 在纯原生代码阅读窗打开（0 MB WebKit 开销），或按 ⌘↵ 在访达中定位。',
-        descEn: 'Press ↵ for pure-Swift code reader (0 MB WebKit), or ⌘↵ to reveal in Finder.',
+        descZh: '按 ↵ 在纯原生代码阅读窗秒开（0 MB 网页内核开销），按 ⌘↵ 在访达定位，或右键将常用目录钉上启动面板。',
+        descEn: 'Press ↵ for pure-Swift reader (0 MB WebKit), ⌘↵ to reveal in Finder, or right-click to pin folder to Home.',
         kvs: [
-          ['Index Format', 'LMKYIDX3 mmap + SHA-256'],
-          ['External Drives', 'Supported + FSEvents'],
+          ['Index Format', 'LMKYIDX3 mmap + FSEvents'],
+          ['External Drives', 'Supported + NTFS Guard'],
           ['Idle Unload', '90s Auto Heap Return']
         ]
       }
@@ -877,20 +969,20 @@
       match: ['clip', 'paste', 'mcp', '剪贴板'],
       badgeBg: 'linear-gradient(135deg,#059669,#0d9488)',
       badgeText: '📋',
-      titleZh: 'swift test --arch arm64',
-      titleEn: 'swift test --arch arm64',
-      subZh: '剪贴板历史 · 刚刚复制 · 可一键流转至已启用插件处理',
-      subEn: 'Clipboard History · Copied just now · Hand off to any active plugin',
+      titleZh: 'claude mcp add lumakey /Applications/Lumakey.app/Contents/MacOS/lumakey-mcp',
+      titleEn: 'claude mcp add lumakey /Applications/Lumakey.app/Contents/MacOS/lumakey-mcp',
+      subZh: '剪贴板历史 · 支持 15 步误删撤回 · 自动跳过密码管理器敏感条目',
+      subEn: 'Clipboard History · 15-step delete undo · Auto-skips password manager secrets',
       shortcut: '⌘3',
       lens: {
-        tag: 'ClipboardMonitor + accepts[]',
+        tag: 'ClipboardMonitor · 15-Step Undo',
         big: 'SHA-256 Pinned',
-        descZh: '剪贴板条目不仅支持置顶收藏与加密备份，还能直接交给声明了 accepts: ["text"] 的插件一键处理。',
-        descEn: 'Pinned items sync via .lumakeybackup and route directly into plugins declaring accepts: ["text"].',
+        descZh: '回车直接粘贴回刚才的前台应用，误删支持 15 步撤回，还能一键交给声明了 accepts: ["text"] 的插件接着处理。',
+        descEn: 'Press Return to paste straight into your active app, undo accidental deletes up to 15 steps, or route to plugins.',
         kvs: [
-          ['Media Support', 'Text · Image · File · GIF'],
-          ['Plugin Handoff', '1-Key Context Action'],
-          ['Sync', 'LZFSE + WebDAV Backup']
+          ['Media Support', 'Text · #HEX · Image · File · GIF'],
+          ['Privacy Filter', 'Concealed / Transient Skipped'],
+          ['Sync', '.lumakeybackup + WebDAV']
         ]
       }
     }
@@ -904,101 +996,294 @@
   function renderBentoHome() {
     const zh = state.lang === 'zh';
     const enabledList = PLUGINS.filter((p) => state.enabledPlugins.has(p.id));
+    const prof = state.homeProfile || 'balanced';
 
-    const tiles = [
-      { bg: 'linear-gradient(135deg,#0066dc,#2563eb)', icon: '🔍', t: zh ? '全盘秒搜' : 'Disk Search', s: 'LMKYIDX3 mmap', scope: 'files' },
-      { bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', icon: '🌐', t: zh ? '流光译站' : 'Translate Hub', s: 'Plugin · OCR/划词', preset: 'translate' },
-      { bg: 'linear-gradient(135deg,#ea580c,#f59e0b)', icon: '⏰', t: zh ? '闪电提醒' : 'Quick Remind', s: 'Plugin · 10m 喝水', preset: 'remind' },
-      { bg: 'linear-gradient(135deg,#db2777,#e11d48)', icon: '✂️', t: zh ? '冻屏与 GIF' : 'Capture & GIF', s: '⌥A / ⌥G / ⌥O', jump: '#capabilities' },
-      { bg: 'linear-gradient(135deg,#4338ca,#6366f1)', icon: '🧭', t: zh ? '三端书签' : 'Browser Hub', s: 'Plugin · 0ms 全搜', preset: 'browser' },
-      { bg: 'linear-gradient(135deg,#059669,#0d9488)', icon: '🧩', t: zh ? '自由拼装台' : 'Plugin Builder', s: `${enabledList.length} Active`, jump: '#builder' }
-    ];
+    let leftHtml = '';
+    let lensTag = '';
+    let lensBig = '';
+    let lensDesc = '';
+    let lensKvs = [];
+    let statusLabel = '';
 
-    const quickBarHtml = enabledList.length > 0
-      ? `
+    if (prof === 'minimal') {
+      // Preset 2: Minimal Focus — Bento hidden, 2-row (16-slot style) Hybrid Omni Dock + Quick Shelf
+      statusLabel = `Home: Minimal Focus · ${enabledList.length} Active Plugins`;
+      const dockRows = [
+        [
+          { dot: 'linear-gradient(135deg,#0284c7,#2563eb)', label: 'Xcode' },
+          { dot: 'linear-gradient(135deg,#059669,#10b981)', label: 'Ghostty' },
+          { dot: 'linear-gradient(135deg,#7c3aed,#4338ca)', label: 'Cursor' },
+          { dot: 'linear-gradient(135deg,#ea580c,#ef4444)', label: 'Safari' }
+        ],
+        [
+          { dot: 'linear-gradient(135deg,#ec4899,#8b5cf6)', label: zh ? 'AI 额度' : 'AI Quota' },
+          { dot: 'linear-gradient(135deg,#0d9488,#14b8a6)', label: '~/Code' },
+          { dot: 'linear-gradient(135deg,#f59e0b,#ea580c)', label: 'GitHub' },
+          { dot: 'linear-gradient(135deg,#4f46e5,#0ea5e9)', label: 'Obsidian' }
+        ]
+      ];
+      leftHtml = `
+        <div class="home-profile-strip">
+          <span>${zh ? '当前启动面板方案：极简纯搜 (已隐藏大磁贴与底部提示)' : 'Active Profile: Minimal Focus (Bento & Tips Hidden)'}</span>
+          <span class="mono">2×8 Omni Dock</span>
+        </div>
+        <div class="dock-strip-label">
+          <span>${zh ? '双排混合高频坞 (本机 App + 插件 + 常用目录 + 书签混排)' : '2-Row Hybrid Omni Dock (Apps + Plugins + Folders + URLs)'}</span>
+          <span class="mono">⌘1..8</span>
+        </div>
+        ${dockRows.map((row) => `
+          <div class="dock-mini-row">
+            ${row.map((it) => `<div class="dock-app-pill"><span class="dock-app-dot" style="background:${it.dot}"></span>${it.label}</div>`).join('')}
+          </div>
+        `).join('')}
         <div class="quick-btn-bar-mock">
-          <span class="quick-btn-label">${zh ? '已挂载快捷按钮：' : 'Quick Bar:'}</span>
-          ${enabledList.slice(0, 4).map((p) => `
-            <span class="quick-btn-pill" data-jump-builder="${p.id}">${zh ? p.quickZh : p.quickEn}</span>
+          <span class="quick-btn-label">${zh ? '快捷入口架：' : 'Quick Access:'}</span>
+          <span class="quick-btn-pill" data-preset-jump="translate">${zh ? '✂️ 区域截图' : '✂️ Capture'}</span>
+          <span class="quick-btn-pill" data-preset-jump="translate">${zh ? '🔎 离线识字' : '🔎 Offline OCR'}</span>
+          <span class="quick-btn-pill" data-preset-jump="remind">${zh ? '📋 剪贴板历史' : '📋 Clipboard'}</span>
+          <span class="quick-btn-pill" data-preset-jump="dev">${zh ? '∑ 算式换算' : '∑ Unit Math'}</span>
+        </div>
+      `;
+      lensTag = 'HomeLayoutPreset · minimal';
+      lensBig = zh ? '极简双排混合坞' : 'Minimal 16-Slot';
+      lensDesc = zh
+        ? '不喜欢花哨磁贴？一键切换「极简纯搜」方案即可关掉大号 Bento 磁贴与提示条，只留双排混合高频坞（支持把常用软件、~/Code 目录、网页和插件混排在一起）。'
+        : 'Prefer zero visual clutter? Minimal Focus hides Bento tiles and tips, leaving a clean 2-row hybrid Omni Dock mixing native apps, folders, URLs, and plugins.';
+      lensKvs = [
+        [zh ? '可见分区' : 'Visible Zones', 'omniDock (2 Rows) + pillShelves'],
+        [zh ? '补位策略' : 'Fill Mode', 'smartHybrid (Pinned + log₂)'],
+        [zh ? '安全回退' : 'Safety Undo', '1-Click undoLastChange']
+      ];
+    } else if (prof === 'developer') {
+      // Preset 3: Developer Workbench — 6 Dev Bento tiles + Dev Plugins & Dev Bookmarks Shelves + Query Chips
+      statusLabel = `Home: Developer Workbench · ${enabledList.length} Active Plugins`;
+      const devTiles = [
+        { bg: 'linear-gradient(135deg,#0284c7,#2563eb)', icon: '▤', t: zh ? '双栏文件台' : 'Workspace', s: '⌥E · NTFS Guard', jump: '#capabilities' },
+        { bg: 'linear-gradient(135deg,#db2777,#e11d48)', icon: '📌', t: zh ? '贴图与标注' : 'Pin & Capture', s: '⌥A · Click-Thru', jump: '#capabilities' },
+        { bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', icon: '🔎', t: zh ? '离线 OCR' : 'Offline OCR', s: '⌥O · Vision', preset: 'translate' },
+        { bg: 'linear-gradient(135deg,#4f46e5,#0ea5e9)', icon: '⇄', t: zh ? '实时进程网速' : 'Socket Net', s: '⌥N · Endpoints', jump: '#capabilities' },
+        { bg: 'linear-gradient(135deg,#059669,#10b981)', icon: '⚡', t: zh ? '芯片功耗脉搏' : 'Chip Wattage', s: '⌥M · P/E Cores', jump: '#capabilities' },
+        { bg: 'linear-gradient(135deg,#ea580c,#f59e0b)', icon: '🧹', t: zh ? '缓存清理' : 'Cache Clean', s: 'Safe to Trash', jump: '#capabilities' }
+      ];
+      leftHtml = `
+        <div class="bento-mini-grid">
+          ${devTiles.map((tile, idx) => `
+            <div class="bento-tile" data-dev-idx="${idx}">
+              <span class="squircle-badge" style="background:${tile.bg}">${tile.icon}</span>
+              <div>
+                <div class="bento-tile-title">${tile.t}</div>
+                <div class="bento-tile-sub mono">${tile.s}</div>
+              </div>
+            </div>
           `).join('')}
         </div>
-      `
-      : `
-        <div class="quick-btn-bar-mock">
-          <span class="quick-btn-label">${zh ? '纯净微内核态：未挂载任何快捷按钮（可在下方拼装台按需开启）' : 'Pure Micro-Core: Quick Bar hidden (enable plugins below)'}</span>
+        <div class="shelf-group-stack">
+          <div class="quick-btn-bar-mock">
+            <span class="quick-btn-label">${zh ? '开发书签架：' : 'Dev Bookmarks:'}</span>
+            <span class="quick-btn-pill">🌐 GitHub</span>
+            <span class="quick-btn-pill">⚡ Localhost :3000</span>
+            <span class="quick-btn-pill">📘 cursor://repo</span>
+            <span class="quick-btn-pill" data-jump-builder="ai-quota">📊 AI Quota</span>
+          </div>
+          <div class="quick-btn-bar-mock">
+            <span class="quick-btn-label">${zh ? '试搜芯片：' : 'Query Chips:'}</span>
+            <span class="quick-btn-pill mono" data-fill-query="port 3000">port 3000</span>
+            <span class="quick-btn-pill mono" data-fill-query="swift">ext:swift</span>
+            <span class="quick-btn-pill mono" data-fill-query="256 * 1024 bytes to mb">256 KiB → MB</span>
+          </div>
+        </div>
+      `;
+      lensTag = 'HomeLayoutPreset · developer';
+      lensBig = zh ? '开发者工作台主页' : 'Developer Hub';
+      lensDesc = zh
+        ? '专为写代码与联调配置的主页 Profile：置顶双栏整理台、功耗与网速监控，并挂载支持 cursor:// / vscode:// 协议与指定浏览器打开的开发书签架；也可让 lumakey-mcp 一句话自动生成！'
+        : 'Tailored for coding & debugging: pins Dual Workspace, Wattage & Socket monitors alongside URL shelves supporting cursor://, vscode://, and per-bookmark browser overrides.';
+      lensKvs = [
+        [zh ? '书签协议白名单' : 'Safe URL Schemes', 'https · cursor · vscode · obsidian'],
+        [zh ? '分组胶囊架' : 'Pill Shelves', zh ? '最多 6 组自定义命名架' : 'Up to 6 Named Shelves'],
+        [zh ? 'AI 自动编排' : 'MCP Orchestration', 'lumakey_update_home_layout']
+      ];
+    } else if (prof === 'creatorBookmarks') {
+      // Preset 4: 4-Column Compact Bento (8 tiles) + Curated Bookmarks & Custom Apps Shelves
+      statusLabel = `Home: 4-Col Apps & Bookmarks · ${enabledList.length} Active Plugins`;
+      const compactTiles = [
+        { bg: 'linear-gradient(135deg,#0066dc,#2563eb)', icon: '✂️', t: zh ? '区域截图' : 'Capture', s: '⌥A' },
+        { bg: 'linear-gradient(135deg,#db2777,#e11d48)', icon: '🎞️', t: zh ? '录制 GIF' : 'GIF Rec', s: '⌥G' },
+        { bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', icon: '🔎', t: zh ? '离线识字' : 'OCR', s: '⌥O' },
+        { bg: 'linear-gradient(135deg,#059669,#0d9488)', icon: '📋', t: zh ? '剪贴板' : 'Clips', s: '15 Undo' },
+        { bg: 'linear-gradient(135deg,#ec4899,#8b5cf6)', icon: '📊', t: zh ? 'AI 额度' : 'AI HUD', s: 'Plugin' },
+        { bg: 'linear-gradient(135deg,#4338ca,#6366f1)', icon: '🌐', t: zh ? '流光译站' : 'Translate', s: 'Plugin' },
+        { bg: 'linear-gradient(135deg,#ea580c,#f59e0b)', icon: '⏰', t: zh ? '闪电提醒' : 'Remind', s: 'Plugin' },
+        { bg: 'linear-gradient(135deg,#0891b2,#2563eb)', icon: '🎛️', t: zh ? '中控台' : 'Mac Pilot', s: 'Plugin' }
+      ];
+      leftHtml = `
+        <div class="bento-mini-grid cols-4">
+          ${compactTiles.map((tile) => `
+            <div class="bento-tile" data-jump-builder="ai-quota">
+              <span class="squircle-badge" style="background:${tile.bg}">${tile.icon}</span>
+              <div>
+                <div class="bento-tile-title">${tile.t}</div>
+                <div class="bento-tile-sub mono">${tile.s}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="shelf-group-stack">
+          <div class="quick-btn-bar-mock">
+            <span class="quick-btn-label">${zh ? '精选书签架：' : 'Curated Web:'}</span>
+            <span class="quick-btn-pill">🧭 Safari 阅读单</span>
+            <span class="quick-btn-pill">📑 Notion 知识库</span>
+            <span class="quick-btn-pill">🎨 Figma 设计稿</span>
+          </div>
+          <div class="quick-btn-bar-mock">
+            <span class="quick-btn-label">${zh ? '自制与扩展：' : 'Custom Apps:'}</span>
+            ${(enabledList.length > 0 ? enabledList.slice(0, 3) : PLUGINS.slice(0, 3)).map((p) => `
+              <span class="quick-btn-pill" data-jump-builder="${p.id}">${zh ? p.quickZh : p.quickEn}</span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      lensTag = 'HomeLayoutPreset · 4-Column Bento';
+      lensBig = zh ? '4 列紧凑 × 书签架' : '4-Col + Shelves';
+      lensDesc = zh
+        ? '高频入口比较多？把 Bento 磁贴切成 4 列紧凑模式即可一屏放下 8 枚彩色磁贴，搭配下方多组命名书签架，搜到任何结果点右键就能直接钉进来！'
+        : 'Have lots of daily shortcuts? Switch Bento to 4-column compact density (up to 16 tiles) paired with named bookmark & custom plugin shelves.';
+      lensKvs = [
+        [zh ? '磁贴列数可选' : 'Bento Columns', '2 Wide / 3 Standard / 4 Compact'],
+        [zh ? '单条目外观定制' : 'Per-Item Style', zh ? '自定义标题 / 图标 / 强调色' : 'Custom Title, Icon & Color'],
+        [zh ? '跨机加密漫游' : 'Cross-Mac Sync', 'home-layout.json in Backup v2']
+      ];
+    } else {
+      // Default Preset 1: Balanced Home (3×2 Bento + Mounted Plugin Quick Shelf + Smart Hybrid Dock)
+      statusLabel = `Home: Balanced · ${enabledList.length} Active Plugin(s)`;
+      const tiles = [
+        { bg: 'linear-gradient(135deg,#0066dc,#2563eb)', icon: '🔍', t: zh ? '全盘秒搜' : 'Disk Search', s: 'LMKYIDX3 mmap', scope: 'files' },
+        { bg: 'linear-gradient(135deg,#ec4899,#8b5cf6)', icon: '📊', t: zh ? 'AI 额度雷达' : 'AI Quota HUD', s: 'Floating Glass HUD', fillQ: 'aiq' },
+        { bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', icon: '🌐', t: zh ? '流光译站' : 'Translate Hub', s: 'Plugin · OCR/划词', preset: 'translate' },
+        { bg: 'linear-gradient(135deg,#db2777,#e11d48)', icon: '✂️', t: zh ? '截图与 GIF' : 'Capture & GIF', s: '⌥A / ⌥G / ⌥O', jump: '#capabilities' },
+        { bg: 'linear-gradient(135deg,#ea580c,#f59e0b)', icon: '⏰', t: zh ? '闪电提醒' : 'Quick Remind', s: 'Plugin · 10m 喝水', preset: 'remind' },
+        { bg: 'linear-gradient(135deg,#059669,#0d9488)', icon: '🧩', t: zh ? '高度定制台' : 'Customizer', s: `${enabledList.length} Active`, jump: '#builder' }
+      ];
+
+      const quickBarHtml = enabledList.length > 0
+        ? `
+          <div class="quick-btn-bar-mock">
+            <span class="quick-btn-label">${zh ? '已钉胶囊架：' : 'Pinned Shelf:'}</span>
+            ${enabledList.slice(0, 4).map((p) => `
+              <span class="quick-btn-pill" data-jump-builder="${p.id}">${zh ? p.quickZh : p.quickEn}</span>
+            `).join('')}
+          </div>
+        `
+        : `
+          <div class="quick-btn-bar-mock">
+            <span class="quick-btn-label">${zh ? '纯净微内核态：未挂载任何扩展胶囊（可在下方定制台按需开启）' : 'Pure Micro-Core: Plugin shelf hidden (enable below)'}</span>
+          </div>
+        `;
+
+      leftHtml = `
+        <div class="bento-mini-grid">
+          ${tiles.map((tile, idx) => `
+            <div class="bento-tile" data-bal-idx="${idx}">
+              <span class="squircle-badge" style="background:${tile.bg}">${tile.icon}</span>
+              <div>
+                <div class="bento-tile-title">${tile.t}</div>
+                <div class="bento-tile-sub mono">${tile.s}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${quickBarHtml}
+        <div class="dock-strip-label">
+          <span>${zh ? '混合高频应用坞 (手动钉选优先 + log₂ 智能常驻补位)' : 'Hybrid Omni Dock (Pinned First + log₂ Smart Fill)'}</span>
+          <span class="mono">⌘1..4</span>
+        </div>
+        <div class="dock-mini-row">
+          <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#0284c7,#2563eb)"></span>Xcode</div>
+          <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#059669,#10b981)"></span>Ghostty</div>
+          <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#7c3aed,#4338ca)"></span>Cursor</div>
+          <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#ea580c,#ef4444)"></span>Safari</div>
         </div>
       `;
 
-    leftPane.innerHTML = `
-      <div class="bento-mini-grid">
-        ${tiles.map((tile, idx) => `
-          <div class="bento-tile" data-tile-idx="${idx}">
-            <span class="squircle-badge" style="background:${tile.bg}">${tile.icon}</span>
-            <div>
-              <div class="bento-tile-title">${tile.t}</div>
-              <div class="bento-tile-sub mono">${tile.s}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      ${quickBarHtml}
-      <div class="dock-strip-label">
-        <span>${zh ? '智能常驻应用坞 (log₂ 活跃时长加权)' : 'Smart App Dock (log₂ Active Weighted)'}</span>
-        <span class="mono">⌘1..4</span>
-      </div>
-      <div class="dock-mini-row">
-        <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#0284c7,#2563eb)"></span>Xcode</div>
-        <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#059669,#10b981)"></span>Ghostty</div>
-        <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#7c3aed,#4338ca)"></span>Cursor</div>
-        <div class="dock-app-pill"><span class="dock-app-dot" style="background:linear-gradient(135deg,#ea580c,#ef4444)"></span>Safari</div>
-      </div>
-    `;
+      lensTag = zh ? '全新启动面板自定义' : 'Customizable Launch Panel';
+      lensBig = zh ? `4 区自由编排` : `4 Modular Zones`;
+      lensDesc = zh
+        ? '点击上方按钮即可实时切换「均衡默认 / 极简 16 格坞 / 开发者主页 / 4 列书签架」4 套主页方案！左侧胶囊架还与下方高度定制台实时联动，支持多套场景 Profile 与 AI 一句话排布。'
+        : 'Click the preset chips above to switch live between Balanced, Minimal 16-Slot Dock, Developer Hub, and 4-Column Bookmark layouts — synced live with the workbench below!';
+      lensKvs = [
+        [zh ? '多场景主页方案' : 'Home Profiles', zh ? '最多 8 套独立方案秒切' : 'Up to 8 Switchable Profiles'],
+        [zh ? '视窗恒定尺寸' : 'Constant Frame', '880 × 544 (Zero-Jitter)'],
+        [zh ? 'AI 定制工具数' : 'Embedded MCP', 'lumakey-mcp (16 Tools)']
+      ];
+
+      setTimeout(() => {
+        leftPane.querySelectorAll('[data-bal-idx]').forEach((el) => {
+          el.addEventListener('click', () => {
+            const t = tiles[Number(el.getAttribute('data-bal-idx'))];
+            if (!t) return;
+            if (t.preset) applyPreset(t.preset);
+            else if (t.fillQ) {
+              state.query = t.fillQ;
+              if (launcherInput) launcherInput.value = t.fillQ;
+              renderLauncher();
+            } else if (t.scope) {
+              state.scope = t.scope;
+              syncScopeButtons();
+              renderLauncher();
+            } else if (t.jump) {
+              document.querySelector(t.jump)?.scrollIntoView({ behavior: 'smooth' });
+            }
+          });
+        });
+      }, 0);
+    }
+
+    if (engineStatus) engineStatus.textContent = statusLabel;
+    leftPane.innerHTML = leftHtml;
 
     rightLens.innerHTML = `
       <div class="lens-card">
         <div>
           <div class="lens-header">
-            <span class="accent-pill">${zh ? '底座 + 插件一等公民' : 'Core + Native Plugins'}</span>
+            <span class="accent-pill">${lensTag}</span>
             <span class="mono" style="font-size:11px;color:var(--text-tertiary)">⌥Space</span>
           </div>
-          <div class="lens-big-value gradient-text">${
-            zh ? `已挂载 ${enabledList.length} 款扩展` : `${enabledList.length} Plugins Active`
-          }</div>
-          <p class="lens-desc">
-            ${zh
-              ? '左侧快捷按钮栏与下方「自由拼装台」实时双向联动！你可以保持 0 插件极简底座，也可将官方插件或 AI 生成的私有工具无缝融为一等公民。'
-              : 'Synced live with the Customize Workbench below! Run with 0 plugins for pure minimalism, or fuse curated & AI-generated tools seamlessly.'}
-          </p>
+          <div class="lens-big-value gradient-text">${lensBig}</div>
+          <p class="lens-desc">${lensDesc}</p>
         </div>
         <div class="lens-kv-list">
-          <div class="lens-kv"><span>${zh ? '当前视觉主题' : 'Active Theme'}</span><span>${
-            state.theme === 'pure-frost' ? (zh ? '凝霜留白 Pure Frost' : 'Pure Frost') : (zh ? '霓彩流光 Prism Pulse' : 'Prism Pulse')
-          }</span></div>
-          <div class="lens-kv"><span>${zh ? '视窗恒定尺寸' : 'Constant Frame'}</span><span class="mono">880 × 544 (0-Jitter)</span></div>
-          <div class="lens-kv"><span>${zh ? 'AI 造插件协议' : 'AI Plugin Bridge'}</span><span class="mono">lumakey-mcp (12 Tools)</span></div>
+          ${lensKvs.map(([k, v]) => `<div class="lens-kv"><span>${k}</span><span class="mono">${v}</span></div>`).join('')}
         </div>
       </div>
     `;
 
-    leftPane.querySelectorAll('.bento-tile').forEach((el, idx) => {
-      el.addEventListener('click', () => {
-        const t = tiles[idx];
-        if (t.preset) applyPreset(t.preset);
-        else if (t.scope) {
-          state.scope = t.scope;
-          syncScopeButtons();
-          renderLauncher();
-        } else if (t.jump) {
-          document.querySelector(t.jump)?.scrollIntoView({ behavior: 'smooth' });
-        }
+    leftPane.querySelectorAll('[data-jump-builder]').forEach((pill) => {
+      pill.addEventListener('click', () => {
+        state.focusedPluginId = pill.getAttribute('data-jump-builder') || 'ai-quota';
+        renderWorkbench();
+        document.getElementById('builder')?.scrollIntoView({ behavior: 'smooth' });
       });
     });
 
-    leftPane.querySelectorAll('[data-jump-builder]').forEach((pill) => {
+    leftPane.querySelectorAll('[data-preset-jump]').forEach((pill) => {
+      pill.addEventListener('click', () => applyPreset(pill.getAttribute('data-preset-jump')));
+    });
+
+    leftPane.querySelectorAll('[data-fill-query]').forEach((pill) => {
       pill.addEventListener('click', () => {
-        state.focusedPluginId = pill.getAttribute('data-jump-builder');
-        renderWorkbench();
-        document.getElementById('builder')?.scrollIntoView({ behavior: 'smooth' });
+        const q = pill.getAttribute('data-fill-query') || '';
+        state.query = q;
+        if (launcherInput) launcherInput.value = q;
+        document.querySelectorAll('.preset-chip').forEach((c) => c.classList.remove('active'));
+        renderLauncher();
+      });
+    });
+
+    leftPane.querySelectorAll('[data-dev-idx]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const idx = Number(el.getAttribute('data-dev-idx'));
+        if (idx === 2) applyPreset('translate');
+        else document.getElementById('capabilities')?.scrollIntoView({ behavior: 'smooth' });
       });
     });
   }
@@ -1013,7 +1298,7 @@
             <span class="accent-pill">${l.tag}</span>
             <kbd class="keycap">${item.shortcut}</kbd>
           </div>
-          <div class="lens-big-value gradient-text mono">${l.big}</div>
+          <div class="lens-big-value gradient-text mono">${zh ? (l.bigZh || l.big) : (l.bigEn || l.big)}</div>
           <p class="lens-desc">${zh ? l.descZh : l.descEn}</p>
         </div>
         <div class="lens-kv-list">
@@ -1027,12 +1312,8 @@
     if (!leftPane || !rightLens) return;
     const q = state.query.trim().toLowerCase();
     const zh = state.lang === 'zh';
-    const activeCount = state.enabledPlugins.size;
 
     if (!q && state.scope === 'all') {
-      if (engineStatus) {
-        engineStatus.textContent = `Core + ${activeCount} Active Plugin(s) · 0ms Ready`;
-      }
       renderBentoHome();
       return;
     }
@@ -1054,20 +1335,20 @@
           id: 'dynamic-search',
           badgeBg: 'linear-gradient(135deg,#0066dc,#4338ca)',
           badgeText: '✦',
-          titleZh: `并发检索底座与已启用插件：“${state.query}”`,
+          titleZh: `并发检索全盘、剪贴板与已启用插件：“${state.query}”`,
           titleEn: `Unified Core + Plugin Match: "${state.query}"`,
-          subZh: '同时扫描本地应用 · LMKYIDX3 全盘文件 · 剪贴板 · 0ms 插件索引',
-          subEn: 'Scans Apps · LMKYIDX3 Disk · Clipboard · 0ms Plugin Index',
+          subZh: '同时扫描本地应用 · LMKYIDX3 移动硬盘与全盘 · 剪贴板 · 0ms 插件索引',
+          subEn: 'Scans Apps · LMKYIDX3 Drives · Clipboard · 0ms Plugin Index',
           shortcut: '⌘1',
           lens: {
             tag: 'LauncherEngine · 0.3ms',
             big: state.query.slice(0, 14),
-            descZh: '如果现有插件不满足这个指令，只需对 Claude / Cursor 说一句话，lumakey-mcp 就能在 10 秒内为你生成对应插件！',
-            descEn: 'Need a custom command for this? Ask Claude or Cursor via lumakey-mcp to scaffold and hot-reload it in 10 seconds.',
+            descZh: '搜到的任意结果点右键即可直接钉上你的自定义启动面板；若想新增专属指令，对 Claude / Cursor 说一句话就能十秒造出插件！',
+            descEn: 'Right-click any hit to pin straight onto your Launch Panel, or ask Claude / Cursor via lumakey-mcp to build a custom command in 10s.',
             kvs: [
               ['Scope', state.scope.toUpperCase()],
               ['Frame Lock', '880 × 544 Constant'],
-              ['Selection Guard', 'ID-Anchored (Zero Jump)']
+              ['Pin Action', 'Right-Click → Home Profile']
             ]
           }
         }
@@ -1075,7 +1356,7 @@
     }
 
     if (engineStatus) {
-      engineStatus.textContent = `Matched ${matches.length} item(s) · 0.3ms`;
+      engineStatus.textContent = `Matched ${matches.length} item(s) · Right-Click to Pin · 0.3ms`;
     }
 
     leftPane.innerHTML = `
@@ -1119,9 +1400,11 @@
     const p = PRESETS[presetKey];
     if (!p) return;
     state.preset = presetKey;
-    state.query = p.query;
+    if (p.homeProfile) state.homeProfile = p.homeProfile;
+    const qVal = state.lang === 'zh' ? p.queryZh : p.queryEn;
+    state.query = qVal;
     state.scope = p.scope;
-    if (launcherInput) launcherInput.value = p.query;
+    if (launcherInput) launcherInput.value = qVal;
     document.querySelectorAll('.preset-chip').forEach((chip) => {
       chip.classList.toggle('active', chip.dataset.preset === presetKey);
     });
@@ -1208,21 +1491,21 @@
   const SNIFFER_MODES = {
     repo: {
       url: `${REPO_BASE}/tree/main/plugin-demo`,
-      kind: 'Store Registry (7 Plugins)',
-      descZh: '自动识别开源仓库子目录并定位 lumakey-registry.json，一键订阅全部 7 款官方插件并校验 SHA-256。',
-      descEn: 'Auto-resolves repository subdirectory to lumakey-registry.json, subscribing all 7 curated plugins with SHA-256 verification.'
+      kind: 'Store Registry (8 Plugins)',
+      descZh: '自动识别开源仓库子目录并定位 lumakey-registry.json，一键订阅全部 8 款官方插件（含 AI 额度雷达悬浮窗）并强制核对 SHA-256。',
+      descEn: 'Auto-resolves repository subdirectory to lumakey-registry.json, subscribing all 8 curated plugins (incl. AI Quota HUD) with SHA-256 verification.'
     },
     registry: {
       url: `${REPO_BASE}/blob/main/plugin-demo/lumakey-registry.json`,
       kind: 'JSON Store Manifest',
-      descZh: '直接解析商店索引清单 JSON，支持增量检查版本更新与防伪装沙箱能力比对。',
-      descEn: 'Parses store manifest JSON directly with one-click version updates and capability boundary checks.'
+      descZh: '直接解析商店索引清单 JSON，支持增量检查版本更新与防伪装沙箱权限比对，任何悄悄越权都会被拦截。',
+      descEn: 'Parses store manifest JSON directly with one-click version updates and anti-spoofing capability boundary checks.'
     },
     archive: {
-      url: 'plugin-demo/dist/translate-hub-1.0.0.zip',
+      url: 'plugin-demo/dist/ai-quota.zip',
       kind: 'Direct Plugin Package',
-      descZh: '无需搭建商店，直接嗅探独立 .lumakeyplugin / .zip 归档包并在展示所需沙箱权限后安全安装。',
-      descEn: 'Installs standalone .lumakeyplugin / .zip packages directly after previewing requested Seatbelt permissions.'
+      descZh: '无需搭建商店，直接嗅探独立插件压缩包并在清晰展示所需沙箱与窗口权限后安心安装。',
+      descEn: 'Installs standalone plugin zip packages directly after previewing requested Seatbelt and floatingWindow permissions.'
     }
   };
 
@@ -1276,10 +1559,21 @@
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       const key = el.getAttribute('data-i18n');
       if (dict[key] !== undefined) {
-        if (dict[key].includes('<strong>')) {
-          el.innerHTML = dict[key];
+        const val = dict[key];
+        if (val.includes('<strong>')) {
+          el.innerHTML = val;
+        } else if (val.includes('|')) {
+          el.innerHTML = val
+            .split('|')
+            .map((s) => {
+              const trail = /\s$/.test(s) ? ' ' : '';
+              return `<span class="title-clause">${s.trim()}</span>${trail}`;
+            })
+            .join('');
+        } else if (val.includes('\n')) {
+          el.innerHTML = val.split('\n').join('<br/>');
         } else {
-          el.textContent = dict[key];
+          el.textContent = val;
         }
       }
     });
@@ -1290,6 +1584,24 @@
     const themeLabel = document.getElementById('themeToggleLabel');
     if (themeLabel) {
       themeLabel.textContent = state.theme === 'pure-frost' ? dict.theme_frost : dict.theme_prism;
+    }
+
+    document.title = lang === 'zh'
+      ? '流光 Lumakey — 2D 图文详解与启动面板定制实验台'
+      : 'Lumakey — 2D Overview & Interactive Launch Panel Workbench';
+
+    const navCap = document.querySelector('.nav-capsule');
+    if (navCap) navCap.setAttribute('aria-label', lang === 'zh' ? '主导航' : 'Primary navigation');
+    const presetsEl = document.querySelector('.launcher-presets');
+    if (presetsEl) presetsEl.setAttribute('aria-label', lang === 'zh' ? '交互式启动面板布局与搜索场景切换' : 'Switch Launch Panel layouts or sample searches');
+    const profBar = document.getElementById('builderProfileBar');
+    if (profBar) profBar.setAttribute('aria-label', lang === 'zh' ? '一键切换组合方案' : 'Quick plugin bundle presets');
+
+    if (state.preset && PRESETS[state.preset] && document.querySelector(`.preset-chip.active[data-preset="${state.preset}"]`)) {
+      const p = PRESETS[state.preset];
+      const nextQ = lang === 'zh' ? p.queryZh : p.queryEn;
+      state.query = nextQ;
+      if (launcherInput) launcherInput.value = nextQ;
     }
 
     if (launcherInput) launcherInput.placeholder = dict.placeholder_search;
@@ -1343,69 +1655,58 @@
   });
 
   const MCP_BIN_PATH = '/Applications/Lumakey.app/Contents/MacOS/lumakey-mcp';
+  const RESIGN_URL = 'https://raw.githubusercontent.com/lengsukq/Lumakey/main/scripts/resign-local-app.sh';
   const TERMINAL_SNIPPETS = {
     mcp: {
-      raw: `{
-  "mcpServers": {
-    "lumakey": {
-      "command": "${MCP_BIN_PATH}"
-    }
-  }
-}`,
-      htmlZh: `<span class="cmd-comment">// 接入 Claude Code / Cursor / Codex，对 AI 说一句话即可造插件：</span>
+      raw: `claude mcp add lumakey ${MCP_BIN_PATH}`,
+      htmlZh: `<span class="cmd-comment"># 1. 一行命令接入 Claude Code（内置 16 项造插件与排主页工具）：</span>
+<span class="cmd-prompt">$ </span>claude mcp add lumakey ${MCP_BIN_PATH}
+
+<span class="cmd-comment">// 或写入 Cursor / Codex / Gemini CLI 的 MCP 配置文件：</span>
 {
   <span class="cmd-key">"mcpServers"</span>: {
-    <span class="cmd-key">"lumakey"</span>: {
-      <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span>
-    }
+    <span class="cmd-key">"lumakey"</span>: { <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span> }
   }
 }
-<span class="cmd-comment">// 或一行命令注册至 Claude Code：</span>
-<span class="cmd-prompt">$ </span>claude mcp add lumakey ${MCP_BIN_PATH}`,
-      htmlEn: `<span class="cmd-comment">// Connect Claude Code / Cursor / Codex to build plugins in 1 sentence:</span>
+<span class="cmd-comment"># 2. 直接用大白话对 AI 说：“帮我配一套极简开发启动面板，再做个查端口插件”</span>`,
+      htmlEn: `<span class="cmd-comment"># 1. Register built-in 16-tool MCP server with Claude Code:</span>
+<span class="cmd-prompt">$ </span>claude mcp add lumakey ${MCP_BIN_PATH}
+
+<span class="cmd-comment">// Or add to Cursor / Codex / Gemini CLI MCP config:</span>
 {
   <span class="cmd-key">"mcpServers"</span>: {
-    <span class="cmd-key">"lumakey"</span>: {
-      <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span>
-    }
+    <span class="cmd-key">"lumakey"</span>: { <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span> }
   }
 }
-<span class="cmd-comment">// Or register with Claude Code in one command:</span>
-<span class="cmd-prompt">$ </span>claude mcp add lumakey ${MCP_BIN_PATH}`
+<span class="cmd-comment"># 2. Ask AI: "Set up a Minimal Dev launch panel & build me a port inspector plugin"</span>`
     },
     plugins: {
-      raw: `git clone ${REPO_BASE}.git
-cd Lumakey
-bash plugin-demo/install-demo-plugins.sh`,
-      htmlZh: `<span class="cmd-comment"># 方法 A：在「设置 → 插件」单地址框直接粘贴仓库链接自动订阅</span>
+      raw: `${REPO_BASE}/tree/main/plugin-demo`,
+      htmlZh: `<span class="cmd-comment"># 方法 A（推荐普通用户）：打开「设置 → 插件中心」，粘贴下面链接一键订阅</span>
 <span class="cmd-str">${REPO_BASE}/tree/main/plugin-demo</span>
 
-<span class="cmd-comment"># 方法 B：终端一键部署全部 7 款官方旗舰插件（热重载立即生效）</span>
-<span class="cmd-prompt">$ </span>bash plugin-demo/install-demo-plugins.sh`,
-      htmlEn: `<span class="cmd-comment"># Option A: Paste repo URL into Settings → Plugins smart bar</span>
+<span class="cmd-comment"># 方法 B（极客终端）：克隆仓库后一键部署全部 8 款官方旗舰插件（含 AI 额度雷达）</span>
+<span class="cmd-prompt">$ </span>bash plugin-demo/install.sh`,
+      htmlEn: `<span class="cmd-comment"># Option A (Easiest): Paste repo URL into Settings → Plugins smart bar</span>
 <span class="cmd-str">${REPO_BASE}/tree/main/plugin-demo</span>
 
-<span class="cmd-comment"># Option B: Install all 7 official flagship plugins locally</span>
-<span class="cmd-prompt">$ </span>bash plugin-demo/install-demo-plugins.sh`
+<span class="cmd-comment"># Option B (CLI): Install all 8 official flagship plugins locally (hot-reloads live)</span>
+<span class="cmd-prompt">$ </span>bash plugin-demo/install.sh`
     },
     install: {
-      raw: `git clone ${REPO_BASE}.git
-cd Lumakey
-bash scripts/install-macos.sh`,
-      htmlZh: `<span class="cmd-comment"># 克隆源码并一键构建安装至 /Applications/Lumakey.app</span>
-<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git
-<span class="cmd-prompt">$ </span>cd Lumakey
-<span class="cmd-prompt">$ </span>bash scripts/install-macos.sh
+      raw: `curl -fsSL ${RESIGN_URL} | bash`,
+      htmlZh: `<span class="cmd-comment"># 升级小技巧：绑定本机自签名证书，今后替换新版 .app 免重复勾选系统权限</span>
+<span class="cmd-prompt">$ </span>curl -fsSL ${RESIGN_URL} | bash
 
-<span class="cmd-comment"># 运行全量架构门禁 + 单测 + lumakey-mcp 往返校验</span>
-<span class="cmd-prompt">$ </span>bash scripts/verify-macos.sh`,
-      htmlEn: `<span class="cmd-comment"># Clone & build native arm64 bundle to /Applications/Lumakey.app</span>
-<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git
-<span class="cmd-prompt">$ </span>cd Lumakey
-<span class="cmd-prompt">$ </span>bash scripts/install-macos.sh
+<span class="cmd-comment"># 极客从源码构建安装至 /Applications/Lumakey.app 并跑全量门禁校验</span>
+<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git && cd Lumakey
+<span class="cmd-prompt">$ </span>bash scripts/install-macos.sh && bash scripts/verify-macos.sh`,
+      htmlEn: `<span class="cmd-comment"># Upgrade Tip: Bind a local machine cert so future DMG updates keep macOS TCC grants</span>
+<span class="cmd-prompt">$ </span>curl -fsSL ${RESIGN_URL} | bash
 
-<span class="cmd-comment"># Run DAG check + Swift 6 tests + live lumakey-mcp audit</span>
-<span class="cmd-prompt">$ </span>bash scripts/verify-macos.sh`
+<span class="cmd-comment"># Build native arm64 bundle from source & run full DAG + 300-LOC + MCP gates</span>
+<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git && cd Lumakey
+<span class="cmd-prompt">$ </span>bash scripts/install-macos.sh && bash scripts/verify-macos.sh`
     }
   };
 

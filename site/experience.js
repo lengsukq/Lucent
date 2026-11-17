@@ -49,72 +49,76 @@ const UMD_CANDIDATES = [
 const CDN_RACE_TIMEOUT_MS = 950;
 
 const PLUGINS = [
+  { id: 'ai-quota', zh: 'AI 额度雷达', en: 'AI Quota HUD', color: 0xec4899 },
   { id: 'translate-hub', zh: '流光译站', en: 'Translate Hub', color: 0xa855f7 },
   { id: 'browser-hub', zh: '三端书签', en: 'Browser Hub', color: 0x6366f1 },
   { id: 'quick-remind', zh: '闪电提醒', en: 'Quick Remind', color: 0xf59e0b },
   { id: 'mac-pilot', zh: '桌面中控台', en: 'Mac Pilot', color: 0x0ea5e9 },
   { id: 'screen-shield', zh: '状态屏遮罩', en: 'Screen Shield', color: 0x14b8a6 },
   { id: 'lumalink-companion', zh: '流光随行', en: 'LumaLink', color: 0x38bdf8 },
-  { id: 'notion-bookmarks', zh: 'Notion 密钥箱', en: 'Notion Vault', color: 0x10b981 },
-  { id: 'gh-pr-radar', zh: 'PR 审查雷达', en: 'PR Radar (AI)', color: 0xec4899 }
+  { id: 'notion-bookmarks', zh: 'Notion 密钥箱', en: 'Notion Vault', color: 0x10b981 }
 ];
 
 const DAG_NODES = [
-  { id: 'Lumakey.app', zh: 'Lumakey.app · 双主题原生前端', en: 'Lumakey.app · Native UI', pos: [-1.55, 2.15, 0.1], color: 0x38bdf8 },
-  { id: 'lumakey-mcp', zh: 'lumakey-mcp · 12 项 AI 造插件工具', en: 'lumakey-mcp · 12 MCP Tools', pos: [1.55, 2.15, 0.1], color: 0xa855f7 },
-  { id: 'LumakeyCore', zh: 'LumakeyCore · Plugin v3.4 & 沙箱', en: 'LumakeyCore · Plugin Host & Sandbox', pos: [0, 0.82, 0.35], color: 0x6366f1 },
-  { id: 'LumakeySearch', zh: 'LumakeySearch · LMKYIDX3 秒搜', en: 'LumakeySearch · LMKYIDX3 mmap', pos: [-2.15, -0.68, -0.1], color: 0x0ea5e9 },
-  { id: 'LumakeyMedia', zh: 'LumakeyMedia · 冻屏 OCR & HEVC', en: 'LumakeyMedia · Capture, OCR & HEVC', pos: [0, -0.68, 0.28], color: 0xec4899 },
-  { id: 'LumakeySystem', zh: 'LumakeySystem · 脉搏 & 120Hz 滚轮', en: 'LumakeySystem · Mach & 120Hz Wheel', pos: [2.15, -0.68, -0.1], color: 0x10b981 },
-  { id: 'LumakeyFoundation', zh: 'LumakeyFoundation · 密钥箱 & 自洁进程', en: 'LumakeyFoundation · AES-GCM Vault', pos: [0, -2.18, 0], color: 0xf59e0b }
+  { id: 'Lumakey.app', zh: 'Lumakey.app · 双主题与自由浮窗', en: 'Lumakey.app · Native UI & HUD', pos: [-1.62, 2.28, 0.18], color: 0x38bdf8 },
+  { id: 'lumakey-mcp', zh: 'lumakey-mcp · 16 项 AI 定制工具', en: 'lumakey-mcp · 16 MCP Tools', pos: [1.62, 2.28, 0.18], color: 0xa855f7 },
+  { id: 'LumakeyCore', zh: 'LumakeyCore · 启动页定制 & Plugin v3.7', en: 'LumakeyCore · HomeLayout & Plugin v3.7', pos: [0.0, 1.74, 0.36], color: 0x6366f1 },
+  { id: 'LumakeySearch', zh: 'LumakeySearch · LMKYIDX3 秒搜', en: 'LumakeySearch · LMKYIDX3 mmap', pos: [-2.26, -0.12, 0.22], color: 0x0ea5e9 },
+  { id: 'LumakeyMedia', zh: 'LumakeyMedia · 截图标注 & 离线识字', en: 'LumakeyMedia · Capture, OCR & HEVC', pos: [0.0, -1.68, 0.36], color: 0xec4899 },
+  { id: 'LumakeySystem', zh: 'LumakeySystem · 功耗脉搏 & 120Hz 滚轮', en: 'LumakeySystem · Mach & 120Hz Wheel', pos: [2.26, -0.12, 0.22], color: 0x10b981 },
+  { id: 'LumakeyFoundation', zh: 'LumakeyFoundation · 密钥箱 & 自洁进程', en: 'LumakeyFoundation · AES-GCM Vault', pos: [0.0, -2.42, 0.18], color: 0xf59e0b }
 ];
 
 const STAGE_LABELS = {
   zh: [
-    '00 · 统一快捷中枢',
-    '01 · 全盘秒搜与工具箱',
-    '02 · Plugin v3.4 插件生态',
+    '00 · 轻巧可定制的快捷中枢',
+    '01 · 启动面板定制与秒搜',
+    '02 · 高度定制与 Plugin v3.7',
     '03 · lumakey-mcp AI 共创',
-    '04 · 原生引擎与零依赖架构',
+    '04 · 五大原生利器与架构',
     '05 · 获取与开源共建'
   ],
   en: [
-    '00 · UNIFIED LAUNCHER',
-    '01 · SEARCH & DEVTOOLKIT',
-    '02 · PLUGIN V3.4 ECOSYSTEM',
-    '03 · LUMAKEY-MCP AI FORGE',
-    '04 · NATIVE ENGINES & DAG',
+    '00 · CUSTOMIZABLE NATIVE HUB',
+    '01 · LAUNCH PANEL & SEARCH',
+    '02 · DEEP CUSTOM & PLUGIN V3.7',
+    '03 · LUMAKEY-MCP (16 TOOLS)',
+    '04 · NATIVE TOOLS & DAG',
     '05 · DOWNLOAD & OPEN SOURCE'
   ]
 };
 
 const FORGE_PRESETS = {
   pr: {
-    zhQuote: '“输入 pr 列出待我 Review 的合并请求，按回车直接打开，访问凭据存入 AES-GCM 加密保险箱。”',
-    enQuote: '"Type pr to list open pull requests awaiting my review, press Return to open, and store my token in the AES-GCM vault."',
+    zhQuote: '“输入 pr 列出待我 Review 的合并请求，按回车直接打开，访问凭据存入加密保险箱。”',
+    enQuote: '"Type pr to list pull requests awaiting my review, press Return to open, and store my token in the AES-GCM vault."',
     zhMeta: 'scaffold → validate → run_plugin_test · FSEvents 350ms 热重载生效',
     enMeta: 'scaffold → validate → run_plugin_test · FSEvents 350ms Hot-Reload'
   },
+  home: {
+    zhQuote: '“新建一套『极简开发』启动面板：保留 16 格混合应用坞，挂上 GitHub 与本地 3000 端口书签架，隐藏底部提示。”',
+    enQuote: '"Create a Minimal Dev launch profile: keep a 16-slot hybrid dock, add a GitHub & localhost:3000 shelf, and hide tips."',
+    zhMeta: 'lumakey_get_home_layout → lumakey_update_home_layout · 0ms 实时热刷新',
+    enMeta: 'lumakey_get_home_layout → lumakey_update_home_layout · Instant Reload'
+  },
   port: {
     zhQuote: '“输入 port 秒查本机监听端口与占用进程，支持按回车安全释放端口并弹出系统通知横幅。”',
-    enQuote: '"Type port to inspect listening local ports and owning PIDs, press Return to terminate cleanly with a native notification."',
+    enQuote: '"Type port to inspect listening local ports and owning PIDs, press Return to free cleanly with a native notification."',
     zhMeta: 'scaffold → validate → Seatbelt 进程隔离实测 · 0ms 免重启挂载',
     enMeta: 'scaffold → validate → Seatbelt isolated test · Live in ⌥Space'
-  },
-  ssh: {
-    zhQuote: '“输入 ssh 检索常用远端开发机与端口转发隧道，一键拉起终端连接并实时展示连通延迟。”',
-    enQuote: '"Type ssh to fuzzy-search remote dev hosts and port tunnels, launch terminal sessions in one key, and ping latency."',
-    zhMeta: 'plugin.json 自动配置表单 + 独立静默热键 · 350ms 热重载生效',
-    enMeta: 'Auto settings UI + silent global hotkey · 350ms Hot-Reload'
   }
 };
 
 const savedPluginsRaw = safeGetStorage('lumakey-enabled-plugins-v1');
-let initialPlugins = ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot', 'gh-pr-radar'];
+let initialPlugins = ['ai-quota', 'translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'];
 if (savedPluginsRaw) {
   try {
     const parsed = JSON.parse(savedPluginsRaw);
-    if (Array.isArray(parsed)) initialPlugins = parsed;
+    if (Array.isArray(parsed)) {
+      const validIds = new Set(PLUGINS.map((p) => p.id));
+      const filtered = parsed.filter((id) => validIds.has(id));
+      if (filtered.length > 0 || parsed.length === 0) initialPlugins = filtered;
+    }
   } catch (_) {}
 }
 
@@ -143,7 +147,7 @@ document.querySelectorAll('[data-gh-path]').forEach((el) => {
 });
 
 /* --------------------------------------------------------------------------
-   2. Bilingual Product Story Copy (100% Focused on Lumakey Capabilities)
+   2. Bilingual Product Story Copy (Semantic Clause Grouping, Zero Orphan Wrap)
    -------------------------------------------------------------------------- */
 const I18N = {
   zh: {
@@ -154,48 +158,48 @@ const I18N = {
     theme_dark: '暗曜',
     theme_light: '凝霜',
     nav_get: '获取 DMG',
-    s0_eyebrow: 'APPLE SILICON NATIVE  ·  SWIFT 6  ·  ZERO DEPENDENCIES',
-    s0_title: '一触流光，用完即焚。',
-    s0_desc: '专为 Apple Silicon 原生打造的 macOS 快捷效率与 AI 插件中枢，按下 ⌥Space 毫秒即达。',
+    s0_eyebrow: 'APPLE SILICON NATIVE  ·  SWIFT 6  ·  PLUGIN V3.7  ·  16 MCP TOOLS',
+    s0_title: '一触流光，|用完即焚。',
+    s0_desc: '按一下 ⌥Space，找软件、搜文件、翻剪贴板、截屏识字一步直达；~从启动面板到专属插件皆可随心定制，松手即净不占后台。',
     s0_trigger: '体验 ⌥Space 瞬间唤醒',
-    s0_scroll: '向下滚动了解五大核心能力 · 或点击右上角「自动放映」 ↓',
-    s1_eyebrow: '01 / 05  ·  UNIFIED SEARCH & DEVTOOLKIT',
-    s1_title: '一个搜索框搜遍一切，\n恒定 880 × 544 零抖动。',
-    s1_desc: '无需记忆繁琐前缀：单框并发检索汉语双音/拼音应用、全盘与外置盘文件、富媒体剪贴板历史（支持 15 级撤回与敏感密钥过滤）、10 维单位算式换算，以及时间戳、UUID、JWT、#HEX 色板与离线二维码等开发工具。视窗尺寸恒定锁定，后台索引更新绝不抢夺当前焦点。',
-    s1_m1: 'LMKYIDX3 内存映射快照 + FSEvents 实时增量全盘秒搜',
-    s1_m2: '面板隐去后自动销毁视图层级，拒绝后台常驻膨胀',
-    s1_m3: '空闲或内存压力下自动卸载索引堆页，回归纯粹静默',
-    s1_link: '前往交互详解页在线实操 880 × 544 搜索框',
-    s2_eyebrow: '02 / 05  ·  PLUGIN V3.4 ECOSYSTEM',
-    s2_title: '不装不占，\n装上即原生一等公民。',
-    s2_desc: '仅凭一份 plugin.json 即可自动渲染原生设置页、录制子命令独立静默热键、唤起置顶悬浮面板，并将处理动作直接注入离线 OCR、剪贴板与文件工作台。未启用插件零内存零轮询；粘贴任意仓库或商店地址即可经 SHA-256 核验一键订阅。点击下方自由开关官方扩展：',
-    s2_link: '进入模块化自由拼装台查看各插件指令详情',
-    s3_eyebrow: '03 / 05  ·  BUILT-IN LUMAKEY-MCP',
-    s3_title: '一句话，\n十秒凝聚成原生插件。',
-    s3_desc: '安装包内置标准 JSON-RPC 2.0 服务 lumakey-mcp，一键接入 Claude Code、Cursor、Codex 与 Gemini CLI。向 AI 开放 12 项协议读取、脚手架生成、静态审计与 Seatbelt 沙箱实跑工具——只需描述你的私有工作流，写完即刻经 FSEvents 350ms 热重载进 ⌥Space：',
-    f_pr: 'PR 审查雷达 · gh-pr-radar',
-    f_port: '端口秒查释放 · port-hunter',
-    f_ssh: '开发机隧道速连 · ssh-warp',
-    s3_trigger: '模拟 AI 脚手架生成与 350ms 热重载',
-    s3_trigger_done: '✓ 已通过沙箱实测并热重载至 ⌥Space',
-    s3_link: '查阅 12 项内置 MCP 工具与安全沙箱闭环',
-    s4_eyebrow: '04 / 05  ·  NATIVE ENGINES & SWIFT 6 DAG',
-    s4_title: '五大原生引擎开箱即享，\n零第三方依赖纯粹架构。',
-    s4_desc: '未装任何插件前，底座已完整内置跨多屏无遮挡截图标注（⌥A）、流式 GIF 录制（⌥G）、亚秒级离线 Vision OCR 与悬浮钉图（⌥O）、双栏文件工作台（⌥E）、P/E 核实时功耗脉搏（⌥M）、免提权进程流量透视（⌥N）、零 WebKit Markdown/4K HEVC 阅读窗及不干扰触控板的 120Hz 物理鼠标平滑滚轮。',
-    s4_m1: '纯原生 Swift 6 直连 Apple Silicon 系统框架，零外部包依赖',
+    s0_scroll: '向下滚动了解五大核心能力 · 或点击右上角「自动放映」\u00a0↓',
+    s1_eyebrow: '01 / 05  ·  CUSTOM LAUNCH PANEL & UNIFIED SEARCH',
+    s1_title: '启动面板随心摆，\n一框秒搜全盘与日常。',
+    s1_desc: '呼出瞬间就是你亲手布置的专属主页：大号 Bento 磁贴（2/3/4 列）、混排本机应用与常用目录的 8/16 格高频坞、多组命名书签胶囊架皆可自由开关排序，还能按「工作 / 极简 / 开发」切换多套场景面板。直接打字即可免前缀秒搜拼音应用、移动硬盘文件、剪贴板历史（支持 15 步撤回）、算账换算与开发小工具，880 × 544 固定视窗绝不乱跳。',
+    s1_m1: '磁贴、混合坞、书签架自由编排，搜索结果右键一键钉上主页',
+    s1_m2: 'LMKYIDX3 内存映射快照 + FSEvents 实时增量全盘秒搜',
+    s1_m3: '收起 30s 销毁视图缓存、空闲 90s 卸载索引页，安静省电不赖内存',
+    s1_link: '前往交互实验台在线切换启动面板布局与实时搜索',
+    s2_eyebrow: '02 / 05  ·  DEEP CUSTOMIZATION & PLUGIN V3.7',
+    s2_title: '从菜单栏到桌面挂件，\n装上即原生一等公民。',
+    s2_desc: '不用的功能零内存、零后台打扰；常用的能力支持精简排序顶部菜单栏、改唤醒词、录不抢焦点的静默快捷键，还能开启 Plugin v3.7 无边框透明桌面悬浮窗（如支持紧凑折叠态的 AI 额度雷达）、跨应用划词即弹工具栏与双语朗读，内置一键安装 Python 3 向导，粘贴任意仓库链接经 SHA-256 核验订阅 8 款官方扩展：',
+    s2_link: '进入模块化自由拼装台体验 8 款官方扩展详情',
+    s3_eyebrow: '03 / 05  ·  BUILT-IN LUMAKEY-MCP (16 TOOLS)',
+    s3_title: '不会写代码也能定制，\n一句话造插件排主页。',
+    s3_desc: '安装包直接内置 lumakey-mcp 服务（16 项标准工具），免配环境一键接入 Claude Code、Cursor、Codex 与 Gemini CLI。无论是用大白话让 AI 替你写一个专属小工具，还是让它按你的习惯自动排好整套启动面板与书签架，几秒钟即可经 Seatbelt 沙箱实测并热重载生效：',
+    f_pr: '一句话造插件 · PR 审查雷达',
+    f_home: '一句话排主页 · 极简开发启动面板',
+    f_port: '一句话管本机 · 端口秒查与安全释放',
+    s3_trigger: '模拟 AI 自动编排与 350ms 热重载',
+    s3_trigger_done: '✓ 已通过沙箱校验并实时热刷新至 ⌥Space',
+    s3_link: '查阅全部 16 项内置 MCP 工具与安全沙箱闭环',
+    s4_eyebrow: '04 / 05  ·  EVERYDAY NATIVE TOOLS & SWIFT 6 DAG',
+    s4_title: '开箱即享五大原生利器，\n零依赖极客级纯粹架构。',
+    s4_desc: '没装任何插件前，高频刚需就已一应俱全：多屏幕高清截图标注与单击窗口抠图贴屏（⌥A）、轻巧区域 GIF 录屏（⌥G）、一秒离线识字（⌥O）、不改触控板手感的物理鼠标 120Hz 平滑滚轮、双栏文件整理台（⌥E），以及按需查看芯片功耗（⌥M）、软件实时网速（⌥N）与秒开 Markdown / 4K 视频阅读窗——全部浓缩在约 10 MB 纯正原生安装包中。',
+    s4_m1: '100% 纯原生 Swift 6 直连 Apple Silicon 框架，拒绝网页套壳臃肿',
     s4_m2: '九大单向无环模块分层，构建门禁每次严查单文件 ≤ 300 行',
-    s4_m3: 'LMKYVLT2 256-bit 密钥箱、Seatbelt 沙箱与 WebDAV 加密备份',
-    s4_link: '查阅九大模块架构蓝图与五大原生引擎详解',
-    s5_eyebrow: 'MACOS 14+  ·  APPLE SILICON ARM64  ·  MIT OPEN SOURCE',
-    s5_title: '让每一次按键，如流光掠影。',
-    s5_desc: 'MIT 协议免费开源，内置中英双语免重启切换与「凝霜留白 / 霓彩流光」双视觉主题，支持 Hardened Runtime 与 Apple 公证分发。立即下载预编译原生安装包，或进入 2D 图文详解页在线体验全部功能。',
+    s4_m3: 'Seatbelt 内核沙箱、LMKYVLT2 256-bit 密钥箱与 WebDAV 加密备份',
+    s4_link: '查阅九大模块架构蓝图与五大原生利器详解',
+    s5_eyebrow: 'MACOS 14+  ·  APPLE SILICON ARM64  ·  ~10 MB  ·  MIT OPEN SOURCE',
+    s5_title: '让每一次按键，|如流光掠影。',
+    s5_desc: 'MIT 协议免费开源，内置「凝霜留白 / 霓彩流光」双视觉主题、中英双语免重启秒切、应用内自动升级保留本机权限与整机配置一键备份漫游。立即下载原生 DMG，或进入 2D 实验台亲手定制你的 Lumakey。',
     s5_cta_dmg: '下载 macOS 原生 DMG',
-    s5_cta_home: '进入 2D 图文详解与交互实验台 →',
-    p_hero: '2D 实时搜索框',
-    p_builder: '插件自由拼装台',
-    p_mcp: 'MCP 共创剧场',
-    p_bento: '五大原生底座',
-    p_arch: 'DAG 架构蓝图'
+    s5_cta_home: '进入 2D 图文详解与定制实验台\u00a0→',
+    p_hero: '启动面板与全搜模拟',
+    p_builder: '全维度自由拼装台',
+    p_mcp: 'AI 造插件与排主页',
+    p_bento: '五大日常原生利器',
+    p_arch: '极客 DAG 架构蓝图'
   },
   en: {
     nav_overview: '2D Overview',
@@ -205,48 +209,48 @@ const I18N = {
     theme_dark: 'Obsidian',
     theme_light: 'Frost',
     nav_get: 'Get DMG',
-    s0_eyebrow: 'APPLE SILICON NATIVE  ·  SWIFT 6  ·  ZERO DEPENDENCIES',
-    s0_title: 'Summon Light. Leave Zero Trace.',
-    s0_desc: 'Native macOS productivity & AI plugin hub for Apple Silicon — summoned in 0ms via ⌥Space.',
+    s0_eyebrow: 'APPLE SILICON NATIVE  ·  SWIFT 6  ·  PLUGIN V3.7  ·  16 MCP TOOLS',
+    s0_title: 'Summon Light. |Leave Zero Trace.',
+    s0_desc: 'Press ⌥Space to launch apps, search drives, browse clipboard history, or OCR your screen — ~customize every zone & plugin freely, with zero background bloat.',
     s0_trigger: 'Experience ⌥Space Instant Wake',
-    s0_scroll: 'SCROLL TO EXPLORE 5 PILLARS · OR CLICK PLAY TOUR ↑',
-    s1_eyebrow: '01 / 05  ·  UNIFIED SEARCH & DEVTOOLKIT',
-    s1_title: 'One Bar for Everything.\nLocked 880 × 544 Zero-Jitter.',
-    s1_desc: 'No prefixes to memorize: concurrently search localized apps, internal & external drives, rich clipboard history (15-step undo & secret filtering), 10-category math/unit conversions, and offline developer tools (timestamps, UUID, JWT, #HEX swatches, QR codes) inside a constant frame that never hijacks focus.',
-    s1_m1: 'LMKYIDX3 zero-copy mmap snapshot + live FSEvents full-disk search',
-    s1_m2: 'Heavy view hierarchies torn down automatically after dismissal',
-    s1_m3: 'Disk index heap unmapped on idle or memory pressure',
-    s1_link: 'Try the Interactive 880 × 544 Search Simulator',
-    s2_eyebrow: '02 / 05  ·  PLUGIN V3.4 ECOSYSTEM',
-    s2_title: 'Zero Bloat Unmounted.\nFirst-Class Citizen When Live.',
-    s2_desc: 'A single plugin.json auto-renders native settings UI, records silent global hotkeys, opens floating panels, and wires context actions into offline OCR, Clipboard, and File Workspace. Disabled plugins consume zero RAM or polling; paste any repo URL to subscribe with SHA-256 verification. Toggle extensions below:',
-    s2_link: 'Inspect Plugin Commands in the Modular Workbench',
-    s3_eyebrow: '03 / 05  ·  BUILT-IN LUMAKEY-MCP',
-    s3_title: 'One Sentence.\nTen Seconds to a Native Plugin.',
-    s3_desc: 'Ships with an embedded JSON-RPC 2.0 MCP server (lumakey-mcp) for Claude Code, Cursor, Codex, and Gemini CLI. Armed with 12 spec, scaffold, static audit, and Seatbelt test tools, AI turns plain-language workflows into live plugins hot-reloaded in 350ms:',
-    f_pr: 'PR Review Radar · gh-pr-radar',
-    f_port: 'Port Inspector · port-hunter',
-    f_ssh: 'SSH Tunnel Warp · ssh-warp',
-    s3_trigger: 'Simulate AI Scaffold & 350ms Hot-Reload',
-    s3_trigger_done: '✓ Passed Seatbelt Test & Hot-Reloaded to ⌥Space',
-    s3_link: 'Explore All 12 MCP Tools & Sandbox Security',
-    s4_eyebrow: '04 / 05  ·  NATIVE ENGINES & SWIFT 6 DAG',
-    s4_title: 'Five Native Engines Built In.\nZero External Dependencies.',
-    s4_desc: 'Before installing a single plugin, Lumakey includes multi-display window capture & annotation (⌥A), streaming GIF recording (⌥G), sub-second offline Vision OCR & floating pins (⌥O), dual-pane file workspace (⌥E), P/E-core wattage telemetry (⌥M), rootless process traffic monitor (⌥N), zero-WebKit Markdown/4K HEVC viewers, and 120Hz smooth mouse scrolling.',
-    s4_m1: '100% pure Swift 6 atop Apple Silicon frameworks with zero external packages',
+    s0_scroll: 'SCROLL TO EXPLORE 5 PILLARS · OR CLICK PLAY TOUR\u00a0↑',
+    s1_eyebrow: '01 / 05  ·  CUSTOM LAUNCH PANEL & UNIFIED SEARCH',
+    s1_title: 'Shape Your Launch Panel.\nSearch Everything in One Bar.',
+    s1_desc: 'Open ⌥Space to a home screen built your way: arrange 2/3/4-column Bento tiles, an 8/16-slot hybrid Omni Dock mixing apps, bookmarks & folders, and up to 6 named pill shelves across switchable scene profiles. Type right away to search apps, external drives, clipboard history (15-step undo), unit math, and offline dev tools inside a zero-jitter 880 × 544 frame.',
+    s1_m1: 'Reorder Bento, Omni Dock & shelves freely; right-click any result to pin',
+    s1_m2: 'LMKYIDX3 zero-copy mmap snapshot + live FSEvents full-disk search',
+    s1_m3: 'Tears down UI cache in 30s and unmaps index heap after 90s idle',
+    s1_link: 'Switch Launch Panel Presets & Search Live in 2D',
+    s2_eyebrow: '02 / 05  ·  DEEP CUSTOMIZATION & PLUGIN V3.7',
+    s2_title: 'From Menu Bar to Glass HUD.\nFirst-Class Native Extensions.',
+    s2_desc: 'Unused features take zero RAM or background polling. Trim and reorder the menu bar, customize keywords and silent global hotkeys, launch compact Plugin v3.7 glass HUDs (like AI Quota HUD), use the Selection Quick Bar & dual TTS, or install Python 3 in 1 click. Paste any repo URL for SHA-256 verified installs — toggle 8 official plugins below:',
+    s2_link: 'Explore All 8 Official Extensions in the Workbench',
+    s3_eyebrow: '03 / 05  ·  BUILT-IN LUMAKEY-MCP (16 TOOLS)',
+    s3_title: 'No Coding Required.\nOne Sentence Builds Tools & Layouts.',
+    s3_desc: 'Ships with an embedded lumakey-mcp server (16 JSON-RPC 2.0 tools) ready for Claude Code, Cursor, Codex, and Gemini CLI. Describe a custom tool or ask AI to arrange your entire Launch Panel and bookmark shelves — validated inside Seatbelt and hot-reloaded in milliseconds:',
+    f_pr: 'Build Plugin · PR Review Radar',
+    f_home: 'Arrange Home · Minimal Dev Launch Panel',
+    f_port: 'Inspect Mac · Port Finder & Clean Release',
+    s3_trigger: 'Simulate AI Orchestration & Live Reload',
+    s3_trigger_done: '✓ Verified in Seatbelt & Hot-Reloaded to ⌥Space',
+    s3_link: 'Explore All 16 MCP Tools & Sandbox Security',
+    s4_eyebrow: '04 / 05  ·  EVERYDAY NATIVE TOOLS & SWIFT 6 DAG',
+    s4_title: 'Five Everyday Tools Built In.\nPure Zero-Dependency Architecture.',
+    s4_desc: 'Before installing a single plugin, everyday essentials are ready: multi-display HD capture & 1-click window cutouts (⌥A), lightweight GIF recording (⌥G), 1-second offline Vision OCR (⌥O), 120Hz smooth mouse wheel that leaves Trackpad untouched, dual-pane file workspace (⌥E), plus on-demand chip wattage (⌥M), app bandwidth (⌥N), and native Markdown / 4K video viewers in a ~10 MB app.',
+    s4_m1: '100% pure Swift 6 atop Apple Silicon frameworks — zero web-wrapper bloat',
     s4_m2: '9 acyclic Swift targets with automated ≤ 300 LOC per-file build gates',
-    s4_m3: 'LMKYVLT2 256-bit AES-GCM vault, Seatbelt isolation & WebDAV backup',
-    s4_link: 'Inspect 9-Module DAG Blueprint & Native Engines',
-    s5_eyebrow: 'MACOS 14+  ·  APPLE SILICON ARM64  ·  MIT OPEN SOURCE',
-    s5_title: 'Every Keystroke, Pure Velocity.',
-    s5_desc: 'Free & open source under MIT with instant bilingual switching, Pure Frost / Prism Pulse dual themes, and Hardened Runtime notarization. Download the native DMG or try every module hands-on in the 2D overview.',
+    s4_m3: 'Kernel Seatbelt sandbox, LMKYVLT2 256-bit vault & WebDAV backup',
+    s4_link: 'Inspect 9-Module DAG Blueprint & 5 Native Tools',
+    s5_eyebrow: 'MACOS 14+  ·  APPLE SILICON ARM64  ·  ~10 MB  ·  MIT OPEN SOURCE',
+    s5_title: 'Every Keystroke, |Pure Velocity.',
+    s5_desc: 'Free & open source under MIT with Pure Frost / Prism Pulse dual themes, instant bilingual switching, in-app DMG auto-updates preserving local permissions, and one-file encrypted backup across Macs. Download the native DMG or customize your Lumakey live in the 2D workbench.',
     s5_cta_dmg: 'Download Native macOS DMG',
-    s5_cta_home: 'Open 2D Interactive Overview →',
-    p_hero: '2D Search Simulator',
-    p_builder: 'Plugin Workbench',
-    p_mcp: 'MCP Co-Creation',
-    p_bento: '5 Native Engines',
-    p_arch: 'DAG Architecture'
+    s5_cta_home: 'Open 2D Overview & Customizer\u00a0→',
+    p_hero: 'Launch Panel Simulator',
+    p_builder: 'Deep Custom Workbench',
+    p_mcp: 'AI Plugin & Home Forge',
+    p_bento: '5 Everyday Native Tools',
+    p_arch: 'Geek DAG Architecture'
   }
 };
 
@@ -353,11 +357,28 @@ function applyLanguage(lang) {
 
   document.querySelectorAll('[data-i18n]').forEach((el) => {
     const key = el.getAttribute('data-i18n');
-    if (dict[key] === undefined) return;
-    if (dict[key].includes('\n')) {
-      el.innerHTML = dict[key].split('\n').join('<br/>');
+    const val = dict[key];
+    if (val === undefined) return;
+    if (val.includes('|')) {
+      el.innerHTML = val
+        .split('|')
+        .map((s) => {
+          const trail = /\s$/.test(s) ? ' ' : '';
+          return `<span class="title-clause">${s.trim()}</span>${trail}`;
+        })
+        .join('');
+    } else if (val.includes('~')) {
+      el.innerHTML = val
+        .split('~')
+        .map((s) => {
+          const trail = /\s$/.test(s) ? ' ' : '';
+          return `<span class="prose-clause">${s.trim()}</span>${trail}`;
+        })
+        .join('');
+    } else if (val.includes('\n')) {
+      el.innerHTML = val.split('\n').join('<br/>');
     } else {
-      el.textContent = dict[key];
+      el.textContent = val;
     }
   });
 
@@ -366,6 +387,19 @@ function applyLanguage(lang) {
     themeToggleLabel.textContent = state.theme === 'pure-frost' ? dict.theme_light : dict.theme_dark;
   }
   syncPlayButtonUi();
+  const tcTitles = STAGE_LABELS[lang] || STAGE_LABELS.zh;
+  document.querySelectorAll('#timecodeDots .tc-dot').forEach((dot, idx) => {
+    if (tcTitles[idx]) dot.setAttribute('title', tcTitles[idx]);
+  });
+  const rail = document.querySelector('.timecode-rail');
+  if (rail) rail.setAttribute('aria-label', lang === 'zh' ? '产品章节导航' : 'Product chapter navigation');
+  if (pluginWhisperList) {
+    pluginWhisperList.setAttribute('aria-label', lang === 'zh' ? '插件按需挂载切换' : 'Toggle opt-in plugins');
+  }
+  document.title = lang === 'zh'
+    ? '流光 Lumakey — 一触流光，用完即焚 (可深度定制的 Apple Silicon 原生效率中枢)'
+    : 'Lumakey — Summon Light, Leave Zero Trace (Customizable Apple Silicon Native Hub)';
+
   syncStageMorphLabel();
   renderForgePrompt();
   renderPluginWhispers();
@@ -457,13 +491,11 @@ function startAutoPlayFromCurrent() {
   if (matchedIdx >= 0 && matchedIdx < stops.length - 1) {
     window.scrollTo(0, stops[matchedIdx]);
     if (rewoundFromBottom) {
-      // Replaying from bottom: brief 1.15s glance at short Hero before gliding to Scene 01
       autoPhase = 'hold';
       autoSceneIdx = matchedIdx;
       autoCurrentHoldDur = SCENE_DWELL_SECONDS[0];
       autoStageTriggered = true;
     } else {
-      // Already viewing current scene: depart after a crisp 0.32s beat instead of waiting!
       autoPhase = 'hold';
       autoSceneIdx = matchedIdx;
       autoCurrentHoldDur = 0.32;
@@ -651,7 +683,6 @@ const kineticBlocks = sceneSections.map((sec) => ({
 }));
 
 function plateauBlend(f) {
-  // Holds steady near 0 and 1 ( ±0.16 plateau ) so each key 3D form lingers clearly while reading!
   const lo = 0.16, hi = 0.84;
   if (f <= lo) return 0;
   if (f >= hi) return 1;
@@ -747,8 +778,8 @@ function generateSixMorphForms(count) {
 
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
   const dagLinks = [
-    [0, 2], [1, 2], [0, 3], [1, 6],
-    [2, 3], [2, 4], [2, 5], [4, 3],
+    [0, 2], [1, 2], [0, 3], [1, 5],
+    [2, 3], [2, 5], [3, 4], [5, 4],
     [3, 6], [4, 6], [5, 6]
   ];
 
@@ -777,7 +808,7 @@ function generateSixMorphForms(count) {
       form0[i3 + 1] = Math.sin(discR * 3.4) * 0.16 - 0.95;
       form0[i3 + 2] = Math.sin(ang) * discR * 0.85;
     } else {
-      const rad = 1.55 + rC * 1.9;
+      const rad = 1.68 + rC * 1.82;
       const y = 1 - ((i - count * 0.68) / (count * 0.32)) * 2;
       const ry = Math.sqrt(Math.max(0, 1 - y * y));
       const th = goldenAngle * i;
@@ -787,11 +818,10 @@ function generateSixMorphForms(count) {
     }
 
     /* FORM 1: 4 Parallel Z-Explodable 880:544 Superellipse Glass Sheets */
-    const layerIdx = i % 4; // 4 distinct Z-layers: -1.5, -0.5, +0.5, +1.5
-    const zBase = (layerIdx - 1.5) * 0.58;
-    const aW = 3.28, aH = 2.03; // Exact 880 : 544 aspect!
+    const layerIdx = i % 4;
+    const zBase = (layerIdx - 1.5) * 0.68;
+    const aW = 3.28, aH = 2.03;
     if (rB < 0.56) {
-      // Crisp perimeter & concentric frame contours
       const ang1 = rA * Math.PI * 2;
       const c1 = Math.cos(ang1), s1 = Math.sin(ang1);
       const band = 0.86 + (layerIdx * 0.045);
@@ -799,7 +829,6 @@ function generateSixMorphForms(count) {
       form1[i3 + 1] = Math.sign(s1) * Math.pow(Math.abs(s1), 0.42) * aH * band;
       form1[i3 + 2] = zBase;
     } else {
-      // Interior bento grid matrix points inside each sheet
       const gx = (rA * 2 - 1) * (aW * 0.82);
       const gy = (rC * 2 - 1) * (aH * 0.82);
       form1[i3] = gx;
@@ -807,7 +836,7 @@ function generateSixMorphForms(count) {
       form1[i3 + 2] = zBase;
     }
 
-    /* FORM 2: 8-Fold Astrolabe Corona + Double-Helix Host Bridges */
+    /* FORM 2: 8-Fold Astrolabe Corona + Double-Helix Host Bridges (Outside Core!) */
     const cAngle = (clusterIdx / 8) * Math.PI * 2;
     const orbitR = 3.35;
     const cx = Math.cos(cAngle) * orbitR;
@@ -822,34 +851,34 @@ function generateSixMorphForms(count) {
       form2[i3 + 1] = cy + Math.sin(ph) * Math.sin(th) * localR;
       form2[i3 + 2] = cz + Math.cos(ph) * localR;
     } else {
-      const s = rC;
+      const s = 0.50 + rC * 0.48;
+      const uHelix = (s - 0.50) / 0.48;
       const strand = (i % 2 === 0 ? 1 : -1);
-      const helixA = s * Math.PI * 4.5 + cAngle;
-      const perpR = Math.sin(s * Math.PI) * 0.24;
+      const helixA = uHelix * Math.PI * 3.5 + cAngle;
+      const perpR = Math.sin(uHelix * Math.PI) * 0.22;
       form2[i3] = cx * s + Math.cos(helixA) * perpR * strand;
       form2[i3 + 1] = cy * s + Math.sin(helixA) * perpR * strand;
-      form2[i3 + 2] = cz * s + Math.sin(s * Math.PI) * 0.35;
+      form2[i3 + 2] = cz * s + Math.sin(uHelix * Math.PI) * 0.30;
     }
 
-    /* FORM 3: Dramatic Tilted 5-Arm Black-Hole Accretion Funnel */
+    /* FORM 3: Dramatic Tilted 5-Arm Black-Hole Accretion Funnel (Clear of Core!) */
     const arm = i % 5;
     const vProg = Math.pow(rB, 0.68);
-    const vRad = 0.85 + vProg * 4.15;
+    const vRad = 1.56 + vProg * 3.55;
     const vAng = (arm / 5) * Math.PI * 2 + vProg * 6.4 + (rA - 0.5) * 0.36;
-    const funnelDepth = -Math.pow(1 - vProg, 2.2) * 1.85 * (i % 2 === 0 ? 1 : -1);
+    const funnelDepth = -Math.pow(1 - vProg, 2.2) * 1.45 * (i % 2 === 0 ? 1 : -1);
     const rawX = Math.cos(vAng) * vRad;
     const rawY = funnelDepth + (rC - 0.5) * 0.22;
     const rawZ = Math.sin(vAng) * vRad;
-    // Tilt accretion disk by 52 degrees around X so spiral arms are clearly visible!
     const tilt = 0.92;
     form3[i3] = rawX;
     form3[i3 + 1] = rawY * Math.cos(tilt) - rawZ * Math.sin(tilt);
     form3[i3 + 2] = rawY * Math.sin(tilt) + rawZ * Math.cos(tilt);
 
-    /* FORM 4: 4-Tier Sacred Acyclic Crystal Lattice */
+    /* FORM 4: 4-Tier Sacred Acyclic Crystal Lattice Framing Central Diamond */
     if (rB < 0.44) {
       const node = DAG_NODES[i % DAG_NODES.length].pos;
-      const nr = 0.2 + Math.pow(rC, 0.55) * 0.42;
+      const nr = 0.18 + Math.pow(rC, 0.55) * 0.34;
       const na = rA * Math.PI * 2;
       const nb = ((i * 1.618) % 1) * Math.PI;
       form4[i3] = node[0] + Math.sin(nb) * Math.cos(na) * nr;
@@ -860,8 +889,8 @@ function generateSixMorphForms(count) {
       const pA = DAG_NODES[edge[0]].pos;
       const pB = DAG_NODES[edge[1]].pos;
       const t = rC;
-      const arcZ = Math.sin(t * Math.PI) * 0.48;
-      const spread = (rA - 0.5) * 0.09;
+      const arcZ = Math.sin(t * Math.PI) * 0.28;
+      const spread = (rA - 0.5) * 0.08;
       form4[i3] = pA[0] + (pB[0] - pA[0]) * t + spread;
       form4[i3 + 1] = pA[1] + (pB[1] - pA[1]) * t;
       form4[i3 + 2] = pA[2] + (pB[2] - pA[2]) * t + arcZ + spread;
@@ -949,7 +978,7 @@ function getMorphStage() {
 }
 
 /* ==========================================================================
-   7A. Primary WebGL2 Six-Morphology Shader + Interactive Force-Field Engine
+   7A. Primary WebGL2 Six-Morphology Shader + Studio Lighting & Force-Field
    ========================================================================== */
 function mountWebGLShaderFilm(container, THREE) {
   const renderer = new THREE.WebGLRenderer({
@@ -965,10 +994,27 @@ function mountWebGLShaderFilm(container, THREE) {
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 120);
   camera.position.set(0, 0, 10.8);
 
+  /* Studio Three-Point Lighting Rig (Synced with Core Shader keyL / fillL!)
+     Ensures Stage 02 Crystal Satellites, Stage 03 Metallic Rings & Stage 04 DAG
+     Diamond Nodes exhibit crisp 3D facet shading, clearcoat glints & shadows. */
+  const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x090d1f, 1.4);
+  scene.add(hemiLight);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+  keyLight.position.set(4.8, 7.2, 6.4);
+  scene.add(keyLight);
+
+  const rimLight = new THREE.DirectionalLight(0x818cf8, 1.5);
+  rimLight.position.set(-5.6, -2.6, -4.2);
+  scene.add(rimLight);
+
   const rootGroup = new THREE.Group();
   scene.add(rootGroup);
 
-  /* 1. Soft Volumetric Stage-Tinted Spectral Halation Plane */
+  /* 1. World-Space Decoupled Spectral Halation Plane (Strictly Behind Sculpture!)
+        Mounted directly on `scene` with renderOrder = -10 and depthTest = false so
+        rootGroup / dragYaw rotation NEVER swings the plane across coreMesh or flips
+        transparent painter's sort order. */
   const haloUniforms = {
     uTime: { value: 0 },
     uMorph: { value: 0 },
@@ -978,6 +1024,7 @@ function mountWebGLShaderFilm(container, THREE) {
   const haloMat = new THREE.ShaderMaterial({
     uniforms: haloUniforms,
     transparent: true,
+    depthTest: false,
     depthWrite: false,
     blending: state.theme === 'pure-frost' ? THREE.NormalBlending : THREE.AdditiveBlending,
     vertexShader: `
@@ -1008,37 +1055,51 @@ function mountWebGLShaderFilm(container, THREE) {
       }
 
       void main() {
-        vec2 p = (vUv - 0.5) * 2.0;
-        float r = length(p);
-        float glowA = exp(-r * r * 3.8);
-        float glowB = exp(-r * r * 1.4) * 0.36;
+        vec2 w = (vUv - 0.5) * 2.0;
+        float rNorm = length(w);
+        if (rNorm >= 0.96) discard;
+
+        // Preserve world-space glow scale around sculpture while guaranteeing
+        // C2-smooth zero value & zero gradient strictly inside the circular support!
+        float rWorld = rNorm * (10.0 / 5.1);
+        float glowA = exp(-rWorld * rWorld * 3.8);
+        float glowB = exp(-rWorld * rWorld * 1.45) * 0.36;
+        float radialWindow = smoothstep(0.96, 0.28, rNorm);
+        radialWindow *= radialWindow;
+
         vec3 col = stageTint(uMorph);
-        float dither = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.006;
-        float alpha = (glowA * 0.34 + glowB * 0.22) * (1.0 + uPulse * 0.75) * mix(1.0, 0.34, uLightMode) + dither;
-        gl_FragColor = vec4(col, max(0.0, alpha));
+        float rawAlpha = (glowA * 0.30 + glowB * 0.20) * radialWindow
+                       * (1.0 + uPulse * 0.72) * mix(1.0, 0.22, uLightMode);
+        float ditherMask = smoothstep(0.0, 0.012, rawAlpha);
+        float dither = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5)
+                     * 0.004 * ditherMask;
+        float alpha = max(0.0, rawAlpha + dither);
+        if (alpha <= 0.00012) discard;
+        gl_FragColor = vec4(col, alpha);
       }
     `
   });
-  const haloMesh = new THREE.Mesh(new THREE.PlaneGeometry(9.2, 9.2), haloMat);
-  haloMesh.position.z = -1.35;
-  rootGroup.add(haloMesh);
+  const haloMesh = new THREE.Mesh(new THREE.PlaneGeometry(20.0, 20.0), haloMat);
+  haloMesh.position.set(0, 0.92, -2.4);
+  haloMesh.renderOrder = -10;
+  scene.add(haloMesh);
 
-  /* 2. Six-Surface Parametric Chromatic-Dispersion Core Shader */
+  /* 2. Six-Surface Parametric Chromatic-Dispersion & Cavity-Shaded Core Shader */
+  const coreNormalMat = new THREE.Matrix3();
   const coreUniforms = {
     uTime: { value: 0 },
     uMorph: { value: 0 },
     uPulse: { value: 0 },
     uHoldCharge: { value: 0 },
     uForgePinch: { value: 0 },
-    uFacetMix: { value: 0.04 },
     uLightMode: { value: state.theme === 'pure-frost' ? 1.0 : 0.0 },
-    uPointerLocal: { value: new THREE.Vector3(0, 0, 2) }
+    uPointerLocal: { value: new THREE.Vector3(0, 0, 2) },
+    uCoreNormalMat: { value: coreNormalMat }
   };
 
-  const coreGeo = new THREE.IcosahedronGeometry(1.0, 6);
+  const coreGeo = new THREE.IcosahedronGeometry(1.0, 48);
   const coreMat = new THREE.ShaderMaterial({
     uniforms: coreUniforms,
-    extensions: { derivatives: true },
     transparent: true,
     vertexShader: `
       uniform float uTime;
@@ -1049,72 +1110,115 @@ function mountWebGLShaderFilm(container, THREE) {
       uniform vec3 uPointerLocal;
 
       varying vec3 vWorldPos;
+      varying vec3 vLocalPos;
       varying vec3 vSmoothNormal;
       varying float vDisp;
+      varying float vCavity;
 
-      // Exact 6-Stage Parametric 3D Surface Evaluator on Unit Sphere Direction
-      vec3 evalCoreSurface(vec3 d, float m, float t) {
+      // Exact 6-Stage Parametric 3D Surface + Analytical Cavity Prominence Evaluator
+      vec3 evalCoreSurface(vec3 d, float m, float t, out float outCavity) {
         // S0: Breathing Liquid Prismatic Droplet
         float w0 = sin(d.x * 3.2 + t * 1.3) * cos(d.y * 3.2 - t * 1.0) * 0.11
                  + sin(d.z * 4.0 + t * 0.9) * 0.06;
         vec3 s0 = d * (1.28 + w0);
+        float c0 = clamp(0.72 + w0 * 1.8, 0.35, 1.0);
 
-        // S1: 880 : 544 Rounded Superellipse Optical Glass Tablet (2.05 x 1.27 x 0.28)
-        vec3 q1 = abs(d) / vec3(2.06, 1.27, 0.30);
+        // S1: 880 : 544 Rounded Superellipse Optical Glass Tablet (2.06 x 1.27 x 0.24)
+        vec3 q1 = abs(d) / vec3(2.06, 1.27, 0.24);
         float denom1 = pow(pow(q1.x, 5.0) + pow(q1.y, 5.0) + pow(q1.z, 5.0), 0.2);
         vec3 s1 = d / max(denom1, 1e-4);
-        s1.z += sin(s1.x * 2.2 + t * 1.5) * 0.035;
+        s1.z += sin(s1.x * 2.2 + t * 1.5) * 0.032;
+        float c1 = clamp(0.76 + 0.24 * abs(d.z), 0.58, 1.0);
 
         // S2: Sculpted 8-Petal Astrolabe Star-Crown
         float angXY = atan(d.y, d.x);
-        float petal = 1.24 + 0.38 * cos(angXY * 8.0 - t * 0.8);
-        vec3 s2 = vec3(d.xy * petal, d.z * (0.44 + 0.14 * cos(angXY * 8.0)));
+        float petalWave = cos(angXY * 8.0 - t * 0.8);
+        float petal = 1.24 + 0.38 * petalWave;
+        vec3 s2 = vec3(d.xy * petal, d.z * (0.46 + 0.14 * petalWave));
+        float c2 = clamp(0.54 + 0.46 * petalWave, 0.14, 1.0);
 
         // S3: Twisted Tri-Lobe Spiral Helicoid Forge
         float twist = d.y * 4.2 - t * 2.1;
         float angXZ = atan(d.z, d.x);
-        float lobe = 1.02 + 0.42 * sin(angXZ * 3.0 + twist);
+        float lobeWave = sin(angXZ * 3.0 + twist);
+        float lobe = 1.02 + 0.40 * lobeWave;
         vec3 s3 = vec3(d.x * lobe, d.y * 1.58, d.z * lobe);
+        float c3 = clamp(0.52 + 0.48 * lobeWave, 0.12, 1.0);
 
-        // S4: Razor-Sharp Octahedral Bipyramid Diamond Spire
-        float octNorm = abs(d.x) / 1.16 + abs(d.y) / 1.92 + abs(d.z) / 1.16;
+        // S4: Sleek Micro-Chamfered Octahedral Diamond Spire (0.84 x 1.30 x 0.84, Zero Silhouette Sawtooth)
+        vec3 ad4 = sqrt(d * d + vec3(0.00042));
+        float octNorm = ad4.x / 0.84 + ad4.y / 1.30 + ad4.z / 0.84;
         vec3 s4 = d / max(octNorm, 1e-4);
+        float minAxis = min(min(abs(s4.x), abs(s4.y) * 0.64), abs(s4.z));
+        float c4 = clamp(1.0 - smoothstep(0.0, 0.38, minAxis) * 0.18, 0.78, 1.0);
 
         // S5: Serene Solar-Eclipse Corona Ring-Disc
-        float ringWave = 1.68 + 0.12 * sin(angXY * 12.0 + t * 1.2);
-        vec3 s5 = vec3(d.xy * ringWave, d.z * 0.24);
+        float corWave = sin(angXY * 12.0 + t * 1.2);
+        float ringWave = 1.66 + 0.10 * corWave;
+        vec3 s5 = vec3(d.xy * ringWave, d.z * 0.28);
+        float c5 = clamp(0.68 + 0.32 * corWave, 0.38, 1.0);
 
         vec3 p;
-        if (m < 1.0) p = mix(s0, s1, smoothstep(0.0, 1.0, m));
-        else if (m < 2.0) p = mix(s1, s2, smoothstep(1.0, 2.0, m));
-        else if (m < 3.0) p = mix(s2, s3, smoothstep(2.0, 3.0, m));
-        else if (m < 4.0) p = mix(s3, s4, smoothstep(3.0, 4.0, m));
-        else p = mix(s4, s5, smoothstep(4.0, 5.0, m));
+        if (m < 1.0) {
+          float k = smoothstep(0.0, 1.0, m);
+          p = mix(s0, s1, k);
+          outCavity = mix(c0, c1, k);
+        } else if (m < 2.0) {
+          float k = smoothstep(1.0, 2.0, m);
+          p = mix(s1, s2, k);
+          outCavity = mix(c1, c2, k);
+        } else if (m < 3.0) {
+          float k = smoothstep(2.0, 3.0, m);
+          p = mix(s2, s3, k);
+          outCavity = mix(c2, c3, k);
+        } else if (m < 4.0) {
+          float k = smoothstep(3.0, 4.0, m);
+          p = mix(s3, s4, k);
+          outCavity = mix(c3, c4, k);
+        } else {
+          float k = smoothstep(4.0, 5.0, m);
+          p = mix(s4, s5, k);
+          outCavity = mix(c4, c5, k);
+        }
 
         // Cursor Magnetic Ripple + Gravity Hold Stretch + Pulse Wave
         float ptrDist = length(p - uPointerLocal);
-        float ptrWave = sin(ptrDist * 5.5 - t * 5.0) * exp(-ptrDist * 1.1) * 0.085;
-        vec3 pullVec = (uPointerLocal - p) * exp(-ptrDist * 0.55) * uHoldCharge * 0.28;
-        float pulseBurst = uPulse * 0.20 * sin(d.y * 8.0 + t * 9.0);
+        float ptrWave = sin(ptrDist * 5.5 - t * 5.0) * exp(-ptrDist * 1.1) * 0.08;
+        vec3 pullVec = (uPointerLocal - p) * exp(-ptrDist * 0.55) * uHoldCharge * 0.25;
+        float pulseBurst = uPulse * 0.18 * sin(d.y * 8.0 + t * 9.0);
 
         p = p * (1.0 - uForgePinch * 0.38) + d * (ptrWave + pulseBurst) + pullVec;
         return p;
       }
 
+      // Branchless Pixar Orthonormal Basis (Duff et al. 2017): cross(b1, b2) == +n everywhere
+      void buildTangentBasis(vec3 n, out vec3 b1, out vec3 b2) {
+        float s = n.z >= 0.0 ? 1.0 : -1.0;
+        float a = -1.0 / (s + n.z);
+        float b = n.x * n.y * a;
+        b1 = vec3(1.0 + s * n.x * n.x * a, s * b, -s * n.x);
+        b2 = vec3(b, s + n.y * n.y * a, -n.y);
+      }
+
       void main() {
         vec3 dir = normalize(position);
-        vec3 pos = evalCoreSurface(dir, uMorph, uTime);
+        float cavCenter = 1.0;
+        vec3 pos = evalCoreSurface(dir, uMorph, uTime, cavCenter);
+        vLocalPos = pos;
+        vCavity = cavCenter;
         vDisp = length(pos) - 1.25;
 
-        // Tangent-space finite difference for smooth analytical normal across all 6 surfaces!
-        float eps = 0.018;
-        vec3 ref = abs(dir.y) > 0.92 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-        vec3 tA = normalize(cross(ref, dir));
-        vec3 tB = normalize(cross(dir, tA));
-        vec3 pA = evalCoreSurface(normalize(dir + tA * eps), uMorph, uTime);
-        vec3 pB = evalCoreSurface(normalize(dir + tB * eps), uMorph, uTime);
-        vec3 surfN = normalize(cross(pA - pos, pB - pos) + dir * 1e-5);
-        if (dot(surfN, dir) < 0.0) surfN = -surfN;
+        // Central finite difference on oriented tangent plane -> exact outward normal
+        // without radial dot(surfN, dir) < 0 sign-flip seams on steep overhanging lobes!
+        float eps = 0.016;
+        vec3 tA, tB;
+        buildTangentBasis(dir, tA, tB);
+        float dummyC;
+        vec3 pPlusA = evalCoreSurface(normalize(dir + tA * eps), uMorph, uTime, dummyC);
+        vec3 pMinusA = evalCoreSurface(normalize(dir - tA * eps), uMorph, uTime, dummyC);
+        vec3 pPlusB = evalCoreSurface(normalize(dir + tB * eps), uMorph, uTime, dummyC);
+        vec3 pMinusB = evalCoreSurface(normalize(dir - tB * eps), uMorph, uTime, dummyC);
+        vec3 surfN = normalize(cross(pPlusA - pMinusA, pPlusB - pMinusB) + dir * 1e-6);
 
         vec4 wp = modelMatrix * vec4(pos, 1.0);
         vWorldPos = wp.xyz;
@@ -1127,20 +1231,27 @@ function mountWebGLShaderFilm(container, THREE) {
       uniform float uMorph;
       uniform float uPulse;
       uniform float uHoldCharge;
-      uniform float uFacetMix;
       uniform float uLightMode;
+      uniform mat3 uCoreNormalMat;
 
       varying vec3 vWorldPos;
+      varying vec3 vLocalPos;
       varying vec3 vSmoothNormal;
       varying float vDisp;
+      varying float vCavity;
+
+      vec3 softSign(vec3 v, float sharpness) {
+        float inv2 = 1.0 / (sharpness * sharpness);
+        return v * inversesqrt(v * v + vec3(inv2));
+      }
 
       vec3 stageAccent(float m) {
-        vec3 a0 = vec3(0.12, 0.72, 0.98);
-        vec3 a1 = vec3(0.20, 0.88, 0.98);
-        vec3 a2 = vec3(0.72, 0.34, 0.98);
-        vec3 a3 = vec3(0.98, 0.45, 0.32);
-        vec3 a4 = vec3(0.12, 0.88, 0.68);
-        vec3 a5 = vec3(0.45, 0.68, 1.00);
+        vec3 a0 = vec3(0.14, 0.74, 0.98);
+        vec3 a1 = vec3(0.20, 0.86, 0.98);
+        vec3 a2 = vec3(0.70, 0.38, 0.98);
+        vec3 a3 = vec3(0.98, 0.48, 0.34);
+        vec3 a4 = vec3(0.10, 0.86, 0.68);
+        vec3 a5 = vec3(0.42, 0.68, 1.00);
         if (m < 1.0) return mix(a0, a1, m);
         if (m < 2.0) return mix(a1, a2, m - 1.0);
         if (m < 3.0) return mix(a2, a3, m - 2.0);
@@ -1148,39 +1259,58 @@ function mountWebGLShaderFilm(container, THREE) {
         return mix(a4, a5, clamp(m - 4.0, 0.0, 1.0));
       }
 
+      // Full-Sphere 360-Degree Studio Environment (Front Reflection + Rear Transmission Softboxes)
       vec3 studioEnv(vec3 dir, float lightMode, vec3 accent) {
         float up = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
-        float stripA = smoothstep(0.92, 0.995, dot(dir, normalize(vec3(0.45, 0.82, 0.35))));
-        float stripB = smoothstep(0.88, 0.985, dot(dir, normalize(vec3(-0.75, 0.35, 0.55))));
-        float caustic = pow(0.5 + 0.5 * sin(dir.x * 5.2 + dir.z * 4.2 + uTime * 0.7), 4.0);
+        float frontSoftA = smoothstep(0.76, 0.992, dot(dir, normalize(vec3(0.48, 0.72, 0.64))));
+        float frontSoftB = smoothstep(0.72, 0.98, dot(dir, normalize(vec3(-0.62, -0.18, 0.56))));
+        float rearTransA = smoothstep(0.35, 0.94, dot(dir, normalize(vec3(-0.28, -0.32, -0.90))));
+        float rearTransB = smoothstep(0.42, 0.95, dot(dir, normalize(vec3(0.45, 0.48, -0.75))));
 
-        vec3 darkBase = mix(vec3(0.012, 0.020, 0.058), vec3(0.05, 0.11, 0.26), up);
-        darkBase += accent * caustic * 0.48;
-        darkBase += accent.bgr * smoothstep(0.2, 0.9, -dir.x) * 0.32;
-        darkBase += vec3(1.0) * stripA * 1.4 + accent * stripB * 0.9;
+        vec3 darkEnv = mix(vec3(0.032, 0.052, 0.125), vec3(0.085, 0.175, 0.36), up);
+        darkEnv += accent * (rearTransA * 0.52 + rearTransB * 0.34);
+        darkEnv += accent.bgr * frontSoftB * 0.28;
+        darkEnv += vec3(1.0) * frontSoftA * 1.05;
 
-        vec3 lightBase = mix(vec3(0.84, 0.89, 0.98), vec3(0.99, 0.995, 1.0), up);
-        lightBase -= (vec3(1.0) - accent) * caustic * 0.24;
-        lightBase += accent * stripB * 0.55 + vec3(1.0) * stripA * 0.9;
+        vec3 lightEnv = mix(vec3(0.76, 0.83, 0.94), vec3(0.97, 0.985, 1.0), up);
+        lightEnv += accent * (rearTransA * 0.18 + frontSoftB * 0.15);
+        lightEnv += vec3(1.0) * frontSoftA * 0.45;
 
-        return mix(darkBase, lightBase, lightMode);
+        return mix(darkEnv, lightEnv, lightMode);
       }
 
       void main() {
-        vec3 dx = dFdx(vWorldPos);
-        vec3 dy = dFdy(vWorldPos);
+        // Analytical micro-beveled octahedral facet normal in Stage 04 (zero mesh saw-tooth!)
+        float s4Weight = smoothstep(0.12, 0.88, 1.0 - clamp(abs(uMorph - 4.0), 0.0, 1.0));
         vec3 smoothN = normalize(vSmoothNormal);
-        vec3 flatN = normalize(cross(dx, dy) + vec3(1e-6));
-        if (dot(flatN, smoothN) < 0.0) flatN = -flatN;
-        vec3 N = normalize(mix(smoothN, flatN, uFacetMix));
+        vec3 octLocalN = normalize(softSign(vLocalPos, 36.0) / vec3(0.84, 1.30, 0.84));
+        vec3 octWorldN = normalize(uCoreNormalMat * octLocalN);
+        vec3 N = normalize(mix(smoothN, octWorldN, s4Weight * 0.92));
+
         vec3 V = normalize(cameraPosition - vWorldPos);
+        if (dot(N, V) < -0.25) N = normalize(mix(N, V, 0.35));
+
         vec3 accent = stageAccent(uMorph);
+        float ao = mix(0.34, 1.0, clamp(vCavity, 0.0, 1.0));
+
+        // Studio Key (Top-Right-Front) & Cool Fill (Bottom-Left) Directional Rig
+        vec3 keyL = normalize(vec3(0.48, 0.72, 0.64));
+        vec3 fillL = normalize(vec3(-0.62, -0.22, 0.52));
+        float ndl = dot(N, keyL);
+        float keyWrap = clamp((ndl + 0.36) / 1.36, 0.0, 1.0);
+        float fillWrap = clamp((dot(N, fillL) + 0.30) / 1.30, 0.0, 1.0);
+
+        // Stage 00 Caustic Water-Mirror Upward Bounce Light on Lower Hemisphere
+        float s0Weight = clamp(1.0 - uMorph, 0.0, 1.0);
+        float waterBounce = s0Weight * clamp(-N.y * 0.85 + 0.15, 0.0, 1.0);
+
+        // Stage 05 Solar-Eclipse Corona Weight (Velvety Umbra Core + Radiant Rim)
+        float s5Weight = clamp(uMorph - 4.0, 0.0, 1.0);
 
         // Chromatic Dispersion (RGB IOR Separation)
-        vec3 rDir = refract(-V, N, 1.0 / 1.34);
-        vec3 gDir = refract(-V, N, 1.0 / 1.45);
-        vec3 bDir = refract(-V, N, 1.0 / 1.58);
-
+        vec3 rDir = refract(-V, N, 1.0 / 1.35);
+        vec3 gDir = refract(-V, N, 1.0 / 1.44);
+        vec3 bDir = refract(-V, N, 1.0 / 1.54);
         vec3 refracted = vec3(
           studioEnv(rDir, uLightMode, accent).r,
           studioEnv(gDir, uLightMode, accent).g,
@@ -1188,23 +1318,52 @@ function mountWebGLShaderFilm(container, THREE) {
         );
 
         float ndv = clamp(dot(N, V), 0.0, 1.0);
-        float fresnel = pow(1.0 - ndv, 3.0);
+        float fresnel = pow(1.0 - ndv, 2.75);
         vec3 reflDir = reflect(-V, N);
         vec3 reflected = studioEnv(reflDir, uLightMode, accent);
 
-        vec3 iridescence = 0.5 + 0.5 * cos(vec3(0.0, 2.1, 4.2) + ndv * 7.8 + vDisp * 9.0 + uTime * 0.6);
-        vec3 rimGlow = mix(accent, iridescence, 0.52) * fresnel * (1.3 + uPulse * 1.3 + uHoldCharge * 1.1);
+        vec3 iridescence = 0.5 + 0.5 * cos(vec3(0.0, 2.1, 4.2) + ndv * 6.4 + vDisp * 6.5 + uTime * 0.55);
 
-        vec3 keyL = normalize(vec3(0.48, 0.82, 0.58));
-        float spec = pow(max(dot(reflDir, keyL), 0.0), 110.0) * 1.5;
+        // Self-shadowed Blinn-Phong Studio Specular (Broad Sheen + Crisp Clearcoat)
+        vec3 halfV = normalize(keyL + V);
+        float specMask = smoothstep(-0.10, 0.38, ndl) * ao;
+        float softSheen = pow(max(dot(N, halfV), 0.0), 22.0) * 0.28 * specMask;
+        float coatSpec = pow(max(dot(N, halfV), 0.0), 108.0) * 1.18 * specMask;
 
-        vec3 finalCol = mix(refracted, reflected, fresnel * 0.68) + rimGlow + vec3(spec);
-        gl_FragColor = vec4(finalCol, mix(0.91, 0.87, uLightMode));
+        // Dark Theme: Intuitive Key-Lit Translucent Crystal + Cavity-Occluded Rim
+        vec3 darkShadowTone = mix(vec3(0.022, 0.036, 0.088), accent * 0.16, 0.35 + fillWrap * 0.35);
+        vec3 darkLitTone = mix(refracted, accent * 0.62 + vec3(0.14, 0.20, 0.34), 0.36);
+        vec3 darkBody = mix(darkShadowTone, darkLitTone, keyWrap) * ao;
+        darkBody += accent * waterBounce * 0.24 * ao;
+        // Solar-eclipse velvety central umbra in Stage 05
+        darkBody *= mix(1.0, mix(0.28, 1.0, fresnel), s5Weight * 0.72);
+
+        float rimDirGate = mix(mix(0.30, 1.0, keyWrap) * ao, 0.92, s5Weight * 0.75);
+        vec3 darkRim = mix(accent, iridescence, 0.42) * fresnel * rimDirGate
+                     * (1.08 + uPulse * 1.15 + uHoldCharge * 0.95 + s5Weight * 0.45);
+        vec3 darkFinal = mix(darkBody, reflected * ao, fresnel * 0.44)
+                       + darkRim
+                       + accent * softSheen
+                       + vec3(coatSpec);
+
+        // Light Theme (Pure Frost): Porcelain Alabaster Crystal with Beer-Lambert Edge & Shadow Depth
+        vec3 frostLit = mix(refracted, vec3(0.95, 0.975, 1.0), 0.45);
+        vec3 frostShadow = mix(vec3(0.56, 0.65, 0.80), accent * 0.72, 0.38);
+        vec3 frostBody = mix(frostShadow, frostLit, 0.26 + 0.74 * keyWrap) * mix(0.68, 1.0, ao);
+        vec3 frostEdgeAbsorb = mix(vec3(0.42, 0.54, 0.74), accent * 0.68, 0.52);
+        vec3 frostFinal = mix(frostBody, frostEdgeAbsorb, fresnel * 0.52);
+        frostFinal += mix(accent, iridescence, 0.35) * fresnel * keyWrap * (0.24 + uPulse * 0.45);
+        frostFinal += vec3(coatSpec * 0.85 + softSheen * 0.45);
+
+        vec3 finalCol = mix(darkFinal, frostFinal, uLightMode);
+        float finalAlpha = mix(0.92, 0.90, uLightMode);
+        gl_FragColor = vec4(finalCol, finalAlpha);
       }
     `
   });
 
   const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+  coreMesh.renderOrder = 1;
   rootGroup.add(coreMesh);
 
   /* 3. Stage-Specific Sculptural Companions:
@@ -1215,36 +1374,49 @@ function mountWebGLShaderFilm(container, THREE) {
 
   // 8 Plugin Crystal Satellites (Emerge in Stage 02!)
   const satGroup = new THREE.Group();
+  satGroup.renderOrder = 2;
   rootGroup.add(satGroup);
   const satGeo = new THREE.OctahedronGeometry(0.23, 0);
   const satRecords = PLUGINS.map((p, i) => {
     const mat = new THREE.MeshPhysicalMaterial({
       color: p.color,
       emissive: p.color,
-      emissiveIntensity: 0.45,
-      roughness: 0.08,
-      metalness: 0.25,
+      emissiveIntensity: 0.22,
+      roughness: 0.12,
+      metalness: 0.18,
       clearcoat: 1.0,
+      clearcoatRoughness: 0.08,
       transparent: true,
       opacity: 0
     });
     const mesh = new THREE.Mesh(satGeo, mat);
+    mesh.renderOrder = 2;
     mesh.userData = { kind: 'plugin', plugin: p, index: i, hoverScale: 1 };
     satGroup.add(mesh);
     raycastTargets.push(mesh);
     return { mesh, mat, plugin: p, index: i };
   });
 
-  // 3 Gyroscopic Rings (Emerge & Precess Fast in Stage 03!)
+  // 3 Metallic Gyroscopic Rings (Emerge & Precess Fast in Stage 03!)
   const gyroGroup = new THREE.Group();
+  gyroGroup.renderOrder = 2;
   rootGroup.add(gyroGroup);
   const gyroRings = [
     { r: 2.05, col: 0xf59e0b },
     { r: 2.55, col: 0xec4899 },
     { r: 3.05, col: 0x8b5cf6 }
   ].map(({ r, col }, idx) => {
-    const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0 });
-    const mesh = new THREE.Mesh(new THREE.TorusGeometry(r, 0.022, 12, 108), mat);
+    const mat = new THREE.MeshStandardMaterial({
+      color: col,
+      emissive: col,
+      emissiveIntensity: 0.30,
+      roughness: 0.20,
+      metalness: 0.76,
+      transparent: true,
+      opacity: 0
+    });
+    const mesh = new THREE.Mesh(new THREE.TorusGeometry(r, 0.024, 14, 108), mat);
+    mesh.renderOrder = 2;
     mesh.rotation.set(idx * 0.7, idx * 0.5, 0);
     gyroGroup.add(mesh);
     return { mesh, mat };
@@ -1252,20 +1424,23 @@ function mountWebGLShaderFilm(container, THREE) {
 
   // 7 DAG Crystal Nodes (Emerge in Stage 04!)
   const dagGroup = new THREE.Group();
+  dagGroup.renderOrder = 2;
   rootGroup.add(dagGroup);
   const dagNodeGeo = new THREE.OctahedronGeometry(0.20, 0);
   const dagRecords = DAG_NODES.map((d, i) => {
     const mat = new THREE.MeshPhysicalMaterial({
       color: d.color,
       emissive: d.color,
-      emissiveIntensity: 0.55,
-      roughness: 0.06,
-      metalness: 0.22,
+      emissiveIntensity: 0.24,
+      roughness: 0.10,
+      metalness: 0.18,
       clearcoat: 1.0,
+      clearcoatRoughness: 0.06,
       transparent: true,
       opacity: 0
     });
     const mesh = new THREE.Mesh(dagNodeGeo, mat);
+    mesh.renderOrder = 2;
     mesh.position.set(d.pos[0], d.pos[1], d.pos[2]);
     mesh.userData = { kind: 'dag', dag: d, index: i, hoverScale: 1 };
     dagGroup.add(mesh);
@@ -1310,6 +1485,7 @@ function mountWebGLShaderFilm(container, THREE) {
     `
   });
   const trailLine = new THREE.Line(trailGeo, trailMat);
+  trailLine.renderOrder = 4;
   scene.add(trailLine);
 
   /* 5. 28,000-Particle Six-Stage GPU Morphing & Force-Field Cloud */
@@ -1389,11 +1565,16 @@ function mountWebGLShaderFilm(container, THREE) {
       void main() {
         float m = clamp(uMorph, 0.0, 5.0);
 
-        // Stage 00 Dynamic Concentric Water Ripple on Mirror Plane
+        // Stage 00 Dynamic Concentric Water Ripple + Droplet Contact Shadow & Caustic Ring
         vec3 p0 = position;
         float r0 = length(p0.xz);
+        float waterContactShade = 1.0;
+        float waterCausticRing = 0.0;
         if (p0.y < -0.5) {
           p0.y = -0.95 + sin(r0 * 3.2 - uTime * 2.4) * 0.16 * exp(-r0 * 0.18);
+          float s0Vis = clamp(1.0 - m, 0.0, 1.0);
+          waterContactShade = mix(1.0, 0.42 + 0.58 * smoothstep(0.35, 1.55, r0), s0Vis);
+          waterCausticRing = exp(-pow(r0 - 1.52, 2.0) * 4.2) * 0.42 * s0Vis;
         }
 
         // Stage 01 Cursor-Driven 4-Layer Z-Explosion Fan-Out!
@@ -1436,39 +1617,45 @@ function mountWebGLShaderFilm(container, THREE) {
 
         vec4 worldPos = modelMatrix * vec4(baseP, 1.0);
 
-        // Rich Mouse Force-Field:
-        // 1) Velocity Wake + Swirl when moving
-        // 2) Black-Hole Whirlpool Attraction when holding click (uHoldCharge)!
+        // Rich Mouse Force-Field + Core Keep-Out Deflection Shield (Zero Particle Embedding!):
+        float dagKeep = 1.0 - clamp(abs(m - 4.0), 0.0, 1.0);
         vec3 toPtr = worldPos.xyz - uPointer;
         float ptrDist = length(toPtr);
         float nearField = exp(-ptrDist * ptrDist * 0.45);
         vec3 tangent = normalize(cross(toPtr + vec3(0.001), vec3(0.0, 0.0, 1.0)));
 
-        // Normal hover: gentle parting + velocity wake
         worldPos.xyz += (normalize(toPtr + vec3(0.001)) * 0.36 + tangent * 0.48) * nearField * (1.0 - uHoldCharge);
         worldPos.xyz += uPointerVel * nearField * 0.14;
 
-        // Hold-to-charge: strong inward gravity whirlpool!
         float gravityField = exp(-ptrDist * 0.42) * uHoldCharge;
-        worldPos.xyz += (-toPtr * 0.68 + tangent * 1.35) * gravityField;
+        float gravScale = mix(1.0, 0.38, dagKeep);
+        worldPos.xyz += (-toPtr * 0.68 + tangent * 1.35) * (gravityField * gravScale);
 
-        // Expanding Supernova / Harmonic Shockwave Ring
-        float shockDist = length(worldPos.xyz - uPointer * step(0.01, uShockStrength));
         float ringDelta = abs(length(baseP) - uShockRadius);
         float shock = exp(-ringDelta * ringDelta * 3.2) * uShockStrength;
         worldPos.xyz += normalize(baseP + vec3(0.001)) * shock * 0.72;
+
+        // Smooth 3D Keep-Out Shield around Central Core so particles flow around, never inside!
+        vec3 coreCenter = modelMatrix[3].xyz;
+        vec3 relCore = worldPos.xyz - coreCenter;
+        vec3 coreRadii = mix(vec3(1.42, 1.48, 1.42), vec3(1.06, 1.48, 1.06), dagKeep);
+        float coreNormDist = length(relCore / coreRadii);
+        if (coreNormDist < 1.0 && m > 0.35) {
+          vec3 pushDir = normalize(relCore + vec3(0.0, 0.0, 0.001));
+          worldPos.xyz += pushDir * (1.0 - coreNormDist) * length(coreRadii) * 0.62;
+        }
 
         vec4 mvPos = viewMatrix * worldPos;
         gl_Position = projectionMatrix * mvPos;
 
         // Stage-Specific Chromatic Palettes!
         float h = fract(aSeed.z * 2.1 + uTime * 0.03);
-        vec3 pal0 = mix(vec3(0.14, 0.78, 0.98), vec3(0.35, 0.42, 0.96), h); // Cyan-Sapphire
-        vec3 pal1 = mix(vec3(0.18, 0.88, 0.98), vec3(0.75, 0.92, 1.00), h); // Arctic Lens
-        vec3 pal2 = mix(vec3(0.68, 0.32, 0.98), vec3(0.96, 0.36, 0.72), h); // Violet-Orchid
-        vec3 pal3 = mix(vec3(0.98, 0.62, 0.16), vec3(0.96, 0.26, 0.56), h); // Solar-Amber & Rose
-        vec3 pal4 = mix(vec3(0.08, 0.88, 0.64), vec3(0.22, 0.76, 0.98), h); // Emerald & Cyan
-        vec3 pal5 = mix(vec3(0.36, 0.68, 1.00), vec3(0.82, 0.56, 0.98), h); // Celestial Corona
+        vec3 pal0 = mix(vec3(0.14, 0.78, 0.98), vec3(0.35, 0.42, 0.96), h);
+        vec3 pal1 = mix(vec3(0.18, 0.88, 0.98), vec3(0.75, 0.92, 1.00), h);
+        vec3 pal2 = mix(vec3(0.68, 0.32, 0.98), vec3(0.96, 0.36, 0.72), h);
+        vec3 pal3 = mix(vec3(0.98, 0.62, 0.16), vec3(0.96, 0.26, 0.56), h);
+        vec3 pal4 = mix(vec3(0.08, 0.88, 0.64), vec3(0.22, 0.76, 0.98), h);
+        vec3 pal5 = mix(vec3(0.36, 0.68, 1.00), vec3(0.82, 0.56, 0.98), h);
 
         vec3 darkCol;
         if (m < 1.0) darkCol = mix(pal0, pal1, m);
@@ -1478,19 +1665,18 @@ function mountWebGLShaderFilm(container, THREE) {
         else darkCol = mix(pal4, pal5, clamp(m - 4.0, 0.0, 1.0));
 
         vec3 lightCol = darkCol * 0.62;
-        vec3 col = mix(darkCol, lightCol, uLightMode);
+        vec3 col = mix(darkCol, lightCol, uLightMode) * waterContactShade;
 
-        // Downward Acyclic Cascade Wave in Stage 04
         float dagWeight = 1.0 - clamp(abs(m - 4.0), 0.0, 1.0);
         float dagPulse = dagWeight * pow(0.5 + 0.5 * sin(baseP.y * 3.2 + uTime * 3.6), 3.0);
 
         col += vec3(0.95, 0.55, 0.85) * gravityField * 1.1;
-        col += vec3(0.55, 0.88, 1.0) * (shock * 1.5 + nearField * 0.65 + dagPulse * 0.6);
+        col += vec3(0.55, 0.88, 1.0) * (shock * 1.5 + nearField * 0.65 + dagPulse * 0.6 + waterCausticRing);
 
         vColor = col;
-        float baseAlpha = mix(0.78, 0.60, uLightMode) * (0.48 + 0.52 * sin(uTime * 1.7 + aSeed.x));
+        float baseAlpha = mix(0.78, 0.60, uLightMode) * (0.48 + 0.52 * sin(uTime * 1.7 + aSeed.x)) * waterContactShade;
         baseAlpha *= mix(1.0, pMask, coronaWeight);
-        vAlpha = clamp(baseAlpha + shock * 0.55 + nearField * 0.35 + gravityField * 0.5, 0.04, 1.0);
+        vAlpha = clamp(baseAlpha + shock * 0.55 + nearField * 0.35 + gravityField * 0.5 + waterCausticRing * 0.4, 0.04, 1.0);
 
         float depthScale = clamp(11.0 / max(1.5, -mvPos.z), 0.35, 2.8);
         float sizeBoost = 1.0 + shock * 1.35 + nearField * 0.85 + gravityField * 1.1 + dagPulse * 0.65;
@@ -1512,6 +1698,7 @@ function mountWebGLShaderFilm(container, THREE) {
   });
 
   const particleCloud = new THREE.Points(pGeo, pMat);
+  particleCloud.renderOrder = 3;
   rootGroup.add(particleCloud);
 
   /* ------------------------------------------------------------------------
@@ -1567,6 +1754,19 @@ function mountWebGLShaderFilm(container, THREE) {
     syncTheme: (themeId) => {
       const isLight = themeId === 'pure-frost';
       scene.background = new THREE.Color(isLight ? 0xf3f6fc : 0x03040a);
+
+      // Sync Studio Three-Point Lights & PBR Crystal Emissive Balance
+      hemiLight.color.setHex(isLight ? 0xffffff : 0xdbeafe);
+      hemiLight.groundColor.setHex(isLight ? 0xcbd5e1 : 0x090d1f);
+      hemiLight.intensity = isLight ? 1.75 : 1.40;
+      keyLight.intensity = isLight ? 2.45 : 2.85;
+      rimLight.color.setHex(isLight ? 0x38bdf8 : 0x818cf8);
+      rimLight.intensity = isLight ? 1.15 : 1.55;
+
+      satRecords.forEach((rec) => { rec.mat.emissiveIntensity = isLight ? 0.09 : 0.22; });
+      dagRecords.forEach((rec) => { rec.mat.emissiveIntensity = isLight ? 0.10 : 0.24; });
+      gyroRings.forEach((g) => { g.mat.emissiveIntensity = isLight ? 0.14 : 0.30; });
+
       coreUniforms.uLightMode.value = isLight ? 1.0 : 0.0;
       haloUniforms.uLightMode.value = isLight ? 1.0 : 0.0;
       haloMat.blending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
@@ -1624,7 +1824,6 @@ function mountWebGLShaderFilm(container, THREE) {
         shaderBridge.triggerPulse(1.15);
       }
     } else if (holdCharge > 0.25) {
-      // Release Gravity Charge -> Supernova Detonation!
       shaderBridge.triggerPulse(1.35 + holdCharge * 0.9);
     } else if (movedPx < 10 && heldMs < 260) {
       shaderBridge.triggerPulse(0.95);
@@ -1684,24 +1883,28 @@ function mountWebGLShaderFilm(container, THREE) {
       dragPitch *= Math.pow(0.48, dt);
     }
 
+    const bobY = Math.sin(elapsed * 0.48) * 0.06;
     rootGroup.position.x = offsetXCurrent;
-    rootGroup.position.y = offsetYCurrent + Math.sin(elapsed * 0.48) * 0.06;
+    rootGroup.position.y = offsetYCurrent + bobY;
 
     const ptrX = pointerNDC.x < 10 ? pointerNDC.x : 0;
     const ptrY = pointerNDC.y < 10 ? pointerNDC.y : 0;
-    rootGroup.rotation.y = elapsed * 0.075 + ptrX * 0.14 + dragYaw;
-    rootGroup.rotation.x = Math.sin(elapsed * 0.26) * 0.06 - ptrY * 0.10 + dragPitch;
-    haloMesh.lookAt(camera.position);
 
-    /* Core Per-Stage Attitude & Facet Sharpness:
-       - Stage 00: Smooth Liquid (uFacetMix ~ 0.02)
-       - Stage 01: Tilted 3/4 Superellipse Lens (uFacetMix ~ 0.06)
-       - Stage 02: Star-Crown (uFacetMix ~ 0.25)
-       - Stage 03: Fast-Spinning Twisted Helicoid (uFacetMix ~ 0.35)
-       - Stage 04: Sharp Flat-Faceted Diamond Spire (uFacetMix ~ 0.94) */
+    // Gentle parallax sway on planar stages (01 & 05) so particle sheets & eclipse corona stay poised;
+    // gentle ambient orbit on radial 3D stages (00, 02, 03, 04) + full 360° manual dragYaw!
     const s1Weight = Math.max(0, 1 - Math.abs(morphCurrent - 1.0));
     const s3Weight = Math.max(0, 1 - Math.abs(morphCurrent - 3.0));
     const s4Weight = Math.max(0, 1 - Math.abs(morphCurrent - 4.0));
+    const s5Weight = Math.max(0, 1 - Math.abs(morphCurrent - 5.0));
+    const planarLock = Math.min(1, s1Weight + s5Weight);
+
+    const autoOrbitY = Math.sin(elapsed * 0.22) * 0.22;
+    rootGroup.rotation.y = autoOrbitY * (1 - planarLock * 0.65) + ptrX * 0.14 + dragYaw;
+    rootGroup.rotation.x = Math.sin(elapsed * 0.26) * 0.06 - ptrY * 0.10 + dragPitch;
+
+    // Keep world-space halo strictly behind sculpture center without orbiting into +Z!
+    haloMesh.position.set(offsetXCurrent, offsetYCurrent + bobY, -2.4);
+    haloMesh.lookAt(camera.position);
 
     if (isForging) {
       forgePinchProgress += dt * 0.46;
@@ -1718,26 +1921,34 @@ function mountWebGLShaderFilm(container, THREE) {
     } else {
       forgeShockFired = false;
     }
-    // C1-smooth zero-slope Hann bell curve (0 velocity at start, peak & end -> zero snap!)
     const pinchCurve = isForging ? 0.5 * (1 - Math.cos(forgePinchProgress * Math.PI * 2)) : 0;
 
-    coreYawPhase -= dt * (0.14 + s3Weight * 0.52 + pinchCurve * 0.72);
-    vortexPhase += dt * (0.36 + s3Weight * 0.48 + pinchCurve * 1.45);
-    coreMesh.rotation.y = coreYawPhase - s1Weight * 0.35;
-    coreMesh.rotation.x = s1Weight * 0.18;
+    // Wrap coreYawPhase to [-PI, PI] and smoothly align planar stages (01 Lens & 05 Eclipse)
+    // with their companion particle sheets/corona while keeping radial stages spinning!
+    const spinMask = Math.max(0, 1 - planarLock);
+    coreYawPhase -= dt * (0.15 + s3Weight * 0.52 + pinchCurve * 0.72) * spinMask;
+    coreYawPhase = Math.atan2(Math.sin(coreYawPhase), Math.cos(coreYawPhase));
+    if (planarLock > 0.01) {
+      coreYawPhase *= Math.pow(0.06, dt * planarLock);
+    }
 
-    const facetTarget = s4Weight * 0.92 + s3Weight * 0.30 + Math.max(0, 1 - Math.abs(morphCurrent - 2.0)) * 0.22 + 0.03;
-    coreUniforms.uFacetMix.value += (facetTarget - coreUniforms.uFacetMix.value) * 0.1;
+    vortexPhase += dt * (0.36 + s3Weight * 0.48 + pinchCurve * 1.45);
+    const lensYaw = -0.24 + Math.sin(elapsed * 0.42) * 0.07;
+    const eclipseYaw = Math.sin(elapsed * 0.34) * 0.12;
+    coreMesh.rotation.y = coreYawPhase + s1Weight * lensYaw + s5Weight * eclipseYaw;
+    coreMesh.rotation.x = s1Weight * 0.15 + s5Weight * (Math.cos(elapsed * 0.28) * 0.06);
+
+    coreMesh.updateMatrixWorld();
+    coreNormalMat.getNormalMatrix(coreMesh.matrixWorld);
 
     /* 2. Update Stage-Specific Companion 3D Sculptures */
-    // Stage 02: 8 Orbiting Crystal Satellites
     const s2Vis = Math.max(0, 1 - Math.abs(morphCurrent - 2.0) * 1.15);
     satGroup.visible = s2Vis > 0.02;
     if (satGroup.visible) {
       satRecords.forEach((rec, i) => {
         const mounted = state.enabledPlugins.has(rec.plugin.id);
         const cAng = (i / 8) * Math.PI * 2 + elapsed * (mounted ? 0.22 : 0.07);
-        const r = (mounted ? 3.35 : 4.45) * (0.4 + 0.6 * s2Vis);
+        const r = (mounted ? 3.35 : 4.45) * (0.72 + 0.28 * s2Vis);
         rec.mesh.position.set(
           Math.cos(cAng) * r,
           Math.sin(cAng) * r * 0.85,
@@ -1752,7 +1963,6 @@ function mountWebGLShaderFilm(container, THREE) {
       });
     }
 
-    // Stage 03: 3 Precessing Gyroscopic Forge Rings
     const s3Vis = Math.max(0, 1 - Math.abs(morphCurrent - 3.0) * 1.15);
     gyroGroup.visible = s3Vis > 0.02;
     if (gyroGroup.visible) {
@@ -1761,21 +1971,27 @@ function mountWebGLShaderFilm(container, THREE) {
       gyroRings[1].mesh.rotation.y += dt * 1.15 * speedMult;
       gyroRings[2].mesh.rotation.z += dt * 0.85 * speedMult;
       gyroRings.forEach((g) => {
-        g.mesh.scale.setScalar(0.5 + 0.5 * s3Vis);
-        g.mat.opacity = s3Vis * 0.42;
+        g.mesh.scale.setScalar(0.82 + 0.18 * s3Vis);
+        g.mat.opacity = s3Vis * 0.56;
       });
     }
 
-    // Stage 04: 7 Faceted Diamond DAG Nodes
     const s4Vis = Math.max(0, 1 - Math.abs(morphCurrent - 4.0) * 1.15);
     dagGroup.visible = s4Vis > 0.02;
     if (dagGroup.visible) {
       dagRecords.forEach((rec, i) => {
+        const bp = rec.dag.pos;
+        const dx = localPtrVec.x - bp[0];
+        const dy = localPtrVec.y - bp[1];
+        const dz = localPtrVec.z - bp[2];
+        const dPtr = Math.hypot(dx, dy, dz);
+        const pull = dPtr < 12 ? Math.exp(-dPtr * 0.42) * holdCharge * 0.24 : 0;
+        rec.mesh.position.set(bp[0] + dx * pull, bp[1] + dy * pull, bp[2] + dz * pull);
         rec.mesh.rotation.y = elapsed * 0.7 + i * 0.5;
         const targetHov = hovered3DNode === rec.mesh ? 1.6 : 1.0;
         rec.mesh.userData.hoverScale += (targetHov - rec.mesh.userData.hoverScale) * 0.16;
         rec.mesh.scale.setScalar(rec.mesh.userData.hoverScale * s4Vis);
-        rec.mat.opacity = s4Vis * 0.92;
+        rec.mat.opacity = s4Vis * 0.94;
       });
     }
 
@@ -1789,7 +2005,6 @@ function mountWebGLShaderFilm(container, THREE) {
       pointerVelVec.set(0, 0, 0);
     }
 
-    // Update 64-vertex luminous cursor ribbon
     if (pointerWorldSmooth.x < 50) {
       trailPoints[0].lerp(pointerWorldSmooth, 0.55);
       for (let i = 1; i < TRAIL_LEN; i++) {
@@ -1805,17 +2020,14 @@ function mountWebGLShaderFilm(container, THREE) {
     trailFade *= Math.pow(0.18, dt);
     trailUniforms.uOpacity.value = Math.min(0.65, trailFade * 0.65 + holdCharge * 0.35);
 
-    // Stage 01 Cursor-Proximity OR Auto-Dwell Showcase Z-Layer Fan-Out
     const distToSculpture = Math.hypot(pointerWorldSmooth.x - offsetXCurrent, pointerWorldSmooth.y - offsetYCurrent);
     const cursorSpread = (s1Weight > 0.25 && distToSculpture < 4.2) ? (1 - distToSculpture / 4.2) : 0;
     const spreadTarget = Math.max(cursorSpread, s1Weight * state.autoLayerShowcase);
     layerSpread += (spreadTarget - layerSpread) * (1 - Math.exp(-6.0 * dt));
 
-    // Click-and-Hold Gravity Whirlpool Charge
     const chargeActive = isPointerDown && (performance.now() - downTimeMs > 150);
     holdCharge += ((chargeActive ? 1.0 : 0.0) - holdCharge) * (1 - Math.exp(-5.5 * dt));
 
-    // Raycast Hover on Active Stage 3D Crystal Nodes
     if (pointerNDC.x < 10 && (satGroup.visible || dagGroup.visible)) {
       raycaster.setFromCamera(pointerNDC, camera);
       const candidates = satGroup.visible ? satRecords.map((r) => r.mesh) : dagRecords.map((r) => r.mesh);
@@ -1825,7 +2037,6 @@ function mountWebGLShaderFilm(container, THREE) {
       hovered3DNode = null;
     }
 
-    // Update Optical Magnetic Cursor Ring DOM
     if (cursorAura && pointerScreen.x > -50) {
       pointerScreen.smoothX += (pointerScreen.x - pointerScreen.smoothX) * 0.28;
       pointerScreen.smoothY += (pointerScreen.y - pointerScreen.smoothY) * 0.28;
@@ -1966,7 +2177,7 @@ function mountOfflineParticleFilm(container) {
     ctx.fillRect(0, 0, w, h);
 
     const fovScale = (h * 0.5) / Math.tan((40 * Math.PI) / 360);
-    const ry = now * 0.1 + ptrX * 0.18;
+    const ry = Math.sin(now * 0.22) * 0.22 + ptrX * 0.18;
     const rx = Math.sin(now * 0.3) * 0.08 - ptrY * 0.12;
     const cy = Math.cos(ry), sy = Math.sin(ry);
     const cx = Math.cos(rx), sx = Math.sin(rx);

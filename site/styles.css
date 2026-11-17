@@ -1,68 +1,95 @@
 /* ==========================================================================
-   Lumakey Product Showcase — Precision Dual-Theme Design System
-   1. Pure Frost (凝霜留白): Architectural Alabaster, Recessed Slate Wells,
-      Tactile 3D Magic-Keyboard Keycaps & Multi-Layer Studio Elevation
-   2. Prism Pulse (霓彩流光): Deep Obsidian Glass, Specular Prism Rims & Aurora
+   Lumakey 2D Product Showcase — Haute Liquid-Glass & Kinetic Motion System
+   1. Pure Frost (凝霜留白): Pearlescent Alabaster, Iridescent Daylight Ribbons,
+      Double-Specular Bevels & Multi-Stop Studio Elevation
+   2. Prism Pulse (霓彩流光): Deep Obsidian Glass, Volumetric Aurora Caustics,
+      Cursor-Tracked Specular Edge Refraction & Tactile Spring Choreography
    ========================================================================== */
 
 :root,
 [data-theme="pure-frost"] {
   color-scheme: light;
 
-  /* Layered Studio Surfaces — crisp contrast between canvas, recessed wells & porcelain cards */
-  --bg-canvas: #f3f5f9;
-  --bg-section-alt: #eaeff6;
-  --bg-elevated: rgba(255, 255, 255, 0.92);
-  --bg-panel: rgba(255, 255, 255, 0.95);
-  --bg-panel-solid: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-hover: #ffffff;
-  --bg-well: #eef2f8;
-  --bg-well-strong: #e3e9f3;
-  --bg-input: #f1f5fa;
-  --bg-pill: #e9eff8;
-  --bg-pill-hover: #dce6f4;
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snappy: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.42, 0.64, 1);
+
+  /* Layered Pearlescent Surfaces */
+  --bg-canvas: #f4f7fc;
+  --bg-section-alt: rgba(232, 239, 250, 0.62);
+  --bg-elevated: rgba(255, 255, 255, 0.84);
+  --bg-panel: rgba(255, 255, 255, 0.88);
+  --bg-panel-solid: rgba(255, 255, 255, 0.94);
+  --bg-card: rgba(255, 255, 255, 0.90);
+  --bg-card-hover: rgba(255, 255, 255, 0.98);
+  --bg-well: rgba(236, 242, 251, 0.82);
+  --bg-well-strong: rgba(224, 233, 246, 0.88);
+  --bg-input: rgba(240, 245, 252, 0.92);
+  --bg-pill: rgba(15, 23, 42, 0.048);
+  --bg-pill-hover: rgba(0, 102, 220, 0.09);
   --bg-row-selected: rgba(0, 102, 220, 0.095);
 
-  /* Crisp Ink & Slate Typography — high contrast, zero washed-out grays */
-  --text-primary: #0b1220;
+  /* High-Contrast Ink & Slate Typography */
+  --text-primary: #0a1120;
   --text-secondary: #334155;
-  --text-tertiary: #5b6b82;
+  --text-tertiary: #5b6b84;
   --text-on-accent: #ffffff;
 
-  /* Deep Architectural Cobalt & Indigo Accents (WCAG AA/AAA on white!) */
+  /* Architectural Cobalt, Iris & Cyan Accents */
   --accent-primary: #0066dc;
-  --accent-secondary: #4338ca;
+  --accent-secondary: #4f46e5;
   --accent-badge-text: #0052b5;
-  --accent-badge-bg: rgba(0, 102, 220, 0.09);
+  --accent-badge-bg: rgba(0, 102, 220, 0.085);
   --accent-badge-border: rgba(0, 102, 220, 0.22);
-  --accent-gradient: linear-gradient(135deg, #006be6 0%, #3b49df 55%, #0284c7 100%);
-  --headline-gradient: linear-gradient(135deg, #0055c4 0%, #4338ca 52%, #0369a1 100%);
+  --accent-gradient: linear-gradient(135deg, #006be6 0%, #4338ca 54%, #0284c7 100%);
+  --headline-gradient: linear-gradient(125deg, #0055c4 0%, #4f46e5 44%, #0891b2 78%, #0055c4 100%);
 
-  /* Hairline Borders & Inner Specular Bevels */
-  --rim-outer: rgba(15, 23, 42, 0.10);
-  --rim-strong: rgba(15, 23, 42, 0.16);
-  --rim-subtle: rgba(15, 23, 42, 0.072);
-  --rim-selected: rgba(0, 102, 220, 0.40);
+  /* Double-Specular Hairline Borders */
+  --rim-outer: rgba(15, 23, 42, 0.088);
+  --rim-strong: rgba(15, 23, 42, 0.15);
+  --rim-subtle: rgba(15, 23, 42, 0.062);
+  --rim-selected: rgba(0, 102, 220, 0.42);
   --bevel-top: #ffffff;
 
-  /* Realistic Multi-Layer Studio Diffusion Shadows */
-  --shadow-nav: 0 2px 6px rgba(15, 23, 42, 0.045), 0 14px 32px -10px rgba(15, 23, 42, 0.095), 0 0 0 1px rgba(15, 23, 42, 0.08), inset 0 1px 0 #ffffff;
-  --shadow-panel: 0 2px 4px rgba(15, 23, 42, 0.035), 0 18px 42px -10px rgba(15, 23, 42, 0.095), 0 42px 88px -20px rgba(15, 23, 42, 0.135), 0 0 0 1px rgba(15, 23, 42, 0.095), inset 0 1px 0 #ffffff;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.035), 0 10px 26px -8px rgba(15, 23, 42, 0.075), 0 0 0 1px rgba(15, 23, 42, 0.08), inset 0 1px 0 #ffffff;
-  --shadow-card-hover: 0 4px 10px rgba(15, 23, 42, 0.045), 0 20px 40px -12px rgba(0, 88, 199, 0.14), 0 0 0 1px rgba(0, 102, 220, 0.30), inset 0 1px 0 #ffffff;
-  --shadow-cta: 0 10px 26px -6px rgba(0, 102, 220, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.40);
+  /* Multi-Layer Studio Diffusion Shadows + Double Specular Inner Rim */
+  --shadow-nav:
+    0 2px 6px rgba(15, 23, 42, 0.04),
+    0 18px 38px -10px rgba(15, 23, 42, 0.09),
+    0 0 0 1px rgba(15, 23, 42, 0.072),
+    inset 0 1px 0 #ffffff,
+    inset 0 -1px 0 rgba(15, 23, 42, 0.03);
+  --shadow-panel:
+    0 4px 10px rgba(15, 23, 42, 0.035),
+    0 24px 52px -12px rgba(15, 35, 75, 0.11),
+    0 52px 104px -24px rgba(0, 72, 168, 0.14),
+    0 0 0 1px rgba(15, 23, 42, 0.085),
+    inset 0 1.5px 0 #ffffff,
+    inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+  --shadow-card:
+    0 1px 3px rgba(15, 23, 42, 0.03),
+    0 12px 30px -10px rgba(15, 23, 42, 0.072),
+    0 0 0 1px rgba(15, 23, 42, 0.074),
+    inset 0 1px 0 #ffffff;
+  --shadow-card-hover:
+    0 6px 14px rgba(15, 23, 42, 0.045),
+    0 24px 48px -12px rgba(0, 88, 199, 0.15),
+    0 0 0 1px rgba(0, 102, 220, 0.28),
+    inset 0 1.5px 0 #ffffff;
+  --shadow-cta:
+    0 10px 26px -6px rgba(0, 102, 220, 0.38),
+    0 2px 6px rgba(67, 56, 202, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.46);
 
-  /* Physical 3D Magic-Keyboard Keycaps */
-  --keycap-bg: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
-  --keycap-border: rgba(15, 23, 42, 0.16);
-  --keycap-shadow: 0 1.5px 0 rgba(15, 23, 42, 0.13), inset 0 1px 0 #ffffff;
+  /* Sculpted 3D Keycaps */
+  --keycap-bg: linear-gradient(180deg, #ffffff 0%, #eef3fa 100%);
+  --keycap-border: rgba(15, 23, 42, 0.15);
+  --keycap-shadow: 0 2px 0 rgba(15, 23, 42, 0.11), 0 2px 4px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff;
   --keycap-text: #1e293b;
 
-  /* Adaptive Code & Manifest Studio (Crisp Xcode-Light in Pure Frost!) */
+  /* Adaptive Code Studio */
   --studio-bg: #f8fafd;
-  --studio-head: #edf2f9;
-  --studio-border: rgba(15, 23, 42, 0.105);
+  --studio-head: #edf2fa;
+  --studio-border: rgba(15, 23, 42, 0.10);
   --studio-text: #0f172a;
   --studio-muted: #5b6b82;
   --studio-kw: #005cc5;
@@ -70,17 +97,24 @@
   --studio-key: #4338ca;
   --studio-prompt: #0284c7;
 
-  /* Ambient & Radii */
-  --aurora-opacity: 0;
+  /* Atmosphere & Spotlight Tokens (Visible Iridescence in Pure Frost too!) */
+  --aurora-opacity: 0.55;
+  --orb-1-bg: radial-gradient(circle, rgba(56, 189, 248, 0.26) 0%, rgba(99, 102, 241, 0.12) 52%, transparent 74%);
+  --orb-2-bg: radial-gradient(circle, rgba(168, 85, 247, 0.20) 0%, rgba(236, 72, 153, 0.10) 50%, transparent 74%);
+  --orb-3-bg: radial-gradient(circle, rgba(16, 185, 129, 0.16) 0%, rgba(14, 165, 233, 0.10) 52%, transparent 75%);
   --studio-light-opacity: 1;
-  --grid-color: rgba(15, 23, 42, 0.042);
-  --glare-color: rgba(0, 102, 220, 0.06);
+  --grid-color: rgba(15, 23, 42, 0.036);
+  --glare-color: rgba(0, 102, 220, 0.068);
+  --border-glow: rgba(0, 102, 220, 0.52);
+  --conduit-track: rgba(15, 23, 42, 0.11);
+  --conduit-beam: #0066dc;
 
-  --radius-panel: 24px;
-  --radius-bento: 18px;
-  --radius-card: 16px;
-  --radius-row: 12px;
-  --radius-control: 10px;
+  /* Continuous Radii Synced with docs/DESIGN_SYSTEM.md */
+  --radius-panel: 28px;
+  --radius-bento: 22px;
+  --radius-card: 18px;
+  --radius-row: 14px;
+  --radius-control: 12px;
 
   --status-ok: #047857;
   --status-ok-bg: rgba(5, 150, 105, 0.11);
@@ -92,53 +126,70 @@
 [data-theme="prism-pulse"] {
   color-scheme: dark;
 
-  --bg-canvas: #090817;
-  --bg-section-alt: #0d0c20;
-  --bg-elevated: rgba(22, 20, 45, 0.78);
-  --bg-panel: rgba(18, 16, 38, 0.74);
-  --bg-panel-solid: #14122b;
-  --bg-card: rgba(30, 27, 60, 0.58);
-  --bg-card-hover: rgba(40, 36, 78, 0.74);
-  --bg-well: rgba(11, 10, 26, 0.68);
-  --bg-well-strong: rgba(8, 7, 20, 0.84);
-  --bg-input: rgba(12, 11, 28, 0.78);
-  --bg-pill: rgba(255, 255, 255, 0.085);
+  --bg-canvas: #070714;
+  --bg-section-alt: rgba(15, 14, 34, 0.68);
+  --bg-elevated: rgba(20, 19, 44, 0.74);
+  --bg-panel: rgba(17, 16, 38, 0.76);
+  --bg-panel-solid: rgba(19, 18, 42, 0.88);
+  --bg-card: rgba(26, 24, 54, 0.62);
+  --bg-card-hover: rgba(35, 32, 72, 0.78);
+  --bg-well: rgba(10, 10, 25, 0.66);
+  --bg-well-strong: rgba(7, 7, 18, 0.84);
+  --bg-input: rgba(11, 10, 27, 0.80);
+  --bg-pill: rgba(255, 255, 255, 0.078);
   --bg-pill-hover: rgba(255, 255, 255, 0.14);
-  --bg-row-selected: rgba(104, 76, 224, 0.34);
+  --bg-row-selected: rgba(112, 84, 246, 0.32);
 
-  --text-primary: #f8f9ff;
-  --text-secondary: rgba(214, 219, 246, 0.86);
-  --text-tertiary: rgba(164, 171, 212, 0.72);
+  --text-primary: #f8faff;
+  --text-secondary: rgba(216, 222, 248, 0.86);
+  --text-tertiary: rgba(160, 170, 212, 0.72);
   --text-on-accent: #ffffff;
 
-  --accent-primary: #7a5cfc;
-  --accent-secondary: #14ccfa;
-  --accent-badge-text: #5eead4;
-  --accent-badge-bg: rgba(20, 204, 250, 0.13);
+  --accent-primary: #7c5cfc;
+  --accent-secondary: #22d3ee;
+  --accent-badge-text: #67e8f9;
+  --accent-badge-bg: rgba(34, 211, 238, 0.12);
   --accent-badge-border: rgba(103, 232, 249, 0.28);
-  --accent-gradient: linear-gradient(135deg, #14ccfa 0%, #7a5cfc 52%, #fa5c9e 100%);
-  --headline-gradient: linear-gradient(135deg, #38bdf8 0%, #a78bfa 50%, #f472b6 100%);
+  --accent-gradient: linear-gradient(135deg, #14ccfa 0%, #7c5cfc 52%, #f45ca2 100%);
+  --headline-gradient: linear-gradient(125deg, #38bdf8 0%, #a78bfa 42%, #f472b6 78%, #38bdf8 100%);
 
-  --rim-outer: rgba(255, 255, 255, 0.18);
-  --rim-strong: rgba(255, 255, 255, 0.28);
-  --rim-subtle: rgba(255, 255, 255, 0.10);
-  --rim-selected: rgba(103, 232, 249, 0.52);
+  --rim-outer: rgba(255, 255, 255, 0.13);
+  --rim-strong: rgba(255, 255, 255, 0.24);
+  --rim-subtle: rgba(255, 255, 255, 0.085);
+  --rim-selected: rgba(103, 232, 249, 0.54);
   --bevel-top: rgba(255, 255, 255, 0.24);
 
-  --shadow-nav: 0 18px 42px -12px rgba(4, 3, 14, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  --shadow-panel: 0 36px 90px -18px rgba(4, 3, 14, 0.82), 0 0 0 1px rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  --shadow-card: 0 20px 46px -16px rgba(4, 3, 16, 0.58), 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  --shadow-card-hover: 0 26px 54px -14px rgba(122, 92, 252, 0.28), 0 0 0 1px rgba(103, 232, 249, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.26);
-  --shadow-cta: 0 14px 34px -8px rgba(122, 92, 252, 0.58), inset 0 1px 0 rgba(255, 255, 255, 0.36);
+  --shadow-nav:
+    0 18px 42px -12px rgba(2, 2, 10, 0.72),
+    0 0 0 1px rgba(255, 255, 255, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --shadow-panel:
+    0 40px 96px -18px rgba(2, 2, 12, 0.86),
+    0 0 64px -18px rgba(124, 92, 252, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-card:
+    0 20px 46px -16px rgba(3, 2, 14, 0.64),
+    0 0 0 1px rgba(255, 255, 255, 0.105),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --shadow-card-hover:
+    0 28px 58px -14px rgba(124, 92, 252, 0.30),
+    0 0 0 1px rgba(103, 232, 249, 0.40),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.26);
+  --shadow-cta:
+    0 14px 34px -8px rgba(124, 92, 252, 0.58),
+    0 2px 10px rgba(20, 204, 250, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38);
 
-  --keycap-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.07) 100%);
+  --keycap-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.06) 100%);
   --keycap-border: rgba(255, 255, 255, 0.22);
-  --keycap-shadow: 0 1.5px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --keycap-shadow: 0 2px 0 rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   --keycap-text: #f8fafc;
 
-  --studio-bg: #0d0c20;
-  --studio-head: rgba(255, 255, 255, 0.05);
-  --studio-border: rgba(255, 255, 255, 0.14);
+  --studio-bg: #0b0a1d;
+  --studio-head: rgba(255, 255, 255, 0.048);
+  --studio-border: rgba(255, 255, 255, 0.13);
   --studio-text: #e6edf8;
   --studio-muted: #8b98b8;
   --studio-kw: #67e8f9;
@@ -147,21 +198,28 @@
   --studio-prompt: #38bdf8;
 
   --aurora-opacity: 1;
+  --orb-1-bg: radial-gradient(circle, rgba(20, 204, 250, 0.24) 0%, rgba(124, 92, 252, 0.10) 54%, transparent 76%);
+  --orb-2-bg: radial-gradient(circle, rgba(244, 92, 162, 0.20) 0%, rgba(124, 92, 252, 0.13) 52%, transparent 76%);
+  --orb-3-bg: radial-gradient(circle, rgba(52, 211, 153, 0.15) 0%, rgba(56, 189, 248, 0.09) 54%, transparent 76%);
   --studio-light-opacity: 0;
-  --grid-color: rgba(255, 255, 255, 0.045);
-  --glare-color: rgba(103, 232, 249, 0.12);
-
-  --radius-panel: 28px;
-  --radius-bento: 22px;
-  --radius-card: 18px;
-  --radius-row: 14px;
-  --radius-control: 12px;
+  --grid-color: rgba(255, 255, 255, 0.042);
+  --glare-color: rgba(103, 232, 249, 0.11);
+  --border-glow: rgba(103, 232, 249, 0.72);
+  --conduit-track: rgba(255, 255, 255, 0.12);
+  --conduit-beam: #38bdf8;
 
   --status-ok: #34d399;
   --status-ok-bg: rgba(52, 211, 153, 0.15);
   --status-warn: #fbbf24;
   --status-danger: #fb7185;
   --status-danger-bg: rgba(251, 113, 133, 0.15);
+}
+
+/* View Transition Circular Iris Support */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 *,
@@ -181,9 +239,9 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui, sans-serif;
   background-color: var(--bg-canvas);
   color: var(--text-primary);
-  line-height: 1.62;
+  line-height: 1.64;
   overflow-x: clip;
-  transition: background-color 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease;
+  transition: background-color 0.45s var(--ease-snappy), color 0.3s ease;
 }
 
 code,
@@ -203,7 +261,7 @@ button {
 }
 
 /* ==========================================================================
-   Scroll Progress Beam & Dual-Theme Backdrops
+   1. Volumetric Liquid-Glass Atmosphere & Breathing Aurora Ribbons
    ========================================================================== */
 .scroll-beam {
   position: fixed;
@@ -214,25 +272,24 @@ button {
   transform-origin: 0 50%;
   transform: scaleX(0);
   background: var(--accent-gradient);
-  z-index: 220;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.55);
+  z-index: 240;
   pointer-events: none;
 }
 
-/* Pure Frost Daylight Porcelain Wash */
 .studio-daylight {
   position: fixed;
   inset: 0;
-  z-index: -2;
+  z-index: -3;
   pointer-events: none;
   opacity: var(--studio-light-opacity);
-  transition: opacity 0.45s ease;
+  transition: opacity 0.5s ease;
   background:
-    radial-gradient(ellipse 85% 50% at 50% -8%, #ffffff 0%, rgba(255, 255, 255, 0.72) 45%, transparent 78%),
-    radial-gradient(circle 650px at 88% 18%, rgba(0, 102, 220, 0.05), transparent 70%),
-    radial-gradient(circle 600px at 12% 32%, rgba(67, 56, 202, 0.045), transparent 70%);
+    radial-gradient(ellipse 90% 52% at 50% -10%, #ffffff 0%, rgba(255, 255, 255, 0.80) 46%, transparent 80%),
+    radial-gradient(circle 720px at 86% 14%, rgba(0, 102, 220, 0.065), transparent 72%),
+    radial-gradient(circle 660px at 14% 30%, rgba(79, 70, 229, 0.058), transparent 72%);
 }
 
-/* Prism Pulse Dark Aurora */
 .ambient-backdrop {
   position: fixed;
   inset: 0;
@@ -240,24 +297,25 @@ button {
   pointer-events: none;
   overflow: hidden;
   opacity: var(--aurora-opacity);
-  transition: opacity 0.5s ease;
+  transition: opacity 0.55s ease;
 }
 
 .aurora-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(95px);
+  filter: blur(88px);
   will-change: transform;
 }
 
 .orb-1 {
   width: 56vw;
   height: 56vw;
-  max-width: 760px;
-  max-height: 760px;
-  top: -16%;
-  left: -10%;
-  background: radial-gradient(circle, rgba(20, 204, 250, 0.22) 0%, rgba(122, 92, 252, 0.08) 55%, transparent 75%);
+  max-width: 780px;
+  max-height: 780px;
+  top: -15%;
+  left: -9%;
+  background: var(--orb-1-bg);
+  animation: auroraFloatA 18s ease-in-out infinite alternate;
 }
 
 .orb-2 {
@@ -265,9 +323,31 @@ button {
   height: 50vw;
   max-width: 700px;
   max-height: 700px;
-  top: 14%;
-  right: -12%;
-  background: radial-gradient(circle, rgba(250, 92, 158, 0.18) 0%, rgba(122, 92, 252, 0.12) 50%, transparent 75%);
+  top: 12%;
+  right: -11%;
+  background: var(--orb-2-bg);
+  animation: auroraFloatB 22s ease-in-out infinite alternate;
+}
+
+.orb-3 {
+  width: 46vw;
+  height: 46vw;
+  max-width: 640px;
+  max-height: 640px;
+  bottom: -14%;
+  left: 24%;
+  background: var(--orb-3-bg);
+  animation: auroraFloatA 25s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes auroraFloatA {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(38px, 28px, 0) scale(1.08); }
+}
+
+@keyframes auroraFloatB {
+  0% { transform: translate3d(0, 0, 0) scale(1.04); }
+  100% { transform: translate3d(-42px, 34px, 0) scale(0.95); }
 }
 
 .ambient-grid {
@@ -278,104 +358,214 @@ button {
   background-image:
     linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
     linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 85% 60% at 50% 22%, #000 20%, transparent 82%);
-  -webkit-mask-image: radial-gradient(ellipse 85% 60% at 50% 22%, #000 20%, transparent 82%);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(ellipse 88% 64% at 50% 20%, #000 18%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse 88% 64% at 50% 20%, #000 18%, transparent 82%);
+}
+
+.optical-grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.024;
+  background-image: radial-gradient(rgba(128, 128, 160, 0.7) 0.75px, transparent 0.75px);
+  background-size: 18px 18px;
 }
 
 .section-band {
   background-color: var(--bg-section-alt);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-top: 1px solid var(--rim-subtle);
   border-bottom: 1px solid var(--rim-subtle);
+  position: relative;
+}
+
+/* Luminous Hairline Divider Shimmer on Section Bands */
+.section-band::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--rim-selected), transparent);
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 /* ==========================================================================
-   Floating Liquid Glass Navbar
+   2. Cursor-Tracked Specular Border Glow & Surface Caustics (.spotlight-surface)
+   ========================================================================== */
+.spotlight-surface {
+  position: relative;
+  backdrop-filter: blur(26px) saturate(175%);
+  -webkit-backdrop-filter: blur(26px) saturate(175%);
+}
+
+/* Masked 1.25px Specular Border Highlight Following Pointer! */
+.spotlight-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.25px;
+  background: radial-gradient(
+    360px circle at var(--mx, -999px) var(--my, -999px),
+    var(--border-glow),
+    transparent 62%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: var(--spot-alpha, 0);
+  transition: opacity 0.32s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Soft Inner Surface Caustic Sheen */
+.spotlight-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    380px circle at var(--mx, -999px) var(--my, -999px),
+    var(--glare-color),
+    transparent 68%
+  );
+  opacity: var(--spot-alpha, 0);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.spotlight-surface > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   3. Floating Liquid-Glass Navbar with Spring Glider Pill
    ========================================================================== */
 .site-header {
   position: fixed;
   top: 14px;
   left: 0;
   right: 0;
-  z-index: 150;
+  z-index: 160;
   padding: 0 20px;
   pointer-events: none;
 }
 
 .nav-capsule {
   pointer-events: auto;
-  max-width: 1180px;
+  max-width: min(1260px, calc(100vw - 32px));
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px 8px 16px;
+  gap: 8px;
+  padding: 6px 10px 6px 14px;
   border-radius: 999px;
   background: var(--bg-elevated);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
   box-shadow: var(--shadow-nav);
-  transition: background 0.35s ease, box-shadow 0.35s ease;
+  transition: background 0.35s ease, box-shadow 0.35s ease, transform 0.35s var(--ease-spring);
 }
 
 .brand-link {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-weight: 750;
+  font-weight: 760;
   font-size: 15px;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.016em;
   color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .brand-icon {
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: 7.5px;
   flex-shrink: 0;
-  box-shadow: 0 4px 10px -2px rgba(36, 148, 252, 0.35);
+  box-shadow: 0 4px 12px -2px rgba(36, 148, 252, 0.42);
+  transition: transform 0.35s var(--ease-bounce);
+}
+
+.brand-link:hover .brand-icon {
+  transform: rotate(-6deg) scale(1.08);
 }
 
 .brand-tag {
   font-size: 11px;
   font-weight: 650;
-  padding: 2px 8px;
+  padding: 2.5px 8.5px;
   border-radius: 999px;
   background: var(--bg-pill);
   border: 1px solid var(--rim-subtle);
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .nav-links {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(128, 138, 168, 0.06);
+  border: 1px solid var(--rim-subtle);
+}
+
+.nav-glider {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--accent-badge-bg);
+  border: 1px solid var(--accent-badge-border);
+  box-shadow: 0 2px 8px rgba(0, 102, 220, 0.08), inset 0 1px 0 var(--bevel-top);
+  transition: transform 0.38s var(--ease-spring), width 0.38s var(--ease-spring), opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .nav-links a {
-  padding: 6px 11px;
+  position: relative;
+  z-index: 1;
+  padding: 5.5px 9.5px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 620;
   color: var(--text-secondary);
-  transition: color 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
+  transition: color 0.22s ease;
 }
 
 .nav-links a:hover {
   color: var(--text-primary);
-  background: var(--bg-pill);
 }
 
 .nav-links a.active {
   color: var(--accent-badge-text);
-  background: var(--accent-badge-bg);
+  font-weight: 700;
 }
 
 .nav-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .pill-btn {
@@ -389,19 +579,20 @@ button {
   color: var(--text-primary);
   font-size: 12.5px;
   font-weight: 650;
+  white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 var(--bevel-top);
+  transition: transform 0.22s var(--ease-bounce), background 0.2s ease, border-color 0.2s ease;
 }
 
 .pill-btn:hover {
-  background: var(--bg-pill);
-  border-color: var(--rim-strong);
-  transform: translateY(-1px);
+  background: var(--bg-pill-hover);
+  border-color: var(--rim-selected);
+  transform: translateY(-1.5px);
 }
 
 .pill-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
 }
 
 .theme-dot {
@@ -409,29 +600,31 @@ button {
   height: 9px;
   border-radius: 50%;
   background: var(--accent-gradient);
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
 }
 
 .btn-primary-sm {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 7px 15px;
   border-radius: 999px;
   background: var(--accent-gradient);
   color: #ffffff;
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 680;
+  white-space: nowrap;
   box-shadow: var(--shadow-cta);
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+  transition: transform 0.22s var(--ease-spring), filter 0.2s ease;
 }
 
 .btn-primary-sm:hover {
-  transform: translateY(-1px);
-  opacity: 0.96;
+  filter: brightness(1.06);
 }
 
 /* ==========================================================================
-   Shared Typography, Badges & Sculpted Keycaps
+   4. Shared Typography, Animated Gradient Shimmer & Tactile Keycaps
    ========================================================================== */
 .container {
   max-width: 1180px;
@@ -447,36 +640,54 @@ button {
   border-radius: 999px;
   background: var(--accent-badge-bg);
   border: 1px solid var(--accent-badge-border);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.045em;
+  box-shadow: inset 0 1px 0 var(--bevel-top);
+  font-size: 11px;
+  font-weight: 740;
+  letter-spacing: 0.055em;
   text-transform: uppercase;
   color: var(--accent-badge-text);
   margin-bottom: 14px;
 }
 
 .section-title {
-  font-size: clamp(2rem, 3.8vw, 3.05rem);
+  font-size: clamp(1.82rem, 3.05vw, 2.55rem);
   font-weight: 820;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  letter-spacing: -0.028em;
+  line-height: 1.18;
   margin: 0 0 14px;
   color: var(--text-primary);
+  text-wrap: balance;
+}
+
+.title-clause {
+  display: inline-block;
+  max-width: 100%;
 }
 
 .section-desc {
-  font-size: clamp(1rem, 1.3vw, 1.14rem);
+  font-size: clamp(1rem, 1.28vw, 1.12rem);
   color: var(--text-secondary);
-  max-width: 740px;
+  max-width: 750px;
   margin: 0;
-  line-height: 1.68;
+  line-height: 1.7;
+  text-wrap: pretty;
 }
 
 .gradient-text {
   background: var(--headline-gradient);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.shimmer-text {
+  animation: textPrismFlow 8s linear infinite;
+}
+
+@keyframes textPrismFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
 }
 
 kbd.keycap {
@@ -486,14 +697,21 @@ kbd.keycap {
   padding: 2px 7px;
   min-width: 24px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: 6.5px;
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 660;
   background: var(--keycap-bg);
   border: 1px solid var(--keycap-border);
   box-shadow: var(--keycap-shadow);
   color: var(--keycap-text);
   line-height: 1;
+  transition: transform 0.14s var(--ease-bounce), box-shadow 0.14s ease, border-color 0.18s ease;
+}
+
+kbd.keycap.pressed {
+  transform: translateY(2px) scale(0.94);
+  border-color: var(--rim-selected);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0), inset 0 1px 2px rgba(0, 102, 220, 0.25);
 }
 
 .accent-pill {
@@ -502,7 +720,7 @@ kbd.keycap {
   gap: 5px;
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 9px;
+  padding: 3px 9.5px;
   border-radius: 999px;
   background: var(--accent-badge-bg);
   border: 1px solid var(--accent-badge-border);
@@ -515,7 +733,7 @@ kbd.keycap {
   gap: 5px;
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 9px;
+  padding: 3px 9.5px;
   border-radius: 999px;
   background: var(--status-ok-bg);
   color: var(--status-ok);
@@ -527,25 +745,47 @@ kbd.keycap {
   gap: 5px;
   font-size: 11.5px;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 4px 10.5px;
   border-radius: 999px;
   background: var(--bg-well);
   border: 1px solid var(--rim-subtle);
   color: var(--text-secondary);
+  transition: border-color 0.2s ease, transform 0.2s var(--ease-spring);
+}
+
+.subtle-chip:hover {
+  border-color: var(--rim-selected);
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
-   ACT I · Hero & Interactive 880×544 Hub
+   5. ACT I · Hero Entrance Choreography & 3D Interactive 880×544 Stage
    ========================================================================== */
 .hero-section {
-  padding: 126px 0 68px;
+  padding: 124px 0 72px;
   position: relative;
+}
+
+.hero-stagger {
+  opacity: 0;
+  transform: translateY(22px) scale(0.988);
+  filter: blur(6px);
+  animation: heroCurtainIn 0.85s var(--ease-spring) forwards;
+  animation-delay: var(--stagger, 0ms);
+}
+
+@keyframes heroCurtainIn {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 .hero-copy {
   text-align: center;
-  max-width: 900px;
-  margin: 0 auto 36px;
+  max-width: 960px;
+  margin: 0 auto 34px;
   will-change: transform, opacity;
 }
 
@@ -561,38 +801,60 @@ kbd.keycap {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 13px;
+  padding: 5.5px 13.5px;
   border-radius: 999px;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 620;
   background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--rim-outer);
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04), inset 0 1px 0 var(--bevel-top);
   color: var(--text-secondary);
+  white-space: nowrap;
+  transition: transform 0.24s var(--ease-bounce), border-color 0.22s ease;
+}
+
+.hero-badge:hover {
+  transform: translateY(-2px);
+  border-color: var(--rim-selected);
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
+  width: 7.5px;
+  height: 7.5px;
   border-radius: 50%;
   background: var(--status-ok);
-  box-shadow: 0 0 8px var(--status-ok);
+  box-shadow: 0 0 0 0 var(--status-ok);
+  animation: statusPing 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes statusPing {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.65); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
 .hero-title {
-  font-size: clamp(2.35rem, 5.1vw, 4.15rem);
-  font-weight: 850;
-  letter-spacing: -0.036em;
-  line-height: 1.12;
+  font-size: clamp(2.16rem, 4.25vw, 3.65rem);
+  font-weight: 860;
+  letter-spacing: -0.035em;
+  line-height: 1.16;
   margin: 0 0 18px;
+  text-wrap: balance;
+}
+
+.hero-title > span {
+  display: block;
 }
 
 .hero-subtitle {
-  font-size: clamp(1.02rem, 1.4vw, 1.18rem);
+  font-size: clamp(1.02rem, 1.32vw, 1.15rem);
   color: var(--text-secondary);
   max-width: 780px;
   margin: 0 auto 28px;
-  line-height: 1.7;
+  line-height: 1.72;
+  text-wrap: pretty;
 }
 
 .hero-cta-row {
@@ -604,18 +866,44 @@ kbd.keycap {
   margin-bottom: 20px;
 }
 
+.magnetic-btn {
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+}
+
+/* Specular Light Sweep across Primary CTA */
+.btn-hero-primary::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 42%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  transform: rotate(24deg);
+  animation: ctaSweep 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ctaSweep {
+  0%, 68% { left: -60%; }
+  100% { left: 140%; }
+}
+
 .btn-hero-primary {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 13px 25px;
+  padding: 13px 26px;
   border-radius: 999px;
   background: var(--accent-gradient);
   color: #ffffff;
   font-size: 15px;
   font-weight: 700;
+  white-space: nowrap;
   box-shadow: var(--shadow-cta);
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.24s var(--ease-spring), box-shadow 0.24s ease;
 }
 
 .btn-hero-primary:hover {
@@ -629,17 +917,21 @@ kbd.keycap {
   padding: 13px 22px;
   border-radius: 999px;
   background: var(--bg-card);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--rim-strong);
   color: var(--text-primary);
   font-size: 14.5px;
-  font-weight: 650;
+  font-weight: 660;
+  white-space: nowrap;
   box-shadow: var(--shadow-card);
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease;
+  transition: transform 0.24s var(--ease-spring), border-color 0.2s ease, box-shadow 0.24s ease;
 }
 
 .btn-hero-secondary:hover {
   transform: translateY(-2px);
   border-color: var(--rim-selected);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* Preset Switcher above Hero Panel */
@@ -649,45 +941,70 @@ kbd.keycap {
   justify-content: center;
   align-items: center;
   gap: 7px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .preset-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--text-tertiary);
   margin-right: 4px;
 }
 
 .preset-chip {
-  padding: 6px 13px;
+  padding: 6.5px 13.5px;
   border-radius: 999px;
   font-size: 12.5px;
   font-weight: 650;
   border: 1px solid var(--rim-outer);
   background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: var(--text-secondary);
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), inset 0 1px 0 var(--bevel-top);
+  transition: transform 0.22s var(--ease-bounce), color 0.18s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .preset-chip:hover {
   color: var(--text-primary);
   border-color: var(--rim-strong);
+  transform: translateY(-2px);
+}
+
+.preset-chip:active {
+  transform: scale(0.96);
 }
 
 .preset-chip.active {
   color: var(--accent-badge-text);
   border-color: var(--rim-selected);
   background: var(--accent-badge-bg);
+  box-shadow: 0 6px 16px -6px rgba(0, 102, 220, 0.24), inset 0 1px 0 var(--bevel-top);
 }
 
-/* 880 × 544 Launcher Stage */
+/* 880 × 544 Launcher Stage with Soft Ambient Halo & 3D Tilt */
 .launcher-perspective {
-  perspective: 1600px;
+  perspective: 1800px;
   max-width: 900px;
   margin: 0 auto;
+  position: relative;
+}
+
+.launcher-halo {
+  position: absolute;
+  inset: -22px -16px -26px;
+  border-radius: 42px;
+  background: radial-gradient(ellipse 72% 58% at 50% 48%, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.12) 48%, transparent 76%);
+  filter: blur(26px);
+  z-index: 0;
+  pointer-events: none;
+  animation: haloBreathe 6s ease-in-out infinite alternate;
+}
+
+@keyframes haloBreathe {
+  0% { opacity: 0.65; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1.02); }
 }
 
 .luma-panel {
@@ -697,20 +1014,38 @@ kbd.keycap {
   margin: 0 auto;
   border-radius: var(--radius-panel);
   background: var(--bg-panel);
-  backdrop-filter: blur(36px) saturate(185%);
-  -webkit-backdrop-filter: blur(36px) saturate(185%);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
   box-shadow: var(--shadow-panel);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  z-index: 1;
   transform-style: preserve-3d;
   will-change: transform;
-  transition: border-radius 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Cursor-Driven Diagonal Glass Specular Sheen on Hero Panel */
+.panel-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    520px circle at var(--px, 50%) var(--py, 0%),
+    rgba(255, 255, 255, 0.22),
+    transparent 62%
+  );
+  opacity: var(--psheen, 0.35);
+  pointer-events: none;
+  z-index: 4;
+  mix-blend-mode: overlay;
+  transition: opacity 0.35s ease;
 }
 
 .panel-grabber {
-  height: 20px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -718,10 +1053,16 @@ kbd.keycap {
 }
 
 .panel-grabber-pill {
-  width: 38px;
+  width: 40px;
   height: 4px;
   border-radius: 999px;
   background: var(--rim-strong);
+  transition: width 0.25s var(--ease-spring), background 0.25s ease;
+}
+
+.luma-panel:hover .panel-grabber-pill {
+  width: 52px;
+  background: var(--rim-selected);
 }
 
 .panel-dimension-tag {
@@ -736,12 +1077,20 @@ kbd.keycap {
 .panel-search-bar {
   margin: 2px 16px 12px;
   padding: 10px 14px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--bg-input);
   border: 1px solid var(--rim-outer);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 0 var(--bevel-top);
   display: flex;
   align-items: center;
   gap: 11px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.panel-search-bar:focus-within,
+.panel-search-bar.pulse-ring {
+  border-color: var(--rim-selected);
+  box-shadow: 0 0 0 3.5px var(--accent-badge-bg), inset 0 1px 0 var(--bevel-top);
 }
 
 .search-icon {
@@ -749,6 +1098,11 @@ kbd.keycap {
   height: 19px;
   color: var(--accent-primary);
   flex-shrink: 0;
+  transition: transform 0.28s var(--ease-bounce);
+}
+
+.panel-search-bar:focus-within .search-icon {
+  transform: scale(1.12) rotate(-6deg);
 }
 
 .launcher-input {
@@ -766,31 +1120,48 @@ kbd.keycap {
   color: var(--text-tertiary);
 }
 
+/* Segmented Scope Capsules with Sliding Glider! */
 .scope-capsules {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   padding: 3px;
   border-radius: 999px;
   background: var(--bg-well-strong);
   border: 1px solid var(--rim-subtle);
 }
 
+.scope-glider {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--accent-gradient);
+  box-shadow: 0 2px 8px rgba(0, 102, 220, 0.28);
+  transition: transform 0.34s var(--ease-spring), width 0.34s var(--ease-spring);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .scope-pill {
-  padding: 4px 10px;
+  position: relative;
+  z-index: 1;
+  padding: 4.5px 10.5px;
   border-radius: 999px;
   font-size: 11.5px;
-  font-weight: 650;
+  font-weight: 660;
   color: var(--text-secondary);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: none;
+  transition: color 0.2s ease;
 }
 
 .scope-pill.active {
   color: #ffffff;
-  background: var(--accent-gradient);
 }
 
 .panel-body {
@@ -819,48 +1190,137 @@ kbd.keycap {
   min-width: 0;
 }
 
+/* Staggered Spring Entrance for Dynamic Simulator Items! */
+@keyframes simItemPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lensGlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.sim-stagger {
+  opacity: 0;
+  animation: simItemPop 0.42s var(--ease-spring) forwards;
+  animation-delay: calc(var(--i, 0) * 32ms);
+}
+
+.lens-animate {
+  animation: lensGlideIn 0.38s var(--ease-spring) forwards;
+}
+
 .bento-mini-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 9px;
 }
 
+.bento-mini-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.bento-mini-grid.cols-4 .bento-tile {
+  padding: 9px 10px;
+  gap: 5px;
+}
+
+.bento-mini-grid.cols-4 .squircle-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.bento-mini-grid.cols-4 .bento-tile-title {
+  font-size: 11.5px;
+}
+
+.shelf-group-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.home-profile-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 11px;
+  background: var(--accent-badge-bg);
+  border: 1px solid var(--accent-badge-border);
+  font-size: 11px;
+  font-weight: 660;
+  color: var(--accent-badge-text);
+}
+
 .bento-tile {
   padding: 11px 12px;
-  border-radius: 14px;
+  border-radius: 15px;
   background: var(--bg-card);
   border: 1px solid var(--rim-outer);
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03), inset 0 1px 0 var(--bevel-top);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 7px;
-  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.22s var(--ease-bounce), border-color 0.2s ease, box-shadow 0.22s ease;
 }
 
 .bento-tile:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.015);
   border-color: var(--rim-selected);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.bento-tile:active {
+  transform: scale(0.975);
 }
 
 .squircle-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 33px;
+  height: 33px;
+  border-radius: 9.5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 720;
   flex-shrink: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 4px 10px -3px rgba(15, 23, 42, 0.25);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1.2px 0 rgba(255, 255, 255, 0.48), 0 5px 12px -3px rgba(15, 23, 42, 0.26);
+}
+
+.squircle-badge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, transparent 56%);
+  pointer-events: none;
 }
 
 .bento-tile-title {
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 720;
   color: var(--text-primary);
 }
 
@@ -874,15 +1334,15 @@ kbd.keycap {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 7px 10px;
-  border-radius: 12px;
+  padding: 7.5px 10.5px;
+  border-radius: 13px;
   background: var(--bg-well);
   border: 1px solid var(--rim-subtle);
 }
 
 .quick-btn-label {
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 720;
   color: var(--text-tertiary);
   margin-right: 2px;
 }
@@ -891,20 +1351,22 @@ kbd.keycap {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 9px;
+  padding: 3.5px 9.5px;
   border-radius: 999px;
   background: var(--bg-card);
   border: 1px solid var(--rim-outer);
+  box-shadow: inset 0 1px 0 var(--bevel-top);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 660;
   color: var(--text-primary);
   cursor: pointer;
-  transition: border-color 0.18s ease, transform 0.18s ease;
+  transition: border-color 0.18s ease, transform 0.2s var(--ease-bounce), box-shadow 0.2s ease;
 }
 
 .quick-btn-pill:hover {
   border-color: var(--rim-selected);
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px rgba(0, 102, 220, 0.10);
 }
 
 .dock-strip-label {
@@ -922,23 +1384,31 @@ kbd.keycap {
 }
 
 .dock-app-pill {
-  padding: 7px 10px;
-  border-radius: 11px;
+  padding: 7.5px 10px;
+  border-radius: 12px;
   background: var(--bg-card);
   border: 1px solid var(--rim-outer);
+  box-shadow: inset 0 1px 0 var(--bevel-top);
   display: flex;
   align-items: center;
   gap: 7px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 660;
   color: var(--text-primary);
+  transition: transform 0.2s var(--ease-bounce), border-color 0.2s ease;
+}
+
+.dock-app-pill:hover {
+  transform: translateY(-2px);
+  border-color: var(--rim-selected);
 }
 
 .dock-app-dot {
   width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: 5.5px;
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
 .result-list {
@@ -956,15 +1426,18 @@ kbd.keycap {
   border-radius: var(--radius-row);
   border: 1px solid transparent;
   cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s var(--ease-spring);
 }
 
 .result-row:hover {
   background: var(--bg-pill);
+  transform: translateX(2px);
 }
 
 .result-row.selected {
   background: var(--bg-row-selected);
   border-color: var(--rim-selected);
+  box-shadow: inset 0 1px 0 var(--bevel-top);
 }
 
 .result-row-main {
@@ -980,7 +1453,7 @@ kbd.keycap {
 
 .result-title {
   font-size: 13.5px;
-  font-weight: 650;
+  font-weight: 660;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -1017,8 +1490,8 @@ kbd.keycap {
 
 .lens-big-value {
   font-size: 24px;
-  font-weight: 820;
-  letter-spacing: -0.02em;
+  font-weight: 840;
+  letter-spacing: -0.024em;
   margin: 6px 0 4px;
 }
 
@@ -1026,7 +1499,7 @@ kbd.keycap {
   margin: 6px 0 0;
   font-size: 12.5px;
   color: var(--text-secondary);
-  line-height: 1.56;
+  line-height: 1.58;
 }
 
 .lens-kv-list {
@@ -1049,13 +1522,13 @@ kbd.keycap {
 }
 
 .lens-kv span:last-child {
-  font-weight: 650;
+  font-weight: 660;
   color: var(--text-primary);
   text-align: right;
 }
 
 .panel-footer {
-  padding: 8px 16px;
+  padding: 8.5px 16px;
   border-top: 1px solid var(--rim-subtle);
   display: flex;
   flex-wrap: wrap;
@@ -1083,15 +1556,30 @@ kbd.keycap {
   font-style: normal;
 }
 
+.status-heartbeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-heartbeat::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-ok);
+  box-shadow: 0 0 6px var(--status-ok);
+}
+
 .scroll-cue {
-  margin-top: 30px;
+  margin-top: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 7px;
   color: var(--text-tertiary);
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 520;
 }
 
 .scroll-mouse {
@@ -1101,6 +1589,7 @@ kbd.keycap {
   border: 1.5px solid var(--rim-strong);
   background: var(--bg-card);
   position: relative;
+  box-shadow: inset 0 1px 0 var(--bevel-top);
 }
 
 .scroll-wheel-dot {
@@ -1112,7 +1601,7 @@ kbd.keycap {
   left: 50%;
   top: 6px;
   transform: translateX(-50%);
-  animation: wheelGlide 1.8s infinite cubic-bezier(0.22, 1, 0.36, 1);
+  animation: wheelGlide 1.9s infinite var(--ease-snappy);
 }
 
 @keyframes wheelGlide {
@@ -1122,11 +1611,10 @@ kbd.keycap {
 }
 
 /* ==========================================================================
-   ACT II · CORE FEATURE: "Build Your Own Lumakey" Interactive Plugin Workbench
+   6. ACT II · Deep Customization Workbench with Spring Pill & Switch Physics
    ========================================================================== */
 .builder-section {
-  padding: 96px 0 92px;
-  position: relative;
+  padding: 100px 0 96px;
 }
 
 .builder-header-row {
@@ -1142,26 +1630,26 @@ kbd.keycap {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
 .builder-profile-btn {
-  padding: 7px 14px;
+  padding: 7.5px 15px;
   border-radius: 999px;
   border: 1px solid var(--rim-outer);
   background: var(--bg-card);
   color: var(--text-secondary);
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 660;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), inset 0 1px 0 var(--bevel-top);
+  transition: transform 0.22s var(--ease-bounce), color 0.18s ease, border-color 0.18s ease, background 0.22s ease, box-shadow 0.22s ease;
 }
 
 .builder-profile-btn:hover {
   color: var(--text-primary);
   border-color: var(--rim-strong);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .builder-profile-btn.active {
@@ -1218,15 +1706,16 @@ kbd.keycap {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 15px;
   background: var(--bg-well);
   border: 1px solid var(--rim-subtle);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.22s var(--ease-spring), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .plugin-toggle-item:hover {
   border-color: var(--rim-strong);
+  transform: translateX(3px);
 }
 
 .plugin-toggle-item.focused {
@@ -1248,7 +1737,7 @@ kbd.keycap {
 
 .plugin-toggle-name {
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 720;
   color: var(--text-primary);
   display: flex;
   flex-wrap: wrap;
@@ -1274,41 +1763,45 @@ kbd.keycap {
   text-overflow: ellipsis;
 }
 
-/* Native macOS Switch Pill */
+/* Tactile Spring Switch */
 .mac-switch {
-  width: 38px;
-  height: 22px;
+  width: 40px;
+  height: 23px;
   border-radius: 999px;
   background: var(--rim-strong);
   position: relative;
   flex-shrink: 0;
   border: none;
   cursor: pointer;
-  transition: background 0.22s ease;
+  transition: background 0.26s ease, box-shadow 0.26s ease;
 }
 
 .mac-switch::after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 2.5px;
+  left: 2.5px;
   width: 18px;
   height: 18px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.24);
+  transition: transform 0.28s var(--ease-bounce), width 0.16s ease;
+}
+
+.mac-switch:active::after {
+  width: 21px;
 }
 
 .mac-switch.on {
-  background: var(--accent-primary);
+  background: var(--accent-gradient);
+  box-shadow: 0 0 12px rgba(0, 102, 220, 0.30);
 }
 
 .mac-switch.on::after {
-  transform: translateX(16px);
+  transform: translateX(17px);
 }
 
-/* Right Preview of User's Assembled Lumakey */
 .builder-preview-card {
   padding: 24px;
   border-radius: var(--radius-panel);
@@ -1340,7 +1833,7 @@ kbd.keycap {
 
 .assembled-zone-title {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 720;
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1361,14 +1854,21 @@ kbd.keycap {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px;
+  padding: 5px 11.5px;
   border-radius: 999px;
   background: var(--bg-card);
   border: 1px solid var(--rim-outer);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 660;
   color: var(--text-primary);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), inset 0 1px 0 var(--bevel-top);
+  animation: pillPopIn 0.34s var(--ease-bounce) backwards;
+  animation-delay: calc(var(--pi, 0) * 24ms);
+}
+
+@keyframes pillPopIn {
+  from { opacity: 0; transform: scale(0.84) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .empty-mount-note {
@@ -1377,7 +1877,7 @@ kbd.keycap {
 }
 
 .plugin-spotlight-box {
-  padding: 15px 16px;
+  padding: 16px;
   border-radius: var(--radius-card);
   background: var(--bg-card);
   border: 1px solid var(--rim-outer);
@@ -1407,7 +1907,7 @@ kbd.keycap {
 .spotlight-desc {
   font-size: 12.5px;
   color: var(--text-secondary);
-  line-height: 1.56;
+  line-height: 1.58;
   margin: 0;
 }
 
@@ -1420,16 +1920,22 @@ kbd.keycap {
 
 .cmd-sub-chip {
   padding: 7px 10px;
-  border-radius: 10px;
+  border-radius: 11px;
   background: var(--bg-well);
   border: 1px solid var(--rim-subtle);
   font-size: 11.5px;
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 620;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  transition: border-color 0.18s ease, transform 0.18s var(--ease-spring);
+}
+
+.cmd-sub-chip:hover {
+  border-color: var(--rim-selected);
+  transform: translateY(-1px);
 }
 
 .audit-summary-bar {
@@ -1445,11 +1951,11 @@ kbd.keycap {
 }
 
 /* ==========================================================================
-   ACT III · Sticky Scroll-Scrubbed Plugin Creation & Ecosystem Story (450vh)
+   7. ACT III · Sticky Scroll-Scrubbed AI Co-Creation & Levitating Glass HUD
    ========================================================================== */
 .theatre-section {
   position: relative;
-  height: 450vh;
+  height: 440vh;
   padding: 36px 0;
 }
 
@@ -1506,8 +2012,8 @@ kbd.keycap {
   border-radius: var(--radius-card);
   border: 1px solid transparent;
   cursor: pointer;
-  opacity: 0.55;
-  transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0.54;
+  transition: all 0.32s var(--ease-spring);
 }
 
 .step-card:hover {
@@ -1520,7 +2026,7 @@ kbd.keycap {
   background: var(--bg-card);
   border-color: var(--rim-outer);
   box-shadow: var(--shadow-card);
-  transform: translateX(6px);
+  transform: translateX(7px);
 }
 
 .step-header {
@@ -1533,7 +2039,7 @@ kbd.keycap {
 
 .step-index {
   font-size: 11.5px;
-  font-weight: 750;
+  font-weight: 760;
   color: var(--accent-badge-text);
 }
 
@@ -1558,7 +2064,7 @@ kbd.keycap {
 
 .theatre-stage-box {
   position: relative;
-  min-height: 515px;
+  min-height: 525px;
   border-radius: var(--radius-panel);
   background: var(--bg-panel-solid);
   box-shadow: var(--shadow-panel);
@@ -1598,14 +2104,16 @@ kbd.keycap {
   flex-direction: column;
   justify-content: space-between;
   opacity: 0;
-  transform: translateY(22px) scale(0.98);
+  transform: translateY(24px) scale(0.975);
+  filter: blur(6px);
   pointer-events: none;
-  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.44s var(--ease-spring), transform 0.44s var(--ease-spring), filter 0.4s ease;
 }
 
 .stage-scene.active {
   opacity: 1;
   transform: translateY(0) scale(1);
+  filter: blur(0);
   pointer-events: auto;
 }
 
@@ -1621,6 +2129,16 @@ kbd.keycap {
 .scene-tech-label {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.mcp-replay-btn {
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-bounce);
+}
+
+.mcp-replay-btn:hover {
+  transform: scale(1.05);
 }
 
 .window-dots {
@@ -1648,12 +2166,29 @@ kbd.keycap {
   padding: 10px 0;
 }
 
+/* Sequenced MCP Pipeline Choreographer */
+.mcp-seq-item {
+  opacity: 0.25;
+  transform: translateY(6px);
+  transition: opacity 0.42s var(--ease-spring), transform 0.42s var(--ease-spring), border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.mcp-seq-item.seq-lit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mcp-step-row.seq-current {
+  border-color: var(--rim-selected);
+  box-shadow: 0 0 0 3px var(--accent-badge-bg);
+}
+
 .mock-card {
   padding: 13px 15px;
   border-radius: var(--radius-card);
   background: var(--bg-card);
   border: 1px solid var(--rim-outer);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035), inset 0 1px 0 var(--bevel-top);
 }
 
 .mock-card.selected-mock {
@@ -1661,11 +2196,42 @@ kbd.keycap {
   background: var(--bg-row-selected);
 }
 
-.mock-well {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--bg-well);
-  border: 1px solid var(--rim-subtle);
+/* Levitating Floating Glass HUD Preview in Scene 1 */
+.hud-levitate-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.mini-hud-preview {
+  margin-top: 9px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--bg-well-strong);
+  border: 1px solid var(--rim-selected);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 660;
+  color: var(--text-primary);
+  box-shadow: 0 8px 18px -6px rgba(0, 102, 220, 0.22);
+  animation: hudFloat 3.6s ease-in-out infinite alternate;
+}
+
+.mini-hud-preview i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ec4899;
+  box-shadow: 0 0 6px #ec4899;
+  margin-right: 3px;
+}
+
+@keyframes hudFloat {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-3.5px); }
 }
 
 .mock-row-grid {
@@ -1694,16 +2260,15 @@ kbd.keycap {
   line-height: 1.54;
 }
 
-/* AI MCP Chat Bubble + Tool Pipeline inside Scene 0 */
 .ai-prompt-bubble {
   padding: 11px 14px;
-  border-radius: 14px 14px 14px 4px;
+  border-radius: 15px 15px 15px 4px;
   background: var(--accent-badge-bg);
   border: 1px solid var(--accent-badge-border);
   color: var(--text-primary);
   font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: 620;
+  line-height: 1.52;
 }
 
 .mcp-pipeline-steps {
@@ -1717,46 +2282,49 @@ kbd.keycap {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px;
-  border-radius: 11px;
+  padding: 8.5px 12px;
+  border-radius: 12px;
   background: var(--bg-well);
   border: 1px solid var(--rim-subtle);
   font-size: 12px;
   color: var(--text-primary);
 }
 
-/* Slider & Form Mock inside Scene 1 */
 .form-slider-track {
-  height: 7px;
+  height: 8px;
   border-radius: 999px;
   background: var(--bg-well-strong);
   position: relative;
-  margin-top: 8px;
+  margin-top: 10px;
   cursor: pointer;
   touch-action: none;
 }
 
 .form-slider-fill {
-  width: 68%;
+  width: 35%;
   height: 100%;
   border-radius: 999px;
   background: var(--accent-gradient);
 }
 
 .form-slider-knob {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #ffffff;
   border: 2.5px solid var(--accent-primary);
-  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.26);
   position: absolute;
   top: 50%;
-  left: 68%;
+  left: 35%;
   transform: translate(-50%, -50%);
+  transition: transform 0.16s var(--ease-bounce);
 }
 
-/* Smart Sniffer Bar inside Scene 2 */
+.form-slider-track:hover .form-slider-knob {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
 .sniffer-demo-pills {
   display: flex;
   flex-wrap: wrap;
@@ -1764,14 +2332,15 @@ kbd.keycap {
 }
 
 .sniffer-demo-btn {
-  padding: 4px 10px;
+  padding: 4.5px 11px;
   border-radius: 999px;
   border: 1px solid var(--rim-outer);
   background: var(--bg-card);
   color: var(--text-secondary);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 660;
   cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
 }
 
 .sniffer-demo-btn.active {
@@ -1781,6 +2350,8 @@ kbd.keycap {
 }
 
 .sniffer-input-mock {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1792,6 +2363,23 @@ kbd.keycap {
   border: 1px solid var(--rim-selected);
   font-size: 12px;
   color: var(--text-primary);
+}
+
+.sniffer-scan-beam {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--accent-badge-bg), transparent);
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.sniffer-input-mock.scanning .sniffer-scan-beam {
+  animation: snifferSweep 0.65s var(--ease-snappy);
+}
+
+@keyframes snifferSweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
 }
 
 #snifferUrlText {
@@ -1809,10 +2397,10 @@ kbd.keycap {
 }
 
 /* ==========================================================================
-   ACT IV · Built-in Native Base Engines (Bento Grid + Hotkey Chord Bar)
+   8. ACT IV · Bento Grid + Live Animated Micro-Visual Stages!
    ========================================================================== */
 .bento-section {
-  padding: 96px 0 88px;
+  padding: 100px 0 92px;
 }
 
 .hotkey-chord-bar {
@@ -1827,15 +2415,15 @@ kbd.keycap {
   align-items: center;
   gap: 8px;
   padding: 9px 15px;
-  border-radius: 13px;
+  border-radius: 14px;
   background: var(--bg-card);
   border: 1px solid var(--rim-outer);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.035);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.035), inset 0 1px 0 var(--bevel-top);
   color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
-  font-weight: 650;
-  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  font-weight: 660;
+  transition: all 0.22s var(--ease-bounce);
 }
 
 .hotkey-pill:hover,
@@ -1852,28 +2440,6 @@ kbd.keycap {
   gap: 18px;
 }
 
-.f-card,
-.pillar-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.f-card::after,
-.pillar-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(340px circle at var(--mx, 50%) var(--my, -200px), var(--glare-color), transparent 68%);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.f-card:hover::after,
-.pillar-card:hover::after {
-  opacity: 1;
-}
-
 .f-card {
   grid-column: span 4;
   padding: 26px;
@@ -1884,7 +2450,8 @@ kbd.keycap {
   flex-direction: column;
   justify-content: space-between;
   gap: 16px;
-  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, opacity 0.26s ease;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease, opacity 0.28s ease;
 }
 
 .f-card.span-6 { grid-column: span 6; }
@@ -1892,15 +2459,15 @@ kbd.keycap {
 
 .f-card:hover,
 .f-card.highlighted {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
   box-shadow: var(--shadow-card-hover);
 }
 
 .f-card h3 {
   font-size: 18.5px;
-  font-weight: 760;
-  margin: 14px 0 8px;
-  letter-spacing: -0.015em;
+  font-weight: 770;
+  margin: 12px 0 8px;
+  letter-spacing: -0.016em;
   color: var(--text-primary);
 }
 
@@ -1908,7 +2475,7 @@ kbd.keycap {
   margin: 0;
   font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.64;
+  line-height: 1.65;
 }
 
 .f-card-top {
@@ -1924,11 +2491,281 @@ kbd.keycap {
   gap: 8px;
 }
 
+/* Miniature Kinetic Stages Inside Bento Cards */
+.bento-micro-stage {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: var(--bg-well);
+  border: 1px solid var(--rim-subtle);
+  overflow: hidden;
+  position: relative;
+}
+
+/* 1. Search Micro Stage */
+.ms-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: var(--bg-card);
+  border: 1px solid var(--rim-outer);
+  font-size: 11.5px;
+  margin-bottom: 8px;
+}
+
+.ms-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.ms-typing {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ms-typing::after {
+  content: "|";
+  color: var(--accent-primary);
+  margin-left: 2px;
+  animation: caretBlink 1s steps(2) infinite;
+}
+
+@keyframes caretBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.ms-speed {
+  font-size: 10.5px;
+  color: var(--status-ok);
+  font-weight: 700;
+}
+
+.ms-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ms-pill {
+  font-size: 10.5px;
+  font-weight: 660;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--rim-subtle);
+  color: var(--text-secondary);
+}
+
+.ms-pill.active {
+  background: var(--accent-badge-bg);
+  border-color: var(--accent-badge-border);
+  color: var(--accent-badge-text);
+}
+
+/* 2. Capture / GIF / OCR Micro Stage */
+.micro-capture {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 70px;
+}
+
+.mc-crop-box {
+  flex: 1;
+  height: 48px;
+  border: 1.5px dashed var(--rim-selected);
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.mc-ocr-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #a855f7, #ec4899, transparent);
+  animation: ocrScanY 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes ocrScanY {
+  0% { top: 6px; opacity: 0.5; }
+  100% { top: 40px; opacity: 1; }
+}
+
+.mc-ocr-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent-badge-text);
+  z-index: 1;
+}
+
+.mc-hud-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mc-island,
+.mc-loupe {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3.5px 9px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--rim-outer);
+  font-size: 10px;
+  font-weight: 660;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.rec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: caretBlink 1.1s infinite;
+}
+
+.swatch-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: #38bdf8;
+}
+
+/* 3. Chip Pulse Sparkline Stage */
+.mp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.mp-watt {
+  color: var(--status-ok);
+  font-size: 12px;
+}
+
+.mp-sparkline {
+  width: 100%;
+  height: 36px;
+  display: block;
+}
+
+.mp-line {
+  stroke-dasharray: 280;
+  stroke-dashoffset: 280;
+  animation: sparkDraw 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes sparkDraw {
+  0% { stroke-dashoffset: 140; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* 4. Socket Bandwidth Stage */
+.micro-net {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.mn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mn-bar-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-well-strong);
+  overflow: hidden;
+}
+
+.mn-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.mn-bar.down {
+  width: 78%;
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+  animation: bwPulseDown 2.6s ease-in-out infinite alternate;
+}
+
+.mn-bar.up {
+  width: 34%;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  animation: bwPulseUp 2.1s ease-in-out infinite alternate;
+}
+
+@keyframes bwPulseDown {
+  0% { width: 58%; }
+  100% { width: 86%; }
+}
+
+@keyframes bwPulseUp {
+  0% { width: 22%; }
+  100% { width: 46%; }
+}
+
+/* 5. 120Hz Smooth Wheel Stage */
+.micro-wheel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mw-curve {
+  width: 100%;
+  height: 34px;
+  display: block;
+}
+
+.mw-smooth-path {
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: sparkDraw 3.0s var(--ease-spring) infinite alternate;
+}
+
+.mw-badge {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+
 /* ==========================================================================
-   ACT V · Core Philosophy, Dual-Theme Switcher & Product Boundaries
+   9. ACT V · Core Philosophy, Dual-Theme Banner & Product Boundaries
    ========================================================================== */
 .philosophy-section {
-  padding: 92px 0 92px;
+  padding: 96px 0 96px;
 }
 
 .pillars-grid {
@@ -1943,18 +2780,19 @@ kbd.keycap {
   border-radius: var(--radius-bento);
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+  transition: transform 0.28s var(--ease-spring), box-shadow 0.28s ease;
 }
 
 .pillar-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-card-hover);
 }
 
 .pillar-num {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.085em;
   color: var(--accent-badge-text);
   margin-bottom: 8px;
   display: block;
@@ -1962,7 +2800,7 @@ kbd.keycap {
 
 .pillar-card h3 {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 810;
   margin: 0 0 10px;
   letter-spacing: -0.02em;
   color: var(--text-primary);
@@ -1986,17 +2824,19 @@ kbd.keycap {
   justify-content: space-between;
   gap: 22px;
   margin-bottom: 32px;
+  overflow: hidden;
 }
 
 .duality-copy {
-  max-width: 610px;
+  max-width: 590px;
 }
 
 .duality-heading {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 810;
   margin: 4px 0 8px;
   color: var(--text-primary);
+  text-wrap: balance;
 }
 
 .duality-sub {
@@ -2004,6 +2844,7 @@ kbd.keycap {
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.65;
+  text-wrap: pretty;
 }
 
 .theme-switch-group {
@@ -2013,6 +2854,7 @@ kbd.keycap {
   background: var(--bg-well-strong);
   border: 1px solid var(--rim-subtle);
   gap: 5px;
+  flex-shrink: 0;
 }
 
 .theme-choice-btn {
@@ -2023,8 +2865,9 @@ kbd.keycap {
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.25s var(--ease-spring);
 }
 
 .theme-choice-btn.active {
@@ -2038,13 +2881,15 @@ kbd.keycap {
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
   padding: 30px 32px;
+  overflow: hidden;
 }
 
 .boundary-heading {
   font-size: 21px;
-  font-weight: 800;
+  font-weight: 810;
   margin: 0 0 6px;
   color: var(--text-primary);
+  text-wrap: balance;
 }
 
 .boundary-sub {
@@ -2107,10 +2952,10 @@ kbd.keycap {
 }
 
 /* ==========================================================================
-   ACT VI · Clean Code DAG Blueprint & Adaptive Light/Dark Code Studio
+   10. ACT VI · Clean Code DAG Blueprint with Animated SVG Optical Conduits!
    ========================================================================== */
 .arch-section {
-  padding: 88px 0 92px;
+  padding: 92px 0 96px;
 }
 
 .metrics-strip {
@@ -2121,16 +2966,23 @@ kbd.keycap {
 }
 
 .metric-box {
-  padding: 22px;
+  padding: 24px 20px;
   border-radius: var(--radius-bento);
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
   text-align: center;
+  overflow: hidden;
+  transition: transform 0.28s var(--ease-spring), box-shadow 0.28s ease;
+}
+
+.metric-box:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .metric-number {
-  font-size: clamp(1.9rem, 3.1vw, 2.6rem);
-  font-weight: 850;
+  font-size: clamp(1.95rem, 3.2vw, 2.68rem);
+  font-weight: 860;
   letter-spacing: -0.03em;
   margin-bottom: 4px;
 }
@@ -2141,16 +2993,17 @@ kbd.keycap {
 }
 
 .dag-board {
-  padding: 32px;
+  padding: 34px 32px;
   border-radius: var(--radius-panel);
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .dag-tiers {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 4px;
 }
 
 .dag-tier {
@@ -2161,46 +3014,112 @@ kbd.keycap {
 }
 
 .dag-node {
-  padding: 13px 20px;
-  border-radius: 14px;
+  padding: 14px 20px;
+  border-radius: 16px;
   background: var(--bg-well);
   border: 1px solid var(--rim-outer);
-  min-width: 210px;
+  box-shadow: inset 0 1px 0 var(--bevel-top);
+  min-width: 215px;
   text-align: center;
-  transition: all 0.28s ease;
+  transition: transform 0.28s var(--ease-spring), background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
 }
 
 .dag-node-wide {
-  min-width: 340px;
+  min-width: 360px;
 }
 
 .dag-tier.tier-lit .dag-node,
 .dag-node:hover {
   background: var(--accent-badge-bg);
   border-color: var(--rim-selected);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .dag-node-name {
   font-size: 14px;
   font-weight: 760;
   color: var(--text-primary);
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
+
+.node-orb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.node-orb.cyan { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+.node-orb.violet { background: #a855f7; box-shadow: 0 0 8px #a855f7; }
+.node-orb.indigo { background: #6366f1; box-shadow: 0 0 8px #6366f1; }
+.node-orb.sky { background: #0ea5e9; box-shadow: 0 0 8px #0ea5e9; }
+.node-orb.rose { background: #ec4899; box-shadow: 0 0 8px #ec4899; }
+.node-orb.emerald { background: #10b981; box-shadow: 0 0 8px #10b981; }
+.node-orb.amber { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
 
 .dag-node-desc {
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.dag-arrow-row {
-  text-align: center;
-  color: var(--accent-badge-text);
-  font-size: 12.5px;
-  font-weight: 700;
+/* SVG Optical Conduits Between DAG Tiers! */
+.dag-conduit {
+  position: relative;
+  height: 42px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Download & Adaptive Code Studio (Clean Light in Pure Frost, Obsidian in Prism Pulse!) */
+.dag-conduit svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.conduit-track {
+  fill: none;
+  stroke: var(--conduit-track);
+  stroke-width: 1.6;
+}
+
+.conduit-beam {
+  fill: none;
+  stroke: var(--conduit-beam);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 26 140;
+  animation: conduitPulse 2.4s linear infinite;
+}
+
+@keyframes conduitPulse {
+  from { stroke-dashoffset: 166; }
+  to { stroke-dashoffset: 0; }
+}
+
+.conduit-tag {
+  position: relative;
+  z-index: 1;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--rim-subtle);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent-badge-text);
+}
+
+/* ==========================================================================
+   11. ACT VII · Download & Adaptive Code Studio with Sliding Tab Glider
+   ========================================================================== */
 .download-section {
   padding: 64px 0 108px;
 }
@@ -2214,6 +3133,7 @@ kbd.keycap {
   grid-template-columns: 0.94fr 1.06fr;
   gap: 34px;
   align-items: center;
+  overflow: hidden;
 }
 
 .download-title {
@@ -2258,28 +3178,45 @@ kbd.keycap {
 }
 
 .studio-tabs {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
+  padding: 2px;
+  border-radius: 10px;
+}
+
+.studio-tab-glider {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  width: 0;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--studio-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  transition: transform 0.34s var(--ease-spring), width 0.34s var(--ease-spring);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .term-tab {
+  position: relative;
+  z-index: 1;
   padding: 5px 10px;
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   color: var(--studio-muted);
   font-size: 11.5px;
-  font-weight: 650;
+  font-weight: 660;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: color 0.2s ease;
 }
 
 .term-tab.active {
-  background: var(--bg-card);
-  border-color: var(--studio-border);
   color: var(--studio-text);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 .copy-cmd-btn {
@@ -2289,12 +3226,14 @@ kbd.keycap {
   background: var(--bg-card);
   color: var(--studio-text);
   font-size: 11.5px;
-  font-weight: 650;
+  font-weight: 660;
   cursor: pointer;
+  transition: transform 0.18s var(--ease-bounce), border-color 0.18s ease;
 }
 
 .copy-cmd-btn:hover {
   border-color: var(--rim-selected);
+  transform: translateY(-1px);
 }
 
 .studio-pre {
@@ -2304,6 +3243,11 @@ kbd.keycap {
   line-height: 1.72;
   overflow-x: auto;
   color: var(--studio-text);
+  transition: opacity 0.22s ease, transform 0.22s var(--ease-spring);
+}
+
+.studio-pre.code-swap {
+  animation: simItemPop 0.3s var(--ease-spring);
 }
 
 .studio-pre .cmd-comment { color: var(--studio-muted); }
@@ -2341,29 +3285,124 @@ kbd.keycap {
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
-  font-weight: 500;
+  font-weight: 520;
+}
+
+.footer-links a {
+  transition: color 0.18s ease;
 }
 
 .footer-links a:hover {
   color: var(--text-primary);
 }
 
-/* Scroll Reveal */
+/* ==========================================================================
+   12. Optical Blur-to-Crisp Scroll Reveal & 3D Return Pills
+   ========================================================================== */
 .reveal-up {
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.68s cubic-bezier(0.22, 1, 0.36, 1), transform 0.68s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateY(28px) scale(0.986);
+  filter: blur(7px);
+  transition:
+    opacity 0.76s var(--ease-spring),
+    transform 0.76s var(--ease-spring),
+    filter 0.68s var(--ease-snappy);
   transition-delay: var(--delay, 0ms);
 }
 
 .reveal-up.in-view {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  filter: blur(0);
 }
 
+.nav-3d-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: var(--accent-badge-bg);
+  border: 1px solid var(--rim-selected);
+  color: var(--accent-badge-text);
+  font-size: 12.5px;
+  font-weight: 720;
+  white-space: nowrap;
+  transition: transform 0.22s var(--ease-bounce), box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.nav-3d-pill:hover {
+  transform: translateY(-1.5px);
+  box-shadow: var(--shadow-card);
+}
+
+.nav-3d-spark {
+  display: inline-block;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 13px;
+}
+
+.btn-hero-3d {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  padding: 13px 22px;
+  border-radius: 999px;
+  background: var(--accent-badge-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid var(--rim-selected);
+  color: var(--accent-badge-text);
+  font-size: 14.5px;
+  font-weight: 740;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.24s var(--ease-spring), box-shadow 0.24s ease;
+}
+
+.btn-hero-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.section-3d-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--rim-selected);
+  color: var(--accent-badge-text);
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: var(--shadow-card);
+  white-space: nowrap;
+  transition: transform 0.22s var(--ease-spring), box-shadow 0.22s ease;
+}
+
+.section-3d-jump:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.theatre-head-flex {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ==========================================================================
+   13. Responsive & Reduced-Motion Guardrails
+   ========================================================================== */
 @media (hover: none) {
-  .f-card:hover::after,
-  .pillar-card:hover::after { opacity: 0; }
+  .spotlight-surface::before,
+  .spotlight-surface::after { display: none; }
   .f-card:hover,
   .pillar-card:hover,
   .bento-tile:hover,
@@ -2373,9 +3412,16 @@ kbd.keycap {
   .dag-node:hover { transform: none; }
 }
 
+@media (max-width: 1320px) {
+  .brand-tag { display: none; }
+}
+
+@media (max-width: 1060px) {
+  .nav-links { display: none; }
+}
+
 @media (max-width: 980px) {
   .site-header { top: 10px; padding: 0 14px; }
-  .nav-links { display: none; }
   .luma-panel { min-height: auto; }
   .panel-body { min-height: auto; }
   .panel-body,
@@ -2389,7 +3435,7 @@ kbd.keycap {
   .theatre-section { height: auto; padding: 64px 0; }
   .theatre-sticky { position: static; min-height: auto; }
   .theatre-progress-track { display: none; }
-  .step-card { margin-left: 0; padding: 14px 16px; opacity: 0.72; }
+  .step-card { margin-left: 0; padding: 14px 16px; opacity: 0.74; }
   .step-card.active { transform: none; opacity: 1; }
   .step-desc { display: block; }
   .theatre-stage-box { min-height: auto; height: auto; padding: 18px; overflow: visible; }
@@ -2410,6 +3456,7 @@ kbd.keycap {
     position: static;
     inset: auto;
     transform: none;
+    filter: none;
     opacity: 1;
     pointer-events: auto;
     gap: 14px;
@@ -2419,6 +3466,7 @@ kbd.keycap {
   .f-card, .f-card.span-6 { grid-column: span 12; }
   .metrics-strip { grid-template-columns: repeat(2, 1fr); }
   .dag-node, .dag-node-wide { min-width: 0; flex: 1 1 200px; }
+  .dag-conduit svg { display: none; }
 }
 
 @media (max-width: 680px) {
@@ -2428,6 +3476,7 @@ kbd.keycap {
   .nav-actions { gap: 6px; }
   .pill-btn { padding: 6px 10px; font-size: 12px; white-space: nowrap; }
   .nav-actions .btn-primary-sm { display: none; }
+  .nav-3d-pill { padding: 6px 10px; font-size: 11.5px; }
 
   .hero-section { padding: 86px 0 44px; }
   .hero-copy { margin-bottom: 24px; }
@@ -2437,6 +3486,7 @@ kbd.keycap {
   .hero-subtitle { font-size: 0.95rem; line-height: 1.62; margin-bottom: 20px; }
   .hero-cta-row { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 16px; }
   .btn-hero-primary,
+  .btn-hero-3d,
   .btn-hero-secondary { width: 100%; justify-content: center; padding: 12px 18px; font-size: 14.5px; }
   .scroll-cue { display: none; }
 
@@ -2462,6 +3512,7 @@ kbd.keycap {
   .panel-left-pane,
   .panel-right-lens { padding: 12px; }
   .bento-mini-grid,
+  .bento-mini-grid.cols-4,
   .dock-mini-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .panel-footer { justify-content: center; padding: 8px 12px; }
   .footer-hints { display: none; }
@@ -2501,6 +3552,7 @@ kbd.keycap {
   .scene-top-bar { flex-wrap: wrap; }
   .cmd-sub-list,
   .mock-row-grid { grid-template-columns: 1fr; }
+  .micro-capture { flex-direction: column; align-items: stretch; }
 
   .theatre-stage-box { padding: 14px; border-radius: 20px; }
   .scene-top-bar .window-dots { display: none; }
@@ -2537,6 +3589,8 @@ kbd.keycap {
   .download-card { padding: 22px 16px; gap: 22px; border-radius: 20px; }
   .download-actions { flex-direction: column; }
   .studio-head .window-dots { display: none; }
+  .studio-tab-glider { display: none; }
+  .term-tab.active { background: var(--bg-card); border: 1px solid var(--studio-border); }
   .studio-pre { padding: 14px; font-size: 11.5px; line-height: 1.6; }
 
   .site-footer { padding: 26px 0 40px; }
@@ -2546,101 +3600,29 @@ kbd.keycap {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .reveal-up { opacity: 1 !important; transform: none !important; transition: none !important; }
-  .scroll-wheel-dot { animation: none !important; }
-}
-
-/* ==========================================================================
-   Three.js 3D Spatial Experience Entry Pills & Deep-Link Buttons
-   ========================================================================== */
-.nav-3d-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 13px;
-  border-radius: 999px;
-  background: var(--accent-badge-bg);
-  border: 1px solid var(--rim-selected);
-  color: var(--accent-badge-text);
-  font-size: 12.5px;
-  font-weight: 720;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.nav-3d-pill:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-card);
-}
-
-.nav-3d-spark {
-  display: inline-block;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-size: 13px;
-}
-
-.btn-hero-3d {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 13px 22px;
-  border-radius: 999px;
-  background: var(--accent-badge-bg);
-  border: 1.5px solid var(--rim-selected);
-  color: var(--accent-badge-text);
-  font-size: 14.5px;
-  font-weight: 740;
-  box-shadow: var(--shadow-card);
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
-}
-
-.btn-hero-3d:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
-}
-
-.section-3d-jump {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 15px;
-  border-radius: 999px;
-  background: var(--bg-card);
-  border: 1px solid var(--rim-selected);
-  color: var(--accent-badge-text);
-  font-size: 12.5px;
-  font-weight: 700;
-  box-shadow: var(--shadow-card);
-  white-space: nowrap;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
-}
-
-.section-3d-jump:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
-}
-
-.theatre-head-flex {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-@media (max-width: 680px) {
-  .nav-3d-pill {
-    padding: 6px 10px;
-    font-size: 11.5px;
+  .hero-stagger,
+  .reveal-up,
+  .sim-stagger,
+  .lens-animate {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+    transition: none !important;
   }
-  .btn-hero-3d {
-    width: 100%;
-    justify-content: center;
-    padding: 12px 18px;
+  .aurora-orb,
+  .shimmer-text,
+  .btn-hero-primary::after,
+  .scroll-wheel-dot,
+  .conduit-beam,
+  .mp-line,
+  .mw-smooth-path,
+  .mc-ocr-scan,
+  .mini-hud-preview {
+    animation: none !important;
   }
-  .section-3d-jump {
-    font-size: 12px;
+  .mcp-seq-item {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
