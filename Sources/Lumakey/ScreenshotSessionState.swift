@@ -35,8 +35,8 @@ enum SelectionHandle: CaseIterable {
 }
 
 enum ScreenshotDragMode {
-    case creating(CGPoint)
-    case resizing(SelectionHandle, CGRect)
+    case creating(SelectionCreationContext)
+    case resizing(SelectionHandle, CGRect, CGPoint)
     case movingSelection(CGRect, CGPoint, [ScreenshotAnnotation])
     case annotating(AnnotationToolKind)
     case noop
@@ -130,13 +130,16 @@ final class ScreenshotSessionState: ObservableObject {
             overlappingWindowCount = 0
             return
         }
-        let hits = windows.filter { $0.frame.contains(clamped) }
-        overlappingWindowCount = hits.count
-        if hits.first?.id != lastTopHitWindowID {
-            lastTopHitWindowID = hits.first?.id
-            windowCycleIndex = 0
-        }
-        hoveredWindow = hits.isEmpty ? nil : hits[windowCycleIndex % hits.count]
+        let resolved = CaptureSelectionGeometry.resolveHover(
+            at: clamped, windows: windows,
+            lastTopWindowID: &lastTopHitWindowID, cycleIndex: &windowCycleIndex
+        )
+        hoveredWindow = resolved.hovered
+        overlappingWindowCount = resolved.overlapCount
+    }
+
+    func topWindow(at point: CGPoint) -> DetectedScreenWindow? {
+        CaptureSelectionGeometry.topWindow(at: point, in: windows)
     }
 
     @discardableResult
@@ -159,6 +162,7 @@ final class ScreenshotSessionState: ObservableObject {
         excludeWindowShadow = excludeShadow
         selectionRect = window.frame
         hoveredWindow = nil
+        overlappingWindowCount = 0
     }
 
     func appendAnnotation(_ item: ScreenshotAnnotation) {

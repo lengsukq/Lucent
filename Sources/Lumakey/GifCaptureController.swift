@@ -227,7 +227,7 @@ final class GifCaptureController: ObservableObject {
             if isPaused { lastUptime = nil; try? await Task.sleep(for: .milliseconds(80)); continue }
             let tickStart = ProcessInfo.processInfo.systemUptime
             let next = await ScreenRecordingStreamEngine.captureNextFrame(
-                streamSink: streamPair?.sink, canvasRect: canvasRect, displaySpecs: displaySpecs,
+                streamSink: streamPair?.sink, lockedWindowID: lockedWindowID, canvasRect: canvasRect, displaySpecs: displaySpecs,
                 shareableContent: content, excludedWindows: excluded, showsCursor: options.showsCursor, outputSize: outputSize
             )
             if next.fatalError {

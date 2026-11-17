@@ -48,7 +48,7 @@ struct ScreenshotCanvasView: View {
 
             dimmingOverlay
 
-            if let sel = session.selectionRect?.standardized {
+            if let sel = session.selectionRect?.standardized, sel.width >= 2, sel.height >= 2 {
                 let localSel = toLocal(sel)
                 let (pxW, pxH) = session.pixelDimensions(for: sel)
                 mosaicOverlay(localSel: localSel)
@@ -121,7 +121,7 @@ struct ScreenshotCanvasView: View {
             path.addRect(CGRect(origin: .zero, size: viewSize))
             if let hole = (session.selectionRect ?? session.hoveredWindowRect)?.standardized {
                 let localHole = toLocal(hole).intersection(CGRect(origin: .zero, size: viewSize))
-                if !localHole.isNull && localHole.width > 0 && localHole.height > 0 { path.addRect(localHole) }
+                if !localHole.isNull && localHole.width >= 2 && localHole.height >= 2 { path.addRect(localHole) }
             }
         }
         .fill(Color.black.opacity(0.42), style: FillStyle(eoFill: true))
@@ -171,25 +171,28 @@ struct ScreenshotCanvasView: View {
 
     private func handleDragChanged(_ value: DragGesture.Value) {
         let canvasLoc = toCanvas(value.location), canvasStart = toCanvas(value.startLocation)
+        if session.activeDragMode == nil {
+            session.updateHover(at: canvasStart)
+            session.activeDragMode = resolveDragMode(start: canvasStart)
+        }
         session.updateHover(at: canvasLoc)
-        if session.activeDragMode == nil { session.activeDragMode = resolveDragMode(start: canvasStart) }
         guard let mode = session.activeDragMode else { return }
-        let dist = hypot(canvasLoc.x - canvasStart.x, canvasLoc.y - canvasStart.y)
         switch mode {
         case .noop: break
-        case .creating(let startPt):
-            if dist >= 2 { session.isDraggingSelection = true; session.selectedWindow = nil }
-            session.selectionRect = CGRect(
-                x: min(startPt.x, canvasLoc.x), y: min(startPt.y, canvasLoc.y),
-                width: abs(canvasLoc.x - startPt.x), height: abs(canvasLoc.y - startPt.y)
-            ).intersection(session.screenBounds)
-        case .resizing(let handle, let initial):
-            if dist >= 2 { session.isDraggingSelection = true; session.selectedWindow = nil }
+        case .creating(let ctx):
+            guard CaptureSelectionGeometry.shouldBeginDrag(from: ctx.startPoint, to: canvasLoc) else { return }
+            session.isDraggingSelection = true; session.selectedWindow = nil
+            session.selectionRect = CaptureSelectionGeometry.rubberBandRect(from: ctx.startPoint, to: canvasLoc, clampedTo: session.screenBounds)
+        case .resizing(let handle, let initial, let startPt):
+            guard CaptureSelectionGeometry.shouldBeginDrag(from: startPt, to: canvasLoc) else { return }
+            session.isDraggingSelection = true; session.selectedWindow = nil
             session.selectionRect = resizedRect(initial, handle: handle, to: canvasLoc).intersection(session.screenBounds)
         case .movingSelection(let initial, let start, let savedAnnotations):
-            if dist >= 2 { session.isDraggingSelection = true }
+            guard CaptureSelectionGeometry.shouldBeginDrag(from: start, to: canvasLoc) else { return }
+            session.isDraggingSelection = true
             session.moveSelection(from: initial, initialAnnotations: savedAnnotations, dx: canvasLoc.x - start.x, dy: canvasLoc.y - start.y)
         case .annotating(let tool):
+            guard CaptureSelectionGeometry.shouldBeginDrag(from: canvasStart, to: canvasLoc) else { return }
             if tool == .pen || tool == .highlighter || tool == .mosaic {
                 var pts = session.draftAnnotation?.points ?? [canvasStart]; pts.append(canvasLoc)
                 session.draftAnnotation = ScreenshotAnnotation(tool: tool, color: session.selectedColor, strokeSize: session.strokeSize, points: pts)
@@ -203,18 +206,29 @@ struct ScreenshotCanvasView: View {
         let canvasLoc = toCanvas(value.location), canvasStart = toCanvas(value.startLocation)
         let mode = session.activeDragMode
         session.activeDragMode = nil; session.isDraggingSelection = false
-        if hypot(canvasLoc.x - canvasStart.x, canvasLoc.y - canvasStart.y) < 3 {
-            session.draftAnnotation = nil; handleSingleOrDoubleClick(at: canvasLoc); return
+        if case .creating(let ctx) = mode {
+            let resolution = CaptureSelectionGeometry.resolveCreationEnd(
+                context: ctx, endPoint: canvasLoc, currentSelection: session.selectionRect,
+                currentHoveredWindow: session.hoveredWindow, windows: session.windows, minimumSelectionSize: 6
+            )
+            switch resolution {
+            case .snapToWindow(let win):
+                session.selectWindow(win, excludeShadow: session.excludeWindowShadow || NSEvent.modifierFlags.contains(.option))
+                onAction(session.mode == .quickOCR ? .ocr : .syncClipboard)
+            case .commitRegion(let sel):
+                session.selectionRect = sel; session.selectedWindow = nil
+                if session.mode == .quickOCR, sel.width >= 8, sel.height >= 8 { onAction(.ocr); return }
+                if session.mode == .interactiveAnnotate { onAction(.syncClipboard) }
+            case .restorePrevious(let prevSel, let prevWin):
+                session.selectionRect = prevSel; session.selectedWindow = prevWin
+                session.updateHover(at: canvasLoc)
+            }
+            return
         }
-        if case .creating = mode {
-            if let sel = session.selectionRect, sel.width < 6 || sel.height < 6, let hover = session.hoveredWindow {
-                session.selectWindow(hover, excludeShadow: session.excludeWindowShadow || NSEvent.modifierFlags.contains(.option))
-            }
-            if session.mode == .quickOCR, let sel = session.selectionRect?.standardized, sel.width >= 8, sel.height >= 8 {
-                onAction(.ocr); return
-            }
-            if session.mode == .interactiveAnnotate { onAction(.syncClipboard) }
-        } else if case .resizing = mode, session.mode == .interactiveAnnotate {
+        if !CaptureSelectionGeometry.shouldBeginDrag(from: canvasStart, to: canvasLoc) {
+            session.draftAnnotation = nil; handleTapInsideSelection(at: canvasLoc); return
+        }
+        if case .resizing = mode, session.mode == .interactiveAnnotate {
             onAction(.syncClipboard)
         } else if case .movingSelection = mode, session.mode == .interactiveAnnotate {
             onAction(.syncClipboard)
@@ -222,12 +236,7 @@ struct ScreenshotCanvasView: View {
         if let draft = session.draftAnnotation { session.appendAnnotation(draft); session.draftAnnotation = nil }
     }
 
-    private func handleSingleOrDoubleClick(at point: CGPoint) {
-        if session.selectionRect == nil, let hover = session.hoveredWindow {
-            session.selectWindow(hover, excludeShadow: session.excludeWindowShadow || NSEvent.modifierFlags.contains(.option))
-            onAction(session.mode == .quickOCR ? .ocr : .syncClipboard)
-            return
-        }
+    private func handleTapInsideSelection(at point: CGPoint) {
         guard let sel = session.selectionRect, sel.contains(point) else { return }
         if session.activeTool == .counter {
             let idx = session.nextCounterIndex; session.nextCounterIndex += 1
@@ -243,12 +252,21 @@ struct ScreenshotCanvasView: View {
     }
 
     private func resolveDragMode(start: CGPoint) -> ScreenshotDragMode {
-        guard let sel = session.selectionRect?.standardized else { return .creating(start) }
-        for h in SelectionHandle.allCases where hypot(start.x - h.point(in: sel).x, start.y - h.point(in: sel).y) <= 12 { return .resizing(h, sel) }
+        let makeCreating = {
+            ScreenshotDragMode.creating(SelectionCreationContext(
+                startPoint: start, previousSelection: session.selectionRect,
+                previousSelectedWindow: session.selectedWindow,
+                pressHoveredWindow: session.hoveredWindow ?? session.topWindow(at: start)
+            ))
+        }
+        guard let sel = session.selectionRect?.standardized else { return makeCreating() }
+        for h in SelectionHandle.allCases where hypot(start.x - h.point(in: sel).x, start.y - h.point(in: sel).y) <= 12 {
+            return .resizing(h, sel, start)
+        }
         if sel.contains(start) {
             return session.activeTool == .move ? .movingSelection(sel, start, session.annotations) : .annotating(session.activeTool)
         }
-        return session.annotations.isEmpty ? .creating(start) : .noop
+        return session.annotations.isEmpty ? makeCreating() : .noop
     }
 
     private func resizedRect(_ r: CGRect, handle: SelectionHandle, to pt: CGPoint) -> CGRect {

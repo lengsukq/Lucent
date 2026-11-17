@@ -132,5 +132,14 @@ func testV070GifRecorder() throws {
     tempDiscardEncoder.discard()
     check(tempDiscardEncoder.encodedFrameCount == 0 && !FileManager.default.fileExists(atPath: discardedURL.path), "discard releases memory and cleans temp file")
 
+    let win = DetectedScreenWindow(id: 77, ownerName: "Xcode", title: "Lumakey", frame: CGRect(x: 100, y: 80, width: 1200, height: 780))
+    let clickCtx = SelectionCreationContext(startPoint: CGPoint(x: 400, y: 300), previousSelection: nil, previousSelectedWindow: nil, pressHoveredWindow: win)
+    let clickRes = CaptureSelectionGeometry.resolveCreationEnd(
+        context: clickCtx, endPoint: CGPoint(x: 400, y: 300), currentSelection: nil,
+        currentHoveredWindow: nil, windows: [win], minimumSelectionSize: 12
+    )
+    check(clickRes == .snapToWindow(win), "GIF & screenshot window single-click resolves full window frame instead of 1x1 pixel")
+    check(CaptureSelectionGeometry.resolvedWindowCaptureSize(filterContentRect: .zero, fallbackWindowFrame: win.frame) == win.frame.size, "SCContentFilter zero contentRect falls back to window frame")
+
     print("[ok] v0.7.0 Native GIF89a Stream Encoder, Retina Downsample, Static Frame Merge & Dual Pasteboard")
 }

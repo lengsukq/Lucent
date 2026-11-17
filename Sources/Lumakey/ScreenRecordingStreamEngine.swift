@@ -125,6 +125,17 @@ enum ScreenRecordingStreamEngine {
         if let wid = lockedWindowID,
            let scWin = shareableContent.windows.first(where: { $0.windowID == wid }) {
             filter = SCContentFilter(desktopIndependentWindow: scWin)
+            let nativeScale = CGFloat(filter.pointPixelScale)
+            let winScale = nativeScale >= 1.0 ? nativeScale : (displaySpecs.map(\.scale).max() ?? 2.0)
+            if let winSize = CaptureSelectionGeometry.resolvedWindowCaptureSize(
+                filterContentRect: filter.contentRect, fallbackWindowFrame: scWin.frame, minimumPoints: 12
+            ) {
+                let rawW = max(2, Int(round(winSize.width * winScale)))
+                let rawH = max(2, Int(round(winSize.height * winScale)))
+                let scaled = GifStreamEncoder.scaledDimensions(width: rawW, height: rawH, maxDimension: options.maxDimension)
+                cfg.width = scaled.0
+                cfg.height = scaled.1
+            }
             cfg.ignoreShadowsSingleWindow = true
         } else {
             let intersecting = displaySpecs.filter {
@@ -160,6 +171,7 @@ enum ScreenRecordingStreamEngine {
     @MainActor
     static func captureNextFrame(
         streamSink: ScreenStreamFrameSink?,
+        lockedWindowID: CGWindowID?,
         canvasRect: CGRect,
         displaySpecs: [(scDisplay: SCDisplay, canvasFrame: CGRect, scale: CGFloat)],
         shareableContent: SCShareableContent,
@@ -170,6 +182,12 @@ enum ScreenRecordingStreamEngine {
         if let sink = streamSink {
             let snap = sink.snapshotLatest()
             return (snap.image, snap.error != nil)
+        }
+        if let wid = lockedWindowID,
+           let winCap = try? await ScreenTopologyAndWindowMatcher.captureIndependentWindowImage(
+               windowID: wid, ignoreShadow: true, fallbackScale: displaySpecs.map(\.scale).max() ?? 2.0
+           ) {
+            return (winCap.image, false)
         }
         let liveSpecs = displaySpecs.compactMap { spec -> (SCDisplay, CGRect, CGFloat)? in
             guard let live = shareableContent.displays.first(where: { $0.displayID == spec.scDisplay.displayID }) else { return nil }

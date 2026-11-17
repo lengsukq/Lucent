@@ -151,6 +151,82 @@ struct LumakeyMultiDisplayAndCleanCodeTests {
         #expect(abs(nsImage.size.width - 100) < 0.5 && abs(nsImage.size.height - 80) < 0.5)
     }
 
+    @Test("Window click snap, Tab-cycle hover, micro-drag slip, and SCContentFilter zero-rect fallback prevent 1x1 captures in Screenshot & GIF")
+    func windowClickAndZeroPixelCaptureRegression() {
+        let topWin = DetectedScreenWindow(id: 101, ownerName: "Safari", title: "Docs", frame: CGRect(x: 120, y: 80, width: 960, height: 640))
+        let backWin = DetectedScreenWindow(id: 102, ownerName: "Terminal", title: "zsh", frame: CGRect(x: 80, y: 60, width: 1040, height: 700))
+        let sideWin = DetectedScreenWindow(id: 103, ownerName: "Finder", title: "Downloads", frame: CGRect(x: 1180, y: 120, width: 520, height: 420))
+        let windows = [topWin, backWin, sideWin]
+
+        var lastTopID: CGWindowID?
+        var cycleIdx = 0
+        let clickPt = CGPoint(x: 300, y: 260)
+        let hover1 = CaptureSelectionGeometry.resolveHover(at: clickPt, windows: windows, lastTopWindowID: &lastTopID, cycleIndex: &cycleIdx)
+        #expect(hover1.hovered == topWin && hover1.overlapCount == 2)
+
+        // Simulate Tab-cycling to lower overlapping window, then clicking with DragGesture(minimumDistance: 0)
+        cycleIdx = 1
+        let hover2 = CaptureSelectionGeometry.resolveHover(at: clickPt, windows: windows, lastTopWindowID: &lastTopID, cycleIndex: &cycleIdx)
+        #expect(hover2.hovered == backWin)
+
+        // Zero-distance click must NOT start drag and must snap to cycled window even if live hover became nil
+        #expect(CaptureSelectionGeometry.shouldBeginDrag(from: clickPt, to: clickPt) == false)
+        let pressCtx = SelectionCreationContext(
+            startPoint: clickPt, previousSelection: nil, previousSelectedWindow: nil, pressHoveredWindow: hover2.hovered
+        )
+        let screenshotClick = CaptureSelectionGeometry.resolveCreationEnd(
+            context: pressCtx, endPoint: clickPt, currentSelection: nil,
+            currentHoveredWindow: nil, windows: windows, minimumSelectionSize: 6
+        )
+        #expect(screenshotClick == .snapToWindow(backWin))
+
+        let gifClick = CaptureSelectionGeometry.resolveCreationEnd(
+            context: pressCtx, endPoint: CGPoint(x: clickPt.x + 1.5, y: clickPt.y + 1.0), currentSelection: nil,
+            currentHoveredWindow: nil, windows: windows, minimumSelectionSize: 12
+        )
+        #expect(gifClick == .snapToWindow(backWin))
+
+        // Slight trackpad drift (4pt -> 4x3pt sub-threshold selection) over a window still snaps cleanly to window
+        let slipEnd = CGPoint(x: clickPt.x + 4, y: clickPt.y + 3)
+        #expect(CaptureSelectionGeometry.shouldBeginDrag(from: clickPt, to: slipEnd) == true)
+        let slipRect = CaptureSelectionGeometry.rubberBandRect(from: clickPt, to: slipEnd, clampedTo: CGRect(x: 0, y: 0, width: 1920, height: 1080))
+        let gifSlip = CaptureSelectionGeometry.resolveCreationEnd(
+            context: pressCtx, endPoint: slipEnd, currentSelection: slipRect,
+            currentHoveredWindow: nil, windows: windows, minimumSelectionSize: 12
+        )
+        #expect(gifSlip == .snapToWindow(backWin))
+
+        // Clicking or twitching on empty desktop space never leaves a 1x1 / 2x2 ghost selection
+        let emptyPt = CGPoint(x: 24, y: 24)
+        let emptyCtx = SelectionCreationContext(
+            startPoint: emptyPt, previousSelection: nil, previousSelectedWindow: nil,
+            pressHoveredWindow: CaptureSelectionGeometry.topWindow(at: emptyPt, in: windows)
+        )
+        #expect(CaptureSelectionGeometry.resolveCreationEnd(
+            context: emptyCtx, endPoint: emptyPt, currentSelection: nil,
+            currentHoveredWindow: nil, windows: windows, minimumSelectionSize: 6
+        ) == .restorePrevious(selection: nil, window: nil))
+
+        // Single-clicking outside an already-selected window onto another window switches cleanly to the new window
+        let switchPt = CGPoint(x: 1260, y: 240)
+        let switchCtx = SelectionCreationContext(
+            startPoint: switchPt, previousSelection: topWin.frame, previousSelectedWindow: topWin,
+            pressHoveredWindow: CaptureSelectionGeometry.topWindow(at: switchPt, in: windows)
+        )
+        #expect(CaptureSelectionGeometry.resolveCreationEnd(
+            context: switchCtx, endPoint: switchPt, currentSelection: topWin.frame,
+            currentHoveredWindow: nil, windows: windows, minimumSelectionSize: 12
+        ) == .snapToWindow(sideWin))
+
+        // SCContentFilter.contentRect == .zero or 1x1 falls back to scWin.frame.size
+        let fallbackSize = CaptureSelectionGeometry.resolvedWindowCaptureSize(
+            filterContentRect: CGRect(x: 0, y: 0, width: 1, height: 1),
+            fallbackWindowFrame: topWin.frame
+        )
+        #expect(fallbackSize == topWin.frame.size)
+        #expect(CaptureSelectionGeometry.resolvedWindowCaptureSize(filterContentRect: .zero, fallbackWindowFrame: .zero) == nil)
+    }
+
     @Test("Zero-legacy verification: deprecated schemas and bundle-root search indexes are strictly ignored")
     func zeroLegacyCleanCodeAssertions() throws {
         let dir = FileManager.default.temporaryDirectory

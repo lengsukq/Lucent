@@ -15,21 +15,6 @@ final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
 
 import SwiftUI
 
-struct DetectedScreenWindow: Identifiable, Equatable, Sendable {
-    let id: CGWindowID
-    let ownerName: String
-    let title: String
-    let frame: CGRect
-
-    var displayLabel: String {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        if ownerName.isEmpty { return trimmedTitle }
-        if trimmedTitle.isEmpty || trimmedTitle == ownerName { return ownerName }
-        let short = trimmedTitle.count > 28 ? String(trimmedTitle.prefix(28)) + "…" : trimmedTitle
-        return "\(ownerName) — \(short)"
-    }
-}
-
 struct ScreenDisplaySlice: Identifiable {
     var id: CGDirectDisplayID { descriptor.displayID }
     let descriptor: DisplaySliceDescriptor
@@ -207,17 +192,20 @@ enum ScreenTopologyAndWindowMatcher {
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
         guard let scWin = content.windows.first(where: { $0.windowID == windowID }) else { return nil }
         let filter = SCContentFilter(desktopIndependentWindow: scWin)
-        let rect = filter.contentRect
+        guard let logicalSize = CaptureSelectionGeometry.resolvedWindowCaptureSize(
+            filterContentRect: filter.contentRect, fallbackWindowFrame: scWin.frame
+        ) else { return nil }
         let nativeScale = CGFloat(filter.pointPixelScale)
         let effScale = nativeScale >= 1.0 ? nativeScale : max(fallbackScale, 1.0)
         let cfg = SCStreamConfiguration()
-        cfg.width = max(2, Int(round(rect.width * effScale)))
-        cfg.height = max(2, Int(round(rect.height * effScale)))
+        cfg.width = max(2, Int(round(logicalSize.width * effScale)))
+        cfg.height = max(2, Int(round(logicalSize.height * effScale)))
         cfg.scalesToFit = false; cfg.showsCursor = false
         cfg.ignoreShadowsSingleWindow = ignoreShadow
         cfg.shouldBeOpaque = false; cfg.backgroundColor = .clear
         cfg.captureResolution = .best
         let img = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: cfg)
+        guard img.width >= 4, img.height >= 4 else { return nil }
         return (img, effScale)
     }
 
