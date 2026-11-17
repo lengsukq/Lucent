@@ -3,21 +3,23 @@ import CoreGraphics
 import Foundation
 
 public enum AnnotationToolKind: String, CaseIterable, Identifiable, Sendable {
-    case move, rect, ellipse, arrow, pen, highlighter, mosaic, counter, text
+    case move, rect, ellipse, arrow, line, pen, highlighter, mosaic, spotlight, counter, text
 
     public var id: String { rawValue }
 
     public var displayName: String {
         switch self {
-        case .move: return L10n.pick("移动", "Move")
-        case .rect: return L10n.pick("矩形", "Rect")
-        case .ellipse: return L10n.pick("椭圆", "Ellipse")
-        case .arrow: return L10n.pick("箭头", "Arrow")
-        case .pen: return L10n.pick("画笔", "Pen")
-        case .highlighter: return L10n.pick("荧光笔", "Marker")
-        case .mosaic: return L10n.pick("马赛克", "Mosaic")
-        case .counter: return L10n.pick("序号", "Step")
-        case .text: return L10n.pick("文字", "Text")
+        case .move: return L10n.pick("移动 (V)", "Move (V)")
+        case .rect: return L10n.pick("矩形 (1)", "Rect (1)")
+        case .ellipse: return L10n.pick("椭圆 (2)", "Ellipse (2)")
+        case .arrow: return L10n.pick("箭头 (3)", "Arrow (3)")
+        case .line: return L10n.pick("直线 (4)", "Line (4)")
+        case .pen: return L10n.pick("画笔 (5)", "Pen (5)")
+        case .highlighter: return L10n.pick("荧光笔 (6)", "Marker (6)")
+        case .mosaic: return L10n.pick("马赛克 (7)", "Mosaic (7)")
+        case .spotlight: return L10n.pick("聚光灯 (8)", "Spotlight (8)")
+        case .counter: return L10n.pick("序号 (9)", "Step (9)")
+        case .text: return L10n.pick("文字 (0)", "Text (0)")
         }
     }
 
@@ -27,11 +29,30 @@ public enum AnnotationToolKind: String, CaseIterable, Identifiable, Sendable {
         case .rect: return "rectangle"
         case .ellipse: return "circle"
         case .arrow: return "arrow.up.right"
+        case .line: return "line.diagonal"
         case .pen: return "pencil.tip"
         case .highlighter: return "highlighter"
         case .mosaic: return "checkerboard.rectangle"
+        case .spotlight: return "flashlight.on.fill"
         case .counter: return "1.circle"
         case .text: return "textformat"
+        }
+    }
+
+    public static func fromShortcutKeyCode(_ keyCode: UInt16) -> AnnotationToolKind? {
+        switch keyCode {
+        case 9, 46: return .move       // V or M
+        case 18: return .rect          // 1
+        case 19: return .ellipse       // 2
+        case 20: return .arrow         // 3
+        case 21: return .line          // 4
+        case 23: return .pen           // 5
+        case 22: return .highlighter   // 6
+        case 26: return .mosaic        // 7
+        case 28: return .spotlight     // 8
+        case 25: return .counter       // 9
+        case 29: return .text          // 0
+        default: return nil
         }
     }
 }

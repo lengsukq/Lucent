@@ -2,6 +2,17 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.9.3)
+
+- **官方示例商店 (`plugin-demo/`) 七款旗舰插件矩阵扩展与原生状态屏桥接 (`StatusScreenModels`, `StatusScreenOverlayService`, `PluginHostBridgeHandlers`, `plugin-demo/`)**：
+  - **宿主 `systemControl` 原生状态屏服务**：新增 `StatusScreenOverlayService` 与 `StatusScreenModels`，支持多显示器全屏状态屏遮罩（内置清洁屏幕、任务勿碰、马上回来与自定义图标/文案预设）、可选 `CGEventTap` 键盘与滚轮防误触拦截、按住 `Esc` 倒计时安全退出（附双击紧急退出按钮），并在退出时自动还原开启前的防休眠（Caffeine）与静音状态；
+  - **`plugin-demo/` 官方示例商店新增 4 款高频生产力插件（共 7 款）**：新增 `translate-hub`（跨应用划词即译、截图/图片 Vision OCR 翻译、免密钥词典发音、本地 Ollama 并行与 Anki `.tsv`/`.csv` 生词本导出）、`mac-pilot`（系统音量档位/静音切换、防休眠开关、16 项 macOS 系统设置分栏免前缀秒达、访达当前目录防重名新建文件、外置磁盘一键安全推出与运行应用管家）、`quick-remind`（中英文自然语言倒计时与时间点解析、零常驻桥接 macOS 原生提醒事项准点弹窗、推迟 Snooze、周期重复推进与语音播报）以及 `screen-shield`（清洁屏幕/跑任务勿碰/马上回来/自定义全屏状态屏遮罩）；统一经 `lumakey-mcp` 完成 v3 校验、打包 `dist/*.zip` 并更新 `lumakey-registry.json` 64 位 `SHA-256`。
+- **内置核心功能精细化打磨（剪贴板 / 启动器计算换算与直达 / 截图标注与 OCR / 核心交互精修）**：
+  - **核心体验 5 项修复 (`AppViewModel+PluginCommands`, `PluginGalleryAndViewCard`, `OverlayToolkitLensCards`, `OverlaySideLensView`, `AutoFocusSearchField`, `FloatingPanelController`, `AppViewModel+ClipboardOps`)**：修复插件子功能独立全局热键在 Electron/微信/PDF 场景下的 `allowCopyFallback` 划词取词回退与 `lastPasteboardChangeCount` 防污染同步；重构 `PluginStructuredViewCard.itemRow` 为上下双层可点击卡片布局彻底消除 `320pt` 侧栏长标题截断，并新增缺失宿主权限内联横幅与「一键授权并重跑」；为 `AutoFocusSearchField` 增加 `hasMarkedText()` 中文输入法预编辑态守卫；优化 `.nonactivatingPanel` 焦点保持与目标窗口恢复，剪贴板支持 `↩` 直接粘贴回原窗口、`⌥↩` 纯文本直粘、`⌘⌫` 单条删除、`⌘Z` 15 级撤回删除以及「暂停/恢复记录」开关；
+  - **剪贴板历史精细化 (`ClipboardMonitor`, `ClipboardPasteboardIO+Capture`, `OverlaySideLensCards`)**：扩展密码管理器隐藏类型与高危明文密钥/私钥过滤，捕获时自动标记来源应用名称与多行文本行数；色值解析支持 `#RGB` 短色值与 `rgb(r,g,b)` 自动识别，侧边色卡新增 `HSL` 一键复制，文本侧边镜新增多行统计与一键语音朗读；
+  - **启动器多音字拼音、计算、10 维度中英换算与直达增强 (`LauncherTextAndMath`, `LauncherEngine`, `UnitConversionCatalog`, `UnitAndCommandEngine`)**：新增中文常见多音字双音索引（如「音乐 `yy`/`yinyue`」「重庆 `cq`/`chongqing`」「命令行 `mlh`」「调节 `tj`」「收藏 `sc`」）；算式求值新增百分比（`20% of 350`、`100 + 15%`）、千分位、二进制与科学函数（`sqrt`/`sin`/`cos`/`ln`/`log`）；单位换算升级覆盖长度、重量、存储、时间、面积、体积、温度、前端 CSS 排版（`px`/`rem`/`em`/`pt`）、角度（`deg`/`rad`/`turn`）与速度（`m/s`/`km/h`/`mph`/`kn`）共 10 大维度，并支持直接输入本地路径（`~/`、`/`）或域名网址秒开直达及 9 种网页搜索前缀；
+  - **截图标注十工具、独立应用窗口无遮挡捕获、跨多显示器截屏/录屏与悬浮钉图穿透对照 (`ScreenTopologyAndWindowMatcher`, `ScreenshotModels`, `ScreenshotCompositor`, `ScreenshotSessionState`, `ScreenshotCanvasView`, `ScreenshotToolbarView`, `ScreenCaptureEngine`, `GifCaptureController`, `GifSelectionOverlay`, `PinWindowController`, `PinnedImageOverlayView`, `OCRResultWindowController`)**：新增 `ScreenTopologyAndWindowMatcher` 统一合成多显示器虚拟桌面画布并基于 `CGWindowListCopyWindowInfo` 前后 Z 序过滤透明幽灵层（支持 `Tab` 循环切换光标下重叠窗口）；截图单击应用窗口改为调用 `SCContentFilter(desktopIndependentWindow:)` 捕获带原生透明圆角与可选阴影（`⌥` 单击或工具栏一键去阴影）的无遮挡独立窗口，同时支持多屏全屏组同步冻结与跨显示器无缝框选；GIF 动图录制 (`⌥G`) 同步支持跨屏框选、多屏选窗与锁定单一独立窗口录制，钉图与离线识字窗默认跟随鼠标所在屏幕居中弹出；并具备 10 种标注工具、`⇧⌘Z` 重做、方向键 `1pt`/`⇧+10pt` 微调、`P` 钉图 / `O` 识字及钉图 `T` 键半透明穿透对照与「发送到扩展插件」。
+
 ## 已完成与已验证 (v0.9.2)
 
 - **流光随行 (`LumaLink`) 多网卡识别切换、6 位配对码直显与手动连接修复 (`LumaLinkNetworkResolver`, `LumaLinkServer`, `PluginHostBridgeLumaLink`, `LumaLinkNetworkAndPairingCard`, `LumaLinkSettingsView`, `PluginDedicatedSettingsView`, `plugin-demo/lumalink-companion` v2.1.0)**：

@@ -52,7 +52,7 @@ struct OverlayBentoHomeView: View {
 
     private var bentoGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-            ForEach(tiles) { tile in
+            ForEach(Array(tiles.enumerated()), id: \.element.id) { index, tile in
                 Button { handleTileTap(tile.id) } label: {
                     HStack(alignment: .center, spacing: 13) {
                         SquircleBadge(symbol: tile.symbol, topColor: tile.topColor, bottomColor: tile.bottomColor, size: 44)
@@ -70,6 +70,7 @@ struct OverlayBentoHomeView: View {
                     .contentShape(RoundedRectangle(cornerRadius: LiquidRadii.bento, style: .continuous))
                 }
                 .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.bento))
+                .liquidHoverLift(cornerRadius: LiquidRadii.bento, scale: 1.016, staggerDelay: Double(index) * 0.022)
             }
         }
     }
@@ -105,7 +106,7 @@ struct OverlayBentoHomeView: View {
                         .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
                         .overlay { Capsule(style: .continuous).strokeBorder(Color.orange.opacity(0.35), lineWidth: 0.8) }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(LiquidBentoTileStyle(cornerRadius: 999))
                     .help(item.subtitle)
                     .contextMenu {
                         Button("立即执行") { viewModel.executeQuickButton(item) }
@@ -142,6 +143,7 @@ struct OverlayBentoHomeView: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 9)
             .liquidGlassCard(cornerRadius: LiquidRadii.bento)
+            .animation(LiquidMotion.snappySpring, value: pinnedCount)
         }
     }
 
@@ -166,6 +168,7 @@ struct OverlayBentoHomeView: View {
             .contentShape(tileShape)
         }
         .buttonStyle(LiquidBentoTileStyle(cornerRadius: 12))
+        .liquidHoverLift(cornerRadius: 12, scale: 1.03, staggerDelay: 0.06)
         .help("\(app.displayName) · \(L10n.translate(summary))")
         .contextMenu { dockAppContextMenu(for: app, isPinned: pinned) }
     }
@@ -200,8 +203,11 @@ struct OverlayBentoHomeView: View {
                 HStack(spacing: 6) {
                     Text("试试输入").font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                     ForEach(tryChips, id: \.self) { chip in
-                        Button(chip) { viewModel.overlayQuery = chip; viewModel.bumpFocusToken() }
-                            .buttonStyle(GlassPillButtonStyle())
+                        Button(chip) {
+                            withAnimation(LiquidMotion.snappySpring) { viewModel.overlayQuery = chip }
+                            viewModel.bumpFocusToken()
+                        }
+                        .buttonStyle(GlassPillButtonStyle())
                     }
                 }
             }

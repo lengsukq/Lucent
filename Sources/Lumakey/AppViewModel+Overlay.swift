@@ -206,6 +206,13 @@ extension AppViewModel {
             } else {
                 executeCandidate(candidate)
             }
+        case .plainTextSubmit:
+            guard let candidate = selectedCandidate else { return }
+            if case .clipboard(let entry) = candidate.kind {
+                executeClipboardEntry(entry, autoPaste: true, plainTextOnly: true)
+            } else {
+                executeCandidate(candidate)
+            }
         case .deleteBackwardWhenEmpty:
             if scopedPluginID != nil {
                 scopedPluginID = nil

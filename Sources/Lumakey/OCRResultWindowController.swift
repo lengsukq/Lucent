@@ -24,8 +24,10 @@ final class OCRResultState: ObservableObject {
     }
 
     func toggleMergeLines() {
-        mergeLines.toggle()
-        editableText = mergeLines ? Self.smartJoinLines(rawText) : rawText
+        withAnimation(LiquidMotion.snappySpring) {
+            mergeLines.toggle()
+            editableText = mergeLines ? Self.smartJoinLines(rawText) : rawText
+        }
         copyAll()
     }
 
@@ -84,6 +86,7 @@ final class OCRResultWindowController: NSObject, NSWindowDelegate {
             _ = ScreenshotCompositor.copyImageFileToPasteboard(at: imageURL)
         }
 
+        let isNew = (window == nil)
         let win = window ?? KeyableOCRWindow(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 460),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
@@ -97,8 +100,13 @@ final class OCRResultWindowController: NSObject, NSWindowDelegate {
         win.backgroundColor = .clear
         win.isReleasedWhenClosed = false
         win.delegate = self
-        win.onEscape = { [weak win] in win?.close() }
-        if window == nil { win.center() }
+        win.onEscape = { [weak win] in if let win { WindowMotionAnimator.closeWindowAnimated(win) } }
+        if isNew || !win.isVisible {
+            let visible = ScreenTopologyAndWindowMatcher.activeCursorScreen()?.visibleFrame
+                ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            let size = win.frame.size
+            win.setFrameOrigin(NSPoint(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2))
+        }
 
         let availablePlugins = PluginSystem.listPlugins(includeDisabled: false, includeBuiltin: false, includeSecrets: false)
         win.contentView = NSHostingView(rootView: LocalizedRootContainer {
@@ -106,16 +114,26 @@ final class OCRResultWindowController: NSObject, NSWindowDelegate {
                 state: state,
                 availablePlugins: availablePlugins,
                 onPinImage: { PinWindowController.shared.pinImage(at: imageURL) },
-                onRetake: { [weak win] in win?.close(); onRetake?() },
+                onRetake: { [weak win] in
+                    if let win {
+                        WindowMotionAnimator.dismiss(win, style: .standardWindow) { [weak win] in
+                            win?.close(); onRetake?()
+                        }
+                    } else { onRetake?() }
+                },
                 onSendToPlugin: { [weak self, weak win] plugin, ctx in
-                    win?.close()
+                    if let win { WindowMotionAnimator.closeWindowAnimated(win) }
                     self?.onRouteToPlugin?(plugin, ctx)
                 },
-                onClose: { [weak win] in win?.close() }
+                onClose: { [weak win] in if let win { WindowMotionAnimator.closeWindowAnimated(win) } }
             )
         })
         WindowLevelStore.shared.attach(window: win, key: "ocrResult", initialPinned: true)
-        win.makeKeyAndOrderFront(nil)
+        if !win.isVisible {
+            WindowMotionAnimator.present(win, style: .standardWindow, makeKey: true)
+        } else {
+            win.makeKeyAndOrderFront(nil)
+        }
         NSApp.activate(ignoringOtherApps: true)
         window = win
         onVisibilityChanged?()
@@ -165,6 +183,7 @@ private struct OCRResultSheetView: View {
                 Text(L10n.pick("\(state.toastText) · \(state.editableText.count) 字符", "\(state.toastText) · \(state.editableText.count) chars"))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(state.rawText.isEmpty ? .orange : .green)
+                    .contentTransition(.numericText())
             }
             Spacer()
             if let ctx, !matched.isEmpty {
@@ -178,6 +197,15 @@ private struct OCRResultSheetView: View {
             }
             Button(state.mergeLines ? "保留段落" : "合并换行") { state.toggleMergeLines() }
                 .buttonStyle(GlassPillButtonStyle()).disabled(state.rawText.isEmpty)
+            Button {
+                _ = PluginAudioBridgePlayer.shared.speak(text: String(state.editableText.prefix(1000)))
+                state.toastText = L10n.pick("正在语音朗读…", "Speaking aloud…")
+            } label: {
+                Image(systemName: "speaker.wave.2.fill")
+            }
+            .buttonStyle(GlassPillButtonStyle())
+            .disabled(state.editableText.isEmpty)
+            .help(L10n.pick("语音朗读识别结果", "Speak recognized text aloud"))
             Button("钉住原图", action: onPinImage).buttonStyle(GlassPillButtonStyle())
             Button("再次识字 (⌥O)", action: onRetake).buttonStyle(GlassPillButtonStyle())
             Button("复制全文") { state.copyAll() }
@@ -203,7 +231,7 @@ private struct OCRResultSheetView: View {
                         }
                         .frame(height: 196).frame(maxWidth: .infinity, alignment: .center)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.control))
                     .help("点击钉住原图到屏幕")
                 }
                 if !state.barcodes.isEmpty {

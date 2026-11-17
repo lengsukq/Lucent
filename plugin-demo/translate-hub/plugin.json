@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 3,
+  "id": "translate-hub",
+  "name": "流光译站 · 划词/截图多源翻译与生词本",
+  "version": "1.0.0",
+  "description": "支持跨应用划词即译、截图/图片离线 OCR 翻译、内置免密钥引擎与本地 Ollama 大模型并行、单词词典发音及可导出 Anki 的生词本",
+  "mode": "view",
+  "keywords": ["tr", "fy", "trans", "translate", "dict", "翻译", "划词", "词典", "生词本"],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "icon.svg",
+  "accentColor": "purple",
+  "categoryTag": "翻译词典",
+  "capabilities": ["selection", "clipboard", "ocr", "audio"],
+  "resourceScopes": ["network", "filesystem"],
+  "accepts": ["text", "image"],
+  "commands": [
+    {
+      "id": "selection-translate",
+      "title": "划词即译（翻译当前选中文本）",
+      "subtitle": "经 Host Bridge 自动读取前台应用选中文本（无选区时回退剪贴板）并多源互译",
+      "keywords": ["划词翻译", "选中翻译", "trsel", "selection translate"],
+      "icon": "text.cursor",
+      "arguments": ["--selection"],
+      "passQuery": false
+    },
+    {
+      "id": "clipboard-translate",
+      "title": "剪贴板即译",
+      "subtitle": "直接读取当前系统剪贴板文本并在第一/第二语言之间自动互译",
+      "keywords": ["剪贴板翻译", "复制翻译", "trclip", "clipboard translate"],
+      "icon": "doc.on.clipboard",
+      "arguments": ["--clipboard"],
+      "passQuery": false
+    },
+    {
+      "id": "input-translate",
+      "title": "输入互译与单词词典查词",
+      "subtitle": "输入单词展示音标、词性与释义，输入长句调用内置与本地大模型引擎并行翻译",
+      "keywords": ["输入翻译", "查词", "词典", "dict", "lookup"],
+      "icon": "character.book.closed.fill",
+      "arguments": ["--input"],
+      "passQuery": true
+    },
+    {
+      "id": "vocab-book",
+      "title": "浏览生词本与收藏夹",
+      "subtitle": "查看、检索、朗读已收藏的单词和译文，并同步 ⌥Space 免前缀检索索引",
+      "keywords": ["生词本", "单词本", "vocab", "wordbook"],
+      "icon": "star.square.on.square.fill",
+      "arguments": ["--vocab"],
+      "passQuery": true
+    },
+    {
+      "id": "translate-history",
+      "title": "查看最近翻译历史",
+      "subtitle": "回看最近翻译记录，支持一键复制译文、语音朗读或补入生词本",
+      "keywords": ["翻译历史", "trhist", "translation history"],
+      "icon": "clock.arrow.circlepath",
+      "arguments": ["--history"],
+      "passQuery": true
+    },
+    {
+      "id": "export-anki",
+      "title": "导出生词本为 Anki 卡片 (.tsv) 与 CSV",
+      "subtitle": "将生词本一键导出为可直接导入 Anki 的 TSV 背单词卡片与 UTF-8 CSV 表格",
+      "keywords": ["导出anki", "导出生词本", "anki", "export vocab"],
+      "icon": "square.and.arrow.up.fill",
+      "arguments": ["--export"],
+      "passQuery": false
+    }
+  ],
+  "config": [
+    {
+      "key": "primaryLang",
+      "label": "第一语言（母语）",
+      "type": "select",
+      "defaultValue": "zh-Hans",
+      "options": ["zh-Hans", "en", "ja", "ko", "fr", "de", "es"],
+      "section": "语言与行为"
+    },
+    {
+      "key": "secondaryLang",
+      "label": "第二语言（默认互译目标）",
+      "type": "select",
+      "defaultValue": "en",
+      "options": ["en", "zh-Hans", "ja", "ko", "fr", "de", "es"],
+      "section": "语言与行为"
+    },
+    {
+      "key": "autoCopyResult",
+      "label": "翻译完成后自动将首选译文写入剪贴板",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "语言与行为"
+    },
+    {
+      "key": "enableFreeEngine",
+      "label": "启用内置免配置公共词典与翻译通道",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "翻译引擎与本地模型"
+    },
+    {
+      "key": "llmProvider",
+      "label": "并行本地大模型引擎（Ollama 免密钥）",
+      "type": "select",
+      "defaultValue": "none",
+      "options": ["none", "ollama"],
+      "section": "翻译引擎与本地模型"
+    },
+    {
+      "key": "llmModel",
+      "label": "本地 Ollama 模型名称",
+      "type": "text",
+      "defaultValue": "qwen2.5:7b",
+      "placeholder": "qwen2.5:7b / llama3.2",
+      "section": "翻译引擎与本地模型"
+    },
+    {
+      "key": "exportDir",
+      "label": "Anki 卡片与 CSV 导出目录",
+      "type": "directory",
+      "defaultValue": "~/Downloads",
+      "section": "生词本与导出"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Translate Hub · Selection, OCR & Vocabulary",
+      "description": "Cross-app selection & image OCR translation with zero-config built-in engine, local Ollama parallel results, TTS pronunciation & Anki vocabulary export",
+      "categoryTag": "Translate",
+      "commands": {
+        "selection-translate": {
+          "title": "Translate Frontmost Selection",
+          "subtitle": "Read selected text from the active app (falling back to clipboard) and translate"
+        },
+        "clipboard-translate": {
+          "title": "Translate Clipboard Text",
+          "subtitle": "Auto-translate current clipboard text between your primary and secondary languages"
+        },
+        "input-translate": {
+          "title": "Input Translate & Dictionary Lookup",
+          "subtitle": "Look up single words with phonetics/definitions or translate sentences"
+        },
+        "vocab-book": {
+          "title": "Browse Vocabulary Book",
+          "subtitle": "Search, speak, or manage saved words with 0ms launcher index sync"
+        },
+        "translate-history": {
+          "title": "Recent Translation History",
+          "subtitle": "Inspect recent translations, copy results, speak aloud, or save to Vocabulary"
+        },
+        "export-anki": {
+          "title": "Export Vocabulary to Anki (.tsv) & CSV",
+          "subtitle": "Export saved vocabulary as Anki-ready TSV flashcards and UTF-8 CSV"
+        }
+      },
+      "config": {
+        "primaryLang": {
+          "label": "Primary Language",
+          "section": "Languages & Behavior"
+        },
+        "secondaryLang": {
+          "label": "Secondary Language",
+          "section": "Languages & Behavior"
+        },
+        "autoCopyResult": {
+          "label": "Auto-copy primary translation to clipboard",
+          "section": "Languages & Behavior"
+        },
+        "enableFreeEngine": {
+          "label": "Enable built-in zero-config dictionary & translation",
+          "section": "Engines & Local LLM"
+        },
+        "llmProvider": {
+          "label": "Parallel Local LLM Engine (Ollama)",
+          "section": "Engines & Local LLM"
+        },
+        "llmModel": {
+          "label": "Ollama Model Name",
+          "section": "Engines & Local LLM"
+        },
+        "exportDir": {
+          "label": "Anki TSV & CSV Export Folder",
+          "section": "Vocabulary & Export"
+        }
+      }
+    }
+  }
+}

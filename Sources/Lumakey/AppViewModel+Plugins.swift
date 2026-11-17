@@ -68,6 +68,21 @@ extension AppViewModel {
         reloadPlugins()
     }
 
+    func grantMissingCapabilitiesAndRerun(_ plugin: PluginDescriptor) {
+        let missing = plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
+        guard !missing.isEmpty else { return }
+        for cap in missing {
+            try? PluginSystem.setPluginCapabilityGranted(id: plugin.id, capability: cap, granted: true)
+        }
+        reloadPlugins()
+        guard let updated = plugins.first(where: { $0.id == plugin.id }) else { return }
+        activeInlinePlugin = updated
+        let q = scopedPluginID == updated.id
+            ? overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+            : stripMatchedPluginKeyword(from: overlayQuery, plugin: updated)
+        runPlugin(updated, query: q, showInline: true)
+    }
+
     func setPluginResourceScopeGranted(_ plugin: PluginDescriptor, scope: PluginResourceScope, granted: Bool) throws {
         try PluginSystem.setPluginResourceScopeGranted(id: plugin.id, scope: scope, granted: granted)
         reloadPlugins()

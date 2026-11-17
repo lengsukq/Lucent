@@ -53,13 +53,24 @@ struct LumakeyRound2AuditFixesTests {
             return
         }
         let storeIDs = Set(demoStore.manifest.plugins.map(\.id))
-        #expect(storeIDs == ["browser-hub", "lumalink-companion", "notion-bookmarks"])
+        #expect(storeIDs == [
+            "browser-hub", "lumalink-companion", "mac-pilot", "notion-bookmarks",
+            "quick-remind", "screen-shield", "translate-hub"
+        ])
 
         let browserItem = try #require(demoStore.manifest.plugins.first { $0.id == "browser-hub" })
         let installedBrowserHub = try await PluginStoreService.installStoreItem(browserItem, from: demoStore, in: dir)
         #expect(installedBrowserHub.isValid)
         #expect(installedBrowserHub.declaredCommands.count == 6)
         #expect(installedBrowserHub.customIconURL != nil)
+
+        for newID in ["translate-hub", "mac-pilot", "quick-remind", "screen-shield"] {
+            let item = try #require(demoStore.manifest.plugins.first { $0.id == newID })
+            let inst = try await PluginStoreService.installStoreItem(item, from: demoStore, in: dir)
+            #expect(inst.isValid)
+            #expect(!inst.declaredCommands.isEmpty)
+            #expect(inst.customIconURL != nil)
+        }
 
         let storeItem = try #require(demoStore.manifest.plugins.first { $0.id == LumaLinkServer.companionPluginID })
         let installed = try await PluginStoreService.installStoreItem(storeItem, from: demoStore, in: dir)

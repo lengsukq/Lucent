@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 3,
+  "id": "screen-shield",
+  "name": "状态屏 · 清洁屏幕与暂离防误触遮罩",
+  "version": "1.0.0",
+  "description": "一键盖住全部显示器展示「清洁屏幕」「任务运行中 · 请勿触碰」「马上回来」或自定义告示，同时临时拦截键盘与滚轮防误触，按住 Esc 2 秒安全退出",
+  "mode": "view",
+  "keywords": ["shield", "clean", "brb", "busy", "状态屏", "清洁屏幕", "擦键盘", "勿碰", "马上回来"],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "icon.svg",
+  "accentColor": "teal",
+  "categoryTag": "状态屏",
+  "capabilities": ["systemControl"],
+  "resourceScopes": ["filesystem"],
+  "commands": [
+    {
+      "id": "shield-clean",
+      "title": "进入「🧹 清洁屏幕与键盘」状态屏",
+      "subtitle": "盖住全部屏幕并拦截键盘与鼠标滚轮输入，放心擦拭键盘或防宠物误踩",
+      "keywords": ["清洁屏幕", "擦屏幕", "擦键盘", "clean screen", "clean keyboard"],
+      "icon": "sparkles",
+      "arguments": ["--preset", "clean"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "shield-busy",
+      "title": "进入「⚡ 任务运行中 · 请勿触碰」状态屏",
+      "subtitle": "开启防休眠常亮保护并盖上勿碰告示，适合跑长编译、备份或渲染任务",
+      "keywords": ["请勿触碰", "跑任务", "勿动", "do not touch", "busy screen"],
+      "icon": "bolt.shield.fill",
+      "arguments": ["--preset", "busy"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "shield-brb",
+      "title": "进入「☕ 马上回来」暂离状态屏",
+      "subtitle": "暂时离开工位时展示暂离告示并拦截误触",
+      "keywords": ["马上回来", "暂离", "离开座位", "be right back", "brb"],
+      "icon": "cup.and.saucer.fill",
+      "arguments": ["--preset", "brb"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "shield-custom",
+      "title": "使用自定义文案开启状态屏",
+      "subtitle": "输入临时告示语（或使用插件设置中的默认自定义文案与表情）一键开启",
+      "keywords": ["自定义状态屏", "custom shield"],
+      "icon": "text.bubble.fill",
+      "arguments": ["--custom"],
+      "passQuery": true
+    },
+    {
+      "id": "shield-dismiss",
+      "title": "立即退出状态屏保护",
+      "subtitle": "关闭所有屏幕上的状态屏遮罩并恢复原有防休眠/静音状态",
+      "keywords": ["退出状态屏", "dismiss shield"],
+      "icon": "xmark.shield.fill",
+      "arguments": ["--dismiss"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    }
+  ],
+  "config": [
+    {
+      "key": "blockInput",
+      "label": "开启状态屏时拦截键盘与滚轮输入（需宿主已授辅助功能权限）",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "拦截与退出行为"
+    },
+    {
+      "key": "keepAwake",
+      "label": "状态屏期间自动保持防休眠常亮（退出后自动还原）",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "拦截与退出行为"
+    },
+    {
+      "key": "muteAudio",
+      "label": "进入状态屏时自动静音（退出后自动还原）",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "拦截与退出行为"
+    },
+    {
+      "key": "holdSeconds",
+      "label": "按住 Esc 退出所需秒数",
+      "type": "number",
+      "control": "slider",
+      "defaultValue": "2",
+      "minValue": 1,
+      "maxValue": 5,
+      "stepValue": 1,
+      "section": "拦截与退出行为"
+    },
+    {
+      "key": "customIcon",
+      "label": "自定义状态图标 / Emoji",
+      "type": "text",
+      "defaultValue": "🐱",
+      "placeholder": "🐱 / 🚀 / 🧘",
+      "section": "自定义状态模板"
+    },
+    {
+      "key": "customTitle",
+      "label": "自定义状态主标题",
+      "type": "text",
+      "defaultValue": "请勿触碰键盘",
+      "placeholder": "例如：正在备份数据，请勿合盖",
+      "section": "自定义状态模板"
+    },
+    {
+      "key": "customSubtitle",
+      "label": "自定义状态副标题",
+      "type": "text",
+      "defaultValue": "后台任务执行中，稍后即回",
+      "section": "自定义状态模板"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Screen Shield · Clean Screen & Do-Not-Touch",
+      "description": "Cover all displays with 'Cleaning Screen', 'Task Running · Do Not Touch', 'Be Right Back', or custom notices while blocking accidental keyboard/mouse touches (Hold Esc 2s to exit)",
+      "categoryTag": "Status Screen",
+      "commands": {
+        "shield-clean": {
+          "title": "Activate '🧹 Cleaning Screen & Keyboard' Shield",
+          "subtitle": "Cover displays and block accidental key presses while wiping screen or keyboard"
+        },
+        "shield-busy": {
+          "title": "Activate '⚡ Task Running · Do Not Touch' Shield",
+          "subtitle": "Keep Mac awake and display a fullscreen do-not-disturb notice"
+        },
+        "shield-brb": {
+          "title": "Activate '☕ Be Right Back' Shield",
+          "subtitle": "Show an away banner across all screens while stepping away"
+        },
+        "shield-custom": {
+          "title": "Activate Custom Message Status Screen",
+          "subtitle": "Pass a one-off banner message or use your saved custom preset"
+        },
+        "shield-dismiss": {
+          "title": "Dismiss Active Status Screen",
+          "subtitle": "Close all status screen overlays and restore previous sleep/audio state"
+        }
+      },
+      "config": {
+        "blockInput": {
+          "label": "Block keyboard & scroll input while shield is active (requires Accessibility)",
+          "section": "Shield & Exit Behavior"
+        },
+        "keepAwake": {
+          "label": "Keep Mac awake while shield is active (restores on exit)",
+          "section": "Shield & Exit Behavior"
+        },
+        "muteAudio": {
+          "label": "Mute system audio while shield is active (restores on exit)",
+          "section": "Shield & Exit Behavior"
+        },
+        "holdSeconds": {
+          "label": "Seconds to hold Esc to exit",
+          "section": "Shield & Exit Behavior"
+        },
+        "customIcon": {
+          "label": "Custom Status Emoji / Icon",
+          "section": "Custom Preset"
+        },
+        "customTitle": {
+          "label": "Custom Status Title",
+          "section": "Custom Preset"
+        },
+        "customSubtitle": {
+          "label": "Custom Status Subtitle",
+          "section": "Custom Preset"
+        }
+      }
+    }
+  }
+}

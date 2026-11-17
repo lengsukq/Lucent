@@ -59,7 +59,7 @@ extension PluginStarterGallery {
         scriptBody: #"""
         #!/bin/zsh
         set -euo pipefail
-        exec /usr/bin/python3 - "$@" <<'PY'
+        PY_CODE="$(cat <<'PY'
         import datetime as dt, hashlib, json, os, re, sys, urllib.parse
         from pathlib import Path
 
@@ -251,6 +251,8 @@ extension PluginStarterGallery {
             "items": items
         }, ensure_ascii=False))
         PY
+        )"
+        exec /usr/bin/python3 -c "$PY_CODE" "$@"
         """#
     )
 }

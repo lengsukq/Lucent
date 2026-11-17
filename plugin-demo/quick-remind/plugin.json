@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 3,
+  "id": "quick-remind",
+  "name": "闪电提醒 · 一句话倒计时与提醒看板",
+  "version": "1.0.0",
+  "description": "输入「10m 喝水」「18:30 拿快递」「明天 9:00 交周报」秒建提醒，零常驻桥接 macOS 原生提醒事项准点弹窗，支持推迟 10 分钟、周期重复与语音播报",
+  "mode": "view",
+  "keywords": ["rem", "remind", "timer", "alarm", "提醒", "倒计时", "闹钟", "待办"],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "icon.svg",
+  "accentColor": "orange",
+  "categoryTag": "提醒事项",
+  "capabilities": ["audio"],
+  "resourceScopes": ["filesystem", "subprocess"],
+  "accepts": ["text"],
+  "commands": [
+    {
+      "id": "add-reminder",
+      "title": "一句话新建提醒（如：10m 喝水 / 明天 9:00 周报）",
+      "subtitle": "自动解析中英文相对倒计时与时间点，可选同步至 macOS 原生提醒事项准点通知",
+      "keywords": ["新建提醒", "定闹钟", "倒计时", "remind", "set timer"],
+      "icon": "bell.badge.fill",
+      "arguments": ["--add"],
+      "passQuery": true
+    },
+    {
+      "id": "list-reminders",
+      "title": "查看闪电提醒看板（完成 / 推迟 10 分钟）",
+      "subtitle": "查看待触发与已到期提醒，支持一键完成、推迟 10 分钟 (Snooze) 或语音播报",
+      "keywords": ["提醒列表", "查看提醒", "reminders", "snooze"],
+      "icon": "checklist",
+      "arguments": ["--list"],
+      "passQuery": true
+    },
+    {
+      "id": "pomodoro-25",
+      "title": "一键开启 25 分钟番茄钟专注提醒",
+      "subtitle": "立即创建一条 25 分钟后的休息提醒并同步系统通知",
+      "keywords": ["番茄钟", "专注25分钟", "pomodoro", "focus 25"],
+      "icon": "timer",
+      "arguments": ["--pomo"],
+      "passQuery": false
+    },
+    {
+      "id": "clear-completed",
+      "title": "清理已完成的提醒记录",
+      "subtitle": "清空本地看板中已标记完成的提醒历史",
+      "keywords": ["清理提醒", "clear reminders"],
+      "icon": "trash",
+      "arguments": ["--clear-done"],
+      "passQuery": false
+    }
+  ],
+  "config": [
+    {
+      "key": "syncAppleReminders",
+      "label": "同步写入 macOS 原生「提醒事项 (Reminders.app)」以启用系统级准点通知",
+      "type": "boolean",
+      "defaultValue": "true",
+      "helpText": "开启后无需任何后台守护进程，到点由 macOS 原生提醒中心弹窗并与 iPhone/Apple Watch 同步",
+      "section": "提醒与通知"
+    },
+    {
+      "key": "appleListName",
+      "label": "写入 macOS 提醒事项的目标列表名（留空则使用默认列表）",
+      "type": "text",
+      "defaultValue": "",
+      "placeholder": "留空自动写入系统默认提醒列表",
+      "section": "提醒与通知"
+    },
+    {
+      "key": "snoozeMinutes",
+      "label": "点击「稍后提醒」默认推迟分钟数",
+      "type": "number",
+      "control": "slider",
+      "defaultValue": "10",
+      "minValue": 5,
+      "maxValue": 60,
+      "stepValue": 5,
+      "section": "提醒与通知"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Quick Remind · Natural Language Timers & Reminders",
+      "description": "Create reminders from natural phrases like '10m drink water' or 'tomorrow 9:00 report', synced to native macOS Reminders with zero background daemon overhead",
+      "categoryTag": "Reminders",
+      "commands": {
+        "add-reminder": {
+          "title": "Create Reminder by Natural Phrase",
+          "subtitle": "Supports '10m stretch', '18:30 pickup', 'tomorrow 09:00 standup', and daily repeats"
+        },
+        "list-reminders": {
+          "title": "Open Reminders Board (Done / Snooze)",
+          "subtitle": "Inspect upcoming & due reminders, snooze, complete, or speak aloud"
+        },
+        "pomodoro-25": {
+          "title": "Start 25-Minute Pomodoro Focus Reminder",
+          "subtitle": "Schedule a 25-minute break reminder immediately"
+        },
+        "clear-completed": {
+          "title": "Clear Completed Reminders",
+          "subtitle": "Remove finished items from the local reminder board"
+        }
+      },
+      "config": {
+        "syncAppleReminders": {
+          "label": "Sync to native macOS Reminders.app for exact-time system notifications",
+          "helpText": "Zero resident daemon required — macOS delivers native alerts on time",
+          "section": "Notifications & Sync"
+        },
+        "appleListName": {
+          "label": "Target macOS Reminders List Name (blank = default list)",
+          "section": "Notifications & Sync"
+        },
+        "snoozeMinutes": {
+          "label": "Default Snooze Duration (minutes)",
+          "section": "Notifications & Sync"
+        }
+      }
+    }
+  }
+}

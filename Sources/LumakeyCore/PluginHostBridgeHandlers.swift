@@ -143,13 +143,19 @@ enum PluginHostBridgeHandlers {
 
     private static func handleSystemControl(action: String, params: [String: Any]) -> [String: Any] {
         let sys = LumaLinkSystemControlService.shared
-        switch action {
-        case "status":
+        let shield = StatusScreenOverlayService.shared
+        func mergedStatus() -> [String: Any] {
             let audio = sys.readAudioState()
-            return okJSON(.systemControl, action, [
+            var base: [String: Any] = [
                 "volumePercent": audio.volumePercent, "isMuted": audio.isMuted,
                 "caffeineActive": sys.isCaffeineActive, "curtainActive": sys.isCurtainActive
-            ])
+            ]
+            for (k, v) in shield.statusSnapshot() { base[k] = v }
+            return base
+        }
+        switch action {
+        case "status":
+            return okJSON(.systemControl, action, mergedStatus())
         case "setVolume":
             guard let pct = params["percent"] as? Int else { return errorJSON("invalid_params", "缺少 percent 参数", capability: .systemControl) }
             sys.setVolume(percent: pct)
@@ -164,8 +170,30 @@ enum PluginHostBridgeHandlers {
             let active = params["active"] as? Bool ?? !sys.isCaffeineActive
             sys.setCaffeine(active)
             return okJSON(.systemControl, action, ["caffeineActive": sys.isCaffeineActive])
+        case "setStatusScreen":
+            let active = params["active"] as? Bool ?? true
+            if !active {
+                shield.dismiss()
+                return okJSON(.systemControl, action, mergedStatus())
+            }
+            let cfg = StatusScreenConfiguration(
+                preset: params["preset"] as? String ?? "clean",
+                icon: params["icon"] as? String ?? "",
+                title: params["title"] as? String ?? "",
+                subtitle: params["subtitle"] as? String ?? "",
+                blockInput: params["blockInput"] as? Bool ?? true,
+                keepAwake: params["keepAwake"] as? Bool ?? true,
+                muteAudio: params["muteAudio"] as? Bool ?? false,
+                holdSeconds: (params["holdSeconds"] as? NSNumber)?.doubleValue ?? 2.0
+            )
+            let delay = (params["delaySeconds"] as? NSNumber)?.doubleValue ?? 0.12
+            shield.activate(cfg, delaySeconds: delay)
+            return okJSON(.systemControl, action, mergedStatus())
+        case "clearStatusScreen":
+            shield.dismiss()
+            return okJSON(.systemControl, action, mergedStatus())
         default:
-            return errorJSON("invalid_action", "systemControl 支持 status / setVolume / setMute / setCaffeine", capability: .systemControl)
+            return errorJSON("invalid_action", "systemControl 支持 status / setVolume / setMute / setCaffeine / setStatusScreen / clearStatusScreen", capability: .systemControl)
         }
     }
 

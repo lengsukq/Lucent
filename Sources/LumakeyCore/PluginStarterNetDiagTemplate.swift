@@ -59,7 +59,7 @@ extension PluginStarterGallery {
         scriptBody: #"""
         #!/bin/zsh
         set -euo pipefail
-        exec /usr/bin/python3 - "$@" <<'PY'
+        PY_CODE="$(cat <<'PY'
         import json, os, re, subprocess, sys, urllib.request
 
         def run_cmd(cmd, timeout=2.0):
@@ -204,6 +204,8 @@ extension PluginStarterGallery {
             out["effect"] = {"toast": "macOS DNS cache flushed" if is_en else "已刷新本机 DNS 解析缓存"}
         print(json.dumps(out, ensure_ascii=False))
         PY
+        )"
+        exec /usr/bin/python3 -c "$PY_CODE" "$@"
         """#
     )
 }

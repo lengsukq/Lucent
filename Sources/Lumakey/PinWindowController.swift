@@ -4,15 +4,23 @@ import SwiftUI
 
 final class KeyablePinPanel: NSPanel {
     var onEscape: (() -> Void)?
+    var onKeyShortcut: ((NSEvent) -> Bool)?
     override var canBecomeKey: Bool { true }
 
     override func cancelOperation(_ sender: Any?) {
         onEscape?()
     }
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if onKeyShortcut?(event) == true { return true }
+        return super.performKeyEquivalent(with: event)
+    }
+
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 {
             onEscape?()
+        } else if onKeyShortcut?(event) == true {
+            return
         } else {
             super.keyDown(with: event)
         }
@@ -23,6 +31,9 @@ final class KeyablePinPanel: NSPanel {
 final class PinWindowController {
     static let shared = PinWindowController()
     private var panels: [NSPanel] = []
+    private var unlockBadges: [ObjectIdentifier: NSPanel] = [:]
+    var availablePluginsProvider: (() -> [PluginDescriptor])?
+    var onRouteToPlugin: ((PluginDescriptor, PluginContextPayload) -> Void)?
 
     func pinImage(at url: URL, screenRect: NSRect? = nil) {
         guard let nsImage = NSImage(contentsOf: url) else { return }
@@ -31,9 +42,14 @@ final class PinWindowController {
         if let screenRect, screenRect.width >= 40, screenRect.height >= 40 {
             rect = screenRect
         } else {
-            let width = min(max(nsImage.size.width, 260), 580)
-            let height = min(max(width / max(ratio, 0.25), 180), 500)
-            rect = NSRect(x: 180 + CGFloat(panels.count * 28), y: 260, width: width, height: height)
+            let visible = ScreenTopologyAndWindowMatcher.activeCursorScreen()?.visibleFrame
+                ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            let width = min(max(nsImage.size.width, 260), min(580, visible.width * 0.7))
+            let height = min(max(width / max(ratio, 0.25), 180), min(500, visible.height * 0.7))
+            let offset = CGFloat((panels.count % 6) * 26)
+            let x = min(max(visible.minX + 24, visible.midX - width / 2 + offset), visible.maxX - width - 24)
+            let y = min(max(visible.minY + 24, visible.midY - height / 2 - offset), visible.maxY - height - 24)
+            rect = NSRect(x: x, y: y, width: width, height: height)
         }
 
         let panel = KeyablePinPanel(
@@ -51,23 +67,52 @@ final class PinWindowController {
         panel.contentAspectRatio = rect.size
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
+        let state = PinOverlayState()
         let closeAction: () -> Void = { [weak self, weak panel] in
-            guard let panel else { return }
-            panel.contentView = nil
-            panel.close()
-            self?.panels.removeAll { $0 === panel }
-            let name = url.lastPathComponent
-            if name.hasPrefix("lumakey-pin-") || name.hasPrefix("cutout-") {
-                try? FileManager.default.removeItem(at: url)
+            guard let self, let panel else { return }
+            self.dismissUnlockBadge(for: panel)
+            self.panels.removeAll { $0 === panel }
+            WindowMotionAnimator.dismiss(panel, style: .floatingPin) { [weak panel] in
+                panel?.contentView = nil
+                panel?.close()
+                let name = url.lastPathComponent
+                if name.hasPrefix("lumakey-pin-") || name.hasPrefix("cutout-") {
+                    try? FileManager.default.removeItem(at: url)
+                }
+                MemoryStats.reclaimFreeHeapPages()
             }
-            MemoryStats.reclaimFreeHeapPages()
         }
         panel.onEscape = closeAction
+
+        let setClickThrough: (Bool) -> Void = { [weak self, weak panel] enabled in
+            guard let self, let panel else { return }
+            state.isClickThrough = enabled
+            panel.ignoresMouseEvents = enabled
+            if enabled {
+                if state.opacity > 0.65 { state.opacity = 0.52 }
+                state.isHovered = false
+                self.presentUnlockBadge(for: panel) { [weak panel, weak self] in
+                    guard let panel, let self else { return }
+                    state.isClickThrough = false
+                    panel.ignoresMouseEvents = false
+                    state.opacity = 0.98
+                    state.flashBadge(L10n.pick("已退出穿透模式", "Click-through off"))
+                    self.dismissUnlockBadge(for: panel)
+                }
+            } else {
+                state.opacity = 0.98
+                self.dismissUnlockBadge(for: panel)
+            }
+        }
 
         let view = PinnedImageOverlayView(
             image: nsImage,
             imageURL: url,
             aspectRatio: max(ratio, 0.1),
+            state: state,
+            availablePluginsProvider: { [weak self] in self?.availablePluginsProvider?() ?? [] },
+            onRouteToPlugin: { [weak self] plugin, ctx in self?.onRouteToPlugin?(plugin, ctx) },
+            onToggleClickThrough: { setClickThrough(!state.isClickThrough) },
             onPinCutout: { [weak self] cutoutURL in self?.pinImage(at: cutoutURL) },
             onResetOriginalSize: { [weak panel] in
                 guard let panel else { return }
@@ -75,145 +120,96 @@ final class PinWindowController {
                 let w = min(max(nsImage.size.width, 140), screen.width * 0.88)
                 let h = w / max(ratio, 0.1)
                 let next = NSRect(x: panel.frame.midX - w / 2, y: panel.frame.midY - h / 2, width: w, height: h)
-                panel.setFrame(next, display: true, animate: true)
+                WindowMotionAnimator.animateFrame(panel, to: next, duration: 0.22)
             },
-            onCloseAll: { [weak self] in self?.closeAll() },
+            onCloseAll: { [weak self] in self?.closeAll(animated: true) },
             onClose: closeAction
         )
+        panel.onKeyShortcut = { event in
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.numericPad, .function])
+            let ch = event.charactersIgnoringModifiers?.lowercased() ?? ""
+            if flags == .command && ch == "c" { view.copyImage(); return true }
+            if flags == .command && ch == "s" { view.saveAsPNG(); return true }
+            if flags.isEmpty && ch == "t" { setClickThrough(!state.isClickThrough); return true }
+            if flags.isEmpty && ch == "o" { view.runOCR(); return true }
+            return false
+        }
+
         let hosting = NSHostingView(rootView: LocalizedRootContainer { view })
         hosting.wantsLayer = true
         hosting.layer?.cornerRadius = 16
         hosting.layer?.cornerCurve = .continuous
         hosting.layer?.masksToBounds = true
         panel.contentView = hosting
-        panel.orderFrontRegardless()
         panels.append(panel)
+        WindowMotionAnimator.present(panel, style: .floatingPin, makeKey: true)
     }
 
-    func closeAll() {
-        for panel in panels {
-            panel.contentView = nil
-            panel.close()
-        }
-        panels.removeAll()
-        MemoryStats.reclaimFreeHeapPages()
-    }
-}
-
-struct PinMenuCallbacks {
-    let copyImage: () -> Void
-    let runOCR: () -> Void
-    let runCutout: () -> Void
-    let resetSize: () -> Void
-    let toggleOpacity: () -> Void
-    let savePNG: () -> Void
-    let closeThis: () -> Void
-    let closeAll: () -> Void
-}
-
-struct PinInteractionLayer: NSViewRepresentable {
-    let aspectRatio: CGFloat
-    let onDoubleClick: () -> Void
-    let onAdjustOpacity: (Double) -> Void
-    let onHoverChanged: (Bool) -> Void
-    let menuCallbacks: PinMenuCallbacks
-
-    func makeNSView(context: Context) -> PinInteractionNSView {
-        let view = PinInteractionNSView()
-        sync(view)
-        return view
-    }
-
-    func updateNSView(_ nsView: PinInteractionNSView, context: Context) {
-        sync(nsView)
-    }
-
-    private func sync(_ view: PinInteractionNSView) {
-        view.aspectRatio = aspectRatio
-        view.onDoubleClick = onDoubleClick
-        view.onAdjustOpacity = onAdjustOpacity
-        view.onHoverChanged = onHoverChanged
-        view.menuCallbacks = menuCallbacks
-    }
-}
-
-final class PinInteractionNSView: NSView {
-    var aspectRatio: CGFloat = 1.0
-    var onDoubleClick: (() -> Void)?
-    var onAdjustOpacity: ((Double) -> Void)?
-    var onHoverChanged: ((Bool) -> Void)?
-    var menuCallbacks: PinMenuCallbacks?
-    private var trackingArea: NSTrackingArea?
-
-    override var mouseDownCanMoveWindow: Bool { true }
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    override func mouseDown(with event: NSEvent) {
-        if event.clickCount == 2 {
-            onDoubleClick?()
-            return
-        }
-        window?.performDrag(with: event)
-    }
-
-    override func scrollWheel(with event: NSEvent) {
-        let delta = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : event.deltaY * 10
-        guard abs(delta) > 0.05 else { return }
-        if event.modifierFlags.contains(.option) {
-            onAdjustOpacity?(delta > 0 ? 0.05 : -0.05)
-            return
-        }
-        guard let win = window else { return }
-        let factor: CGFloat = delta > 0 ? 1.06 : 0.94
-        let visible = win.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let cur = win.frame
-        let newW = min(max(96, cur.width * factor), visible.width * 0.92)
-        let newH = max(64, newW / max(aspectRatio, 0.1))
-        let next = NSRect(x: cur.midX - newW / 2, y: cur.midY - newH / 2, width: newW, height: newH)
-        win.setFrame(next, display: true, animate: false)
-    }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        if let trackingArea { removeTrackingArea(trackingArea) }
-        let area = NSTrackingArea(
-            rect: .zero,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: self,
-            userInfo: nil
+    private func presentUnlockBadge(for hostPanel: NSPanel, onUnlock: @escaping () -> Void) {
+        dismissUnlockBadge(for: hostPanel)
+        let badgeSize = NSSize(width: 96, height: 28)
+        let origin = NSPoint(
+            x: hostPanel.frame.maxX - badgeSize.width - 8,
+            y: hostPanel.frame.maxY - badgeSize.height - 8
         )
-        addTrackingArea(area)
-        trackingArea = area
+        let badge = NSPanel(
+            contentRect: NSRect(origin: origin, size: badgeSize),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        badge.level = .statusBar
+        badge.isOpaque = false
+        badge.backgroundColor = .clear
+        badge.hasShadow = true
+        badge.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        badge.contentView = NSHostingView(rootView: Button(action: onUnlock) {
+            HStack(spacing: 4) {
+                Image(systemName: "lock.open.fill").font(.system(size: 10, weight: .bold))
+                Text(L10n.pick("退出穿透", "Unlock")).font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.orange.opacity(0.92), in: Capsule(style: .continuous))
+        }.buttonStyle(.plain))
+        hostPanel.addChildWindow(badge, ordered: .above)
+        badge.orderFrontRegardless()
+        unlockBadges[ObjectIdentifier(hostPanel)] = badge
     }
 
-    override func mouseEntered(with event: NSEvent) { onHoverChanged?(true) }
-    override func mouseExited(with event: NSEvent) { onHoverChanged?(false) }
-
-    override func menu(for event: NSEvent) -> NSMenu? {
-        guard let cb = menuCallbacks else { return nil }
-        let menu = NSMenu()
-        menu.addItem(PinMenuActionItem(title: L10n.translate("复制图片"), action: cb.copyImage))
-        menu.addItem(PinMenuActionItem(title: L10n.translate("离线识字 (OCR)"), action: cb.runOCR))
-        menu.addItem(PinMenuActionItem(title: L10n.translate("主体抠图"), action: cb.runCutout))
-        menu.addItem(.separator())
-        menu.addItem(PinMenuActionItem(title: L10n.translate("100% 原始大小"), action: cb.resetSize))
-        menu.addItem(PinMenuActionItem(title: L10n.translate("切换半透明对比 (⌥滚轮)"), action: cb.toggleOpacity))
-        menu.addItem(PinMenuActionItem(title: L10n.translate("另存为 PNG…"), action: cb.savePNG))
-        menu.addItem(.separator())
-        menu.addItem(PinMenuActionItem(title: L10n.translate("关闭此钉图 (Esc)"), action: cb.closeThis))
-        menu.addItem(PinMenuActionItem(title: L10n.translate("关闭全部钉图"), action: cb.closeAll))
-        return menu
+    private func dismissUnlockBadge(for hostPanel: NSPanel) {
+        let key = ObjectIdentifier(hostPanel)
+        guard let badge = unlockBadges.removeValue(forKey: key) else { return }
+        hostPanel.removeChildWindow(badge)
+        badge.contentView = nil
+        badge.close()
     }
-}
 
-@MainActor
-private final class PinMenuActionItem: NSMenuItem {
-    private let callback: () -> Void
-    init(title: String, action: @escaping () -> Void) {
-        self.callback = action
-        super.init(title: title, action: #selector(handleTap), keyEquivalent: "")
-        self.target = self
+    func closeAll(animated: Bool = true) {
+        for (_, badge) in unlockBadges {
+            badge.parent?.removeChildWindow(badge)
+            badge.contentView = nil
+            badge.close()
+        }
+        unlockBadges.removeAll()
+        let activePanels = panels
+        panels.removeAll()
+        guard !activePanels.isEmpty else { return }
+        if animated {
+            for panel in activePanels {
+                WindowMotionAnimator.dismiss(panel, style: .floatingPin) { [weak panel] in
+                    panel?.contentView = nil
+                    panel?.close()
+                    MemoryStats.reclaimFreeHeapPages()
+                }
+            }
+        } else {
+            for panel in activePanels {
+                panel.contentView = nil
+                panel.close()
+            }
+            MemoryStats.reclaimFreeHeapPages()
+        }
     }
-    @available(*, unavailable) required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    @objc private func handleTap() { callback() }
 }

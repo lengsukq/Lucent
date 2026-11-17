@@ -106,7 +106,7 @@
 | `ocr` | `recognize` (`{"imagePath":"/abs/path.png"}`) | 复用 `VisionService` 离线识别中英文字与条码 |
 | `everythingSearch` | `search` (`{"query":"...","limit":20}`) | 复用 `EverythingIndex` 内存树按 DSL 检索文件 |
 | `displayInfo` | `list` (`{}`) | 返回活跃显示器 `displayID`、当前模式与可用分辨率 |
-| `systemControl` | `status`、`setVolume`、`setMute`、`setCaffeine` | 查询与安全调节系统音量/静音/防休眠状态 |
+| `systemControl` | `status`、`setVolume`、`setMute`、`setCaffeine`、`setStatusScreen`、`clearStatusScreen` | 查询与安全调节系统音量/静音/防休眠状态，以及多屏全屏状态屏告示遮罩（支持键鼠防误触拦截与长按 `Esc` 安全退出） |
 | `lumaLinkStatus` | `status`、`toggle`、`setEnabled`、`toggleRdp`、`regeneratePin`、`toggleCurtain`、`toggleCaffeine`、`setDisplayMode`、`restoreDisplays`、`revokeDevice` | 全闭环受控管理 LumaLink 监听、高清配对二维码生成、多屏 HiDPI 切换、物理防窥黑屏、防休眠及已配对设备解绑（绝不暴露设备 Token） |
 
 ## 三、全 App 权限审计矩阵与开发者套件
@@ -123,7 +123,7 @@
 | `lumakey_list_plugins` | `includeBuiltin`（可选，默认 `true`） | 返回内置与外部插件的启用、包内图标/品牌色、多语言标题、已声明子功能 (`declaredCommands`)、子功能热键 (`commandHotKeys`)、已开启快捷按钮 (`quickButtonCommandIDs`)、运行态摘要 (`statusSummary`)、宿主能力与 Seatbelt 资源域 (`grantedResourceScopes`/`revokedResourceScopes`) 状态 |
 | `lumakey_app_permissions` | `onlyUsed`（可选） | 返回全 App 权限审计矩阵及纯沙盒 (`[]`) 插件列表 |
 | `lumakey_scaffold_plugin` | `id`, `name`, `keywords`, `capabilities`, `resourceScopes`（必选），`accepts`（可选） | 安全生成 `plugin.json` 与可执行 `run.sh` |
-| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `browser-hub`、`lumalink-companion` 与 `notion-bookmarks` 三款旗舰插件） |
+| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `browser-hub`、`lumalink-companion`、`notion-bookmarks`、`translate-hub`、`mac-pilot`、`quick-remind` 与 `screen-shield` 七款旗舰插件） |
 | `lumakey_validate_plugin` | `id` | 校验 `capabilities`、`resourceScopes`、包内图标安全边界、滑块数值范围、`commands`、`accepts` 与脚本权限 |
 | `lumakey_run_plugin_test` | `id`, `query`, `arguments`, `context`, `clipboardText`（可选） | 执行内置或外部插件测试（自动注入 `locale`/`theme`、模拟子功能 `arguments`、跨模块 `context` 与临时 Host Bridge） |
 | `lumakey_set_plugin_enabled` | `id`, `enabled` | 启停外部或 `BUILTIN` 插件 |

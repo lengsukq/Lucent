@@ -10,6 +10,7 @@ public struct InstalledAppItem: Identifiable, Sendable, Hashable {
     public let url: URL
     public let fullPinyin: String
     public let pinyinInitials: String
+    public let altPinyinPool: String
 
     public init(name: String, englishName: String? = nil, url: URL) {
         self.id = url.standardizedFileURL.path
@@ -22,6 +23,7 @@ public struct InstalledAppItem: Identifiable, Sendable, Hashable {
         let (full, initials) = PinyinHelper.convert(name)
         self.fullPinyin = full
         self.pinyinInitials = initials
+        self.altPinyinPool = PinyinHelper.alternatePool(name)
     }
 
     public var displayName: String {
@@ -238,7 +240,8 @@ public enum LauncherEngine {
                 else if app.pinyinInitials.hasPrefix(needle) { score = 8_200 }
                 else if app.fullPinyin.hasPrefix(needle) { score = 7_600 }
                 else if lowerName.contains(needle) || lowerEng.contains(needle) { score = 5_800 }
-                else if app.fullPinyin.contains(needle) || app.pinyinInitials.contains(needle) { score = 4_800 }
+                else if app.fullPinyin.contains(needle) || app.pinyinInitials.contains(needle)
+                    || (!app.altPinyinPool.isEmpty && app.altPinyinPool.contains(needle)) { score = 4_800 }
                 if score > 0 { results.append(LauncherCandidate(id: app.id, score: score + boost, kind: .app(app))) }
             }
         }

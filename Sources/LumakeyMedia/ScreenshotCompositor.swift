@@ -11,22 +11,22 @@ public enum ScreenshotCompositor {
         return String(format: "#%02X%02X%02X", r, g, b)
     }
 
+    public static func samplePixelRGBString(in cgImage: CGImage, point: CGPoint, screenBounds: CGRect) -> String {
+        guard let (r, g, b) = samplePixelRGB(in: cgImage, point: point, screenBounds: screenBounds) else {
+            return "rgb(0, 0, 0)"
+        }
+        return "rgb(\(r), \(g), \(b))"
+    }
+
     public static func makePixelatedPreview(from cgImage: CGImage, cellPixelSize: Int = 16) -> CGImage? {
         let step = max(4, cellPixelSize)
         let smallW = max(2, cgImage.width / step)
         let smallH = max(2, cgImage.height / step)
         let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
         guard let ctx = CGContext(
-            data: nil,
-            width: smallW,
-            height: smallH,
-            bitsPerComponent: 8,
-            bytesPerRow: smallW * 4,
-            space: srgb,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            return nil
-        }
+            data: nil, width: smallW, height: smallH, bitsPerComponent: 8, bytesPerRow: smallW * 4,
+            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
         ctx.interpolationQuality = .low
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: smallW, height: smallH))
         return ctx.makeImage()
@@ -58,13 +58,8 @@ public enum ScreenshotCompositor {
         let w = cropped.width, h = cropped.height
         let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
         guard let ctx = CGContext(
-            data: nil,
-            width: w,
-            height: h,
-            bitsPerComponent: 8,
-            bytesPerRow: w * 4,
-            space: srgb,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
             throw LumakeyError.visionFailed("无法创建标注合成画布。")
         }
@@ -74,7 +69,11 @@ public enum ScreenshotCompositor {
         ctx.scaleBy(x: scaleX, y: -scaleY)
         ctx.translateBy(x: -clamped.minX, y: -clamped.minY)
 
-        for item in annotations {
+        let spotlights = annotations.filter { $0.tool == .spotlight }
+        if !spotlights.isEmpty {
+            drawSpotlights(spotlights, selectionRect: clamped, in: ctx)
+        }
+        for item in annotations where item.tool != .spotlight {
             draw(item, into: ctx, baseCropped: cropped, origin: clamped.origin, scaleX: scaleX, scaleY: scaleY)
         }
         ctx.restoreGState()
@@ -84,46 +83,82 @@ public enum ScreenshotCompositor {
         return result
     }
 
-    private static func samplePixelRGB(
-        in cgImage: CGImage,
-        point: CGPoint,
-        screenBounds: CGRect
-    ) -> (UInt8, UInt8, UInt8)? {
-        guard screenBounds.width > 0, screenBounds.height > 0, cgImage.width > 0, cgImage.height > 0 else {
-            return nil
+    public static func compositeAnnotationsOntoWindowImage(
+        windowImage: CGImage,
+        windowCanvasFrame: CGRect,
+        annotations: [ScreenshotAnnotation]
+    ) throws -> CGImage {
+        if annotations.isEmpty { return windowImage }
+        let w = windowImage.width, h = windowImage.height
+        let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            throw LumakeyError.visionFailed("无法创建窗口标注画布。")
         }
+        ctx.draw(windowImage, in: CGRect(x: 0, y: 0, width: w, height: h))
+        let scale = max(1.0, round(CGFloat(w) / max(windowCanvasFrame.width, 1)))
+        let logicalW = CGFloat(w) / scale
+        let logicalH = CGFloat(h) / scale
+        let padX = max(0, (logicalW - windowCanvasFrame.width) / 2.0)
+        let padY = max(0, (logicalH - windowCanvasFrame.height) / 2.0)
+        let effectiveOrigin = CGPoint(x: windowCanvasFrame.minX - padX, y: windowCanvasFrame.minY - padY)
+
+        ctx.saveGState()
+        ctx.translateBy(x: 0, y: CGFloat(h))
+        ctx.scaleBy(x: scale, y: -scale)
+        ctx.translateBy(x: -effectiveOrigin.x, y: -effectiveOrigin.y)
+        let spotlights = annotations.filter { $0.tool == .spotlight }
+        if !spotlights.isEmpty {
+            drawSpotlights(spotlights, selectionRect: windowCanvasFrame, in: ctx)
+        }
+        for item in annotations where item.tool != .spotlight {
+            draw(item, into: ctx, baseCropped: windowImage, origin: effectiveOrigin, scaleX: scale, scaleY: scale)
+        }
+        ctx.restoreGState()
+        return ctx.makeImage() ?? windowImage
+    }
+
+    private static func drawSpotlights(_ items: [ScreenshotAnnotation], selectionRect: CGRect, in ctx: CGContext) {
+        ctx.saveGState()
+        defer { ctx.restoreGState() }
+        let path = CGMutablePath()
+        path.addRect(selectionRect)
+        for item in items {
+            guard let a = item.points.first, let b = item.points.last else { continue }
+            let hole = CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(b.x - a.x), height: abs(b.y - a.y))
+            if hole.width >= 2 && hole.height >= 2 {
+                path.addRoundedRect(in: hole, cornerWidth: min(8, hole.width / 4), cornerHeight: min(8, hole.height / 4))
+            }
+        }
+        ctx.addPath(path)
+        ctx.setFillColor(CGColor(gray: 0, alpha: 0.54))
+        ctx.drawPath(using: .eoFill)
+    }
+
+    private static func samplePixelRGB(in cgImage: CGImage, point: CGPoint, screenBounds: CGRect) -> (UInt8, UInt8, UInt8)? {
+        guard screenBounds.width > 0, screenBounds.height > 0, cgImage.width > 0, cgImage.height > 0 else { return nil }
         let px = max(0, min(cgImage.width - 1, Int((point.x - screenBounds.minX) * CGFloat(cgImage.width) / screenBounds.width)))
         let py = max(0, min(cgImage.height - 1, Int((point.y - screenBounds.minY) * CGFloat(cgImage.height) / screenBounds.height)))
         var pixel: [UInt8] = [0, 0, 0, 0]
         let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
         guard let ctx = CGContext(
-            data: &pixel,
-            width: 1,
-            height: 1,
-            bitsPerComponent: 8,
-            bytesPerRow: 4,
-            space: srgb,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            return nil
-        }
+            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
         ctx.draw(cgImage, in: CGRect(x: -px, y: -(cgImage.height - 1 - py), width: cgImage.width, height: cgImage.height))
         return (pixel[0], pixel[1], pixel[2])
     }
 
     private static func draw(
-        _ item: ScreenshotAnnotation,
-        into ctx: CGContext,
-        baseCropped: CGImage,
-        origin: CGPoint,
-        scaleX: CGFloat,
-        scaleY: CGFloat
+        _ item: ScreenshotAnnotation, into ctx: CGContext, baseCropped: CGImage, origin: CGPoint, scaleX: CGFloat, scaleY: CGFloat
     ) {
         ctx.saveGState()
         defer { ctx.restoreGState() }
         let color = item.color.cgColor
         switch item.tool {
-        case .move: break
+        case .move, .spotlight: break
         case .rect:
             guard let a = item.points.first, let b = item.points.last else { break }
             ctx.setStrokeColor(color); ctx.setLineWidth(item.strokeSize.lineWidth)
@@ -132,6 +167,10 @@ public enum ScreenshotCompositor {
             guard let a = item.points.first, let b = item.points.last else { break }
             ctx.setStrokeColor(color); ctx.setLineWidth(item.strokeSize.lineWidth)
             ctx.strokeEllipse(in: CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(b.x - a.x), height: abs(b.y - a.y)))
+        case .line:
+            guard let a = item.points.first, let b = item.points.last else { break }
+            ctx.setStrokeColor(color); ctx.setLineWidth(item.strokeSize.lineWidth); ctx.setLineCap(.round)
+            ctx.beginPath(); ctx.move(to: a); ctx.addLine(to: b); ctx.strokePath()
         case .arrow:
             guard let a = item.points.first, let b = item.points.last else { break }
             drawArrow(from: a, to: b, color: color, lineWidth: item.strokeSize.lineWidth, in: ctx)

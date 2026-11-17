@@ -11,36 +11,63 @@ enum GifSelectionDragMode {
 
 @MainActor
 final class GifSelectionSession: ObservableObject {
-    let baseImage: CGImage
-    let screenBounds: CGRect
-    let appKitScreenFrame: NSRect
-    let displayID: CGDirectDisplayID
-    let backingScale: CGFloat
-    let windows: [DetectedScreenWindow]
+    let topology: ScreenTopologySnapshot
+    var baseImage: CGImage { topology.baseImage }
+    var screenBounds: CGRect { topology.canvasBounds }
+    var backingScale: CGFloat { topology.maxScale }
+    var windows: [DetectedScreenWindow] { topology.windows }
 
+    @Published var activeDisplayID: CGDirectDisplayID
+    @Published var cursorPoint: CGPoint
     @Published var selectionRect: CGRect?
     @Published var hoveredWindow: DetectedScreenWindow?
+    @Published var overlappingWindowCount: Int = 0
+    @Published var windowCycleIndex: Int = 0
+    @Published var selectedWindow: DetectedScreenWindow?
     @Published var isDragging: Bool = false
     @Published var options: GifRecordingOptions
 
     var activeDrag: GifSelectionDragMode?
     var lastClickTime: TimeInterval = 0
     var lastClickPoint: CGPoint = .zero
+    private var lastTopHitWindowID: CGWindowID?
 
-    init(
-        baseImage: CGImage, screenBounds: CGRect, appKitScreenFrame: NSRect,
-        displayID: CGDirectDisplayID, backingScale: CGFloat,
-        windows: [DetectedScreenWindow], options: GifRecordingOptions
-    ) {
-        self.baseImage = baseImage; self.screenBounds = screenBounds
-        self.appKitScreenFrame = appKitScreenFrame; self.displayID = displayID
-        self.backingScale = max(1.0, backingScale); self.windows = windows
-        self.options = options
+    init(topology: ScreenTopologySnapshot, initialCursorCanvasPoint: CGPoint, options: GifRecordingOptions) {
+        self.topology = topology; self.options = options
+        let clamped = CGPoint(
+            x: min(max(0, initialCursorCanvasPoint.x), topology.canvasBounds.width),
+            y: min(max(0, initialCursorCanvasPoint.y), topology.canvasBounds.height)
+        )
+        self.cursorPoint = clamped
+        self.activeDisplayID = topology.displaySlice(containingCanvasPoint: clamped)?.displayID
+            ?? topology.displays.first?.displayID ?? CGMainDisplayID()
+        updateHover(at: clamped)
     }
 
     func updateHover(at point: CGPoint) {
-        guard selectionRect == nil else { hoveredWindow = nil; return }
-        hoveredWindow = windows.first(where: { $0.frame.contains(point) })
+        cursorPoint = point
+        if let slice = topology.displaySlice(containingCanvasPoint: point), slice.displayID != activeDisplayID {
+            activeDisplayID = slice.displayID
+        }
+        guard selectionRect == nil else { hoveredWindow = nil; overlappingWindowCount = 0; return }
+        let hits = windows.filter { $0.frame.contains(point) }
+        overlappingWindowCount = hits.count
+        if hits.first?.id != lastTopHitWindowID { lastTopHitWindowID = hits.first?.id; windowCycleIndex = 0 }
+        hoveredWindow = hits.isEmpty ? nil : hits[windowCycleIndex % hits.count]
+    }
+
+    @discardableResult
+    func cycleHoveredWindow() -> Bool {
+        guard selectionRect == nil else { return false }
+        let hits = windows.filter { $0.frame.contains(cursorPoint) }
+        guard hits.count >= 2 else { return false }
+        windowCycleIndex = (windowCycleIndex + 1) % hits.count
+        hoveredWindow = hits[windowCycleIndex]
+        return true
+    }
+
+    func selectWindow(_ win: DetectedScreenWindow) {
+        selectedWindow = win; selectionRect = win.frame; hoveredWindow = nil
     }
 
     func outputDimensions(for rect: CGRect) -> (Int, Int) {
@@ -49,34 +76,52 @@ final class GifSelectionSession: ObservableObject {
         return GifStreamEncoder.scaledDimensions(width: rawW, height: rawH, maxDimension: options.maxDimension)
     }
 
-    func appKitScreenRect(for localRect: CGRect) -> NSRect {
-        NSRect(x: appKitScreenFrame.minX + localRect.minX, y: appKitScreenFrame.maxY - localRect.maxY, width: localRect.width, height: localRect.height)
-    }
+    func appKitScreenRect(for canvasRect: CGRect) -> NSRect { topology.appKitGlobalRect(fromCanvas: canvasRect) }
 }
 
 struct GifSelectionOverlayView: View {
     @ObservedObject var session: GifSelectionSession
+    let slice: ScreenDisplaySlice
     let onStartRecording: () -> Void
     let onCancel: () -> Void
 
+    private var origin: CGPoint { slice.canvasFrame.origin }
+    private var viewSize: CGSize { slice.canvasFrame.size }
+    private func toCanvas(_ local: CGPoint) -> CGPoint { CGPoint(x: local.x + origin.x, y: local.y + origin.y) }
+    private func toLocal(_ canvasRect: CGRect) -> CGRect { canvasRect.offsetBy(dx: -origin.x, dy: -origin.y) }
+
+    private var shouldHostToolbar: Bool {
+        if let sel = session.selectionRect?.standardized, sel.width >= 12 {
+            return session.topology.targetSlice(forSelection: sel, fallbackPoint: session.cursorPoint)?.displayID == slice.displayID
+        }
+        return session.activeDisplayID == slice.displayID
+    }
+
     private var controlBarPosition: CGPoint {
-        guard let sel = session.selectionRect?.standardized else { return CGPoint(x: session.screenBounds.midX, y: 44) }
-        let barW: CGFloat = 540, barH: CGFloat = 46
-        let x = min(max(sel.midX, barW / 2 + 16), session.screenBounds.width - barW / 2 - 16)
-        let belowY = sel.maxY + barH / 2 + 12, aboveY = sel.minY - barH / 2 - 12
-        if belowY + barH / 2 <= session.screenBounds.height - 12 { return CGPoint(x: x, y: belowY) }
+        guard let sel = session.selectionRect?.standardized else { return CGPoint(x: viewSize.width / 2, y: 44) }
+        let localSel = toLocal(sel)
+        let barW: CGFloat = min(560, viewSize.width - 24), barH: CGFloat = 46
+        let x = min(max(localSel.midX, barW / 2 + 12), viewSize.width - barW / 2 - 12)
+        let belowY = localSel.maxY + barH / 2 + 12, aboveY = localSel.minY - barH / 2 - 12
+        if belowY + barH / 2 <= viewSize.height - 12 { return CGPoint(x: x, y: belowY) }
         if aboveY - barH / 2 >= 12 { return CGPoint(x: x, y: aboveY) }
-        return CGPoint(x: x, y: min(sel.maxY - barH / 2 - 12, session.screenBounds.height - barH / 2 - 12))
+        return CGPoint(x: x, y: min(max(barH / 2 + 12, localSel.maxY - barH / 2 - 12), viewSize.height - barH / 2 - 12))
     }
 
     var body: some View {
+        let imageScale = CGFloat(session.baseImage.width) / max(session.screenBounds.width, 1)
         ZStack(alignment: .topLeading) {
-            Image(decorative: session.baseImage, scale: session.backingScale, orientation: .up)
-                .resizable().frame(width: session.screenBounds.width, height: session.screenBounds.height)
+            Image(decorative: session.baseImage, scale: imageScale, orientation: .up)
+                .resizable()
+                .frame(width: session.screenBounds.width, height: session.screenBounds.height)
+                .offset(x: -origin.x, y: -origin.y).allowsHitTesting(false)
 
             Path { path in
-                path.addRect(session.screenBounds)
-                if let hole = (session.selectionRect ?? session.hoveredWindow?.frame)?.standardized { path.addRect(hole) }
+                path.addRect(CGRect(origin: .zero, size: viewSize))
+                if let hole = (session.selectionRect ?? session.hoveredWindow?.frame)?.standardized {
+                    let localHole = toLocal(hole).intersection(CGRect(origin: .zero, size: viewSize))
+                    if !localHole.isNull && localHole.width > 0 && localHole.height > 0 { path.addRect(localHole) }
+                }
             }
             .fill(Color.black.opacity(0.46), style: FillStyle(eoFill: true)).allowsHitTesting(false)
 
@@ -84,17 +129,19 @@ struct GifSelectionOverlayView: View {
             else if let win = session.hoveredWindow { hoveredWindowChrome(for: win) }
 
             Color.clear.contentShape(Rectangle())
-                .onContinuousHover { if case .active(let pt) = $0 { session.updateHover(at: pt) } }
+                .onContinuousHover { if case .active(let pt) = $0 { session.updateHover(at: toCanvas(pt)) } }
                 .gesture(DragGesture(minimumDistance: 0).onChanged(handleDragChanged).onEnded(handleDragEnded))
 
-            if !session.isDragging { presetAndActionToolbar.position(controlBarPosition) }
+            if !session.isDragging && shouldHostToolbar { presetAndActionToolbar.position(controlBarPosition) }
         }
-        .frame(width: session.screenBounds.width, height: session.screenBounds.height).clipped()
+        .frame(width: viewSize.width, height: viewSize.height).clipped()
     }
 
-    private func selectionChrome(for rect: CGRect) -> some View {
-        let (outW, outH) = session.outputDimensions(for: rect)
+    private func selectionChrome(for canvasRect: CGRect) -> some View {
+        let rect = toLocal(canvasRect)
+        let (outW, outH) = session.outputDimensions(for: canvasRect)
         let accent = Color(red: 1.0, green: 0.30, blue: 0.28)
+        let winBadge = session.selectedWindow.map { "\($0.displayLabel) · " } ?? ""
         return ZStack(alignment: .topLeading) {
             Rectangle().strokeBorder(accent, lineWidth: 1.8)
                 .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
@@ -104,24 +151,25 @@ struct GifSelectionOverlayView: View {
             }
             HStack(spacing: 6) {
                 Circle().fill(Color.red).frame(width: 6, height: 6)
-                Text("GIF \(outW)×\(outH) px · \(session.options.fps) FPS")
+                Text("\(winBadge)GIF \(outW)×\(outH) px · \(session.options.fps) FPS").lineLimit(1)
             }
             .font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(.white)
             .padding(.horizontal, 9).padding(.vertical, 4).background(.black.opacity(0.78), in: Capsule())
-            .position(x: max(96, rect.minX + 88), y: rect.minY > 30 ? rect.minY - 15 : rect.minY + 16)
+            .position(x: max(110, rect.minX + 100), y: rect.minY > 30 ? rect.minY - 15 : rect.minY + 16)
         }
         .allowsHitTesting(false)
     }
 
     private func hoveredWindowChrome(for win: DetectedScreenWindow) -> some View {
-        let rect = win.frame
-        let label = win.ownerName.isEmpty ? "单击框选此窗口" : "\(win.ownerName) · 单击选定窗口录制"
+        let rect = toLocal(win.frame)
+        let subHint = session.overlappingWindowCount >= 2 ? " · Tab 切下层 (\(session.overlappingWindowCount))" : " · 单击锁定窗口录制"
+        let label = (win.displayLabel.isEmpty ? "窗口" : win.displayLabel) + subHint
         return ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.cyan.opacity(0.95), lineWidth: 2.2)
                 .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
             Text(label).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
                 .padding(.horizontal, 10).padding(.vertical, 4).background(.black.opacity(0.76), in: Capsule())
-                .position(x: max(120, rect.minX + 108), y: max(20, rect.minY - 15))
+                .position(x: max(130, rect.minX + 118), y: rect.minY > 24 ? rect.minY - 15 : rect.minY + 18)
         }
         .allowsHitTesting(false)
     }
@@ -130,7 +178,7 @@ struct GifSelectionOverlayView: View {
         let hasSelection = (session.selectionRect?.standardized.width ?? 0) >= 12
         return HStack(spacing: 8) {
             if !hasSelection {
-                Text("拖拽框选或单击窗口 · Esc 取消")
+                Text("单击锁定应用窗 (Tab 切下层) 或跨屏框选 · Esc 取消")
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).padding(.leading, 4)
             }
             HStack(spacing: 3) {
@@ -186,37 +234,45 @@ struct GifSelectionOverlayView: View {
     }
 
     private func handleDragChanged(_ value: DragGesture.Value) {
-        if session.activeDrag == nil { session.activeDrag = resolveDragMode(at: value.startLocation) }
+        let canvasLoc = toCanvas(value.location), canvasStart = toCanvas(value.startLocation)
+        session.updateHover(at: canvasLoc)
+        if session.activeDrag == nil { session.activeDrag = resolveDragMode(at: canvasStart) }
         guard let mode = session.activeDrag else { return }
-        if hypot(value.location.x - value.startLocation.x, value.location.y - value.startLocation.y) >= 2 { session.isDragging = true }
+        if hypot(canvasLoc.x - canvasStart.x, canvasLoc.y - canvasStart.y) >= 2 { session.isDragging = true }
         switch mode {
-        case .creating(let origin):
+        case .creating(let startPt):
+            if session.isDragging { session.selectedWindow = nil }
             session.selectionRect = CGRect(
-                x: min(origin.x, value.location.x), y: min(origin.y, value.location.y),
-                width: abs(value.location.x - origin.x), height: abs(value.location.y - origin.y)
+                x: min(startPt.x, canvasLoc.x), y: min(startPt.y, canvasLoc.y),
+                width: abs(canvasLoc.x - startPt.x), height: abs(canvasLoc.y - startPt.y)
             ).intersection(session.screenBounds)
         case .resizing(let handle, let initial):
-            session.selectionRect = resized(initial, handle: handle, to: value.location).intersection(session.screenBounds)
+            if session.isDragging { session.selectedWindow = nil }
+            session.selectionRect = resized(initial, handle: handle, to: canvasLoc).intersection(session.screenBounds)
         case .moving(let initial, let start):
-            let x = min(max(0, initial.minX + value.location.x - start.x), session.screenBounds.width - initial.width)
-            let y = min(max(0, initial.minY + value.location.y - start.y), session.screenBounds.height - initial.height)
+            if session.isDragging { session.selectedWindow = nil }
+            let x = min(max(0, initial.minX + canvasLoc.x - start.x), session.screenBounds.width - initial.width)
+            let y = min(max(0, initial.minY + canvasLoc.y - start.y), session.screenBounds.height - initial.height)
             session.selectionRect = CGRect(origin: CGPoint(x: x, y: y), size: initial.size)
         }
     }
 
     private func handleDragEnded(_ value: DragGesture.Value) {
+        let canvasLoc = toCanvas(value.location), canvasStart = toCanvas(value.startLocation)
         session.activeDrag = nil; session.isDragging = false
-        if hypot(value.location.x - value.startLocation.x, value.location.y - value.startLocation.y) < 3 {
-            if session.selectionRect == nil, let win = session.hoveredWindow { session.selectionRect = win.frame; return }
+        if hypot(canvasLoc.x - canvasStart.x, canvasLoc.y - canvasStart.y) < 3 {
+            if session.selectionRect == nil, let win = session.hoveredWindow { session.selectWindow(win); return }
             let now = Date().timeIntervalSinceReferenceDate
-            if let sel = session.selectionRect, sel.contains(value.location), now - session.lastClickTime < 0.32,
-               hypot(value.location.x - session.lastClickPoint.x, value.location.y - session.lastClickPoint.y) < 12 {
+            if let sel = session.selectionRect, sel.contains(canvasLoc), now - session.lastClickTime < 0.32,
+               hypot(canvasLoc.x - session.lastClickPoint.x, canvasLoc.y - session.lastClickPoint.y) < 12 {
                 onStartRecording()
             }
-            session.lastClickTime = now; session.lastClickPoint = value.location
+            session.lastClickTime = now; session.lastClickPoint = canvasLoc
             return
         }
-        if let sel = session.selectionRect, sel.width < 12 || sel.height < 12 { session.selectionRect = session.hoveredWindow?.frame }
+        if let sel = session.selectionRect, (sel.width < 12 || sel.height < 12), let win = session.hoveredWindow {
+            session.selectWindow(win)
+        }
     }
 
     private func resolveDragMode(at pt: CGPoint) -> GifSelectionDragMode {

@@ -51,13 +51,19 @@ public extension ClipboardPasteboardIO {
             let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines)
             let looksLikeCopiedWebImage = hasDirectBitmapWithoutRichText(rawTypes) && isStandaloneWebURL(trimmed)
             if !trimmed.isEmpty && !looksLikeCopiedWebImage {
-                let firstLine = trimmed.components(separatedBy: .newlines).first ?? trimmed
-                if let hex = ClipboardService.parseHexColor(trimmed) {
-                    return ClipboardEntry(title: hex, subtitle: "颜色 HEX · \(trimmed.count) 字符", textValue: str, payloadKind: .colorHex(hex))
+                if ClipboardService.looksLikeSensitiveSecret(trimmed) {
+                    return nil
                 }
+                let srcApp = frontmostAppPrefix()
+                let lines = trimmed.components(separatedBy: .newlines)
+                let firstLine = lines.first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? trimmed
+                if let hex = ClipboardService.parseHexColor(trimmed) {
+                    return ClipboardEntry(title: hex, subtitle: "\(srcApp)颜色 HEX · \(trimmed.count) 字符", textValue: str, payloadKind: .colorHex(hex))
+                }
+                let linePart = lines.count > 1 ? " · \(lines.count) 行" : ""
                 return ClipboardEntry(
-                    title: String(firstLine.prefix(90)),
-                    subtitle: "文本 · \(trimmed.count) 字",
+                    title: String(firstLine.trimmingCharacters(in: .whitespaces).prefix(90)),
+                    subtitle: "\(srcApp)文本 · \(trimmed.count) 字\(linePart)",
                     textValue: str,
                     payloadKind: .text
                 )
@@ -247,5 +253,16 @@ public extension ClipboardPasteboardIO {
 
     private static func shortToken() -> String {
         String(UUID().uuidString.prefix(12)).lowercased()
+    }
+
+    @MainActor
+    private static func frontmostAppPrefix() -> String {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              let name = app.localizedName?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !name.isEmpty else {
+            return ""
+        }
+        return "\(name) · "
     }
 }

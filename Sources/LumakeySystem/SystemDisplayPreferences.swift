@@ -7,10 +7,16 @@ public final class SystemDisplayPreferences: Sendable {
     public struct Snapshot: Sendable, Equatable {
         public let reduceTransparency: Bool
         public let increaseContrast: Bool
+        public let reduceMotion: Bool
 
-        public init(reduceTransparency: Bool, increaseContrast: Bool) {
+        public init(
+            reduceTransparency: Bool,
+            increaseContrast: Bool,
+            reduceMotion: Bool = false
+        ) {
             self.reduceTransparency = reduceTransparency
             self.increaseContrast = increaseContrast
+            self.reduceMotion = reduceMotion
         }
     }
 
@@ -27,7 +33,8 @@ public final class SystemDisplayPreferences: Sendable {
             reader: {
                 Snapshot(
                     reduceTransparency: NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency,
-                    increaseContrast: NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+                    increaseContrast: NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast,
+                    reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
                 )
             }
         )
@@ -62,6 +69,10 @@ public final class SystemDisplayPreferences: Sendable {
 
     public var increaseContrast: Bool {
         stateLock.withLock { $0.increaseContrast }
+    }
+
+    public var reduceMotion: Bool {
+        stateLock.withLock { $0.reduceMotion }
     }
 
     public var snapshot: Snapshot {

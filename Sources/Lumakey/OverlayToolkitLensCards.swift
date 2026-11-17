@@ -8,7 +8,13 @@ struct PluginViewLensContainerCard: View {
     let onCopyText: (String) -> Void
     let onOpenURL: (URL) -> Void
     let onRunCommandArgs: ([String]) -> Void
+    var onGrantCapabilitiesAndRerun: (() -> Void)? = nil
     let onClose: () -> Void
+
+    private var missingCapabilities: [PluginCapability] {
+        guard let plugin, !plugin.isBuiltin else { return [] }
+        return plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
+    }
 
     var body: some View {
         let dataDir = plugin.flatMap { PluginDataPaths.dataDirectory(for: $0.id, pluginsRoot: $0.directoryURL.deletingLastPathComponent()) }
@@ -29,6 +35,31 @@ struct PluginViewLensContainerCard: View {
                     Image(systemName: "xmark")
                 }
                 .buttonStyle(GlassPillButtonStyle())
+            }
+
+            if !missingCapabilities.isEmpty, let onGrantCapabilitiesAndRerun {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.orange)
+                    Text(L10n.pick(
+                        "缺少宿主权限：\(missingCapabilities.map(\.title).joined(separator: "、"))",
+                        "Missing: \(missingCapabilities.map(\.title).joined(separator: ", "))"
+                    ))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(LiquidColors.textPrimary)
+                    .lineLimit(2)
+                    Spacer(minLength: 4)
+                    Button(L10n.pick("一键授权并重跑", "Grant & Re-run"), action: onGrantCapabilitiesAndRerun)
+                        .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
+                        .strokeBorder(Color.orange.opacity(0.32), lineWidth: 0.7)
+                }
             }
 
             ScrollView {

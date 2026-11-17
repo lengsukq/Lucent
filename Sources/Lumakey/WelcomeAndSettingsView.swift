@@ -11,6 +11,10 @@ struct SettingsCenterView: View {
         viewModel.plugins.filter { !$0.isBuiltin }
     }
 
+    private var detailIdentity: String {
+        "\(viewModel.activeSettingsSection.canonicalSection.rawValue):\(viewModel.activePluginSettingsID ?? "core")"
+    }
+
     private var currentSubtitle: String {
         if viewModel.activeSettingsSection == .pluginDetail,
            let id = viewModel.activePluginSettingsID,
@@ -68,8 +72,10 @@ struct SettingsCenterView: View {
     private func sectionButton(_ section: SettingsSection, dotActive: Bool? = nil) -> some View {
         let active = viewModel.activeSettingsSection.canonicalSection == section
         return Button {
-            viewModel.activePluginSettingsID = nil
-            viewModel.activeSettingsSection = section
+            withAnimation(LiquidMotion.snappySpring) {
+                viewModel.activePluginSettingsID = nil
+                viewModel.activeSettingsSection = section
+            }
         } label: {
             HStack(alignment: .center, spacing: 9) {
                 SquircleBadge(symbol: section.symbolName, topColor: section.badgeColors.top, bottomColor: section.badgeColors.bottom, size: 24)
@@ -81,16 +87,19 @@ struct SettingsCenterView: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 5)
             .background(active ? LiquidColors.highlightGlow : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .liquidHoverRow(active: active, cornerRadius: 10)
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(LiquidBentoTileStyle(cornerRadius: 10))
     }
 
     private func externalPluginSidebarButton(_ plugin: PluginDescriptor) -> some View {
         let active = viewModel.activeSettingsSection == .pluginDetail && viewModel.activePluginSettingsID == plugin.id
         return Button {
-            viewModel.activePluginSettingsID = plugin.id
-            viewModel.activeSettingsSection = .pluginDetail
+            withAnimation(LiquidMotion.snappySpring) {
+                viewModel.activePluginSettingsID = plugin.id
+                viewModel.activeSettingsSection = .pluginDetail
+            }
         } label: {
             HStack(alignment: .center, spacing: 9) {
                 PluginIconBadge(plugin: plugin, size: 24)
@@ -102,33 +111,39 @@ struct SettingsCenterView: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 5)
             .background(active ? LiquidColors.highlightGlow : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .liquidHoverRow(active: active, cornerRadius: 10)
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(LiquidBentoTileStyle(cornerRadius: 10))
     }
 
     @ViewBuilder
     private var detailPane: some View {
         VStack(alignment: .leading, spacing: 0) {
-            switch viewModel.activeSettingsSection.canonicalSection {
-            case .general: generalSection
-            case .monitor: TelemetrySettingsView(viewModel: viewModel)
-            case .cache: ScrollView { AppCacheSettingsView(viewModel: viewModel).padding(.trailing, 4) }
-            case .mos: MosPluginSettingsView(viewModel: viewModel)
-            case .lumaLink: LumaLinkSettingsView(viewModel: viewModel)
-            case .snippets: SnippetsSettingsView(viewModel: viewModel)
-            case .pluginDetail: PluginDedicatedSettingsView(viewModel: viewModel)
-            case .shortcuts:
-                HotKeySettingsView(
-                    hotKeyManager: viewModel.hotKeyManager ?? GlobalHotKeyManager.activeInstance,
-                    pluginHotKeys: viewModel.externalPluginHotKeys,
-                    plugins: viewModel.plugins,
-                    onOpenPluginSettings: { id in viewModel.openPluginSettings(id: id) }
-                )
-            case .backup: BackupSettingsView(viewModel: viewModel)
-            default: SettingsDetailSectionsView(viewModel: viewModel, section: viewModel.activeSettingsSection.canonicalSection)
+            Group {
+                switch viewModel.activeSettingsSection.canonicalSection {
+                case .general: generalSection
+                case .monitor: TelemetrySettingsView(viewModel: viewModel)
+                case .cache: ScrollView { AppCacheSettingsView(viewModel: viewModel).padding(.trailing, 4) }
+                case .mos: MosPluginSettingsView(viewModel: viewModel)
+                case .lumaLink: LumaLinkSettingsView(viewModel: viewModel)
+                case .snippets: SnippetsSettingsView(viewModel: viewModel)
+                case .pluginDetail: PluginDedicatedSettingsView(viewModel: viewModel)
+                case .shortcuts:
+                    HotKeySettingsView(
+                        hotKeyManager: viewModel.hotKeyManager ?? GlobalHotKeyManager.activeInstance,
+                        pluginHotKeys: viewModel.externalPluginHotKeys,
+                        plugins: viewModel.plugins,
+                        onOpenPluginSettings: { id in viewModel.openPluginSettings(id: id) }
+                    )
+                case .backup: BackupSettingsView(viewModel: viewModel)
+                default: SettingsDetailSectionsView(viewModel: viewModel, section: viewModel.activeSettingsSection.canonicalSection)
+                }
             }
+            .id(detailIdentity)
+            .transition(LiquidMotion.lensTransition)
         }
+        .animation(LiquidMotion.snappySpring, value: detailIdentity)
         .padding(16)
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .clipped()
@@ -192,7 +207,7 @@ struct SettingsCenterView: View {
                         .background(active ? Color.accentColor : LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
                         .overlay { RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7) }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.control))
                 }
             }
         }

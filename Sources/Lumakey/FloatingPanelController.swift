@@ -137,10 +137,11 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
     private var idleTeardownTask: Task<Void, Never>?
     private var userDraggedTopCenter: NSPoint?
     private var isAdjustingFrame = false
+    private var isHiding = false
     private(set) var previousFrontmostApp: NSRunningApplication?
 
     init(viewModel: AppViewModel) { self.viewModel = viewModel; super.init() }
-    var isVisible: Bool { panel?.isVisible == true }
+    var isVisible: Bool { panel?.isVisible == true && !isHiding }
 
     func toggle(filter: OmniFilter) {
         if isVisible && viewModel.omniFilter == filter { hide(restorePreviousApp: true) } else { show(filter: filter) }
@@ -149,8 +150,9 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
     func show(filter: OmniFilter) {
         idleTeardownTask?.cancel(); idleTeardownTask = nil
         let panel = ensurePanel()
-        let wasVisible = panel.isVisible
-        if !wasVisible {
+        let wasActivelyVisible = panel.isVisible && !isHiding
+        isHiding = false
+        if !wasActivelyVisible {
             let front = NSWorkspace.shared.frontmostApplication
             if let front, front.processIdentifier != ProcessInfo.processInfo.processIdentifier {
                 previousFrontmostApp = front
@@ -159,46 +161,52 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
             }
         }
         viewModel.prepareOverlay(filter: filter)
-        positionPanel(panel, width: panelWidth, height: panelHeight)
-        NSApp.activate(ignoringOtherApps: true)
-        if !wasVisible && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            panel.alphaValue = 0; panel.makeKeyAndOrderFront(nil)
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.18; ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                panel.animator().alphaValue = 1.0
-            }
-        } else {
-            panel.alphaValue = 1.0; panel.makeKeyAndOrderFront(nil)
+        if !panel.isVisible {
+            positionPanel(panel, width: panelWidth, height: panelHeight, animated: false)
         }
-        panel.invalidateShadow()
+        if !wasActivelyVisible {
+            WindowMotionAnimator.present(panel, style: .launcher, makeKey: true)
+        } else {
+            panel.alphaValue = 1.0
+            panel.makeKeyAndOrderFront(nil)
+        }
+        if !panel.isKeyWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            panel.makeKeyAndOrderFront(nil)
+        }
         viewModel.bumpFocusToken()
     }
 
-    func hide(restorePreviousApp: Bool = true) {
+    func hide(restorePreviousApp: Bool = true, immediately: Bool = false) {
         guard let panel, panel.isVisible else { return }
+        if isHiding && !immediately { return }
+        isHiding = true
         let targetApp = previousFrontmostApp
         previousFrontmostApp = nil
-        panel.orderOut(nil); panel.alphaValue = 1.0
         viewModel.handleOverlayHidden()
-        if restorePreviousApp, let targetApp, !targetApp.isTerminated {
+        if restorePreviousApp, let targetApp, !targetApp.isTerminated, !targetApp.isActive {
             targetApp.activate()
         }
-        scheduleIdlePanelTeardown()
+        WindowMotionAnimator.dismiss(panel, style: .launcher, immediately: immediately) { [weak self] in
+            guard let self else { return }
+            self.isHiding = false
+            self.scheduleIdlePanelTeardown()
+        }
     }
 
     func resetPositionToCenter() {
         userDraggedTopCenter = nil
         guard let panel, panel.isVisible else { return }
-        positionPanel(panel, width: panelWidth, height: panelHeight)
+        positionPanel(panel, width: panelWidth, height: panelHeight, animated: true)
     }
 
     func windowDidResignKey(_ notification: Notification) {
-        guard !viewModel.isOverlayPinned && !viewModel.isCapturingScreen else { return }
+        guard !isHiding, !viewModel.isOverlayPinned, !viewModel.isCapturingScreen else { return }
         hide(restorePreviousApp: false)
     }
 
     func windowDidMove(_ notification: Notification) {
-        guard !isAdjustingFrame, let panel, panel.isVisible else { return }
+        guard !isAdjustingFrame, !isHiding, let panel, panel.isVisible else { return }
         userDraggedTopCenter = NSPoint(x: panel.frame.midX, y: panel.frame.maxY)
     }
 
@@ -226,7 +234,7 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
         return created
     }
 
-    private func positionPanel(_ panel: NSPanel, width: CGFloat, height: CGFloat) {
+    private func positionPanel(_ panel: NSPanel, width: CGFloat, height: CGFloat, animated: Bool) {
         let mouseLocation = NSEvent.mouseLocation
         let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
@@ -234,9 +242,16 @@ final class FloatingPanelController: NSObject, NSWindowDelegate {
             ?? NSPoint(x: visible.midX, y: visible.maxY - 72)
         let x = min(max(visible.minX + 16, topCenter.x - width / 2.0), visible.maxX - width - 16)
         let y = min(max(visible.minY + 24, topCenter.y - height), visible.maxY - height - 12)
+        let targetFrame = NSRect(x: x, y: y, width: width, height: height)
         isAdjustingFrame = true
-        panel.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true, animate: false)
-        isAdjustingFrame = false
+        if animated {
+            WindowMotionAnimator.animateFrame(panel, to: targetFrame, duration: 0.24) { [weak self] in
+                self?.isAdjustingFrame = false
+            }
+        } else {
+            panel.setFrame(targetFrame, display: true, animate: false)
+            isAdjustingFrame = false
+        }
     }
 
     private func scheduleIdlePanelTeardown() {

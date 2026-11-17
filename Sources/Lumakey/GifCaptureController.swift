@@ -28,7 +28,8 @@ final class GifCaptureController: ObservableObject {
     var onStatusMessage: ((String) -> Void)?
     var onDiagnostic: ((UserFacingDiagnostic) -> Void)?
 
-    private var selectionPanel: CaptureOverlayPanel?
+    private var selectionPanels: [CaptureOverlayPanel] = []
+    private var panelByDisplayID: [CGDirectDisplayID: CaptureOverlayPanel] = [:]
     private var hudPanel: GifHUDPanel?
     private var keyMonitor: Any?
     private var selectionSession: GifSelectionSession?
@@ -43,7 +44,7 @@ final class GifCaptureController: ObservableObject {
     func startInteractiveCapture(options overrideOptions: GifRecordingOptions? = nil, onComplete: ((GifFinalizeResult) -> Void)? = nil) {
         if case .recording = phase { hudPanel?.orderFrontRegardless(); return }
         if case .encoding = phase { return }
-        cleanupAllResources(discardEncoder: true)
+        cleanupAllResources(discardEncoder: true, animatedHUD: false)
         if let overrideOptions { self.options = overrideOptions }
         self.pendingCompletionHandler = onComplete
 
@@ -76,21 +77,23 @@ final class GifCaptureController: ObservableObject {
                 self.onStatusMessage?("GIF 动图已复制 (\(sizeStr) · \(result.frameCount) 帧)，可直接 ⌘V 粘贴")
                 self.onRecordingCompleted?(result); self.pendingCompletionHandler?(result); self.pendingCompletionHandler = nil
             } catch {
-                self.cleanupAllResources(discardEncoder: false); self.phase = .idle
+                self.cleanupAllResources(discardEncoder: false, animatedHUD: true); self.phase = .idle
                 self.onStatusMessage?(error.localizedDescription)
             }
         }
     }
 
     func cancelCapture() {
-        cleanupAllResources(discardEncoder: true); phase = .idle
+        cleanupAllResources(discardEncoder: true, animatedHUD: true); phase = .idle
         onStatusMessage?("已取消 GIF 录制并清理临时缓冲")
     }
 
-    func dismissCompletedHUD() { cleanupAllResources(discardEncoder: false); phase = .idle }
+    func dismissCompletedHUD(immediately: Bool = false) {
+        cleanupAllResources(discardEncoder: false, animatedHUD: !immediately); phase = .idle
+    }
 
     func recordAgain() {
-        let cb = pendingCompletionHandler; dismissCompletedHUD(); startInteractiveCapture(onComplete: cb)
+        let cb = pendingCompletionHandler; dismissCompletedHUD(immediately: true); startInteractiveCapture(onComplete: cb)
     }
 
     func copyResultAgain(_ result: GifFinalizeResult) {
@@ -115,52 +118,51 @@ final class GifCaptureController: ObservableObject {
 
     private func prepareAndPresentSelection() async {
         try? await Task.sleep(for: .milliseconds(100))
-        let mouse = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main ?? NSScreen.screens[0]
-        let screenNum = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
-
         do {
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            guard let scDisplay = content.displays.first(where: { $0.displayID == CGDirectDisplayID(screenNum) }) ?? content.displays.first else {
-                onStatusMessage?("未检测到可用显示器。"); return
-            }
-            let ownPID = ProcessInfo.processInfo.processIdentifier
-            let filter = SCContentFilter(display: scDisplay, excludingApplications: content.applications.filter { $0.processID == ownPID }, exceptingWindows: [])
-            let scale = max(screen.backingScaleFactor, 1.0)
-            let config = SCStreamConfiguration()
-            config.width = max(2, Int(round(scDisplay.frame.width * scale)))
-            config.height = max(2, Int(round(scDisplay.frame.height * scale)))
-            config.showsCursor = false
-
-            let preview = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
-            let localBounds = CGRect(origin: .zero, size: scDisplay.frame.size)
-            let windows: [DetectedScreenWindow] = content.windows.compactMap { win in
-                guard win.isOnScreen, win.windowLayer == 0, win.owningApplication?.processID != ownPID, win.frame.width >= 36, win.frame.height >= 36 else { return nil }
-                let local = CGRect(x: win.frame.minX - scDisplay.frame.minX, y: win.frame.minY - scDisplay.frame.minY, width: win.frame.width, height: win.frame.height).intersection(localBounds)
-                guard !local.isNull, local.width >= 36, local.height >= 36 else { return nil }
-                return DetectedScreenWindow(id: win.windowID, ownerName: win.owningApplication?.applicationName ?? "", title: win.title ?? "", frame: local)
-            }
-            let session = GifSelectionSession(baseImage: preview, screenBounds: localBounds, appKitScreenFrame: screen.frame, displayID: scDisplay.displayID, backingScale: scale, windows: windows, options: options)
-            presentSelectionOverlay(session: session, on: screen)
+            let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot()
+            let initialPt = topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation)
+            let session = GifSelectionSession(topology: topology, initialCursorCanvasPoint: initialPt, options: options)
+            presentSelectionOverlays(session: session)
         } catch {
             onStatusMessage?(error.localizedDescription)
         }
     }
 
-    private func presentSelectionOverlay(session: GifSelectionSession, on screen: NSScreen) {
+    private func presentSelectionOverlays(session: GifSelectionSession) {
         selectionSession = session; phase = .selectingRegion
-        selectionPanel = GifHUDPanel.presentSelection(
-            session: session, on: screen,
-            onStart: { [weak self] in self?.beginRecordingFromSelection() },
-            onCancel: { [weak self] in self?.cancelCapture() }
-        )
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .rightMouseDown]) { [weak self] event in
+        selectionPanels.removeAll(); panelByDisplayID.removeAll()
+        for slice in session.topology.displays {
+            let isKey = slice.displayID == session.activeDisplayID
+            let p = GifHUDPanel.presentSelection(
+                session: session, slice: slice, makeKey: isKey,
+                onStart: { [weak self] in self?.beginRecordingFromSelection() },
+                onCancel: { [weak self] in self?.cancelCapture() }
+            )
+            selectionPanels.append(p)
+            panelByDisplayID[slice.displayID] = p
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
+
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .rightMouseDown, .mouseMoved]) { [weak self] event in
             guard let self, let current = self.selectionSession else { return event }
+            if event.type == .mouseMoved {
+                let prevID = current.activeDisplayID
+                current.updateHover(at: current.topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation))
+                if current.activeDisplayID != prevID { self.panelByDisplayID[current.activeDisplayID]?.makeKey() }
+                return event
+            }
             if event.type == .rightMouseDown {
-                if current.selectionRect != nil { current.selectionRect = nil } else { self.cancelCapture() }
+                if current.selectionRect != nil {
+                    current.selectionRect = nil; current.selectedWindow = nil
+                    current.updateHover(at: current.topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation))
+                } else {
+                    self.cancelCapture()
+                }
                 return nil
             }
             if event.keyCode == 53 { self.cancelCapture(); return nil }
+            if event.keyCode == 48 && current.selectionRect == nil { _ = current.cycleHoveredWindow(); return nil }
             if (event.keyCode == 36 || event.keyCode == 76), current.selectionRect != nil {
                 self.beginRecordingFromSelection(); return nil
             }
@@ -172,36 +174,50 @@ final class GifCaptureController: ObservableObject {
         guard let session = selectionSession, let sel = session.selectionRect?.standardized, sel.width >= 12, sel.height >= 12 else { return }
         options = session.options
         let appKitRegion = session.appKitScreenRect(for: sel)
-        let displayID = session.displayID, scale = session.backingScale, screenFrame = session.appKitScreenFrame
+        let targetSlice = session.topology.targetSlice(forSelection: sel, fallbackPoint: session.cursorPoint) ?? session.topology.displays[0]
+        let lockedWindowID = session.selectedWindow?.id
+        let cgUnion = session.topology.cgUnionBounds
+        let displaySpecs = session.topology.displays.map { (scDisplay: $0.scDisplay, canvasFrame: $0.canvasFrame, scale: $0.scale) }
+        let outDims = session.outputDimensions(for: sel)
 
-        closeSelectionPanel()
+        closeSelectionPanels()
         elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0
         phase = .recording(isPaused: false)
-        hudPanel = GifHUDPanel.present(near: appKitRegion, screenFrame: screenFrame, controller: self)
+        hudPanel = GifHUDPanel.present(near: appKitRegion, screenFrame: targetSlice.appKitScreen.frame, controller: self)
 
         let encoder = GifStreamEncoder(options: options)
         activeEncoder = encoder
         let hudWinID = hudPanel.map { CGWindowID($0.windowNumber) }
         captureTask = Task { [weak self] in
-            await self?.runCaptureLoop(displayID: displayID, sourceRect: sel, scale: scale, hudWindowID: hudWinID, encoder: encoder)
+            await self?.runCaptureLoop(
+                canvasRect: sel, lockedWindowID: lockedWindowID, cgUnion: cgUnion,
+                displaySpecs: displaySpecs, outputSize: outDims, hudWindowID: hudWinID, encoder: encoder
+            )
         }
     }
 
-    private func runCaptureLoop(displayID: CGDirectDisplayID, sourceRect: CGRect, scale: CGFloat, hudWindowID: CGWindowID?, encoder: GifStreamEncoder) async {
-        guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false),
-              let scDisplay = content.displays.first(where: { $0.displayID == displayID }) ?? content.displays.first else {
+    private func runCaptureLoop(
+        canvasRect: CGRect,
+        lockedWindowID: CGWindowID?,
+        cgUnion: CGRect,
+        displaySpecs: [(scDisplay: SCDisplay, canvasFrame: CGRect, scale: CGFloat)],
+        outputSize: (Int, Int),
+        hudWindowID: CGWindowID?,
+        encoder: GifStreamEncoder
+    ) async {
+        guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false) else {
             cancelCapture(); return
         }
         let excluded = content.windows.filter { hudWindowID != nil && $0.windowID == hudWindowID }
-        let filter = SCContentFilter(display: scDisplay, excludingWindows: excluded)
-        let (capW, capH) = GifStreamEncoder.scaledDimensions(
-            width: max(2, Int((sourceRect.width * scale).rounded())),
-            height: max(2, Int((sourceRect.height * scale).rounded())),
-            maxDimension: options.maxDimension
-        )
-        let config = SCStreamConfiguration()
-        config.sourceRect = sourceRect; config.width = capW; config.height = capH
-        config.showsCursor = options.showsCursor; config.scalesToFit = true
+        let singleWindowFilter: SCContentFilter? = lockedWindowID.flatMap { wid in
+            content.windows.first(where: { $0.windowID == wid }).map { SCContentFilter(desktopIndependentWindow: $0) }
+        }
+        let singleDisplayMatch = displaySpecs.first { $0.canvasFrame.insetBy(dx: -0.5, dy: -0.5).contains(canvasRect) }
+        let singleDisplayFilter: (SCContentFilter, CGRect)? = singleDisplayMatch.flatMap { spec in
+            guard let liveDisp = content.displays.first(where: { $0.displayID == spec.scDisplay.displayID }) else { return nil }
+            let localSrc = canvasRect.offsetBy(dx: -spec.canvasFrame.minX, dy: -spec.canvasFrame.minY)
+            return (SCContentFilter(display: liveDisp, excludingWindows: excluded), localSrc)
+        }
 
         let nominal = options.frameIntervalSeconds
         var lastUptime: TimeInterval?
@@ -210,7 +226,30 @@ final class GifCaptureController: ObservableObject {
             guard case .recording(let isPaused) = phase else { break }
             if isPaused { lastUptime = nil; try? await Task.sleep(for: .milliseconds(80)); continue }
             let tickStart = ProcessInfo.processInfo.systemUptime
-            guard let frame = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config), !Task.isCancelled else {
+
+            let frame: CGImage?
+            if let winFilter = singleWindowFilter {
+                let cfg = SCStreamConfiguration()
+                cfg.width = outputSize.0; cfg.height = outputSize.1
+                cfg.showsCursor = options.showsCursor; cfg.scalesToFit = true; cfg.ignoreShadowsSingleWindow = true
+                frame = try? await SCScreenshotManager.captureImage(contentFilter: winFilter, configuration: cfg)
+            } else if let (dispFilter, localSrc) = singleDisplayFilter {
+                let cfg = SCStreamConfiguration()
+                cfg.sourceRect = localSrc; cfg.width = outputSize.0; cfg.height = outputSize.1
+                cfg.showsCursor = options.showsCursor; cfg.scalesToFit = true
+                frame = try? await SCScreenshotManager.captureImage(contentFilter: dispFilter, configuration: cfg)
+            } else {
+                let liveSpecs = displaySpecs.compactMap { spec -> (SCDisplay, CGRect, CGFloat)? in
+                    guard let live = content.displays.first(where: { $0.displayID == spec.scDisplay.displayID }) else { return nil }
+                    return (live, spec.canvasFrame, spec.scale)
+                }
+                frame = await ScreenTopologyAndWindowMatcher.captureCrossDisplayRegion(
+                    canvasRect: canvasRect, cgUnionBounds: cgUnion, displays: liveSpecs,
+                    excludedWindows: excluded, showsCursor: options.showsCursor, outputSize: outputSize
+                )
+            }
+
+            guard let frame, !Task.isCancelled else {
                 try? await Task.sleep(for: .milliseconds(40)); continue
             }
             guard case .recording(let pausedAfter) = phase, !pausedAfter else { lastUptime = nil; continue }
@@ -230,19 +269,28 @@ final class GifCaptureController: ObservableObject {
         }
     }
 
-    private func closeSelectionPanel() {
+    private func closeSelectionPanels() {
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor); keyMonitor = nil }
-        selectionPanel?.orderOut(nil); selectionPanel?.contentView = nil; selectionPanel = nil
+        for p in selectionPanels { p.orderOut(nil); p.contentView = nil }
+        selectionPanels.removeAll(); panelByDisplayID.removeAll()
         selectionSession = nil
     }
 
-    private func cleanupAllResources(discardEncoder: Bool) {
+    private func cleanupAllResources(discardEncoder: Bool, animatedHUD: Bool) {
         captureTask?.cancel(); captureTask = nil
-        closeSelectionPanel()
+        closeSelectionPanels()
         if discardEncoder { activeEncoder?.discard() }
         activeEncoder = nil
-        hudPanel?.orderOut(nil); hudPanel?.contentView = nil; hudPanel = nil
+        if let closingHUD = hudPanel {
+            hudPanel = nil
+            if animatedHUD && closingHUD.isVisible {
+                WindowMotionAnimator.dismiss(closingHUD, style: .dynamicIsland) { [weak closingHUD] in
+                    closingHUD?.contentView = nil; MemoryStats.reclaimFreeHeapPages()
+                }
+            } else {
+                closingHUD.orderOut(nil); closingHUD.contentView = nil; MemoryStats.reclaimFreeHeapPages()
+            }
+        }
         elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0
-        MemoryStats.reclaimFreeHeapPages()
     }
 }

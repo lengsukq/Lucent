@@ -25,7 +25,7 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
         state.config = SystemMonitorConfig.load()
         state.isTuckedToEdge = (state.config.displayMode == .edgeAutoHide && state.config.dockedEdge != .none)
         syncSamplingLoop()
-        if state.config.floatingEnabled { showPanel(animate: false) }
+        if state.config.floatingEnabled { showPanel(animate: true) }
     }
 
     func toggleFloatingWidget() {
@@ -34,7 +34,7 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
             state.isPinnedExpanded = false; state.isHovered = false
             syncSamplingLoop(); showPanel(animate: true)
         } else {
-            hidePanel(); syncSamplingLoop()
+            hidePanel(animate: true); syncSamplingLoop()
         }
     }
 
@@ -87,10 +87,7 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
 
     private func presentWithSavedConfig(openIfDisabled: Bool) {
         if !state.config.floatingEnabled {
-            guard openIfDisabled else {
-                state.config.save()
-                return
-            }
+            guard openIfDisabled else { state.config.save(); return }
             state.config.floatingEnabled = true; state.config.save()
             syncSamplingLoop(); showPanel(animate: true)
         } else {
@@ -139,7 +136,7 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
 
     func shutdown() {
         sampleTask?.cancel(); sampleTask = nil; hoverExitTask?.cancel(); hoverExitTask = nil
-        dragSettleTask?.cancel(); dragSettleTask = nil; sampler = nil; hidePanel()
+        dragSettleTask?.cancel(); dragSettleTask = nil; sampler = nil; hidePanel(animate: false)
     }
 
     private func publishMenuBarText(_ text: String?) {
@@ -166,15 +163,31 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
 
     private func showPanel(animate: Bool) {
         let p = ensurePanel()
-        reconcilePresentationState(animate: animate)
-        p.orderFrontRegardless()
+        let wasVisible = p.isVisible
+        reconcilePresentationState(animate: wasVisible && animate)
+        if animate && !wasVisible {
+            WindowMotionAnimator.present(p, style: .pulseCapsule, makeKey: false)
+        } else {
+            p.alphaValue = 1.0
+            p.orderFrontRegardless()
+        }
     }
 
-    private func hidePanel() {
+    private func hidePanel(animate: Bool) {
         dragSettleTask?.cancel(); dragSettleTask = nil
-        panel?.orderOut(nil); panel?.contentView = nil; panel?.delegate = nil
-        panel = nil; glassView = nil; lastAppliedCornerRadius = 0
-        MemoryStats.reclaimFreeHeapPages()
+        guard let closingPanel = panel else { return }
+        if animate && closingPanel.isVisible {
+            WindowMotionAnimator.dismiss(closingPanel, style: .pulseCapsule) { [weak self, weak closingPanel] in
+                guard let self, !self.state.config.floatingEnabled else { return }
+                closingPanel?.contentView = nil; closingPanel?.delegate = nil
+                if self.panel === closingPanel { self.panel = nil; self.glassView = nil; self.lastAppliedCornerRadius = 0 }
+                MemoryStats.reclaimFreeHeapPages()
+            }
+        } else {
+            closingPanel.orderOut(nil); closingPanel.contentView = nil; closingPanel.delegate = nil
+            panel = nil; glassView = nil; lastAppliedCornerRadius = 0
+            MemoryStats.reclaimFreeHeapPages()
+        }
     }
 
     private func ensurePanel() -> KeyableFloatingPanel {
@@ -230,9 +243,16 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
             lastAppliedCornerRadius = radius; glassView?.updateCornerRadius(radius)
         }
         guard !NSEqualRects(panel.frame, targetFrame) else { return }
-        isApplyingFrame = true; defer { isApplyingFrame = false }
-        panel.setFrame(targetFrame, display: true, animate: animate)
-        panel.invalidateShadow()
+        isApplyingFrame = true
+        if animate {
+            WindowMotionAnimator.animateFrame(panel, to: targetFrame, duration: 0.22) { [weak self] in
+                self?.isApplyingFrame = false
+            }
+        } else {
+            panel.setFrame(targetFrame, display: true, animate: false)
+            panel.invalidateShadow()
+            isApplyingFrame = false
+        }
     }
 
     private func targetScreenVisibleFrame() -> NSRect {

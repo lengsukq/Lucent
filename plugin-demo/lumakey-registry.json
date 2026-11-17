@@ -85,7 +85,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "2d1c92f69fe6e30e1f27c94d55c3287757bd97950d3f18d1fd666d3729b06754",
+      "sha256" : "cc93275edaa00dfeafd851df60b5a89992018fb5629fb5019de3a75d9178c78f",
       "sizeBytes" : 20333,
       "version" : "1.0.0"
     },
@@ -166,9 +166,97 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "e4b7d5e4e1c1bc61c25b4ebba86496c79722c9bf5cf51049ed0c5cf2bfa8855f",
+      "sha256" : "55ac1386e586517573e737f853f08b82a3b80af663ff447a69d1ced1dbedb5ec",
       "sizeBytes" : 18291,
       "version" : "2.2.0"
+    },
+    {
+      "accentColor" : "blue",
+      "accepts" : [
+        "file",
+        "directory"
+      ],
+      "author" : "Lumakey Official",
+      "capabilities" : [
+        "systemControl",
+        "clipboard"
+      ],
+      "categoryTag" : "系统控制",
+      "description" : "一站式补齐音量与静音调节、防休眠常亮、16 项系统设置分栏免前缀秒达、外置磁盘一键安全推出、访达当前目录新建文件与运行应用退出管理",
+      "downloadURL" : "./dist/mac-pilot.zip",
+      "id" : "mac-pilot",
+      "keywords" : [
+        "mac",
+        "pilot",
+        "sys",
+        "vol",
+        "eject",
+        "finder",
+        "系统控制",
+        "音量",
+        "推出磁盘",
+        "访达"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "System",
+          "commands" : {
+            "audio-caffeine" : {
+              "subtitle" : "Adjust output volume presets, toggle mute, and control sleep prevention",
+              "title" : "Volume, Mute & Caffeine Console"
+            },
+            "eject-volumes" : {
+              "subtitle" : "Inspect mounted volumes under /Volumes and eject one or all safely",
+              "title" : "Safely Eject External Disks & DMGs"
+            },
+            "finder-actions" : {
+              "subtitle" : "Create blank files in the active Finder folder, copy POSIX path, or open in Terminal",
+              "title" : "Finder Helper: New File / Copy Path / Open Terminal"
+            },
+            "running-apps" : {
+              "subtitle" : "Inspect active foreground/GUI apps sorted by memory and quit cleanly",
+              "title" : "Running Apps Manager (Quit / Force Quit)"
+            },
+            "sleep-mac" : {
+              "subtitle" : "Invoke pmset sleepnow immediately",
+              "title" : "Put Mac to Sleep Immediately"
+            },
+            "system-panes" : {
+              "subtitle" : "Jump straight to Bluetooth, Displays, Sound, Network, Accessibility, or Screen Recording",
+              "title" : "Open macOS System Settings Panes"
+            },
+            "toggle-caffeine" : {
+              "subtitle" : "Prevent or allow idle display & system sleep",
+              "title" : "Toggle Keep-Awake (Caffeine)"
+            },
+            "toggle-mute" : {
+              "subtitle" : "Silently mute or unmute default audio output",
+              "title" : "Toggle System Mute"
+            }
+          },
+          "config" : {
+            "defaultNewFileExt" : {
+              "label" : "Default extension for new Finder files",
+              "section" : "Finder & System"
+            },
+            "syncSettingsPanesToSearch" : {
+              "label" : "Sync macOS System Settings panes into 0ms global search",
+              "section" : "Finder & System"
+            }
+          },
+          "description" : "Volume & mute presets, Caffeine sleep guard, 16 zero-prefix macOS System Settings deep links, safe disk eject, Finder new-file helper & running app manager",
+          "name" : "Mac Pilot · System Controls, Settings & Finder"
+        }
+      },
+      "mode" : "view",
+      "name" : "桌面中控台 · 系统控制、设置直达与访达助手",
+      "resourceScopes" : [
+        "filesystem",
+        "subprocess"
+      ],
+      "sha256" : "c5dd23a260304047f6a9ef3038283b0f29fadad5b8380e1cafd52ef5016e4b2c",
+      "sizeBytes" : 15739,
+      "version" : "1.0.0"
     },
     {
       "accentColor" : "teal",
@@ -247,13 +335,276 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "bfd9c1ac3ba6387fb5df5071da7b8078a374c705b4232bf0be46443107566b11",
+      "sha256" : "c835c39d4345366b3c40132c67050a619f9841e63089ad4ee0e51b66a2583949",
       "sizeBytes" : 24971,
       "version" : "1.4.0"
+    },
+    {
+      "accentColor" : "orange",
+      "accepts" : [
+        "text"
+      ],
+      "author" : "Lumakey Official",
+      "capabilities" : [
+        "audio"
+      ],
+      "categoryTag" : "提醒事项",
+      "description" : "输入「10m 喝水」「18:30 拿快递」「明天 9:00 交周报」秒建提醒，零常驻桥接 macOS 原生提醒事项准点弹窗，支持推迟 10 分钟、周期重复与语音播报",
+      "downloadURL" : "./dist/quick-remind.zip",
+      "id" : "quick-remind",
+      "keywords" : [
+        "rem",
+        "remind",
+        "timer",
+        "alarm",
+        "提醒",
+        "倒计时",
+        "闹钟",
+        "待办"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Reminders",
+          "commands" : {
+            "add-reminder" : {
+              "subtitle" : "Supports '10m stretch', '18:30 pickup', 'tomorrow 09:00 standup', and daily repeats",
+              "title" : "Create Reminder by Natural Phrase"
+            },
+            "clear-completed" : {
+              "subtitle" : "Remove finished items from the local reminder board",
+              "title" : "Clear Completed Reminders"
+            },
+            "list-reminders" : {
+              "subtitle" : "Inspect upcoming & due reminders, snooze, complete, or speak aloud",
+              "title" : "Open Reminders Board (Done / Snooze)"
+            },
+            "pomodoro-25" : {
+              "subtitle" : "Schedule a 25-minute break reminder immediately",
+              "title" : "Start 25-Minute Pomodoro Focus Reminder"
+            }
+          },
+          "config" : {
+            "appleListName" : {
+              "label" : "Target macOS Reminders List Name (blank = default list)",
+              "section" : "Notifications & Sync"
+            },
+            "snoozeMinutes" : {
+              "label" : "Default Snooze Duration (minutes)",
+              "section" : "Notifications & Sync"
+            },
+            "syncAppleReminders" : {
+              "helpText" : "Zero resident daemon required — macOS delivers native alerts on time",
+              "label" : "Sync to native macOS Reminders.app for exact-time system notifications",
+              "section" : "Notifications & Sync"
+            }
+          },
+          "description" : "Create reminders from natural phrases like '10m drink water' or 'tomorrow 9:00 report', synced to native macOS Reminders with zero background daemon overhead",
+          "name" : "Quick Remind · Natural Language Timers & Reminders"
+        }
+      },
+      "mode" : "view",
+      "name" : "闪电提醒 · 一句话倒计时与提醒看板",
+      "resourceScopes" : [
+        "filesystem",
+        "subprocess"
+      ],
+      "sha256" : "18827a3217568bef00e7c73cb3658ec34319f6f967e291e1257c25bcc1b64b4d",
+      "sizeBytes" : 12906,
+      "version" : "1.0.0"
+    },
+    {
+      "accentColor" : "teal",
+      "author" : "Lumakey Official",
+      "capabilities" : [
+        "systemControl"
+      ],
+      "categoryTag" : "状态屏",
+      "description" : "一键盖住全部显示器展示「清洁屏幕」「任务运行中 · 请勿触碰」「马上回来」或自定义告示，同时临时拦截键盘与滚轮防误触，按住 Esc 2 秒安全退出",
+      "downloadURL" : "./dist/screen-shield.zip",
+      "id" : "screen-shield",
+      "keywords" : [
+        "shield",
+        "clean",
+        "brb",
+        "busy",
+        "状态屏",
+        "清洁屏幕",
+        "擦键盘",
+        "勿碰",
+        "马上回来"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Status Screen",
+          "commands" : {
+            "shield-brb" : {
+              "subtitle" : "Show an away banner across all screens while stepping away",
+              "title" : "Activate '☕ Be Right Back' Shield"
+            },
+            "shield-busy" : {
+              "subtitle" : "Keep Mac awake and display a fullscreen do-not-disturb notice",
+              "title" : "Activate '⚡ Task Running · Do Not Touch' Shield"
+            },
+            "shield-clean" : {
+              "subtitle" : "Cover displays and block accidental key presses while wiping screen or keyboard",
+              "title" : "Activate '🧹 Cleaning Screen & Keyboard' Shield"
+            },
+            "shield-custom" : {
+              "subtitle" : "Pass a one-off banner message or use your saved custom preset",
+              "title" : "Activate Custom Message Status Screen"
+            },
+            "shield-dismiss" : {
+              "subtitle" : "Close all status screen overlays and restore previous sleep/audio state",
+              "title" : "Dismiss Active Status Screen"
+            }
+          },
+          "config" : {
+            "blockInput" : {
+              "label" : "Block keyboard & scroll input while shield is active (requires Accessibility)",
+              "section" : "Shield & Exit Behavior"
+            },
+            "customIcon" : {
+              "label" : "Custom Status Emoji / Icon",
+              "section" : "Custom Preset"
+            },
+            "customSubtitle" : {
+              "label" : "Custom Status Subtitle",
+              "section" : "Custom Preset"
+            },
+            "customTitle" : {
+              "label" : "Custom Status Title",
+              "section" : "Custom Preset"
+            },
+            "holdSeconds" : {
+              "label" : "Seconds to hold Esc to exit",
+              "section" : "Shield & Exit Behavior"
+            },
+            "keepAwake" : {
+              "label" : "Keep Mac awake while shield is active (restores on exit)",
+              "section" : "Shield & Exit Behavior"
+            },
+            "muteAudio" : {
+              "label" : "Mute system audio while shield is active (restores on exit)",
+              "section" : "Shield & Exit Behavior"
+            }
+          },
+          "description" : "Cover all displays with 'Cleaning Screen', 'Task Running · Do Not Touch', 'Be Right Back', or custom notices while blocking accidental keyboard/mouse touches (Hold Esc 2s to exit)",
+          "name" : "Screen Shield · Clean Screen & Do-Not-Touch"
+        }
+      },
+      "mode" : "view",
+      "name" : "状态屏 · 清洁屏幕与暂离防误触遮罩",
+      "resourceScopes" : [
+        "filesystem"
+      ],
+      "sha256" : "60822d8ad0f73dfb87c82f317d302d2961d2c5476bd0834e8067e443ba8706d5",
+      "sizeBytes" : 10694,
+      "version" : "1.0.0"
+    },
+    {
+      "accentColor" : "purple",
+      "accepts" : [
+        "text",
+        "image"
+      ],
+      "author" : "Lumakey Official",
+      "capabilities" : [
+        "selection",
+        "clipboard",
+        "ocr",
+        "audio"
+      ],
+      "categoryTag" : "翻译词典",
+      "description" : "支持跨应用划词即译、截图/图片离线 OCR 翻译、内置免密钥引擎与本地 Ollama 大模型并行、单词词典发音及可导出 Anki 的生词本",
+      "downloadURL" : "./dist/translate-hub.zip",
+      "id" : "translate-hub",
+      "keywords" : [
+        "tr",
+        "fy",
+        "trans",
+        "translate",
+        "dict",
+        "翻译",
+        "划词",
+        "词典",
+        "生词本"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Translate",
+          "commands" : {
+            "clipboard-translate" : {
+              "subtitle" : "Auto-translate current clipboard text between your primary and secondary languages",
+              "title" : "Translate Clipboard Text"
+            },
+            "export-anki" : {
+              "subtitle" : "Export saved vocabulary as Anki-ready TSV flashcards and UTF-8 CSV",
+              "title" : "Export Vocabulary to Anki (.tsv) & CSV"
+            },
+            "input-translate" : {
+              "subtitle" : "Look up single words with phonetics/definitions or translate sentences",
+              "title" : "Input Translate & Dictionary Lookup"
+            },
+            "selection-translate" : {
+              "subtitle" : "Read selected text from the active app (falling back to clipboard) and translate",
+              "title" : "Translate Frontmost Selection"
+            },
+            "translate-history" : {
+              "subtitle" : "Inspect recent translations, copy results, speak aloud, or save to Vocabulary",
+              "title" : "Recent Translation History"
+            },
+            "vocab-book" : {
+              "subtitle" : "Search, speak, or manage saved words with 0ms launcher index sync",
+              "title" : "Browse Vocabulary Book"
+            }
+          },
+          "config" : {
+            "autoCopyResult" : {
+              "label" : "Auto-copy primary translation to clipboard",
+              "section" : "Languages & Behavior"
+            },
+            "enableFreeEngine" : {
+              "label" : "Enable built-in zero-config dictionary & translation",
+              "section" : "Engines & Local LLM"
+            },
+            "exportDir" : {
+              "label" : "Anki TSV & CSV Export Folder",
+              "section" : "Vocabulary & Export"
+            },
+            "llmModel" : {
+              "label" : "Ollama Model Name",
+              "section" : "Engines & Local LLM"
+            },
+            "llmProvider" : {
+              "label" : "Parallel Local LLM Engine (Ollama)",
+              "section" : "Engines & Local LLM"
+            },
+            "primaryLang" : {
+              "label" : "Primary Language",
+              "section" : "Languages & Behavior"
+            },
+            "secondaryLang" : {
+              "label" : "Secondary Language",
+              "section" : "Languages & Behavior"
+            }
+          },
+          "description" : "Cross-app selection & image OCR translation with zero-config built-in engine, local Ollama parallel results, TTS pronunciation & Anki vocabulary export",
+          "name" : "Translate Hub · Selection, OCR & Vocabulary"
+        }
+      },
+      "mode" : "view",
+      "name" : "流光译站 · 划词/截图多源翻译与生词本",
+      "resourceScopes" : [
+        "network",
+        "filesystem"
+      ],
+      "sha256" : "b58a3a56a47fdec3ae5297535a21e52d35524c6068750373370997ded5146fcc",
+      "sizeBytes" : 17679,
+      "version" : "1.0.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lumakey-demo-store",
   "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-17T01:32:35Z"
+  "updatedAt" : "2026-11-17T02:35:13Z"
 }

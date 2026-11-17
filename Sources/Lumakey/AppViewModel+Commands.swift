@@ -23,7 +23,7 @@ extension AppViewModel {
             copyPlainText(match.expandedText, message: "已展开并复制短语：\(match.snippet.title)")
             if !isOverlayPinned { onHideOverlayRequest?() }
         case .fileHit(let hit): executeEverythingHit(hit)
-        case .clipboard(let entry): executeClipboardEntry(entry)
+        case .clipboard(let entry): executeClipboardEntry(entry, autoPaste: true)
         case .plugin(let plugin):
             let queryArg = scopedPluginID == plugin.id
                 ? overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -202,6 +202,15 @@ extension AppViewModel {
                 self.inlineResultBody = text
             }
         case .openVolume(let url): navigate(pane: activePane, to: url); openRoute(.workspace)
+        case .openPath(let url):
+            var isDir: ObjCBool = false
+            _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+            if isDir.boolValue {
+                navigate(pane: activePane, to: url); openRoute(.workspace)
+            } else {
+                let kind = MediaClassifier.classify(url: url, isDirectory: false)
+                openMediaWindow(for: url, kind: kind)
+            }
         case .webSearch(let engine, let url):
             NSWorkspace.shared.open(url)
             serviceMessage = L10n.pick("已在浏览器打开 \(engine)", "Opened \(engine) in browser")

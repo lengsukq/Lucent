@@ -235,6 +235,7 @@ public final class LumaLinkSystemControlService: @unchecked Sendable {
     public func releaseAllGuards() {
         setCaffeine(false)
         setCurtain(false, mute: false)
+        StatusScreenOverlayService.shared.dismiss()
     }
 
     private func defaultOutputDeviceID() -> AudioDeviceID? {

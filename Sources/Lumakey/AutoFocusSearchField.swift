@@ -7,6 +7,7 @@ enum OverlayKeyAction: Sendable {
     case moveDown
     case submit
     case pasteSubmit
+    case plainTextSubmit
     case escape
     case cycleMode
     case deleteBackwardWhenEmpty
@@ -27,6 +28,8 @@ struct AutoFocusSearchField: NSViewRepresentable {
     var onQuickSelectIndex: ((Int) -> Void)? = nil
     var onCopyCandidate: (() -> Void)? = nil
     var onSecondarySubmit: (() -> Void)? = nil
+    var onDeleteCandidate: (() -> Bool)? = nil
+    var onUndoCandidateDelete: (() -> Bool)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -122,14 +125,28 @@ struct AutoFocusSearchField: NSViewRepresentable {
             field: NSTextField,
             window: NSWindow
         ) -> NSEvent? {
+            let editor = window.fieldEditor(false, for: field) as? NSTextView
+            if editor?.hasMarkedText() == true {
+                return event
+            }
             let cleanFlags = flags.subtracting([.numericPad, .function])
             if cleanFlags == .shift && (event.keyCode == 36 || event.keyCode == 76) {
                 parent.onAction(.pasteSubmit)
                 return nil
             }
+            if cleanFlags == .option && (event.keyCode == 36 || event.keyCode == 76) {
+                parent.onAction(.plainTextSubmit)
+                return nil
+            }
             if cleanFlags == .command && (event.keyCode == 36 || event.keyCode == 76) {
                 if let onSecondarySubmit = parent.onSecondarySubmit {
                     onSecondarySubmit()
+                    return nil
+                }
+                return event
+            }
+            if cleanFlags == .command && event.keyCode == 51 {
+                if parent.onDeleteCandidate?() == true {
                     return nil
                 }
                 return event
@@ -146,12 +163,17 @@ struct AutoFocusSearchField: NSViewRepresentable {
                 }
                 return event
             }
-            guard flags == .command else { return event }
+            guard cleanFlags == .command else { return event }
             switch key {
             case "c":
-                let hasSelection = ((window.fieldEditor(false, for: field) as? NSTextView)?.selectedRange().length ?? 0) > 0
+                let hasSelection = (editor?.selectedRange().length ?? 0) > 0
                 if !hasSelection, let onCopyCandidate = parent.onCopyCandidate {
                     onCopyCandidate()
+                    return nil
+                }
+            case "z":
+                let canTextUndo = !field.stringValue.isEmpty && (editor?.undoManager?.canUndo == true)
+                if !canTextUndo, parent.onUndoCandidateDelete?() == true {
                     return nil
                 }
             case "y":
@@ -184,6 +206,9 @@ struct AutoFocusSearchField: NSViewRepresentable {
         }
 
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if textView.hasMarkedText() {
+                return false
+            }
             switch commandSelector {
             case #selector(NSResponder.moveUp(_:)):
                 parent.onAction(.moveUp)

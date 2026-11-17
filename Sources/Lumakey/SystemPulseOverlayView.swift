@@ -16,6 +16,12 @@ struct SystemPulseOverlayView: View {
     let onHoverChanged: (Bool) -> Void
     let onDragEnded: () -> Void
 
+    private var presentationVariant: Int {
+        if state.isTuckedToEdge { return 0 }
+        if state.showsFullDashboard { return 2 }
+        return 1
+    }
+
     var body: some View {
         let prefs = SystemDisplayPreferences.shared.snapshot
         let shape = RoundedRectangle(cornerRadius: state.shellCornerRadius, style: .continuous)
@@ -32,7 +38,7 @@ struct SystemPulseOverlayView: View {
                 onToggleMenuBar: onToggleMenuBar,
                 onHide: onHideWidget
             )
-            Group {
+            ZStack {
                 if state.isTuckedToEdge {
                     PulseEdgeTabContentView(
                         isTopStrip: state.config.dockedEdge == .top,
@@ -43,8 +49,10 @@ struct SystemPulseOverlayView: View {
                         netDownShortText: "↓" + SystemTelemetrySnapshot.formatShortRate(s.netDownBytesPerSec)
                     )
                     .equatable()
+                    .transition(.opacity)
                 } else if state.showsFullDashboard {
                     fullDashboardView(s)
+                        .transition(.opacity.combined(with: .scale(scale: 0.97)))
                 } else {
                     PulseCompactPillContentView(
                         cpuFreqText: String(format: "CPU %.0f%% · %.2fGHz", s.cpuTotalPercent, s.estimatedFrequencyGHz),
@@ -53,8 +61,10 @@ struct SystemPulseOverlayView: View {
                         netDownShortText: "↓" + SystemTelemetrySnapshot.formatShortRate(s.netDownBytesPerSec)
                     )
                     .equatable()
+                    .transition(.opacity)
                 }
             }
+            .animation(LiquidMotion.snappySpring, value: presentationVariant)
             .allowsHitTesting(state.showsFullDashboard)
         }
         .background(shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.shellTint.opacity(0.65)))

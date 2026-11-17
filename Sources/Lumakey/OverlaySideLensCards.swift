@@ -68,6 +68,9 @@ struct ColorSwatchLensCard: View {
                     let rgbText = "rgb(\(rgb.r), \(rgb.g), \(rgb.b))"
                     colorRow("RGB", rgbText) { onCopyText(rgbText, "已复制 \(rgbText)") }
                 }
+                if let hslText = ClipboardService.hslString(fromHex: hex) {
+                    colorRow("HSL", hslText) { onCopyText(hslText, "已复制 \(hslText)") }
+                }
             }
             .padding(10).liquidGlassCard(cornerRadius: LiquidRadii.row, solidReadable: true)
             Spacer(minLength: 0)
@@ -154,11 +157,22 @@ struct TextClipboardLensCard: View {
 
     var body: some View {
         let payload = clip.textValue ?? clip.fileURL?.path ?? clip.title
+        let lineCount = max(1, payload.components(separatedBy: .newlines).count)
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 LiquidStatusPill(title: clip.payloadKind.badgeTitle, symbol: "doc.text.fill", tint: .cyan)
                 LiquidStatusPill(title: "\(payload.count) 字符", tint: .indigo)
+                if lineCount > 1 {
+                    LiquidStatusPill(title: "\(lineCount) 行", tint: .teal)
+                }
                 Spacer()
+                if !payload.isEmpty {
+                    Button { _ = PluginAudioBridgePlayer.shared.speak(text: String(payload.prefix(800))) } label: {
+                        Image(systemName: "speaker.wave.2.fill")
+                    }
+                    .buttonStyle(GlassPillButtonStyle())
+                    .help(L10n.pick("语音朗读文本", "Speak text aloud"))
+                }
                 if !payload.isEmpty && payload.count <= 280 {
                     Button(mode.showQRCode ? "文本" : "二维码") { mode.showQRCode.toggle() }.buttonStyle(GlassPillButtonStyle())
                 }

@@ -49,7 +49,7 @@ extension PluginStarterGallery {
         scriptBody: #"""
         #!/bin/zsh
         set -euo pipefail
-        exec /usr/bin/python3 - "$@" <<'PY'
+        PY_CODE="$(cat <<'PY'
         import json, os, re, signal, subprocess, sys, time
 
         DEV_PORTS = {3000, 3001, 4000, 4200, 5000, 5173, 5174, 5432, 6379, 8000, 8080, 8081, 8888, 9000, 27017}
@@ -215,6 +215,8 @@ extension PluginStarterGallery {
             out["effect"] = {"toast": toast_msg}
         print(json.dumps(out, ensure_ascii=False))
         PY
+        )"
+        exec /usr/bin/python3 -c "$PY_CODE" "$@"
         """#
     )
 }

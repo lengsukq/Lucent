@@ -22,7 +22,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .ocr: L10n.pick("离线 Vision OCR", "Offline Vision OCR")
         case .everythingSearch: L10n.pick("全盘文件索引检索", "Disk File Index Search")
         case .displayInfo: L10n.pick("显示器与分辨率信息", "Display & Resolution Info")
-        case .systemControl: L10n.pick("系统音量与防休眠控制", "Volume & Caffeine Control")
+        case .systemControl: L10n.pick("系统控制与状态屏", "System & Status Screen Control")
         case .lumaLinkStatus: L10n.pick("LumaLink 远控状态", "LumaLink Status")
         }
     }
@@ -35,7 +35,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .ocr: L10n.pick("复用宿主 VisionService 离线识别图片中英文字与条码", "Offline CJK/English OCR & barcode detection via VisionService")
         case .everythingSearch: L10n.pick("复用宿主内存索引按 DSL 极速检索全盘与外置盘文件", "Query the in-memory file index across local & external drives")
         case .displayInfo: L10n.pick("读取活跃显示器列表、当前模式与支持的分辨率", "Inspect active displays, current modes & supported resolutions")
-        case .systemControl: L10n.pick("读取音量/静音/防休眠状态并执行安全级调节", "Inspect and adjust system volume, mute & sleep-prevention")
+        case .systemControl: L10n.pick("调节系统音量/静音/防休眠与全屏状态屏告示遮罩", "Adjust volume, mute, sleep-prevention & fullscreen status screen shield")
         case .lumaLinkStatus: L10n.pick("读取 LumaLink 监听端口、连接数与 RDP 引擎状态（脱敏）", "Read redacted LumaLink port, connection count & RDP state")
         }
     }

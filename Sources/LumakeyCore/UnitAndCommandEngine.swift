@@ -37,6 +37,7 @@ public enum SystemCommandKind: Sendable, Hashable {
     case reclaimMemory
     case inspectPort(Int)
     case openVolume(URL)
+    case openPath(URL)
     case webSearch(engine: String, url: URL)
 }
 
@@ -52,10 +53,7 @@ public struct CommandSuggestion: Identifiable, Sendable, Hashable {
 
 public enum UnitAndCommandEngine {
     public static func evaluate(_ raw: String) -> UnitConversionResult? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        if let base = evaluateBaseConversion(trimmed) { return base }
-        return evaluateUnitConversion(trimmed)
+        UnitConversionCatalog.evaluate(raw)
     }
 
     public static func matchCommands(query: String, volumes: [VolumeSummary]) -> [CommandSuggestion] {
@@ -72,6 +70,28 @@ public enum UnitAndCommandEngine {
         }
 
         var items: [CommandSuggestion] = []
+        if let directPath = resolveDirectLocalPath(trimmed) {
+            items.append(CommandSuggestion(
+                id: "cmd:path:\(directPath.path)",
+                score: 9_680,
+                title: L10n.pick("直接打开路径：\(directPath.lastPathComponent)", "Open Path: \(directPath.lastPathComponent)"),
+                subtitle: directPath.path,
+                badgeLabel: L10n.pick("路径", "Path"),
+                symbol: "folder.badge.gearshape",
+                command: .openPath(directPath)
+            ))
+        } else if let directURL = resolveDirectWebURL(trimmed) {
+            items.append(CommandSuggestion(
+                id: "cmd:url:\(directURL.absoluteString)",
+                score: 9_650,
+                title: L10n.pick("在浏览器打开 \(directURL.host ?? trimmed)", "Open \(directURL.host ?? trimmed) in Browser"),
+                subtitle: directURL.absoluteString,
+                badgeLabel: "URL",
+                symbol: "safari.fill",
+                command: .webSearch(engine: directURL.host ?? "URL", url: directURL)
+            ))
+        }
+
         if lower.hasPrefix("port ") {
             let arg = lower.dropFirst(5).trimmingCharacters(in: .whitespaces)
             if let port = Int(arg), (1...65_535).contains(port) {
@@ -83,7 +103,12 @@ public enum UnitAndCommandEngine {
             ("g ", "Google", "https://www.google.com/search?q="),
             ("gh ", "GitHub", "https://github.com/search?q="),
             ("bd ", "百度", "https://www.baidu.com/s?wd="),
-            ("bili ", "哔哩哔哩", "https://search.bilibili.com/all?keyword=")
+            ("bili ", "哔哩哔哩", "https://search.bilibili.com/all?keyword="),
+            ("yt ", "YouTube", "https://www.youtube.com/results?search_query="),
+            ("zh ", "知乎", "https://www.zhihu.com/search?type=content&q="),
+            ("ddg ", "DuckDuckGo", "https://duckduckgo.com/?q="),
+            ("so ", "Stack Overflow", "https://stackoverflow.com/search?q="),
+            ("v2 ", "V2EX", "https://www.google.com/search?q=site%3Av2ex.com%2Ft+")
         ]
         for engine in webPrefixes where lower.hasPrefix(engine.prefix) {
             let term = String(trimmed.dropFirst(engine.prefix.count)).trimmingCharacters(in: .whitespaces)
@@ -101,7 +126,57 @@ public enum UnitAndCommandEngine {
             }
         }
 
-        let catalog: [(keywords: [String], id: String, title: String, subtitle: String, badge: String, symbol: String, cmd: SystemCommandKind)] = [
+        for item in commandCatalog {
+            let exact = item.keywords.contains(lower)
+            let prefix = lower.count >= 2 && item.keywords.contains(where: { $0.hasPrefix(lower) || lower.hasPrefix($0) })
+            if exact || prefix {
+                items.append(CommandSuggestion(id: "cmd:\(item.id)", score: exact ? 8_600 : 7_200, title: item.title, subtitle: item.subtitle, badgeLabel: item.badge, symbol: item.symbol, command: item.cmd))
+            }
+        }
+        return items
+    }
+
+    public static func inspectListeningPort(_ port: Int) -> String {
+        guard let result = try? ProcessSupervisor.shared.run(
+            executableURL: URL(fileURLWithPath: "/usr/sbin/lsof"),
+            arguments: ["-nP", "-iTCP:\(port)", "-sTCP:LISTEN"],
+            timeoutSeconds: 3.0,
+            maxOutputBytes: 32_768
+        ) else {
+            return L10n.pick("无法运行系统 lsof。", "Failed to invoke /usr/sbin/lsof.")
+        }
+        if result.timedOut {
+            return L10n.pick("lsof 查询端口 \(port) 超时并已被自动终止。", "lsof query on port \(port) timed out and was terminated.")
+        }
+        let out = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        return out.isEmpty ? L10n.pick("端口 \(port) 当前无监听进程。", "No TCP LISTEN process found on port \(port).") : out
+    }
+
+    private static func resolveDirectLocalPath(_ raw: String) -> URL? {
+        guard raw.hasPrefix("~/") || raw == "~" || raw.hasPrefix("/") else { return nil }
+        let expanded = (raw as NSString).expandingTildeInPath
+        let url = URL(fileURLWithPath: expanded).standardizedFileURL
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private static func resolveDirectWebURL(_ raw: String) -> URL? {
+        guard !raw.contains(where: \.isWhitespace) else { return nil }
+        if raw.lowercased().hasPrefix("http://") || raw.lowercased().hasPrefix("https://") {
+            guard let u = URL(string: raw), let h = u.host, h.contains(".") || h == "localhost" else { return nil }
+            return u
+        }
+        if raw.contains("."), !raw.hasPrefix("."), !raw.hasSuffix("."),
+           raw.range(of: #"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+(:[0-9]{1,5})?(/.*)?$"#, options: .regularExpression) != nil {
+            let suffix = raw.split(separator: "/").first?.split(separator: ".").last?.lowercased() ?? ""
+            let fileExts: Set<String> = ["swift", "py", "js", "ts", "md", "txt", "json", "png", "jpg", "pdf", "zip", "dmg", "mp4", "mov"]
+            guard !fileExts.contains(suffix) else { return nil }
+            return URL(string: "https://" + raw)
+        }
+        return nil
+    }
+
+    private static var commandCatalog: [(keywords: [String], id: String, title: String, subtitle: String, badge: String, symbol: String, cmd: SystemCommandKind)] {
+        [
             (["lock", "锁屏", "suoping"], "lock", L10n.pick("锁定屏幕", "Lock Screen"), L10n.pick("立即锁定当前 macOS 会话", "Lock the current macOS session immediately"), L10n.pick("系统", "System"), "lock.fill", .lockScreen),
             (["trash", "废纸篓", "feizhilou"], "trash", L10n.pick("打开废纸篓", "Open Trash"), L10n.pick("在访达中查看废纸篓内容", "Reveal Trash in Finder"), L10n.pick("系统", "System"), "trash", .openTrash),
             (["emptytrash", "清空废纸篓"], "emptytrash", L10n.pick("清空废纸篓", "Empty Trash"), L10n.pick("通过系统访达执行清空（需确认）", "Empty Trash via Finder (with confirmation)"), L10n.pick("系统", "System"), "trash.slash.fill", .emptyTrash),
@@ -131,103 +206,5 @@ public enum UnitAndCommandEngine {
             (["memory", "mem", "内存", "释放内存", "gc"], "reclaim-mem", L10n.pick("立即释放空闲内存与子进程", "Free Idle Memory & Subprocesses"), L10n.pick("卸载空闲索引并回收可释放堆内存页", "Unload idle file index & reclaim free heap pages"), L10n.pick("内存", "Memory"), "memorychip", .reclaimMemory),
             (["welcome", "引导", "help"], "welcome", L10n.pick("打开欢迎引导页", "Open Welcome Guide"), L10n.pick("查看全部快捷能力概览", "View quick overview of all features"), L10n.pick("引导", "Guide"), "sparkles", .openWelcome)
         ]
-        for item in catalog {
-            let exact = item.keywords.contains(lower)
-            let prefix = lower.count >= 2 && item.keywords.contains(where: { $0.hasPrefix(lower) || lower.hasPrefix($0) })
-            if exact || prefix {
-                items.append(CommandSuggestion(id: "cmd:\(item.id)", score: exact ? 8_600 : 7_200, title: item.title, subtitle: item.subtitle, badgeLabel: item.badge, symbol: item.symbol, command: item.cmd))
-            }
-        }
-        return items
-    }
-
-    public static func inspectListeningPort(_ port: Int) -> String {
-        guard let result = try? ProcessSupervisor.shared.run(
-            executableURL: URL(fileURLWithPath: "/usr/sbin/lsof"),
-            arguments: ["-nP", "-iTCP:\(port)", "-sTCP:LISTEN"],
-            timeoutSeconds: 3.0,
-            maxOutputBytes: 32_768
-        ) else {
-            return L10n.pick("无法运行系统 lsof。", "Failed to invoke /usr/sbin/lsof.")
-        }
-        if result.timedOut {
-            return L10n.pick("lsof 查询端口 \(port) 超时并已被自动终止。", "lsof query on port \(port) timed out and was terminated.")
-        }
-        let out = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        return out.isEmpty ? L10n.pick("端口 \(port) 当前无监听进程。", "No TCP LISTEN process found on port \(port).") : out
-    }
-
-    private static func evaluateBaseConversion(_ trimmed: String) -> UnitConversionResult? {
-        let normalized = trimmed.lowercased()
-            .replacingOccurrences(of: " 转 ", with: " to ")
-            .replacingOccurrences(of: " in ", with: " to ")
-        let parts = normalized.components(separatedBy: " to ")
-        guard parts.count == 2 else { return nil }
-        let lhs = parts[0].trimmingCharacters(in: .whitespaces)
-        let target = parts[1].trimmingCharacters(in: .whitespaces)
-        let number: Int64? = lhs.hasPrefix("0x") ? Int64(lhs.dropFirst(2), radix: 16) : Int64(lhs)
-        guard let number else { return nil }
-        let badge = L10n.pick("进制", "Base")
-        switch target {
-        case "hex", "16": return UnitConversionResult(expression: trimmed, resultText: "0x" + String(number, radix: 16, uppercase: true), badgeLabel: badge)
-        case "bin", "2": return UnitConversionResult(expression: trimmed, resultText: "0b" + String(number, radix: 2), badgeLabel: badge)
-        case "oct", "8": return UnitConversionResult(expression: trimmed, resultText: "0o" + String(number, radix: 8), badgeLabel: badge)
-        case "dec", "10": return UnitConversionResult(expression: trimmed, resultText: String(number), badgeLabel: badge)
-        default: return nil
-        }
-    }
-
-    private static func evaluateUnitConversion(_ trimmed: String) -> UnitConversionResult? {
-        let normalized = trimmed.lowercased()
-            .replacingOccurrences(of: " 转 ", with: " to ")
-            .replacingOccurrences(of: " in ", with: " to ")
-        let parts = normalized.components(separatedBy: " to ")
-        guard parts.count == 2 else { return nil }
-        let lhsTokens = parts[0].split(whereSeparator: \.isWhitespace).map(String.init)
-        guard lhsTokens.count == 2, let value = Double(lhsTokens[0]) else { return nil }
-        let u1 = lhsTokens[1], u2 = parts[1].trimmingCharacters(in: .whitespaces)
-
-        if let a = lengthUnit(u1), let b = lengthUnit(u2) {
-            return formatMeasurement(Measurement(value: value, unit: a).converted(to: b).value, unitLabel: u2, expr: trimmed)
-        }
-        if let a = massUnit(u1), let b = massUnit(u2) {
-            return formatMeasurement(Measurement(value: value, unit: a).converted(to: b).value, unitLabel: u2, expr: trimmed)
-        }
-        if let a = dataUnit(u1), let b = dataUnit(u2) {
-            return formatMeasurement(Measurement(value: value, unit: a.unit).converted(to: b.unit).value, unitLabel: b.label, expr: trimmed)
-        }
-        if let a = tempUnit(u1), let b = tempUnit(u2) {
-            return formatMeasurement(Measurement(value: value, unit: a.unit).converted(to: b.unit).value, unitLabel: b.label, expr: trimmed)
-        }
-        return nil
-    }
-
-    private static func formatMeasurement(_ val: Double, unitLabel: String, expr: String) -> UnitConversionResult {
-        let num = val.rounded() == val && abs(val) < 1e9 ? String(Int64(val)) : String(format: "%.4g", val)
-        return UnitConversionResult(expression: expr, resultText: "\(num) \(unitLabel)", badgeLabel: L10n.pick("换算", "Unit"))
-    }
-
-    private static func lengthUnit(_ s: String) -> UnitLength? {
-        ["km": .kilometers, "m": .meters, "cm": .centimeters, "mm": .millimeters, "mi": .miles, "ft": .feet, "in": .inches][s]
-    }
-    private static func massUnit(_ s: String) -> UnitMass? {
-        ["kg": .kilograms, "g": .grams, "lb": .pounds, "oz": .ounces][s]
-    }
-    private static func dataUnit(_ s: String) -> (unit: UnitInformationStorage, label: String)? {
-        switch s {
-        case "tb": (.tebibytes, "TB")
-        case "gb": (.gibibytes, "GB")
-        case "mb": (.mebibytes, "MB")
-        case "kb": (.kibibytes, "KB")
-        default: nil
-        }
-    }
-    private static func tempUnit(_ s: String) -> (unit: UnitTemperature, label: String)? {
-        switch s {
-        case "c", "°c", "摄氏度": (.celsius, "°C")
-        case "f", "°f", "华氏度": (.fahrenheit, "°F")
-        case "k", "K": (.kelvin, "K")
-        default: nil
-        }
     }
 }

@@ -17,13 +17,6 @@ enum ScreenshotResult: Sendable {
     case cancelled
 }
 
-struct DetectedScreenWindow: Identifiable, Sendable {
-    let id: CGWindowID
-    let ownerName: String
-    let title: String
-    let frame: CGRect
-}
-
 enum SelectionHandle: CaseIterable {
     case topLeft, top, topRight, right, bottomRight, bottom, bottomLeft, left
 
@@ -51,22 +44,31 @@ enum ScreenshotDragMode {
 
 @MainActor
 final class ScreenshotSessionState: ObservableObject {
-    let baseImage: CGImage
+    let topology: ScreenTopologySnapshot
     let pixelatedImage: CGImage?
-    let screenBounds: CGRect
-    let appKitScreenFrame: NSRect
-    let windows: [DetectedScreenWindow]
     let mode: ScreenshotMode
+    let previousSelectionRect: CGRect?
 
+    var baseImage: CGImage { topology.baseImage }
+    var screenBounds: CGRect { topology.canvasBounds }
+    var windows: [DetectedScreenWindow] { topology.windows }
+
+    @Published var activeDisplayID: CGDirectDisplayID
     @Published var selectionRect: CGRect?
-    @Published var hoveredWindowRect: CGRect?
+    @Published var hoveredWindow: DetectedScreenWindow?
+    @Published var overlappingWindowCount: Int = 0
+    @Published var windowCycleIndex: Int = 0
+    @Published var selectedWindow: DetectedScreenWindow?
+    @Published var excludeWindowShadow: Bool = false
     @Published var cursorPoint: CGPoint
     @Published var cursorHex: String = "#000000"
+    @Published var cursorRGB: String = "rgb(0, 0, 0)"
     @Published var isDraggingSelection: Bool = false
     @Published var activeTool: AnnotationToolKind = .move
     @Published var selectedColor: AnnotationRGBColor = AnnotationRGBColor.presets[0]
     @Published var strokeSize: AnnotationStrokeSize = .medium
     @Published var annotations: [ScreenshotAnnotation] = []
+    @Published var redoStack: [ScreenshotAnnotation] = []
     @Published var draftAnnotation: ScreenshotAnnotation?
     @Published var nextCounterIndex: Int = 1
     @Published var pendingTextPoint: CGPoint?
@@ -74,42 +76,93 @@ final class ScreenshotSessionState: ObservableObject {
     @Published var bannerMessage: String?
     @Published var hasAutoCopied: Bool = false
 
+    var hoveredWindowRect: CGRect? { hoveredWindow?.frame }
+
     var backingScale: CGFloat {
-        guard screenBounds.width > 0 else { return 2.0 }
+        guard screenBounds.width > 0 else { return topology.maxScale }
         return max(1.0, CGFloat(baseImage.width) / screenBounds.width)
     }
 
     var activeDragMode: ScreenshotDragMode?
     var lastTapTimestamp: TimeInterval = 0
     var lastTapPoint: CGPoint = .zero
+    private var lastTopHitWindowID: CGWindowID?
 
-    init(baseImage: CGImage, screenBounds: CGRect, appKitScreenFrame: NSRect, windows: [DetectedScreenWindow], mode: ScreenshotMode) {
-        self.baseImage = baseImage
-        self.pixelatedImage = ScreenshotCompositor.makePixelatedPreview(from: baseImage, cellPixelSize: 16)
-        self.screenBounds = screenBounds
-        self.appKitScreenFrame = appKitScreenFrame
-        self.windows = windows
+    init(
+        topology: ScreenTopologySnapshot,
+        initialCursorCanvasPoint: CGPoint,
+        mode: ScreenshotMode,
+        previousSelectionRect: CGRect? = nil
+    ) {
+        self.topology = topology
+        self.pixelatedImage = ScreenshotCompositor.makePixelatedPreview(from: topology.baseImage, cellPixelSize: 16)
         self.mode = mode
-        let center = CGPoint(x: screenBounds.midX, y: screenBounds.midY)
-        self.cursorPoint = center
-        self.cursorHex = ScreenshotCompositor.samplePixelColor(in: baseImage, point: center, screenBounds: screenBounds)
+        self.previousSelectionRect = previousSelectionRect
+        let clampedPt = CGPoint(
+            x: min(max(0, initialCursorCanvasPoint.x), topology.canvasBounds.width),
+            y: min(max(0, initialCursorCanvasPoint.y), topology.canvasBounds.height)
+        )
+        self.cursorPoint = clampedPt
+        self.activeDisplayID = topology.displaySlice(containingCanvasPoint: clampedPt)?.displayID
+            ?? topology.displays.first?.displayID ?? CGMainDisplayID()
+        self.cursorHex = ScreenshotCompositor.samplePixelColor(in: topology.baseImage, point: clampedPt, screenBounds: topology.canvasBounds)
+        self.cursorRGB = ScreenshotCompositor.samplePixelRGBString(in: topology.baseImage, point: clampedPt, screenBounds: topology.canvasBounds)
+        updateHover(at: clampedPt)
     }
 
     func updateHover(at point: CGPoint) {
         cursorPoint = point
+        if let slice = topology.displaySlice(containingCanvasPoint: point), slice.displayID != activeDisplayID {
+            activeDisplayID = slice.displayID
+        }
         cursorHex = ScreenshotCompositor.samplePixelColor(in: baseImage, point: point, screenBounds: screenBounds)
+        cursorRGB = ScreenshotCompositor.samplePixelRGBString(in: baseImage, point: point, screenBounds: screenBounds)
         guard selectionRect == nil else {
-            hoveredWindowRect = nil
+            hoveredWindow = nil
+            overlappingWindowCount = 0
             return
         }
-        hoveredWindowRect = windows.first(where: { $0.frame.contains(point) })?.frame
+        let hits = windows.filter { $0.frame.contains(point) }
+        overlappingWindowCount = hits.count
+        if hits.first?.id != lastTopHitWindowID {
+            lastTopHitWindowID = hits.first?.id
+            windowCycleIndex = 0
+        }
+        hoveredWindow = hits.isEmpty ? nil : hits[windowCycleIndex % hits.count]
+    }
+
+    @discardableResult
+    func cycleHoveredWindow() -> Bool {
+        guard selectionRect == nil else { return false }
+        let hits = windows.filter { $0.frame.contains(cursorPoint) }
+        guard hits.count >= 2 else { return false }
+        windowCycleIndex = (windowCycleIndex + 1) % hits.count
+        let picked = hits[windowCycleIndex]
+        hoveredWindow = picked
+        bannerMessage = L10n.pick(
+            "窗口层级 \(windowCycleIndex + 1)/\(hits.count)：\(picked.displayLabel)",
+            "Window \(windowCycleIndex + 1)/\(hits.count): \(picked.displayLabel)"
+        )
+        return true
+    }
+
+    func selectWindow(_ window: DetectedScreenWindow, excludeShadow: Bool) {
+        selectedWindow = window
+        excludeWindowShadow = excludeShadow
+        selectionRect = window.frame
+        hoveredWindow = nil
+    }
+
+    func appendAnnotation(_ item: ScreenshotAnnotation) {
+        redoStack.removeAll()
+        annotations.append(item)
     }
 
     func commitTextAnnotation() {
         guard let pt = pendingTextPoint else { return }
         let trimmed = pendingTextValue.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
-            annotations.append(ScreenshotAnnotation(
+            appendAnnotation(ScreenshotAnnotation(
                 tool: .text, color: selectedColor, strokeSize: strokeSize, points: [pt], text: trimmed
             ))
         }
@@ -120,12 +173,18 @@ final class ScreenshotSessionState: ObservableObject {
     func undoAnnotation() {
         guard !annotations.isEmpty else { return }
         let removed = annotations.removeLast()
-        if removed.tool == .counter {
-            nextCounterIndex = max(1, removed.counterIndex)
-        }
+        redoStack.append(removed)
+        if removed.tool == .counter { nextCounterIndex = max(1, removed.counterIndex) }
+    }
+
+    func redoAnnotation() {
+        guard let restored = redoStack.popLast() else { return }
+        annotations.append(restored)
+        if restored.tool == .counter { nextCounterIndex = max(nextCounterIndex, restored.counterIndex + 1) }
     }
 
     func moveSelection(from initial: CGRect, initialAnnotations: [ScreenshotAnnotation], dx: CGFloat, dy: CGFloat) {
+        selectedWindow = nil
         let clampedX = min(max(0, initial.minX + dx), screenBounds.width - initial.width)
         let clampedY = min(max(0, initial.minY + dy), screenBounds.height - initial.height)
         let appliedDX = clampedX - initial.minX
@@ -140,21 +199,21 @@ final class ScreenshotSessionState: ObservableObject {
         }
     }
 
+    @discardableResult
+    func nudgeSelection(dx: CGFloat, dy: CGFloat) -> Bool {
+        guard let rect = selectionRect else { return false }
+        moveSelection(from: rect, initialAnnotations: annotations, dx: dx, dy: dy)
+        return true
+    }
+
     func clearAnnotations() {
-        annotations.removeAll()
-        draftAnnotation = nil
-        pendingTextPoint = nil
-        pendingTextValue = ""
+        annotations.removeAll(); redoStack.removeAll()
+        draftAnnotation = nil; pendingTextPoint = nil; pendingTextValue = ""
         nextCounterIndex = 1
     }
 
     func screenRectForSelection() -> NSRect? {
         guard let rect = selectionRect?.standardized, rect.width >= 4, rect.height >= 4 else { return nil }
-        return NSRect(
-            x: appKitScreenFrame.minX + rect.minX,
-            y: appKitScreenFrame.maxY - rect.maxY,
-            width: rect.width,
-            height: rect.height
-        )
+        return topology.appKitGlobalRect(fromCanvas: rect)
     }
 }

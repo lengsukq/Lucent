@@ -11,6 +11,7 @@ struct OverlayUnifiedRowsView: View {
         let items = viewModel.displayedCandidates
         if items.isEmpty {
             emptyStateCard
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
         } else {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, candidate in
                 let isSelected = index == viewModel.overlaySelectedIndex
@@ -19,7 +20,9 @@ struct OverlayUnifiedRowsView: View {
                         viewModel.selectOverlayCandidate(at: index, userInitiated: true)
                         viewModel.executeCandidate(candidate)
                     } else {
-                        viewModel.selectOverlayCandidate(at: index, userInitiated: true)
+                        withAnimation(LiquidMotion.snappySpring) {
+                            viewModel.selectOverlayCandidate(at: index, userInitiated: true)
+                        }
                     }
                 } label: {
                     HStack(spacing: 12) {
@@ -30,6 +33,8 @@ struct OverlayUnifiedRowsView: View {
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8.5)
                     .overlayRowHighlight(selected: isSelected)
+                    .liquidHoverRow(active: isSelected, cornerRadius: LiquidRadii.row)
+                    .animation(LiquidMotion.snappySpring, value: isSelected)
                 }
                 .buttonStyle(LiquidResultRowButtonStyle())
                 .contextMenu { rowContextMenu(candidate) }

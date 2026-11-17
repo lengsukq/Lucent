@@ -71,9 +71,7 @@ struct PluginStructuredViewCard: View {
 
             if let items = payload.items, !items.isEmpty {
                 VStack(spacing: 6) {
-                    ForEach(items) { item in
-                        itemRow(item)
-                    }
+                    ForEach(items) { item in itemRow(item) }
                 }
             }
 
@@ -117,67 +115,101 @@ struct PluginStructuredViewCard: View {
     }
 
     private func itemRow(_ item: PluginViewItem) -> some View {
-        HStack(spacing: 10) {
-            PluginItemLeadingBadge(
-                rawIcon: item.icon,
-                tintColor: item.tintColor,
-                bundleDirectory: bundleDirectory,
-                dataDirectory: dataDirectory,
-                size: 26
-            )
+        let hasCopy = (item.copyText?.isEmpty == false)
+        let hasURL = (item.openURL.flatMap(URL.init(string:)) != nil)
+        let hasCmd = !(item.commandArgs ?? []).isEmpty && onRunCommandArgs != nil
+        let hasActions = !(item.actions ?? []).isEmpty
+        let isTappable = hasCmd || hasURL || hasCopy
+        let showActionStrip = hasCopy || hasURL || hasActions || hasCmd
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(LiquidColors.textPrimary)
-                    .lineLimit(1)
-                if let sub = item.subtitle, !sub.isEmpty {
-                    Text(sub)
-                        .font(.caption2)
-                        .foregroundStyle(LiquidColors.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            Spacer(minLength: 6)
-            if let badge = item.badge, !badge.isEmpty {
-                Text(badge)
-                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(LiquidColors.textSecondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(LiquidColors.pillSurface, in: Capsule())
-            }
-            if let copyText = item.copyText, !copyText.isEmpty {
-                Button(L10n.pick("复制", "Copy")) { copyValue(copyText) }
-                    .buttonStyle(GlassPillButtonStyle(compact: true))
-            }
-            if let rawURL = item.openURL, let url = URL(string: rawURL) {
-                Button(openButtonTitle(for: url)) {
-                    if let onOpenURL { onOpenURL(url) } else { NSWorkspace.shared.open(url) }
-                }
-                .buttonStyle(GlassPillButtonStyle(compact: true))
-            }
-            PluginViewActionButtons(
-                item: item,
-                onRunCommandArgs: onRunCommandArgs,
-                onRequestAction: { action in
-                    if let msg = action.confirmMessage, !msg.isEmpty {
-                        dialogState.pendingConfirmAction = action
-                    } else if let fields = action.promptFields, !fields.isEmpty {
-                        dialogState.pendingPromptAction = action
-                    } else {
-                        onRunCommandArgs?(action.commandArgs)
+        return VStack(alignment: .leading, spacing: 6) {
+            Button { triggerPrimaryItemAction(item) } label: {
+                HStack(alignment: .top, spacing: 9) {
+                    PluginItemLeadingBadge(
+                        rawIcon: item.icon, tintColor: item.tintColor,
+                        bundleDirectory: bundleDirectory, dataDirectory: dataDirectory, size: 26
+                    )
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(LiquidColors.textPrimary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        if let sub = item.subtitle, !sub.isEmpty {
+                            Text(sub)
+                                .font(.caption2)
+                                .foregroundStyle(LiquidColors.textSecondary)
+                                .lineLimit(3)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Spacer(minLength: 4)
+                    if let badge = item.badge, !badge.isEmpty {
+                        Text(badge)
+                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(LiquidColors.textSecondary)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(LiquidColors.pillSurface, in: Capsule())
+                    } else if isTappable && !showActionStrip {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundStyle(LiquidColors.textSecondary)
+                            .padding(.top, 5)
                     }
                 }
-            )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!isTappable)
+
+            if showActionStrip {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        if let copyText = item.copyText, !copyText.isEmpty {
+                            Button(L10n.pick("复制", "Copy")) { copyValue(copyText) }
+                                .buttonStyle(GlassPillButtonStyle(compact: true))
+                        }
+                        if let rawURL = item.openURL, let url = URL(string: rawURL) {
+                            Button(openButtonTitle(for: url)) {
+                                if let onOpenURL { onOpenURL(url) } else { NSWorkspace.shared.open(url) }
+                            }
+                            .buttonStyle(GlassPillButtonStyle(compact: true))
+                        }
+                        PluginViewActionButtons(
+                            item: item,
+                            onRunCommandArgs: onRunCommandArgs,
+                            onRequestAction: { action in
+                                if let msg = action.confirmMessage, !msg.isEmpty {
+                                    dialogState.pendingConfirmAction = action
+                                } else if let fields = action.promptFields, !fields.isEmpty {
+                                    dialogState.pendingPromptAction = action
+                                } else {
+                                    onRunCommandArgs?(action.commandArgs)
+                                }
+                            }
+                        )
+                    }
+                    .padding(.leading, 35)
+                }
+            }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, 7.5)
         .background(LiquidColors.pillSurface.opacity(0.75), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
                 .strokeBorder(LiquidColors.pillBorder, lineWidth: 0.65)
+        }
+    }
+
+    private func triggerPrimaryItemAction(_ item: PluginViewItem) {
+        if let args = item.commandArgs, !args.isEmpty, let onRunCommandArgs {
+            onRunCommandArgs(args)
+        } else if let rawURL = item.openURL, let url = URL(string: rawURL) {
+            if let onOpenURL { onOpenURL(url) } else { NSWorkspace.shared.open(url) }
+        } else if let copyText = item.copyText, !copyText.isEmpty {
+            copyValue(copyText)
         }
     }
 
@@ -223,58 +255,6 @@ struct PluginStructuredViewCard: View {
         } else {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(value, forType: .string)
-        }
-    }
-}
-
-struct PluginStarterGalleryListView: View {
-    let installedIDs: Set<String>
-    let onInstall: (PluginStarterTemplate) -> Void
-    var onOpenSettings: ((String) -> Void)? = nil
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 9) {
-                ForEach(PluginStarterGallery.templates) { tpl in
-                    let installed = installedIDs.contains(tpl.id)
-                    HStack(alignment: .center, spacing: 11) {
-                        SquircleBadge(
-                            symbol: tpl.icon,
-                            topColor: tpl.mode == .view ? .cyan : .indigo,
-                            bottomColor: tpl.mode == .view ? .blue : .purple,
-                            size: 36
-                        )
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text(L10n.translate(tpl.name)).font(.caption.weight(.bold)).foregroundStyle(LiquidColors.textPrimary)
-                                if !tpl.capabilities.isEmpty {
-                                    Text("Host Bridge")
-                                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                                        .foregroundStyle(.mint)
-                                        .padding(.horizontal, 6).padding(.vertical, 1.5)
-                                        .background(LiquidColors.pillSurface, in: Capsule())
-                                }
-                            }
-                            Text(L10n.translate(tpl.description))
-                                .font(.caption2)
-                                .foregroundStyle(LiquidColors.textSecondary)
-                                .lineLimit(2)
-                            Text("触发词: \(tpl.keywords.joined(separator: ", "))")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundStyle(LiquidColors.textSecondary)
-                        }
-                        Spacer(minLength: 6)
-                        if installed, let onOpenSettings {
-                            Button(L10n.pick("打开设置 →", "Settings →")) { onOpenSettings(tpl.id) }
-                                .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
-                        }
-                        Button(installed ? L10n.pick("重装", "Reinstall") : L10n.pick("一键安装", "Install")) { onInstall(tpl) }
-                            .buttonStyle(GlassPillButtonStyle(prominent: !installed, compact: installed))
-                    }
-                    .padding(10)
-                    .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
-                }
-            }
         }
     }
 }

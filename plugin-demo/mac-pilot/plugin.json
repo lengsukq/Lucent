@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 3,
+  "id": "mac-pilot",
+  "name": "桌面中控台 · 系统控制、设置直达与访达助手",
+  "version": "1.0.0",
+  "description": "一站式补齐音量与静音调节、防休眠常亮、16 项系统设置分栏免前缀秒达、外置磁盘一键安全推出、访达当前目录新建文件与运行应用退出管理",
+  "mode": "view",
+  "keywords": ["mac", "pilot", "sys", "vol", "eject", "finder", "系统控制", "音量", "推出磁盘", "访达"],
+  "entry": "run.sh",
+  "author": "Lumakey Official",
+  "icon": "icon.svg",
+  "accentColor": "blue",
+  "categoryTag": "系统控制",
+  "capabilities": ["systemControl", "clipboard"],
+  "resourceScopes": ["filesystem", "subprocess"],
+  "accepts": ["file", "directory"],
+  "commands": [
+    {
+      "id": "audio-caffeine",
+      "title": "音量档位、静音与防休眠面板",
+      "subtitle": "查看并一键切换系统静音、25%/50%/75%/100% 音量档位与防休眠常亮状态",
+      "keywords": ["音量", "静音", "防休眠", "volume", "mute", "caffeine"],
+      "icon": "speaker.wave.3.fill",
+      "arguments": ["--audio"],
+      "passQuery": true
+    },
+    {
+      "id": "toggle-mute",
+      "title": "一键切换系统静音",
+      "subtitle": "后台静默切换当前默认输出设备静音状态",
+      "keywords": ["静音开关", "togglemute", "mute"],
+      "icon": "speaker.slash.fill",
+      "arguments": ["--mute-toggle"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "toggle-caffeine",
+      "title": "一键切换防休眠常亮 (Caffeine)",
+      "subtitle": "阻止或恢复 Mac 空闲睡眠与息屏",
+      "keywords": ["常亮", "防休眠", "caffeine", "keep awake"],
+      "icon": "cup.and.saucer.fill",
+      "arguments": ["--caffeine-toggle"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "system-panes",
+      "title": "直达 macOS 系统设置分栏（同步免前缀索引）",
+      "subtitle": "蓝牙、显示器、声音、网络、电池、辅助功能、屏幕录制等 16 项设置页一键直达",
+      "keywords": ["系统设置", "蓝牙", "显示器", "权限", "system settings", "bluetooth"],
+      "icon": "gear.badge.checkmark",
+      "arguments": ["--panes"],
+      "passQuery": true
+    },
+    {
+      "id": "finder-actions",
+      "title": "访达助手：新建空白文件 / 拷贝路径 / 终端打开",
+      "subtitle": "自动定位当前最前访达目录，一键新建 Markdown/TXT/JSON 文件或复制 POSIX 路径",
+      "keywords": ["新建文件", "访达", "拷贝路径", "new file", "finder"],
+      "icon": "doc.badge.plus",
+      "arguments": ["--finder"],
+      "passQuery": true
+    },
+    {
+      "id": "eject-volumes",
+      "title": "安全推出外置磁盘与 DMG 镜像",
+      "subtitle": "扫描 /Volumes 挂载卷，支持单盘安全推出或一键推出全部外置卷",
+      "keywords": ["推出磁盘", "卸载u盘", "eject", "unmount"],
+      "icon": "eject.circle.fill",
+      "arguments": ["--volumes"],
+      "passQuery": false
+    },
+    {
+      "id": "running-apps",
+      "title": "运行中应用管家（优雅退出 / 强制退出）",
+      "subtitle": "按内存占用列出当前运行应用，支持一键退出或二次确认强退",
+      "keywords": ["退出应用", "强退", "进程", "quit app", "force quit"],
+      "icon": "app.badge.checkmark",
+      "arguments": ["--apps"],
+      "passQuery": true
+    },
+    {
+      "id": "sleep-mac",
+      "title": "立即让 Mac 进入睡眠",
+      "subtitle": "调用系统 pmset 立即休眠整机",
+      "keywords": ["睡眠", "休眠", "sleep mac"],
+      "icon": "moon.zzz.fill",
+      "arguments": ["--sleep"],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    }
+  ],
+  "config": [
+    {
+      "key": "defaultNewFileExt",
+      "label": "访达新建空白文件的默认后缀",
+      "type": "select",
+      "defaultValue": "md",
+      "options": ["md", "txt", "json", "py", "sh"],
+      "section": "访达与系统偏好"
+    },
+    {
+      "key": "syncSettingsPanesToSearch",
+      "label": "将 16 项 macOS 系统设置分栏同步至 ⌥Space 免前缀搜索",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "访达与系统偏好"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Mac Pilot · System Controls, Settings & Finder",
+      "description": "Volume & mute presets, Caffeine sleep guard, 16 zero-prefix macOS System Settings deep links, safe disk eject, Finder new-file helper & running app manager",
+      "categoryTag": "System",
+      "commands": {
+        "audio-caffeine": {
+          "title": "Volume, Mute & Caffeine Console",
+          "subtitle": "Adjust output volume presets, toggle mute, and control sleep prevention"
+        },
+        "toggle-mute": {
+          "title": "Toggle System Mute",
+          "subtitle": "Silently mute or unmute default audio output"
+        },
+        "toggle-caffeine": {
+          "title": "Toggle Keep-Awake (Caffeine)",
+          "subtitle": "Prevent or allow idle display & system sleep"
+        },
+        "system-panes": {
+          "title": "Open macOS System Settings Panes",
+          "subtitle": "Jump straight to Bluetooth, Displays, Sound, Network, Accessibility, or Screen Recording"
+        },
+        "finder-actions": {
+          "title": "Finder Helper: New File / Copy Path / Open Terminal",
+          "subtitle": "Create blank files in the active Finder folder, copy POSIX path, or open in Terminal"
+        },
+        "eject-volumes": {
+          "title": "Safely Eject External Disks & DMGs",
+          "subtitle": "Inspect mounted volumes under /Volumes and eject one or all safely"
+        },
+        "running-apps": {
+          "title": "Running Apps Manager (Quit / Force Quit)",
+          "subtitle": "Inspect active foreground/GUI apps sorted by memory and quit cleanly"
+        },
+        "sleep-mac": {
+          "title": "Put Mac to Sleep Immediately",
+          "subtitle": "Invoke pmset sleepnow immediately"
+        }
+      },
+      "config": {
+        "defaultNewFileExt": {
+          "label": "Default extension for new Finder files",
+          "section": "Finder & System"
+        },
+        "syncSettingsPanesToSearch": {
+          "label": "Sync macOS System Settings panes into 0ms global search",
+          "section": "Finder & System"
+        }
+      }
+    }
+  }
+}

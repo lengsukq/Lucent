@@ -43,8 +43,9 @@ extension AppViewModel {
         guard let plugin = plugins.first(where: { $0.id == pluginID && !$0.isBuiltin && $0.isValid && $0.isEnabled }) else {
             return
         }
-        let captured = PluginSelectionReader.captureFrontmostSelection(allowCopyFallback: true)
-        lastPasteboardChangeCount = NSPasteboard.general.changeCount
+        let allowFallback = plugin.grantedCapabilities.contains(.selection)
+        let captured = PluginSelectionReader.captureFrontmostSelection(allowCopyFallback: allowFallback)
+        if allowFallback { lastPasteboardChangeCount = NSPasteboard.general.changeCount }
         lastCapturedSelection = captured
         skipNextSelectionCapture = true
         onShowOverlayRequest?(.plugins)
@@ -59,7 +60,9 @@ extension AppViewModel {
         guard let plugin = plugins.first(where: { $0.id == pluginID && $0.isValid && ($0.isBuiltin || $0.isEnabled) }),
               let spec = plugin.declaredCommands.first(where: { $0.id == commandID })
         else { return }
-        let captured = PluginSelectionReader.captureFrontmostSelection(allowCopyFallback: false)
+        let allowFallback = plugin.grantedCapabilities.contains(.selection)
+        let captured = PluginSelectionReader.captureFrontmostSelection(allowCopyFallback: allowFallback)
+        if allowFallback { lastPasteboardChangeCount = NSPasteboard.general.changeCount }
         lastCapturedSelection = captured
         let query = spec.passQuery == true ? captured.text : ""
         let silent = spec.silentWhenHotKeyTriggered ?? plugin.isBuiltin

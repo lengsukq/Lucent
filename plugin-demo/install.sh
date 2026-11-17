@@ -5,6 +5,16 @@ DEMO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ID="${1:-all}"
 DEST_ROOT="$HOME/Library/Application Support/Lumakey/Plugins"
 
+ALL_PLUGINS=(
+  "browser-hub"
+  "lumalink-companion"
+  "notion-bookmarks"
+  "translate-hub"
+  "mac-pilot"
+  "quick-remind"
+  "screen-shield"
+)
+
 install_one() {
   local id="$1"
   local src_dir="$DEMO_ROOT/$id"
@@ -21,9 +31,9 @@ install_one() {
 }
 
 if [[ "$PLUGIN_ID" == "all" ]]; then
-  install_one "browser-hub"
-  install_one "lumalink-companion"
-  install_one "notion-bookmarks"
+  for pid in "${ALL_PLUGINS[@]}"; do
+    install_one "$pid"
+  done
 else
   install_one "$PLUGIN_ID"
 fi

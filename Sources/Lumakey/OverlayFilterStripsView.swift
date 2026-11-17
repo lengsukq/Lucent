@@ -62,6 +62,21 @@ struct OverlayClipboardCategoryStrip: View {
                 .buttonStyle(GlassPillButtonStyle(prominent: viewModel.clipboardCategory == cat))
             }
             Spacer()
+            if viewModel.canUndoClipboardDelete {
+                Button(L10n.pick("撤回 ⌘Z", "Undo ⌘Z")) {
+                    _ = viewModel.undoLastClipboardDelete()
+                }
+                .buttonStyle(GlassPillButtonStyle(prominent: true))
+            }
+            Button {
+                viewModel.toggleClipboardPause()
+            } label: {
+                Label(
+                    viewModel.isClipboardPaused ? L10n.pick("恢复记录", "Resume") : L10n.pick("暂停记录", "Pause"),
+                    systemImage: viewModel.isClipboardPaused ? "play.fill" : "pause.fill"
+                )
+            }
+            .buttonStyle(GlassPillButtonStyle(prominent: viewModel.isClipboardPaused))
             Button("清空非收藏") {
                 viewModel.clearUnpinnedClipboard()
             }

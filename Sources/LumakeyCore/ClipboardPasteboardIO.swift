@@ -57,6 +57,20 @@ public enum ClipboardPasteboardIO {
         }
     }
 
+    public static func plainTextRepresentation(for entry: ClipboardEntry) -> String? {
+        if let text = entry.textValue, !text.isEmpty { return text }
+        if !entry.fileURLs.isEmpty { return entry.fileURLs.map(\.path).joined(separator: "\n") }
+        return entry.title.isEmpty ? nil : entry.title
+    }
+
+    @MainActor
+    @discardableResult
+    public static func writePlainTextToPasteboard(_ entry: ClipboardEntry, pasteboard: NSPasteboard = .general) -> Bool {
+        guard let plain = plainTextRepresentation(for: entry), !plain.isEmpty else { return false }
+        pasteboard.clearContents()
+        return pasteboard.setString(plain, forType: .string)
+    }
+
     @MainActor
     @discardableResult
     public static func writeImageFileToPasteboard(at url: URL, to pasteboard: NSPasteboard = .general) -> Bool {

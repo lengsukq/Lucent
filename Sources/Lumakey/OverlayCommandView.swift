@@ -35,13 +35,16 @@ struct OverlayCommandView: View {
             HStack(spacing: 0) {
                 mainBodyColumn
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .animation(LiquidMotion.snappySpring, value: showsBentoHome)
 
                 if shouldShowSideLens {
                     Divider().opacity(0.28)
                     OverlaySideLensView(viewModel: viewModel)
                         .frame(width: 320)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
                 }
             }
+            .animation(LiquidMotion.snappySpring, value: viewModel.showOverlayLens)
             .animation(nil, value: viewModel.omniFilter)
 
             Divider().opacity(0.28)
@@ -64,6 +67,7 @@ struct OverlayCommandView: View {
 
     private var searchCapsuleBar: some View {
         let searchShape = RoundedRectangle(cornerRadius: LiquidRadii.searchBar, style: .continuous)
+        let hasQuery = !viewModel.overlayQuery.isEmpty
         return ZStack {
             WindowDragRegion()
             HStack(alignment: .center, spacing: 10) {
@@ -73,14 +77,18 @@ struct OverlayCommandView: View {
                     bottomColor: filterBadgeColors.1,
                     size: 36
                 )
+                .contentTransition(.symbolEffect(.replace))
 
                 if let scoped = viewModel.activeScopedPlugin {
                     OverlayScopedPluginCapsule(plugin: scoped) {
-                        viewModel.scopedPluginID = nil
-                        viewModel.inlinePluginViewPayload = nil
-                        viewModel.activeInlinePlugin = nil
+                        withAnimation(LiquidMotion.snappySpring) {
+                            viewModel.scopedPluginID = nil
+                            viewModel.inlinePluginViewPayload = nil
+                            viewModel.activeInlinePlugin = nil
+                        }
                         viewModel.bumpFocusToken()
                     }
+                    .transition(.scale(scale: 0.88).combined(with: .opacity))
                 }
 
                 AutoFocusSearchField(
@@ -94,21 +102,26 @@ struct OverlayCommandView: View {
                 )
                 .frame(height: 28)
 
-                if !viewModel.overlayQuery.isEmpty {
+                if hasQuery {
                     Button {
-                        viewModel.overlayQuery = ""
-                        viewModel.inlineResultBody = nil
-                        viewModel.inlinePluginViewPayload = nil
-                        viewModel.activeInlinePlugin = nil
+                        withAnimation(LiquidMotion.snappySpring) {
+                            viewModel.overlayQuery = ""
+                            viewModel.inlineResultBody = nil
+                            viewModel.inlinePluginViewPayload = nil
+                            viewModel.activeInlinePlugin = nil
+                        }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(LiquidColors.textSecondary)
                     }
                     .buttonStyle(.plain)
+                    .transition(.scale(scale: 0.80).combined(with: .opacity))
                 }
 
                 Button {
-                    viewModel.showOverlayLens.toggle()
+                    withAnimation(LiquidMotion.snappySpring) {
+                        viewModel.showOverlayLens.toggle()
+                    }
                     viewModel.syncOverlayPreviewToSelection()
                 } label: {
                     Image(systemName: "sidebar.right")
@@ -122,6 +135,8 @@ struct OverlayCommandView: View {
 
                 filterCapsuleBar
             }
+            .animation(LiquidMotion.snappySpring, value: hasQuery)
+            .animation(LiquidMotion.snappySpring, value: viewModel.scopedPluginID)
             .padding(.horizontal, 8)
             .frame(height: 52)
             .background {
@@ -174,6 +189,7 @@ struct OverlayCommandView: View {
     private var mainBodyColumn: some View {
         if showsBentoHome {
             OverlayBentoHomeView(viewModel: viewModel)
+                .transition(.opacity.combined(with: .scale(scale: 0.988)))
         } else {
             VStack(spacing: 0) {
                 if viewModel.omniFilter == .files {
@@ -198,12 +214,13 @@ struct OverlayCommandView: View {
                     .onChange(of: viewModel.overlaySelectedIndex) { _, newIdx in
                         guard newIdx >= 0, newIdx < viewModel.displayedCandidates.count else { return }
                         let targetID = "\(viewModel.omniFilter.rawValue):\(viewModel.displayedCandidates[newIdx].id)"
-                        withAnimation(.easeOut(duration: 0.12)) {
+                        withAnimation(LiquidMotion.snappySpring) {
                             proxy.scrollTo(targetID, anchor: .center)
                         }
                     }
                 }
             }
+            .transition(.opacity)
         }
     }
 

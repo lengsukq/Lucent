@@ -6,6 +6,16 @@ struct OverlaySideLensView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var usageTracker = AppUsageTrackerController.shared
 
+    private var lensIdentity: String {
+        if viewModel.inlinePluginViewPayload != nil {
+            return "pluginView:\(viewModel.activeInlinePlugin?.id ?? "inline")"
+        }
+        if viewModel.inlineResultBody != nil {
+            return "inlineResult:\(viewModel.inlineResultTitle)"
+        }
+        return "candidate:\(viewModel.selectedCandidate?.id ?? "empty")"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let viewPayload = viewModel.inlinePluginViewPayload {
@@ -18,9 +28,15 @@ struct OverlaySideLensView: View {
                         guard let plugin = viewModel.activeInlinePlugin else { return }
                         viewModel.runPlugin(plugin, query: "", arguments: args, showInline: true)
                     },
+                    onGrantCapabilitiesAndRerun: {
+                        guard let plugin = viewModel.activeInlinePlugin else { return }
+                        viewModel.grantMissingCapabilitiesAndRerun(plugin)
+                    },
                     onClose: {
-                        viewModel.inlinePluginViewPayload = nil
-                        viewModel.activeInlinePlugin = nil
+                        withAnimation(LiquidMotion.snappySpring) {
+                            viewModel.inlinePluginViewPayload = nil
+                            viewModel.activeInlinePlugin = nil
+                        }
                     }
                 )
             } else if let inline = viewModel.inlineResultBody {
@@ -28,10 +44,9 @@ struct OverlaySideLensView: View {
                     title: viewModel.inlineResultTitle,
                     outputText: inline,
                     onCopy: { copyString(inline, toast: "已复制输出内容") },
-                    onClose: { viewModel.inlineResultBody = nil }
+                    onClose: { withAnimation(LiquidMotion.snappySpring) { viewModel.inlineResultBody = nil } }
                 )
-            } else if let candidate = viewModel.selectedCandidate,
-                      case .clipboard(let clip) = candidate.kind {
+            } else if let candidate = viewModel.selectedCandidate, case .clipboard(let clip) = candidate.kind {
                 clipboardDetailLens(clip)
                 if let ctx = PluginContextMatcher.payloadFromClipboard(clip) {
                     PluginContextActionStrip(context: ctx, plugins: viewModel.plugins) { plugin, payload in
@@ -41,10 +56,12 @@ struct OverlaySideLensView: View {
             } else if let candidate = viewModel.selectedCandidate {
                 candidateDetailLens(candidate)
             } else {
-                SideLivePreviewCard(previewState: viewModel.previewState)
-                    .frame(maxHeight: .infinity)
+                SideLivePreviewCard(previewState: viewModel.previewState).frame(maxHeight: .infinity)
             }
         }
+        .id(lensIdentity)
+        .transition(LiquidMotion.lensTransition)
+        .animation(LiquidMotion.snappySpring, value: lensIdentity)
         .padding(12)
     }
 
@@ -98,41 +115,32 @@ struct OverlaySideLensView: View {
     private func candidateDetailLens(_ candidate: LauncherCandidate) -> some View {
         switch candidate.kind {
         case .fileHit(let hit):
-            SideLivePreviewCard(previewState: viewModel.previewState)
-                .frame(maxHeight: .infinity)
+            SideLivePreviewCard(previewState: viewModel.previewState).frame(maxHeight: .infinity)
             fileActionStrip(for: hit)
-        case .app(let app):
-            appDetailCard(app: app, candidate: candidate)
+        case .app(let app): appDetailCard(app: app, candidate: candidate)
         case .calculator(let expr, let resultText, let badge):
-            CalculatorLensCard(expression: expr, resultText: resultText, badge: badge) {
-                viewModel.executeCandidate(candidate)
-            }
+            CalculatorLensCard(expression: expr, resultText: resultText, badge: badge) { viewModel.executeCandidate(candidate) }
         case .devTool(let tool):
             DevToolLensCard(
-                tool: tool,
-                onExecute: { viewModel.executeCandidate(candidate) },
+                tool: tool, onExecute: { viewModel.executeCandidate(candidate) },
                 onCopyText: { val, toast in copyString(val, toast: toast) },
                 onPinImage: { url in PinWindowController.shared.pinImage(at: url) }
             )
         case .snippet(let match):
             SnippetLensCard(
-                match: match,
-                onExecute: { viewModel.executeCandidate(candidate) },
+                match: match, onExecute: { viewModel.executeCandidate(candidate) },
                 onOpenSettings: { viewModel.openRoute(.settings(.snippets)) }
             )
-        case .plugin(let plugin):
-            pluginDetailCard(plugin: plugin, candidate: candidate)
+        case .plugin(let plugin): pluginDetailCard(plugin: plugin, candidate: candidate)
         case .pluginCommand(let regCmd):
             OverlayPluginCommandLensCard(
-                command: regCmd,
-                onExecute: { viewModel.executeCandidate(candidate) },
+                command: regCmd, onExecute: { viewModel.executeCandidate(candidate) },
                 onToggleQuickButton: { viewModel.togglePluginCommandQuickButton(regCmd) },
                 onOpenSettings: { viewModel.openPluginSettings(id: regCmd.pluginID) }
             )
         case .pluginItem(let entry):
             OverlayPluginItemLensCard(
-                entry: entry,
-                onOpenURL: { url in viewModel.handlePluginOpenURL(url) },
+                entry: entry, onOpenURL: { url in viewModel.handlePluginOpenURL(url) },
                 onRunManage: { args in
                     if let plugin = viewModel.plugins.first(where: { $0.id == entry.pluginID }) {
                         viewModel.runPlugin(plugin, query: "", arguments: args, showInline: true)
@@ -151,13 +159,11 @@ struct OverlaySideLensView: View {
                 }
                 Text(cmd.subtitle).font(.caption).foregroundStyle(LiquidColors.textSecondary)
                 Spacer()
-                Button("执行命令 ↩") { viewModel.executeCandidate(candidate) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
+                Button("执行命令 ↩") { viewModel.executeCandidate(candidate) }.buttonStyle(GlassPillButtonStyle(prominent: true))
             }
             .padding(14).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-        case .clipboard:
-            EmptyView()
+        case .clipboard: EmptyView()
         }
     }
 
@@ -180,8 +186,7 @@ struct OverlaySideLensView: View {
                 }
                 Button { usageTracker.togglePin(app) } label: {
                     Label(pinned ? "取消钉住" : "钉在常用栏", systemImage: pinned ? "pin.slash" : "pin.fill")
-                }
-                .buttonStyle(GlassPillButtonStyle())
+                }.buttonStyle(GlassPillButtonStyle())
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity).padding(14)
@@ -190,6 +195,7 @@ struct OverlaySideLensView: View {
 
     private func pluginDetailCard(plugin: PluginDescriptor, candidate: LauncherCandidate) -> some View {
         let tint = PluginVisualPalette.tint(from: plugin.manifest.accentColor, fallback: plugin.isBuiltin ? .mint : .cyan)
+        let missingCaps = plugin.isBuiltin ? [] : plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 PluginIconBadge(plugin: plugin, size: 38)
@@ -198,8 +204,19 @@ struct OverlaySideLensView: View {
                     LiquidStatusPill(title: plugin.displayCategoryBadge, tint: tint)
                 }
             }
-            Text(plugin.effectiveStatusSummary)
-                .font(.caption).foregroundStyle(LiquidColors.textSecondary)
+            Text(plugin.effectiveStatusSummary).font(.caption).foregroundStyle(LiquidColors.textSecondary)
+            if !missingCaps.isEmpty {
+                VStack(alignment: .leading, spacing: 5) {
+                    Label(
+                        L10n.pick("待授权能力：\(missingCaps.map(\.title).joined(separator: "、"))", "Needs permissions: \(missingCaps.map(\.title).joined(separator: ", "))"),
+                        systemImage: "lock.shield.fill"
+                    ).font(.caption2.weight(.semibold)).foregroundStyle(.orange)
+                    Button(L10n.pick("一键授权并运行", "Grant & Run")) { viewModel.grantMissingCapabilitiesAndRerun(plugin) }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                }
+                .padding(8).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+            }
             LiquidSectionDivider()
             MetadataLabel(key: L10n.pick("触发词", "Keywords"), val: plugin.effectiveKeywords.joined(separator: ", "))
             MetadataLabel(key: L10n.pick("子功能", "Commands"), val: "\(plugin.declaredCommands.count)")
@@ -207,20 +224,16 @@ struct OverlaySideLensView: View {
             Spacer()
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 7) {
-                    Button(L10n.pick("打开/运行 ↩", "Run ↩")) { viewModel.executeCandidate(candidate) }
-                        .buttonStyle(GlassPillButtonStyle(prominent: true))
+                    Button(L10n.pick("打开/运行 ↩", "Run ↩")) { viewModel.executeCandidate(candidate) }.buttonStyle(GlassPillButtonStyle(prominent: true))
                     if viewModel.scopedPluginID != plugin.id {
-                        Button(L10n.pick("子功能列表 ⇥", "Commands ⇥")) { viewModel.enterPluginScopedOverlay(plugin) }
-                            .buttonStyle(GlassPillButtonStyle())
+                        Button(L10n.pick("子功能列表 ⇥", "Commands ⇥")) { viewModel.enterPluginScopedOverlay(plugin) }.buttonStyle(GlassPillButtonStyle())
                     }
                 }
                 HStack(spacing: 7) {
-                    Button(L10n.pick("设置 ⌘,", "Settings ⌘,")) { viewModel.openPluginSettings(id: plugin.id) }
-                        .buttonStyle(GlassPillButtonStyle())
+                    Button(L10n.pick("设置 ⌘,", "Settings ⌘,")) { viewModel.openPluginSettings(id: plugin.id) }.buttonStyle(GlassPillButtonStyle())
                     Button(plugin.pinnedInOverlay ? L10n.pick("移出快捷按钮", "Unpin") : L10n.pick("加入快捷按钮", "Quick Button")) {
                         viewModel.togglePluginOverlayPin(plugin)
-                    }
-                    .buttonStyle(GlassPillButtonStyle())
+                    }.buttonStyle(GlassPillButtonStyle())
                 }
             }
         }
@@ -234,23 +247,18 @@ struct OverlaySideLensView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 if canDedicatedWindow {
-                    Button(hit.mediaKind == .video ? "影院播放" : "独立窗口") {
-                        viewModel.openMediaWindow(for: hit.url, kind: hit.mediaKind)
-                    }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true))
-                } else {
-                    Button("打开 ↩") { viewModel.executeEverythingHit(hit) }
+                    Button(hit.mediaKind == .video ? "影院播放" : "独立窗口") { viewModel.openMediaWindow(for: hit.url, kind: hit.mediaKind) }
                         .buttonStyle(GlassPillButtonStyle(prominent: true))
+                } else {
+                    Button("打开 ↩") { viewModel.executeEverythingHit(hit) }.buttonStyle(GlassPillButtonStyle(prominent: true))
                 }
                 if hit.mediaKind == .image {
                     Button("复制图片") {
                         _ = ScreenshotCompositor.copyImageFileToPasteboard(at: hit.url)
                         viewModel.serviceMessage = "图片已复制到剪贴板"
-                    }
-                    .buttonStyle(GlassPillButtonStyle())
+                    }.buttonStyle(GlassPillButtonStyle())
                 }
-                Button("访达 ⌘R") { NSWorkspace.shared.activateFileViewerSelecting([hit.url]) }
-                    .buttonStyle(GlassPillButtonStyle())
+                Button("访达 ⌘R") { NSWorkspace.shared.activateFileViewerSelecting([hit.url]) }.buttonStyle(GlassPillButtonStyle())
             }
             if let ctx = PluginContextMatcher.payloadFromFiles([hit.url], source: "everything") {
                 PluginContextActionStrip(context: ctx, plugins: viewModel.plugins) { plugin, payload in
@@ -261,8 +269,7 @@ struct OverlaySideLensView: View {
     }
 
     private func copyString(_ value: String, toast: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(value, forType: .string)
+        NSPasteboard.general.clearContents(); NSPasteboard.general.setString(value, forType: .string)
         viewModel.serviceMessage = toast
     }
 }

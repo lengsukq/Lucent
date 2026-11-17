@@ -25,26 +25,29 @@ final class GifHUDPanel: NSPanel {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
         panel.contentView = NSHostingView(rootView: LocalizedRootContainer { GifRecordingHUDView(controller: controller) })
-        panel.orderFrontRegardless()
+        WindowMotionAnimator.present(panel, style: .dynamicIsland, makeKey: false)
         return panel
     }
 
     @MainActor
     static func presentSelection(
         session: GifSelectionSession,
-        on screen: NSScreen,
+        slice: ScreenDisplaySlice,
+        makeKey: Bool,
         onStart: @escaping () -> Void,
         onCancel: @escaping () -> Void
     ) -> CaptureOverlayPanel {
+        let screen = slice.appKitScreen
         let panel = CaptureOverlayPanel(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         panel.level = .screenSaver
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
         panel.acceptsMouseMovedEvents = true
-        panel.contentView = NSHostingView(rootView: LocalizedRootContainer { GifSelectionOverlayView(session: session, onStartRecording: onStart, onCancel: onCancel) })
+        panel.contentView = NSHostingView(rootView: LocalizedRootContainer {
+            GifSelectionOverlayView(session: session, slice: slice, onStartRecording: onStart, onCancel: onCancel)
+        })
         panel.setFrame(screen.frame, display: true)
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        WindowMotionAnimator.present(panel, style: .fullscreenOverlay, makeKey: makeKey)
         return panel
     }
 }
@@ -52,21 +55,31 @@ final class GifHUDPanel: NSPanel {
 struct GifRecordingHUDView: View {
     @ObservedObject var controller: GifCaptureController
 
+    private var islandTransition: AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.90).combined(with: .opacity),
+            removal: .scale(scale: 0.93).combined(with: .opacity)
+        )
+    }
+
     var body: some View {
         ZStack {
             switch controller.phase {
             case .recording(let isPaused):
                 recordingCapsule(isPaused: isPaused)
+                    .transition(islandTransition)
             case .encoding:
                 encodingCapsule
+                    .transition(islandTransition)
             case .completed(let result):
                 completedCapsule(result: result)
+                    .transition(islandTransition)
             case .idle, .selectingRegion:
                 EmptyView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.spring(response: 0.30, dampingFraction: 0.84), value: controller.phase)
+        .animation(LiquidMotion.smoothSpring, value: controller.phase)
     }
 
     private func recordingCapsule(isPaused: Bool) -> some View {
@@ -82,6 +95,7 @@ struct GifRecordingHUDView: View {
                 }
                 Text(Self.formatDuration(controller.elapsedSeconds))
                     .font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundStyle(.white)
+                    .contentTransition(.numericText())
                     .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             }
             .padding(.leading, 4)
@@ -91,6 +105,7 @@ struct GifRecordingHUDView: View {
             HStack(spacing: 6) {
                 Text(frameSummaryText(isPaused: isPaused))
                     .font(.system(size: 11, weight: .medium, design: .monospaced)).foregroundStyle(.white.opacity(0.86))
+                    .contentTransition(.numericText())
                     .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                 Text("\(dimLabel)·\(controller.options.fps)FPS")
                     .font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundStyle(.cyan)
@@ -231,6 +246,6 @@ private struct GifScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeOut(duration: 0.10), value: configuration.isPressed)
+            .animation(LiquidMotion.pressSpring, value: configuration.isPressed)
     }
 }

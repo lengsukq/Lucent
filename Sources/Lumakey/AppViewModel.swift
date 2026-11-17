@@ -42,6 +42,11 @@ final class AppViewModel: ObservableObject {
             refreshDisplayedCandidates(resetSelection: true)
         }
     }
+    @Published var isClipboardPaused: Bool = false
+    @Published var canUndoClipboardDelete: Bool = false
+    var deletedClipboardUndoStack: [(entry: ClipboardEntry, index: Int)] = [] {
+        didSet { canUndoClipboardDelete = !deletedClipboardUndoStack.isEmpty }
+    }
     @Published var inlineResultTitle: String = ""
     @Published var inlineResultBody: String?
     @Published var inlinePluginViewPayload: PluginViewPayload?
