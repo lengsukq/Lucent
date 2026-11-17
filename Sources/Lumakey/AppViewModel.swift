@@ -49,6 +49,8 @@ final class AppViewModel: ObservableObject {
     @Published var inlineResultBody: String?
     @Published var inlinePluginViewPayload: PluginViewPayload?
     @Published var activeInlinePlugin: PluginDescriptor?
+    @Published var isRunningPlugin: Bool = false
+    @Published var syncingPluginIDs: Set<String> = []
     @Published var showDockIcon: Bool
     @Published var menuBarConfig: MenuBarConfig = MenuBarConfig.load()
     @Published var homeLayoutConfig: HomeLayoutConfig = HomeLayoutConfig.loadOrBootstrap(legacyPinnedAppIDs: AppUsageService.shared.pinnedAppIDs)
@@ -139,6 +141,7 @@ final class AppViewModel: ObservableObject {
     var locationRefreshTask: Task<Void, Never>?
     var snapshotSaveTask: Task<Void, Never>?
     var pluginRunTask: Task<Void, Never>?
+    var activePluginRunToken = UUID()
     var backgroundPluginTasks: [String: Task<Void, Never>] = [:]
     var fsEventWatcher: EverythingFSEventWatcher?
     var pluginWatcher: PluginDirectoryWatcher?
@@ -158,6 +161,7 @@ final class AppViewModel: ObservableObject {
     var onShowOverlayRequest: ((OmniFilter) -> Void)?
     var onRecenterFloatingPanel: (() -> Void)?
     var onDockVisibilityChanged: ((Bool) -> Void)?
+    var onReplayLaunchIntro: (() -> Void)?
 
     init() {
         let initialPrefs = GeneralPreferences.load()

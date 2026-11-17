@@ -199,6 +199,8 @@ struct OverlaySideLensView: View {
     private func pluginDetailCard(plugin: PluginDescriptor, candidate: LauncherCandidate) -> some View {
         let tint = PluginVisualPalette.tint(from: plugin.manifest.accentColor, fallback: plugin.isBuiltin ? .mint : .cyan)
         let missingCaps = plugin.isBuiltin ? [] : plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
+        let disabledScopes = plugin.isBuiltin ? [] : plugin.revokedResourceScopes
+        let missingPermLabels = missingCaps.map(\.title) + disabledScopes.map(\.title)
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 PluginIconBadge(plugin: plugin, size: 38)
@@ -208,10 +210,10 @@ struct OverlaySideLensView: View {
                 }
             }
             Text(plugin.effectiveStatusSummary).font(.caption).foregroundStyle(LiquidColors.textSecondary)
-            if !missingCaps.isEmpty {
+            if !missingPermLabels.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
                     Label(
-                        L10n.pick("待授权能力：\(missingCaps.map(\.title).joined(separator: "、"))", "Needs permissions: \(missingCaps.map(\.title).joined(separator: ", "))"),
+                        L10n.pick("待授权能力：\(missingPermLabels.joined(separator: "、"))", "Needs permissions: \(missingPermLabels.joined(separator: ", "))"),
                         systemImage: "lock.shield.fill"
                     ).font(.caption2.weight(.semibold)).foregroundStyle(.orange)
                     Button(L10n.pick("一键授权并运行", "Grant & Run")) { viewModel.grantMissingCapabilitiesAndRerun(plugin) }

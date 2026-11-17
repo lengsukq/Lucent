@@ -168,10 +168,13 @@ final class PluginCenterController: ObservableObject {
     }
 
     func saveConfig(for plugin: PluginDescriptor, viewModel: AppViewModel, silent: Bool = false) {
+        guard selectedPluginID == nil || selectedPluginID == plugin.id else { return }
         autoSaveTask?.cancel()
         autoSaveTask = nil
         do {
-            try PluginSystem.updatePluginConfig(id: plugin.id, values: configDraft)
+            let allowedKeys = Set((plugin.manifest.config ?? []).map(\.key))
+            let filteredDraft = configDraft.filter { allowedKeys.contains($0.key) }
+            try PluginSystem.updatePluginConfig(id: plugin.id, values: filteredDraft)
             hasUnsavedTextEdits = false
             pendingSavePlugin = nil
             viewModel.reloadPluginsAndHotKeys()

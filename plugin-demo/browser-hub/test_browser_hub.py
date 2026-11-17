@@ -223,6 +223,19 @@ class BrowserHubTests(unittest.TestCase):
         self.assertTrue(any("Azure Portal Docs" in t for t in titles))
         self.assertTrue(any("Swift Concurrency Guide" in t for t in titles))
 
+    def test_sync_surfaces_safari_permission_warning_when_denied(self) -> None:
+        from unittest import mock
+
+        with mock.patch.object(bh, "read_safari_store", return_value=([], True)):
+            card = bh.dispatch(
+                {"query": "", "dataDir": str(self.data_dir), "locale": "zh-Hans"},
+                ["--sync"],
+                user_home=self.fake_home,
+            )
+        self.assertEqual(card["items"][0]["id"], "safari-fda-guide")
+        self.assertIn("Privacy_AllFiles", card["items"][0]["openURL"])
+        self.assertIn("完全磁盘访问权限", card["effect"]["toast"])
+
 
 if __name__ == "__main__":
     unittest.main()

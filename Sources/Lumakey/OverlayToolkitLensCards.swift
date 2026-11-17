@@ -17,6 +17,15 @@ struct PluginViewLensContainerCard: View {
         return plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
     }
 
+    private var disabledScopes: [PluginResourceScope] {
+        guard let plugin, !plugin.isBuiltin else { return [] }
+        return plugin.declaredResourceScopes.filter { plugin.revokedResourceScopes.contains($0) }
+    }
+
+    private var missingPermissionLabels: [String] {
+        missingCapabilities.map(\.title) + disabledScopes.map(\.title)
+    }
+
     var body: some View {
         let dataDir = plugin.flatMap { PluginDataPaths.dataDirectory(for: $0.id, pluginsRoot: $0.directoryURL.deletingLastPathComponent()) }
         VStack(alignment: .leading, spacing: 8) {
@@ -45,14 +54,14 @@ struct PluginViewLensContainerCard: View {
                 .buttonStyle(GlassPillButtonStyle())
             }
 
-            if !missingCapabilities.isEmpty, let onGrantCapabilitiesAndRerun {
+            if !missingPermissionLabels.isEmpty, let onGrantCapabilitiesAndRerun {
                 HStack(spacing: 8) {
                     Image(systemName: "lock.shield.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.orange)
                     Text(L10n.pick(
-                        "缺少宿主权限：\(missingCapabilities.map(\.title).joined(separator: "、"))",
-                        "Missing: \(missingCapabilities.map(\.title).joined(separator: ", "))"
+                        "缺少权限：\(missingPermissionLabels.joined(separator: "、"))",
+                        "Missing: \(missingPermissionLabels.joined(separator: ", "))"
                     ))
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(LiquidColors.textPrimary)

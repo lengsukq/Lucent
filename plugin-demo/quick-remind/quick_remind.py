@@ -140,7 +140,7 @@ def sync_to_apple_reminders(title: str, due_dt: dt.datetime, list_name: str = ""
         list_name.strip(),
     ]
     try:
-        res = subprocess.run(args, capture_output=True, text=True, timeout=3.5, check=False)
+        res = subprocess.run(args, capture_output=True, text=True, timeout=1.5, check=False)
         return res.returncode == 0
     except Exception:  # noqa: BLE001
         return False
@@ -159,9 +159,10 @@ def load_reminders(data_dir: str) -> list[dict[str, Any]]:
         return []
 
 
-def save_reminders(data_dir: str, items: list[dict[str, Any]], is_en: bool) -> tuple[str, str]:
+def save_reminders(data_dir: str, items: list[dict[str, Any]], is_en: bool, apple_denied: bool = False) -> tuple[str, str]:
     open_items = [r for r in items if not r.get("done")]
-    summary = f"{len(open_items)} active reminder(s)" if is_en else f"{len(open_items)} 条待办提醒"
+    suffix = " (Reminders app unauthorized)" if (apple_denied and is_en) else ("（Apple 提醒事项未授权）" if apple_denied else "")
+    summary = (f"{len(open_items)} active reminder(s)" if is_en else f"{len(open_items)} 条待办提醒") + suffix
     badge = str(len(open_items))
     if not data_dir:
         return summary, badge
@@ -258,12 +259,20 @@ def execute_plugin(
     items_db = load_reminders(data_dir)
     flag = argv[0] if argv else ""
     toast: str | None = None
+    apple_sync_failed = False
 
     if flag == "--pomo":
         query = "25m Pomodoro Focus Break" if is_en else "25m 番茄钟休息一下"
         flag = "--add"
 
-    if flag == "--speak" and len(argv) >= 2:
+    if flag == "--sync":
+        active_cnt = sum(1 for r in items_db if not r.get("done"))
+        toast = (
+            f"Synced {active_cnt} active reminder(s)"
+            if is_en
+            else f"已同步提醒索引（当前 {active_cnt} 条待办）"
+        )
+    elif flag == "--speak" and len(argv) >= 2:
         call_host_bridge(sock_path, token, "audio", "speak", {"text": argv[1], "language": "en-US" if is_en else "zh-CN"})
         toast = "Reading reminder aloud…" if is_en else "正在语音播报提醒…"
 
@@ -291,8 +300,10 @@ def execute_plugin(
                 r["dueDisplay"] = nxt.strftime("%Y-%m-%d %H:%M")
                 r["done"] = False
                 if sync_apple:
-                    sync_cb(str(r.get("title") or "Reminder"), nxt, apple_list)
-                toast = f"Snoozed +{snooze_mins}m" if is_en else f"已推迟 {snooze_mins} 分钟（{nxt.strftime('%H:%M')}）"
+                    if not sync_cb(str(r.get("title") or "Reminder"), nxt, apple_list):
+                        apple_sync_failed = True
+                suffix = " (Apple unauthorized)" if (apple_sync_failed and is_en) else ("（Apple 提醒未授权，仅本地延后）" if apple_sync_failed else "")
+                toast = (f"Snoozed +{snooze_mins}m" if is_en else f"已推迟 {snooze_mins} 分钟（{nxt.strftime('%H:%M')}）") + suffix
                 break
 
     elif flag == "--delete" and len(argv) >= 2:
@@ -308,7 +319,9 @@ def execute_plugin(
         if parsed is not None:
             due_dt, body, rep = parsed
             rid = hashlib.sha1(f"{due_dt.isoformat()}:{body}:{len(items_db)}".encode("utf-8")).hexdigest()[:8]
-            synced_ok = sync_cb(body, due_dt, apple_list) if sync_apple else False
+            synced_ok = bool(sync_cb(body, due_dt, apple_list)) if sync_apple else False
+            if sync_apple and not synced_ok:
+                apple_sync_failed = True
             items_db.insert(0, {
                 "id": rid,
                 "title": body,
@@ -318,20 +331,62 @@ def execute_plugin(
                 "done": False,
                 "appleSynced": synced_ok,
             })
+            sync_note = (
+                " (Synced to Reminders.app)" if synced_ok else (" (Saved locally; Reminders app unauthorized)" if apple_sync_failed else "")
+            ) if is_en else (
+                "（已同步系统提醒事项）" if synced_ok else ("（已本地保存；Apple 提醒事项未授权）" if apple_sync_failed else "")
+            )
             toast = (
-                f"Reminder set for {due_dt.strftime('%H:%M')}" + (" (Synced to Reminders.app)" if synced_ok else "")
+                f"Reminder set for {due_dt.strftime('%H:%M')}{sync_note}"
                 if is_en
-                else f"已设定 {due_dt.strftime('%H:%M')} 提醒：{body}" + ("（已同步系统提醒事项）" if synced_ok else "")
+                else f"已设定 {due_dt.strftime('%H:%M')} 提醒：{body}{sync_note}"
             )
             query = ""
+        else:
+            toast = (
+                f"Could not parse time in '{query}'; try '10m {query}'"
+                if is_en
+                else f"未识别到时间前缀，可尝试「10m {query}」或「18:30 {query}」"
+            )
+    elif flag == "--add" and not query:
+        toast = (
+            "Type a reminder first, e.g. '10m drink water', or click Pomodoro below"
+            if is_en
+            else "请先输入提醒内容（如「10m 喝水」），或直接点击下方一键开启番茄钟"
+        )
+    elif flag in {"", "--list"} and not toast:
+        active_cnt = sum(1 for r in items_db if not r.get("done"))
+        toast = (
+            f"{active_cnt} active reminder(s)"
+            if is_en
+            else (f"当前 {active_cnt} 条待办提醒" if active_cnt > 0 else "暂无待办提醒，可输入「10m 喝水」或开启番茄钟")
+        )
 
-    summary, badge = save_reminders(data_dir, items_db, is_en)
+    summary, badge = save_reminders(data_dir, items_db, is_en, apple_denied=apple_sync_failed)
     ordered = sorted(items_db, key=lambda r: (1 if r.get("done") else 0, str(r.get("dueISO") or "")))
     filter_q = query.lower() if flag == "--list" else ""
     if filter_q:
         ordered = [r for r in ordered if filter_q in str(r.get("title", "")).lower()]
 
-    card_items: list[dict[str, Any]] = [
+    card_items: list[dict[str, Any]] = []
+    if apple_sync_failed:
+        card_items.append({
+            "id": "reminders-automation-guide",
+            "title": (
+                "Authorize 'Automation -> Reminders' to Sync to Apple Reminders"
+                if is_en
+                else "授予「自动化 -> 提醒事项」权限以同步至系统提醒"
+            ),
+            "subtitle": (
+                "Saved locally inside Lumakey. Allow Lumakey -> Reminders in Privacy & Security, or turn off Apple Sync in plugin settings."
+                if is_en
+                else "提醒已安全保存在 Lumakey 本地；如需写入系统「提醒事项」，请前往系统设置授权或关闭同步开关。"
+            ),
+            "icon": "lock.shield.fill",
+            "badge": "PERMISSION",
+            "openURL": "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation",
+        })
+    card_items.append(
         {
             "id": "quick-pomo",
             "title": "Start 25-Min Pomodoro Focus Timer" if is_en else "🍅 一键开启 25 分钟番茄钟专注提醒",
@@ -342,7 +397,7 @@ def execute_plugin(
             "badge": "25 MIN",
             "commandArgs": ["--pomo"],
         }
-    ]
+    )
 
     due_count = 0
     for r in ordered[:25]:

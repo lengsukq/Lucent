@@ -12,6 +12,10 @@ final class PluginDedicatedSettingsState: ObservableObject {
     @Published var showDeveloperDiagnostics: Bool = false
     @Published var dataStatus: PluginDataStatus?
     @Published var bannerMessage: String?
+    @Published var isSyncingIndex: Bool = false
+    @Published var syncNeedsPluginGrant: Bool = false
+    @Published var syncPermissionActionURL: URL?
+    @Published var syncPermissionActionTitle: String?
 
     private var boundPluginID: String?
     private var keyMonitor: Any?
@@ -22,6 +26,10 @@ final class PluginDedicatedSettingsState: ObservableObject {
             boundPluginID = plugin.id
             keywordDraft = ""
             bannerMessage = nil
+            isSyncingIndex = false
+            syncNeedsPluginGrant = false
+            syncPermissionActionURL = nil
+            syncPermissionActionTitle = nil
             ctrl.select(plugin)
         }
         refreshDataStatus(for: plugin)
@@ -256,18 +264,7 @@ final class PluginDedicatedSettingsState: ObservableObject {
         }
     }
 
-    func syncSearchIndexNow(for plugin: PluginDescriptor, ctrl: PluginCenterController, viewModel: AppViewModel) {
-        ctrl.runAsync(plugin, arguments: ["--sync"], viewModel: viewModel)
-        Task { @MainActor [weak self, weak viewModel] in
-            try? await Task.sleep(for: .milliseconds(600))
-            guard let self, let viewModel else { return }
-            viewModel.reloadPluginSearchIndex()
-            viewModel.reloadPlugins()
-            if let latest = viewModel.plugins.first(where: { $0.id == plugin.id }) {
-                self.refreshDataStatus(for: latest)
-            }
-        }
-    }
+    // Sync & permission orchestration lives in PluginDedicatedSettingsState+Sync.swift
 
     func clearCache(for plugin: PluginDescriptor, preserveIndex: Bool, viewModel: AppViewModel) {
         PluginDataInspector.clearPluginData(for: plugin.id, preserveSearchIndex: preserveIndex)

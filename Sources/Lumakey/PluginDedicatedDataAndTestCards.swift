@@ -42,10 +42,29 @@ struct PluginDedicatedDataAndContextCard: View {
                         Text(L10n.pick("按需同步：\(refreshSec)s", "On-demand sync: \(refreshSec)s"))
                             .font(.caption2.monospacedDigit()).foregroundStyle(LiquidColors.accentPrimary)
                     }
-                    Button(L10n.pick("立即同步", "Sync Now")) {
+                    if state.syncNeedsPluginGrant {
+                        Button(L10n.pick("一键授权并同步", "Grant & Sync")) {
+                            state.grantPermissionsAndSyncNow(for: plugin, ctrl: ctrl, viewModel: viewModel)
+                        }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                    } else if let permURL = state.syncPermissionActionURL {
+                        Button(L10n.pick("前往授权…", "Open Privacy Settings…")) {
+                            NSWorkspace.shared.open(permURL)
+                        }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                    }
+                    Button {
                         state.syncSearchIndexNow(for: plugin, ctrl: ctrl, viewModel: viewModel)
+                    } label: {
+                        HStack(spacing: 5) {
+                            if state.isSyncingIndex {
+                                ProgressView().controlSize(.small)
+                            }
+                            Text(state.isSyncingIndex ? L10n.pick("同步中…", "Syncing…") : L10n.pick("立即同步", "Sync Now"))
+                        }
                     }
                     .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                    .disabled(state.isSyncingIndex)
                 }
 
                 if !plugin.declaredContextKinds.isEmpty {

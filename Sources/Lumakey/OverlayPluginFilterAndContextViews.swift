@@ -61,11 +61,17 @@ struct OverlayPluginFilterStrip: View {
                 if let scoped = viewModel.activeScopedPlugin {
                     Divider().frame(height: 16).opacity(0.35)
                     if !scoped.isBuiltin {
-                        Button(L10n.pick("同步索引", "Sync")) {
+                        let isSyncing = viewModel.syncingPluginIDs.contains(scoped.id)
+                        Button {
                             viewModel.runBackgroundPluginSync(scoped)
-                            viewModel.serviceMessage = L10n.pick("正在后台同步「\(scoped.displayName)」索引…", "Syncing \(scoped.displayName)…")
+                        } label: {
+                            HStack(spacing: 5) {
+                                if isSyncing { ProgressView().controlSize(.small) }
+                                Text(isSyncing ? L10n.pick("同步中…", "Syncing…") : L10n.pick("同步索引", "Sync"))
+                            }
                         }
                         .buttonStyle(GlassPillButtonStyle())
+                        .disabled(isSyncing)
                     }
                     Button(L10n.pick("设置 ⌘,", "Settings ⌘,")) {
                         viewModel.openPluginSettings(id: scoped.id)

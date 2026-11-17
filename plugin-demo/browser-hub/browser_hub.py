@@ -896,6 +896,7 @@ def dispatch(stdin_payload: dict[str, Any], argv: list[str], user_home: Path | N
     forced_browser = ""
     forced_kind = ""
     force_refresh = False
+    did_sync = False
     toast_msg: str | None = None
 
     i = 0
@@ -911,7 +912,7 @@ def dispatch(stdin_payload: dict[str, Any], argv: list[str], user_home: Path | N
             continue
         if arg == "--sync":
             force_refresh = True
-            toast_msg = "Browser search index refreshed" if is_en else "已同步刷新三端浏览器免前缀检索索引"
+            did_sync = True
             i += 1
             continue
         if arg == "--toggle-pin" and i + 1 < len(argv):
@@ -954,6 +955,15 @@ def dispatch(stdin_payload: dict[str, Any], argv: list[str], user_home: Path | N
         user_home=user_home,
         force_refresh=force_refresh,
     )
+    if did_sync:
+        if safari_denied:
+            toast_msg = (
+                "Full Disk Access needed for Safari; Chrome/Edge synced"
+                if is_en
+                else "Chrome/Edge 已同步；Safari 需授予「完全磁盘访问权限」才能读取"
+            )
+        else:
+            toast_msg = "Browser search index refreshed" if is_en else "已同步刷新三端浏览器免前缀检索索引"
     b_filter, k_filter, folder_tags, text_tokens = parse_query_filters(query, forced_browser, forced_kind)
     filtered = filter_aggregated_items(items, b_filter, k_filter, folder_tags, text_tokens)
 

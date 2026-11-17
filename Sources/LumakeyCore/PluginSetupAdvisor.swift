@@ -13,21 +13,34 @@ public struct PluginUsageTip: Identifiable, Sendable, Hashable {
     }
 }
 
+public struct PluginSystemPrivacyRequirement: Sendable, Hashable, Identifiable {
+    public let id: String
+    public let title: String
+    public let settingsURL: String
+
+    public init(id: String, title: String, settingsURL: String) {
+        self.id = id
+        self.title = title
+        self.settingsURL = settingsURL
+    }
+}
+
 public struct PluginSetupReadiness: Sendable, Hashable {
     public let missingRequiredSecrets: [String]
     public let ungrantedCapabilities: [PluginCapability]
     public let disabledScopes: [PluginResourceScope]
     public let missingTCCPermissions: [PluginSystemTCCKind]
+    public let systemPrivacyRequirements: [PluginSystemPrivacyRequirement]
     public let hasFloatingWindow: Bool
     public let supportsSelection: Bool
     public let usageTips: [PluginUsageTip]
 
     public var hasMissingPermissions: Bool {
-        !ungrantedCapabilities.isEmpty || !disabledScopes.isEmpty || !missingTCCPermissions.isEmpty
+        !ungrantedCapabilities.isEmpty || !disabledScopes.isEmpty || !missingTCCPermissions.isEmpty || !systemPrivacyRequirements.isEmpty
     }
 
     public var missingPermissionCount: Int {
-        ungrantedCapabilities.count + disabledScopes.count + missingTCCPermissions.count
+        ungrantedCapabilities.count + disabledScopes.count + missingTCCPermissions.count + systemPrivacyRequirements.count
     }
 
     public var hasBlockingIssues: Bool {
@@ -59,6 +72,7 @@ public struct PluginSetupReadiness: Sendable, Hashable {
 
         let hasFloating = plugin.manifest.window != nil
         let supportsSel = plugin.declaredCapabilities.contains(.selection)
+        let privacyReqs = detectSystemPrivacyRequirements(plugin: plugin, dataStatus: dataStatus)
         let tips = buildUsageTips(
             plugin: plugin,
             hasFloatingWindow: hasFloating,
@@ -71,10 +85,43 @@ public struct PluginSetupReadiness: Sendable, Hashable {
             ungrantedCapabilities: ungrantedCaps,
             disabledScopes: disabledScopes,
             missingTCCPermissions: missingTCC,
+            systemPrivacyRequirements: privacyReqs,
             hasFloatingWindow: hasFloating,
             supportsSelection: supportsSel,
             usageTips: tips
         )
+    }
+
+    private static func detectSystemPrivacyRequirements(
+        plugin: PluginDescriptor,
+        dataStatus: PluginDataStatus?
+    ) -> [PluginSystemPrivacyRequirement] {
+        var reqs: [PluginSystemPrivacyRequirement] = []
+        if plugin.id == "browser-hub" {
+            let browsersRaw = (plugin.userConfig["enabledBrowsers"] ?? "edge,chrome,safari").lowercased()
+            let needsSafari = browsersRaw.contains("safari")
+            let safariDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Safari", isDirectory: true)
+            let safariExists = FileManager.default.fileExists(atPath: safariDir.path)
+            let safariDeniedByProbe = safariExists && !FileManager.default.isReadableFile(atPath: safariDir.appendingPathComponent("Bookmarks.plist").path)
+            let safariDeniedByStatus = dataStatus?.runtimeStatus?.summary.contains("Safari 待授磁盘权限") == true
+            if needsSafari && (safariDeniedByProbe || safariDeniedByStatus) {
+                reqs.append(PluginSystemPrivacyRequirement(
+                    id: "safari-full-disk-access",
+                    title: L10n.pick("「完全磁盘访问权限」（用于读取 Safari 书签与历史）", "'Full Disk Access' (to read Safari bookmarks & history)"),
+                    settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+                ))
+            }
+        }
+        if plugin.id == "quick-remind",
+           let summary = dataStatus?.runtimeStatus?.summary,
+           summary.contains("未授权") || summary.localizedCaseInsensitiveContains("Automation") {
+            reqs.append(PluginSystemPrivacyRequirement(
+                id: "reminders-automation",
+                title: L10n.pick("「自动化 -> 提醒事项」（用于同步到 Apple 提醒事项）", "'Automation -> Reminders' (for Apple Reminders sync)"),
+                settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"
+            ))
+        }
+        return reqs
     }
 
     private static func buildUsageTips(

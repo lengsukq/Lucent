@@ -66,6 +66,25 @@ class QuickRemindTests(unittest.TestCase):
             self.assertFalse(after_done["done"])
             self.assertEqual(after_done["dueDisplay"], "2026-11-17 18:10")
 
+    def test_sync_empty_add_and_apple_permission_guidance(self) -> None:
+        base = dt.datetime(2026, 11, 16, 18, 0, 0)
+        with tempfile.TemporaryDirectory() as tmp:
+            sync_card = qr.execute_plugin(["--sync"], {"dataDir": tmp}, now_override=base)
+            self.assertIn("已同步提醒索引", sync_card["effect"]["toast"])
+
+            empty_add = qr.execute_plugin(["--add"], {"query": "", "dataDir": tmp}, now_override=base)
+            self.assertIn("请先输入提醒内容", empty_add["effect"]["toast"])
+
+            denied_card = qr.execute_plugin(
+                ["--add"],
+                {"query": "10m 喝水", "dataDir": tmp},
+                now_override=base,
+                apple_sync_fn=lambda _t, _dt, _l: False,
+            )
+            self.assertEqual(denied_card["items"][0]["id"], "reminders-automation-guide")
+            self.assertIn("Privacy_Automation", denied_card["items"][0]["openURL"])
+            self.assertIn("未授权", denied_card["effect"]["toast"])
+
 
 if __name__ == "__main__":
     unittest.main()

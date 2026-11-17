@@ -86,4 +86,51 @@ struct LumakeyPluginSetupAndQuickBarTests {
         #expect(readiness.usageTips.contains { $0.id == "selection" })
         #expect(readiness.usageTips.contains { $0.id == "window" })
     }
+
+    @Test("PluginSetupReadiness flags browser-hub Safari FDA and quick-remind Automation requirements")
+    func pluginSetupPrivacyRequirementsDetection() {
+        let bhManifest = PluginManifest(
+            schemaVersion: 3, id: "browser-hub", name: "Browser Hub", version: "1.0.0",
+            description: "Sync", mode: .view, keywords: ["bh"], entry: "run.sh",
+            capabilities: [], resourceScopes: ["filesystem", "subprocess"]
+        )
+        let bhPlugin = PluginDescriptor(
+            id: "browser-hub", directoryURL: URL(fileURLWithPath: "/tmp/browser-hub"),
+            manifest: bhManifest, validationIssues: [], isEnabled: true
+        )
+        let bhStatus = PluginDataStatus(
+            dataDirectoryURL: URL(fileURLWithPath: "/tmp/bh-data"),
+            dataDirectoryExists: true, cacheBytes: 0, cacheFileCount: 0,
+            searchIndexEntryCount: 0, searchIndexUpdatedAt: nil,
+            missingRequiredSecretKeys: [], configuredSecretKeys: [],
+            needsAutoRefresh: false,
+            runtimeStatus: PluginRuntimeStatus(summary: "书签 2 · 历史 1 (Safari 待授磁盘权限)", badge: "3")
+        )
+        let bhReadiness = PluginSetupReadiness.analyze(plugin: bhPlugin, dataStatus: bhStatus)
+        #expect(bhReadiness.systemPrivacyRequirements.contains {
+            $0.id == "safari-full-disk-access" && $0.settingsURL.contains("Privacy_AllFiles")
+        })
+
+        let qrManifest = PluginManifest(
+            schemaVersion: 3, id: "quick-remind", name: "Quick Remind", version: "1.0.0",
+            description: "Remind", mode: .view, keywords: ["remind"], entry: "run.sh",
+            capabilities: ["audio"], resourceScopes: ["filesystem", "subprocess"]
+        )
+        let qrPlugin = PluginDescriptor(
+            id: "quick-remind", directoryURL: URL(fileURLWithPath: "/tmp/quick-remind"),
+            manifest: qrManifest, validationIssues: [], isEnabled: true, grantedCapabilities: [.audio]
+        )
+        let qrStatus = PluginDataStatus(
+            dataDirectoryURL: URL(fileURLWithPath: "/tmp/qr-data"),
+            dataDirectoryExists: true, cacheBytes: 0, cacheFileCount: 0,
+            searchIndexEntryCount: 1, searchIndexUpdatedAt: nil,
+            missingRequiredSecretKeys: [], configuredSecretKeys: [],
+            needsAutoRefresh: false,
+            runtimeStatus: PluginRuntimeStatus(summary: "1 条待办提醒（Apple 提醒事项未授权）", badge: "1")
+        )
+        let qrReadiness = PluginSetupReadiness.analyze(plugin: qrPlugin, dataStatus: qrStatus)
+        #expect(qrReadiness.systemPrivacyRequirements.contains {
+            $0.id == "reminders-automation" && $0.settingsURL.contains("Privacy_Automation")
+        })
+    }
 }

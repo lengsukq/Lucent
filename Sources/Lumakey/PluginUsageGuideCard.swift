@@ -159,6 +159,21 @@ struct PluginSetupReminderAndGuideSection: View {
                         .buttonStyle(GlassPillButtonStyle(compact: true))
                     }
                 }
+                ForEach(readiness.systemPrivacyRequirements) { req in
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                        Text(L10n.pick("需要在系统设置中开启 \(req.title)", "Enable \(req.title) in macOS System Settings"))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(LiquidColors.textPrimary)
+                        Spacer(minLength: 4)
+                        Button(L10n.pick("去授权…", "Authorize…")) {
+                            if let url = URL(string: req.settingsURL) { NSWorkspace.shared.open(url) }
+                        }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                    }
+                }
             }
         }
         .padding(12)

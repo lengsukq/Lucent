@@ -75,10 +75,14 @@ extension AppViewModel {
     }
 
     func grantMissingCapabilitiesAndRerun(_ plugin: PluginDescriptor) {
-        let missing = plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
-        guard !missing.isEmpty else { return }
-        for cap in missing {
+        let missingCaps = plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
+        let missingScopes = plugin.revokedResourceScopes
+        guard !missingCaps.isEmpty || !missingScopes.isEmpty else { return }
+        for cap in missingCaps {
             try? PluginSystem.setPluginCapabilityGranted(id: plugin.id, capability: cap, granted: true)
+        }
+        for scope in missingScopes {
+            try? PluginSystem.setPluginResourceScopeGranted(id: plugin.id, scope: scope, granted: true)
         }
         reloadPlugins()
         PluginCustomWebWindowController.shared.syncPluginState(for: plugin.id, plugins: plugins)
@@ -139,7 +143,8 @@ extension AppViewModel {
         overlayQuery = initialQuery
         let hasIndexedItems = pluginSearchEntries.contains { $0.pluginID == plugin.id }
             || !plugin.declaredCommands.isEmpty
-        if !hasIndexedItems {
+        if !hasIndexedItems
+            || (initialQuery.isEmpty && !plugin.isBuiltin && plugin.manifest.mode == .view && plugin.manifest.window == nil) {
             runPlugin(plugin, query: initialQuery, showInline: true)
         } else if !plugin.isBuiltin && PluginDataInspector.inspect(plugin).needsAutoRefresh {
             runBackgroundPluginSync(plugin)
@@ -171,6 +176,9 @@ extension AppViewModel {
         showInline: Bool = false
     ) {
         pluginRunTask?.cancel()
+        let runToken = UUID()
+        activePluginRunToken = runToken
+        isRunningPlugin = true
         PluginSystem.recordPluginUsage(id: plugin.id)
         let clipText = clipboardItems.first(where: { $0.textValue != nil })?.textValue
             ?? NSPasteboard.general.string(forType: .string)
@@ -178,6 +186,11 @@ extension AppViewModel {
         let bridgeContext = makePluginBridgeContext()
         serviceMessage = L10n.pick("正在执行：\(plugin.displayName)…", "Running \(plugin.displayName)…")
         pluginRunTask = Task { [weak self] in
+            defer {
+                if let self, self.activePluginRunToken == runToken {
+                    self.isRunningPlugin = false
+                }
+            }
             do {
                 let resolved = try await PluginSystem.runPluginAsync(
                     plugin, query: query, clipboardText: clipText,
@@ -230,26 +243,7 @@ extension AppViewModel {
         }
     }
 
-    func runBackgroundPluginSync(_ plugin: PluginDescriptor, arguments: [String] = ["--sync"]) {
-        guard backgroundPluginTasks[plugin.id] == nil else { return }
-        let bridgeContext = makePluginBridgeContext()
-        backgroundPluginTasks[plugin.id] = Task { [weak self] in
-            defer { self?.backgroundPluginTasks.removeValue(forKey: plugin.id) }
-            do {
-                let resolved = try await PluginSystem.runPluginAsync(
-                    plugin, query: "", arguments: arguments, hostContext: bridgeContext
-                )
-                guard !Task.isCancelled, let self else { return }
-                if resolved.execution.exitCode == 0 {
-                    self.reloadPluginSearchIndex()
-                    self.reloadPlugins()
-                    if let note = resolved.viewPayload?.effect?.notification {
-                        _ = PluginNotificationService.shared.post(note, pluginID: plugin.id, pluginName: plugin.displayName)
-                    }
-                }
-            } catch {}
-        }
-    }
+    // runBackgroundPluginSync lives in AppViewModel+PluginSync.swift
 
     private func syncBuiltinControllerState(id: String) {
         switch BuiltinPluginID(rawValue: id) {

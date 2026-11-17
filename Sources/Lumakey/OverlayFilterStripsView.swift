@@ -94,7 +94,11 @@ struct OverlayBottomFooterBar: View {
         ZStack {
             WindowDragRegion()
             HStack(spacing: 10) {
-                Image(systemName: "sparkles").font(.caption).foregroundStyle(.cyan)
+                if viewModel.isRunningPlugin || !viewModel.syncingPluginIDs.isEmpty {
+                    ProgressView().controlSize(.small)
+                } else {
+                    LumakeyBrandIconView(size: 17)
+                }
                 Text(L10n.translate(viewModel.serviceMessage ?? "⌘1..9 瞬启候选 · ⌘C 复制结果 · ⌘↩ 切换快捷按钮/打开"))
                     .font(.caption2)
                     .foregroundStyle(LiquidColors.textSecondary)
