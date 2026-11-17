@@ -2,6 +2,12 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.9.8)
+
+- **全新 3D 流光棱镜键帽品牌图标全页面同步 &「一触流光，用完即焚」启动开场动画无缝跃出悬浮框 (`LumakeyBrandIconRenderer`, `LumakeyBrandIconView`, `LaunchIntroOverlayView`, `LaunchIntroController`, `scripts/generate-icon.swift`, `site/assets/icon.svg`)**：
+  - **真 3D 透视水晶键帽图标重设计**：重构 `scripts/generate-icon.swift`、`LumakeyBrandIconRenderer` 与 `site/assets/icon.svg`，以深空黑曜蓝宝石底座、3D 斜切阳极水晶键帽侧壁、微凹球面高透键槽、四象限切面星芒晶核及具前后空间遮挡关系的 360° 透视环绕流光环取代旧版平面图标；统一覆盖 `AppIcon.icns`、`NSApp.applicationIconImage`、顶部状态栏可选「3D 流光键帽」图标样式、快捷台搜索栏与状态底栏、全部二级窗口顶栏徽标 (`SecondaryWindowScaffold`)、设置中心侧边栏、关于流光页、主题微缩预览卡、展示站点 (`site/index.html`、`site/overview.html`) 及 `README.md`；
+  - **「一触流光，用完即焚」开场动画与悬浮框同心跃出**：新增 `LaunchIntroController` 与零 `@State` 宏的 `LaunchIntroOverlayView`，在主悬浮框目标屏幕坐标同心呈现 3D 键帽下压触击（「一触」）、虹彩冲击波扩散与星尘粒子、实时流光扫光 Slogan 铭牌（「一触流光，用完即焚」+ 引信光丝）及 `28pt` 圆角轮廓外扩，无缝衔接 `FloatingPanelController.showFromLaunchIntro`（`.launcherFromIntro` 弹簧曲线）跃出 `880 × 544` 主悬浮框并自动聚焦搜索框；支持点击或任意按键瞬时跳过、遵循系统「减弱动态效果」自动降级、动画结束即销毁开场面板回收堆页，并在常规设置与关于页提供开关及一键预览/重播入口。
+
 ## 已完成与已验证 (v0.9.7)
 
 - **模块化可定制启动页、多场景 Profile 与 `lumakey-mcp` 智能编排闭环 (`HomeBuiltinActionModels`, `HomeLaunchItemModels`, `HomeLayoutModels`, `HomeLayoutPresets`, `HomeLayoutStore`, `HomeLayoutSpec`, `OverlayBentoHomeView`, `OverlayBentoHomeSections`, `OverlayHomeItemEditorSheet`, `HomeCustomizationSettingsView`, `OverlayResultContextMenuViews`, `MCPHomeLayoutSchemas`, `MCPHomeLayoutHandlers`, `MCPHomeItemHandlers`, `LumakeyHomeLayoutAndMCPTests`, `CheckHomeLayoutAndMCP`)**：

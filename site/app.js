@@ -42,6 +42,11 @@
     activeStep: 0,
     snifferMode: 'repo',
     sliderRatio: 0.35,
+    modelIdx: 0,
+    secretRevealed: false,
+    hotkeyIdx: 0,
+    hudCompact: false,
+    secIdx: 0,
     builderProfile: 'daily',
     focusedPluginId: 'ai-quota',
     enabledPlugins: new Set(savedPluginIds)
@@ -49,6 +54,32 @@
 
   function saveEnabledPlugins() {
     safeSet('lumakey-enabled-plugins-v1', JSON.stringify([...state.enabledPlugins]));
+  }
+
+  let toastTimer = null;
+  function showPanelToast(msg) {
+    const el = document.getElementById('panelActionToast');
+    if (!el) return;
+    el.textContent = msg;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.textContent = ''; }, 2400);
+  }
+
+  function syncGlider(containerSelector, gliderId, activeSelector) {
+    const container = document.querySelector(containerSelector);
+    const glider = document.getElementById(gliderId);
+    if (!container || !glider) return;
+    const active = container.querySelector(activeSelector);
+    if (!active || active.offsetWidth <= 0) {
+      container.classList.remove('glider-ready');
+      return;
+    }
+    const cRect = container.getBoundingClientRect();
+    const aRect = active.getBoundingClientRect();
+    const offsetX = aRect.left - cRect.left;
+    glider.style.width = `${aRect.width.toFixed(1)}px`;
+    glider.style.transform = `translateX(${offsetX.toFixed(1)}px)`;
+    container.classList.add('glider-ready');
   }
 
   // Hydrate repository links cleanly
@@ -1394,6 +1425,7 @@
     document.querySelectorAll('.scope-pill').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.scope === state.scope);
     });
+    syncGlider('#scopeCapsules', 'scopeGlider', '.scope-pill.active');
   }
 
   function applyPreset(presetKey) {
@@ -1421,6 +1453,31 @@
       state.scope = pill.dataset.scope;
       syncScopeButtons();
       renderLauncher();
+    });
+  });
+
+  document.getElementById('heroFocusShortcutBtn')?.addEventListener('click', () => {
+    document.getElementById('heroPanel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => launcherInput?.focus(), 220);
+    showPanelToast(state.lang === 'zh' ? '⌥Space 已聚焦体验框' : '⌥Space Focused');
+  });
+
+  document.querySelectorAll('#panelFooterHints .footer-hint-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const act = btn.dataset.footerAct;
+      const zh = state.lang === 'zh';
+      if (act === 'exec') {
+        const selTitle = leftPane?.querySelector('.result-row.selected .result-title')?.textContent?.trim();
+        showPanelToast(selTitle ? (zh ? `↵ 已执行：${selTitle.slice(0, 18)}…` : `↵ Executed: ${selTitle.slice(0, 18)}…`) : (zh ? '↵ 已打开当前选中项' : '↵ Opened selected item'));
+      } else if (act === 'quick') {
+        applyPreset('translate');
+        showPanelToast(zh ? '⌘1 盲按快选：流光译站' : '⌘1 Quick Pick: Translate');
+      } else if (act === 'pin') {
+        showPanelToast(zh ? '📌 在左侧任意磁贴/结果点右键即可钉上主页' : '📌 Right-click any tile/hit to pin to Home');
+      } else if (act === 'focus') {
+        launcherInput?.focus();
+        showPanelToast(zh ? '⌥Space 搜索框已聚焦' : '⌥Space Input Focused');
+      }
     });
   });
 
@@ -1453,12 +1510,57 @@
   });
 
   /* ------------------------------------------------------------------------
-     5. Interactive Stage Widgets inside #theatre (Slider + Smart URL Sniffer)
+     5. Interactive Stage Widgets inside #theatre (Scenes 0-3 + Capabilities)
      ------------------------------------------------------------------------ */
+  // Scene 0: MCP Pipeline Sequence & Apply Demo Card
+  let mcpTimers = [];
+  function playMcpSequence() {
+    mcpTimers.forEach((t) => clearTimeout(t));
+    mcpTimers = [];
+    const items = Array.from(document.querySelectorAll('#mcpSceneStage .mcp-seq-item'));
+    items.forEach((el) => el.classList.remove('seq-lit', 'seq-current'));
+    items.forEach((el, idx) => {
+      const t = setTimeout(() => {
+        items.forEach((other) => other.classList.remove('seq-current'));
+        el.classList.add('seq-lit');
+        if (el.classList.contains('mcp-step-row')) el.classList.add('seq-current');
+      }, 120 + idx * 240);
+      mcpTimers.push(t);
+    });
+  }
+  playMcpSequence();
+
+  document.getElementById('mcpReplayBtn')?.addEventListener('click', playMcpSequence);
+
+  const mcpApplyCard = document.getElementById('mcpApplyDemoCard');
+  if (mcpApplyCard) {
+    const triggerApply = () => {
+      applyPreset('home_dev');
+      document.getElementById('heroPanel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showPanelToast(state.lang === 'zh' ? '✦ 已按 AI 指令热刷新为「开发者主页」' : '✦ Hot-reloaded "Developer Hub" Profile');
+    };
+    mcpApplyCard.addEventListener('click', triggerApply);
+    mcpApplyCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        triggerApply();
+      }
+    });
+  }
+
+  // Scene 1: Slider + Model Select + AES-GCM Vault + Silent Hotkey + Freeform Glass HUD
   const sliderTrack = document.getElementById('demoSliderTrack');
   const sliderFill = document.getElementById('demoSliderFill');
   const sliderKnob = document.getElementById('demoSliderKnob');
   const sliderBadge = document.getElementById('sliderValueBadge');
+  const sliderModeLabel = document.getElementById('sliderModeLabel');
+  const sliderSamplePreview = document.getElementById('sliderSamplePreview');
+  const autoSaveBadge = document.getElementById('settingsAutoSaveBadge');
+
+  function flashAutoSaved() {
+    if (!autoSaveBadge) return;
+    autoSaveBadge.textContent = state.lang === 'zh' ? '✓ 已实时保存 settings.json' : '✓ settings.json Synced';
+  }
 
   function updateSlider(ratio) {
     const clamped = Math.min(1, Math.max(0, ratio));
@@ -1467,6 +1569,27 @@
     if (sliderFill) sliderFill.style.width = pct;
     if (sliderKnob) sliderKnob.style.left = pct;
     if (sliderBadge) sliderBadge.textContent = `temperature: ${clamped.toFixed(2)}`;
+    if (sliderTrack) sliderTrack.setAttribute('aria-valuenow', (clamped * 100).toFixed(0));
+
+    const zh = state.lang === 'zh';
+    if (sliderModeLabel && sliderSamplePreview) {
+      if (clamped < 0.28) {
+        sliderModeLabel.textContent = zh ? '🎯 精准严谨 · Precise' : '🎯 Precise · Deterministic';
+        sliderSamplePreview.textContent = zh
+          ? '实时译文预览：“用完即焚的微内核架构。”'
+          : 'Live Preview: "Ephemeral micro-core architecture."';
+      } else if (clamped < 0.68) {
+        sliderModeLabel.textContent = zh ? '⚖️ 均衡自然 · Balanced' : '⚖️ Balanced · Natural';
+        sliderSamplePreview.textContent = zh
+          ? '实时译文预览：“用完即焚的原生微内核，轻巧不占内存。”'
+          : 'Live Preview: "Ephemeral native micro-core, light on memory."';
+      } else {
+        sliderModeLabel.textContent = zh ? '✨ 灵动润色 · Creative' : '✨ Creative · Expressive';
+        sliderSamplePreview.textContent = zh
+          ? '实时译文预览：“一触流光，用完即焚的轻盈桌面艺术品。”'
+          : 'Live Preview: "Effortless liquid-glass speed that vanishes cleanly."';
+      }
+    }
   }
 
   if (sliderTrack) {
@@ -1475,6 +1598,7 @@
       const r = sliderTrack.getBoundingClientRect();
       if (r.width <= 0) return;
       updateSlider((e.clientX - r.left) / r.width);
+      flashAutoSaved();
     };
     sliderTrack.addEventListener('pointerdown', (e) => {
       draggingSlider = true;
@@ -1485,25 +1609,97 @@
       if (draggingSlider) setFromEvent(e);
     });
     sliderTrack.addEventListener('pointerup', () => { draggingSlider = false; });
+    sliderTrack.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        updateSlider(state.sliderRatio + (e.key === 'ArrowRight' ? 0.08 : -0.08));
+        flashAutoSaved();
+      }
+    });
     updateSlider(state.sliderRatio);
   }
 
+  const DEMO_MODELS = ['Ollama · qwen2.5', 'Claude 3.7 Sonnet', 'GPT-4o-mini (Proxy)'];
+  document.getElementById('demoModelSelectBtn')?.addEventListener('click', () => {
+    state.modelIdx = (state.modelIdx + 1) % DEMO_MODELS.length;
+    const valEl = document.getElementById('demoModelVal');
+    if (valEl) valEl.textContent = DEMO_MODELS[state.modelIdx];
+    flashAutoSaved();
+  });
+
+  document.getElementById('demoVaultSecretBtn')?.addEventListener('click', () => {
+    state.secretRevealed = !state.secretRevealed;
+    const valEl = document.getElementById('demoVaultVal');
+    if (valEl) {
+      valEl.textContent = state.secretRevealed
+        ? '🔓 sk-lumakey-demo-8a4c9f2a (Decrypted)'
+        : '🔒 sk-••••9f2a (AES-GCM)';
+    }
+    flashAutoSaved();
+  });
+
+  const DEMO_HOTKEYS = [
+    ['⌥⇧T', '✓ 三层热键无冲突 · 唤醒词可改', '✓ 3-Tier Guard Clear · Custom Keyword'],
+    ['⌥⇧D', '✓ 已绑定后台静默划词译', '✓ Bound to Silent Selection Translate'],
+    ['⌃⌥Space', '✓ 全局直达子命令 · 0 抢焦点', '✓ Direct Subcommand · Zero Focus Steal']
+  ];
+  const hotkeyCard = document.getElementById('demoHotkeyCard');
+  if (hotkeyCard) {
+    const cycleHotkey = () => {
+      state.hotkeyIdx = (state.hotkeyIdx + 1) % DEMO_HOTKEYS.length;
+      const [kbd, zhMsg, enMsg] = DEMO_HOTKEYS[state.hotkeyIdx];
+      const kbdEl = document.getElementById('demoHotkeyKbd');
+      const stEl = document.getElementById('demoHotkeyStatus');
+      if (kbdEl) kbdEl.textContent = kbd;
+      if (stEl) stEl.textContent = state.lang === 'zh' ? zhMsg : enMsg;
+    };
+    hotkeyCard.addEventListener('click', cycleHotkey);
+    hotkeyCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        cycleHotkey();
+      }
+    });
+  }
+
+  const hudCard = document.getElementById('demoHudCard');
+  if (hudCard) {
+    const toggleHud = () => {
+      state.hudCompact = !state.hudCompact;
+      const miniHud = document.getElementById('demoMiniHud');
+      const tagEl = document.getElementById('demoHudModeTag');
+      if (miniHud) miniHud.classList.toggle('compact', state.hudCompact);
+      if (tagEl) tagEl.textContent = state.hudCompact ? 'compact · click-through' : 'floatingWindow';
+    };
+    hudCard.addEventListener('click', toggleHud);
+    hudCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleHud();
+      }
+    });
+  }
+
+  // Scene 2: 4-Tier Smart Sniffer
   const SNIFFER_MODES = {
     repo: {
       url: `${REPO_BASE}/tree/main/plugin-demo`,
       kind: 'Store Registry (8 Plugins)',
+      sha: 'SHA-256: 8f4c…d91a ✓',
       descZh: '自动识别开源仓库子目录并定位 lumakey-registry.json，一键订阅全部 8 款官方插件（含 AI 额度雷达悬浮窗）并强制核对 SHA-256。',
       descEn: 'Auto-resolves repository subdirectory to lumakey-registry.json, subscribing all 8 curated plugins (incl. AI Quota HUD) with SHA-256 verification.'
     },
     registry: {
       url: `${REPO_BASE}/blob/main/plugin-demo/lumakey-registry.json`,
       kind: 'JSON Store Manifest',
+      sha: 'SHA-256: 3a9e…44b2 ✓',
       descZh: '直接解析商店索引清单 JSON，支持增量检查版本更新与防伪装沙箱权限比对，任何悄悄越权都会被拦截。',
       descEn: 'Parses store manifest JSON directly with one-click version updates and anti-spoofing capability boundary checks.'
     },
     archive: {
       url: 'plugin-demo/dist/ai-quota.zip',
       kind: 'Direct Plugin Package',
+      sha: 'SHA-256: c710…e208 ✓',
       descZh: '无需搭建商店，直接嗅探独立插件压缩包并在清晰展示所需沙箱与窗口权限后安心安装。',
       descEn: 'Installs standalone plugin zip packages directly after previewing requested Seatbelt and floatingWindow permissions.'
     }
@@ -1514,9 +1710,17 @@
     const urlEl = document.getElementById('snifferUrlText');
     const kindEl = document.getElementById('snifferDetectedKind');
     const descEl = document.getElementById('snifferDetailDesc');
+    const shaEl = document.getElementById('snifferDigestBadge');
+    const mockEl = document.getElementById('snifferInputMock');
     if (urlEl) urlEl.textContent = mode.url;
     if (kindEl) kindEl.textContent = mode.kind;
+    if (shaEl) shaEl.textContent = mode.sha;
     if (descEl) descEl.textContent = state.lang === 'zh' ? mode.descZh : mode.descEn;
+    if (mockEl) {
+      mockEl.classList.remove('scanning');
+      void mockEl.offsetWidth;
+      mockEl.classList.add('scanning');
+    }
   }
 
   document.querySelectorAll('#snifferDemoPills .sniffer-demo-btn').forEach((btn) => {
@@ -1529,25 +1733,106 @@
     });
   });
 
+  document.getElementById('snifferInputMock')?.addEventListener('click', renderSnifferDemo);
+
+  // Scene 3: Security & Backup Layer Selector
+  const SANDBOX_TAGS = ['Seatbelt Isolated', 'UDS 0700 Scoped', 'AES-GCM 256-bit', 'LZFSE + WebDAV'];
+  document.querySelectorAll('#sandboxLayerList .sec-row').forEach((row) => {
+    row.addEventListener('click', () => {
+      const idx = Number(row.dataset.secIdx || 0);
+      state.secIdx = idx;
+      document.querySelectorAll('#sandboxLayerList .sec-row').forEach((r) => {
+        r.classList.toggle('sec-active', Number(r.dataset.secIdx) === idx);
+      });
+      const tagEl = document.getElementById('sandboxActiveTag');
+      if (tagEl) tagEl.textContent = SANDBOX_TAGS[idx] || 'Defense in Depth';
+    });
+  });
+
+  // Capabilities (#capabilities) Micro-Stages
+  const MS_TICKERS = {
+    bento: 'HomeCustomization.swift',
+    home_min: 'OmniDock · 16 Hybrid Slots',
+    home_dev: 'cursor://lumakey-repo',
+    home_shelf: '4-Col Bento + Bookmarks'
+  };
+  document.querySelectorAll('#microSearchPills .ms-pill').forEach((pill) => {
+    pill.addEventListener('click', () => {
+      const key = pill.dataset.msPreset;
+      document.querySelectorAll('#microSearchPills .ms-pill').forEach((p) => p.classList.toggle('active', p === pill));
+      const ticker = document.getElementById('microSearchTicker');
+      if (ticker && MS_TICKERS[key]) ticker.textContent = MS_TICKERS[key];
+      if (key) applyPreset(key);
+    });
+  });
+
+  const SWATCH_COLORS = ['#38BDF8', '#A855F7', '#10B981', '#F59E0B'];
+  let swatchIdx = 0;
+  document.getElementById('demoCopyColorBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const hex = SWATCH_COLORS[swatchIdx];
+    try { await navigator.clipboard?.writeText(hex); } catch (_) {}
+    swatchIdx = (swatchIdx + 1) % SWATCH_COLORS.length;
+    const nextHex = SWATCH_COLORS[swatchIdx];
+    const dot = document.getElementById('demoSwatchDot');
+    const lbl = document.getElementById('demoColorLabel');
+    btn.classList.add('copied');
+    if (lbl) lbl.textContent = `${hex} Copied ✓`;
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      if (dot) dot.style.background = nextHex;
+      if (lbl) lbl.textContent = `${nextHex} · Copy C`;
+    }, 1100);
+  });
+
   /* ------------------------------------------------------------------------
      6. Dual-Theme (Default Pure Frost!) & Bilingual Live Switching
      ------------------------------------------------------------------------ */
-  function applyTheme(themeId) {
-    state.theme = themeId;
-    document.documentElement.setAttribute('data-theme', themeId);
-    safeSet('lumakey-showcase-theme-v2', themeId);
+  function applyTheme(themeId, originEvent = null) {
+    const commit = () => {
+      state.theme = themeId;
+      document.documentElement.setAttribute('data-theme', themeId);
+      safeSet('lumakey-showcase-theme-v2', themeId);
 
-    const label = document.getElementById('themeToggleLabel');
-    const dict = I18N[state.lang];
-    if (label) {
-      label.textContent = themeId === 'pure-frost' ? dict.theme_frost : dict.theme_prism;
+      const label = document.getElementById('themeToggleLabel');
+      const dict = I18N[state.lang];
+      if (label) {
+        label.textContent = themeId === 'pure-frost' ? dict.theme_frost : dict.theme_prism;
+      }
+
+      document.querySelectorAll('[data-set-theme]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.setTheme === themeId);
+      });
+
+      renderLauncher();
+    };
+
+    if (
+      originEvent &&
+      typeof document.startViewTransition === 'function' &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      const x = originEvent.clientX ?? window.innerWidth * 0.5;
+      const y = originEvent.clientY ?? 36;
+      const endRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+      const transition = document.startViewTransition(commit);
+      transition.ready.then(() => {
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${endRadius.toFixed(0)}px at ${x}px ${y}px)`
+            ]
+          },
+          { duration: 480, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', pseudoElement: '::view-transition-new(root)' }
+        );
+      }).catch(() => {});
+    } else {
+      commit();
     }
-
-    document.querySelectorAll('[data-set-theme]').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.setTheme === themeId);
-    });
-
-    renderLauncher();
   }
 
   function applyLanguage(lang) {
@@ -1609,14 +1894,17 @@
     renderLauncher();
     renderSnifferDemo();
     renderTerminal();
+    updateSlider(state.sliderRatio);
+    syncScopeButtons();
+    syncGlider('#navLinks', 'navGlider', 'a.active');
   }
 
-  document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
-    applyTheme(state.theme === 'pure-frost' ? 'prism-pulse' : 'pure-frost');
+  document.getElementById('themeToggleBtn')?.addEventListener('click', (e) => {
+    applyTheme(state.theme === 'pure-frost' ? 'prism-pulse' : 'pure-frost', e);
   });
 
   document.querySelectorAll('[data-set-theme]').forEach((btn) => {
-    btn.addEventListener('click', () => applyTheme(btn.dataset.setTheme));
+    btn.addEventListener('click', (e) => applyTheme(btn.dataset.setTheme, e));
   });
 
   document.getElementById('langToggleBtn')?.addEventListener('click', () => {

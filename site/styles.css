@@ -257,7 +257,15 @@ a {
 }
 
 button {
+  -webkit-appearance: none;
+  appearance: none;
   font-family: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
 }
 
 /* ==========================================================================
@@ -382,7 +390,6 @@ button {
   position: relative;
 }
 
-/* Luminous Hairline Divider Shimmer on Section Bands */
 .section-band::before {
   content: "";
   position: absolute;
@@ -404,7 +411,6 @@ button {
   -webkit-backdrop-filter: blur(26px) saturate(175%);
 }
 
-/* Masked 1.25px Specular Border Highlight Following Pointer! */
 .spotlight-surface::before {
   content: "";
   position: absolute;
@@ -426,7 +432,6 @@ button {
   z-index: 3;
 }
 
-/* Soft Inner Surface Caustic Sheen */
 .spotlight-surface::after {
   content: "";
   position: absolute;
@@ -449,7 +454,7 @@ button {
 }
 
 /* ==========================================================================
-   3. Floating Liquid-Glass Navbar with Spring Glider Pill
+   3. Floating Liquid-Glass Navbar with Zero-Artifact Spring Glider Pill
    ========================================================================== */
 .site-header {
   position: fixed;
@@ -463,13 +468,13 @@ button {
 
 .nav-capsule {
   pointer-events: auto;
-  max-width: min(1260px, calc(100vw - 32px));
+  max-width: 1180px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 10px 6px 14px;
+  gap: 12px;
+  padding: 7px 11px 7px 16px;
   border-radius: 999px;
   background: var(--bg-elevated);
   backdrop-filter: blur(30px) saturate(190%);
@@ -525,31 +530,38 @@ button {
   border: 1px solid var(--rim-subtle);
 }
 
+/* Strictly hidden (opacity: 0 & transparent border) when unmeasured so width: 0 NEVER draws a vertical line! */
 .nav-glider {
   position: absolute;
   top: 3px;
   bottom: 3px;
   left: 0;
   width: 0;
+  opacity: 0;
   border-radius: 999px;
   background: var(--accent-badge-bg);
-  border: 1px solid var(--accent-badge-border);
+  border: 1px solid transparent;
   box-shadow: 0 2px 8px rgba(0, 102, 220, 0.08), inset 0 1px 0 var(--bevel-top);
   transition: transform 0.38s var(--ease-spring), width 0.38s var(--ease-spring), opacity 0.2s ease;
   pointer-events: none;
   z-index: 0;
 }
 
+.nav-links.glider-ready .nav-glider {
+  opacity: 1;
+  border-color: var(--accent-badge-border);
+}
+
 .nav-links a {
   position: relative;
   z-index: 1;
-  padding: 5.5px 9.5px;
+  padding: 5.5px 11px;
   border-radius: 999px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 620;
   color: var(--text-secondary);
   white-space: nowrap;
-  transition: color 0.22s ease;
+  transition: color 0.22s ease, background 0.2s ease;
 }
 
 .nav-links a:hover {
@@ -559,6 +571,10 @@ button {
 .nav-links a.active {
   color: var(--accent-badge-text);
   font-weight: 700;
+}
+
+.nav-links:not(.glider-ready) a.active {
+  background: var(--accent-badge-bg);
 }
 
 .nav-actions {
@@ -705,6 +721,8 @@ kbd.keycap {
   box-shadow: var(--keycap-shadow);
   color: var(--keycap-text);
   line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: transform 0.14s var(--ease-bounce), box-shadow 0.14s ease, border-color 0.18s ease;
 }
 
@@ -722,6 +740,8 @@ kbd.keycap.pressed {
   font-weight: 700;
   padding: 3px 9.5px;
   border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
   background: var(--accent-badge-bg);
   border: 1px solid var(--accent-badge-border);
   color: var(--accent-badge-text);
@@ -735,6 +755,8 @@ kbd.keycap.pressed {
   font-weight: 700;
   padding: 3px 9.5px;
   border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
   background: var(--status-ok-bg);
   color: var(--status-ok);
 }
@@ -747,6 +769,7 @@ kbd.keycap.pressed {
   font-weight: 600;
   padding: 4px 10.5px;
   border-radius: 999px;
+  white-space: nowrap;
   background: var(--bg-well);
   border: 1px solid var(--rim-subtle);
   color: var(--text-secondary);
@@ -820,6 +843,19 @@ kbd.keycap.pressed {
   border-color: var(--rim-selected);
 }
 
+.hero-badge-btn {
+  cursor: pointer;
+}
+
+.hero-badge-btn:active {
+  transform: translateY(0) scale(0.975);
+}
+
+.hero-badge-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 .pulse-dot {
   width: 7.5px;
   height: 7.5px;
@@ -872,7 +908,6 @@ kbd.keycap.pressed {
   will-change: transform;
 }
 
-/* Specular Light Sweep across Primary CTA */
 .btn-hero-primary::after {
   content: "";
   position: absolute;
@@ -934,7 +969,6 @@ kbd.keycap.pressed {
   box-shadow: var(--shadow-card-hover);
 }
 
-/* Preset Switcher above Hero Panel */
 .launcher-presets {
   display: flex;
   flex-wrap: wrap;
@@ -983,7 +1017,6 @@ kbd.keycap.pressed {
   box-shadow: 0 6px 16px -6px rgba(0, 102, 220, 0.24), inset 0 1px 0 var(--bevel-top);
 }
 
-/* 880 × 544 Launcher Stage with Soft Ambient Halo & 3D Tilt */
 .launcher-perspective {
   perspective: 1800px;
   max-width: 900px;
@@ -1027,7 +1060,6 @@ kbd.keycap.pressed {
   transition: background 0.35s ease, box-shadow 0.35s ease;
 }
 
-/* Cursor-Driven Diagonal Glass Specular Sheen on Hero Panel */
 .panel-sheen {
   position: absolute;
   inset: 0;
@@ -1074,6 +1106,27 @@ kbd.keycap.pressed {
   color: var(--text-tertiary);
 }
 
+.panel-action-toast {
+  position: absolute;
+  left: 16px;
+  top: 3px;
+  font-size: 10.5px;
+  font-weight: 660;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-badge-bg);
+  border: 1px solid var(--accent-badge-border);
+  color: var(--accent-badge-text);
+  white-space: nowrap;
+  max-width: 44%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-action-toast:empty {
+  display: none;
+}
+
 .panel-search-bar {
   margin: 2px 16px 12px;
   padding: 10px 14px;
@@ -1094,11 +1147,19 @@ kbd.keycap.pressed {
 }
 
 .search-icon {
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
   color: var(--accent-primary);
   flex-shrink: 0;
   transition: transform 0.28s var(--ease-bounce);
+}
+
+.panel-brand-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8.5px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px -2px rgba(56, 189, 248, 0.36);
 }
 
 .panel-search-bar:focus-within .search-icon {
@@ -1120,7 +1181,7 @@ kbd.keycap.pressed {
   color: var(--text-tertiary);
 }
 
-/* Segmented Scope Capsules with Sliding Glider! */
+/* Segmented Scope Capsules with Zero-Artifact Sliding Glider */
 .scope-capsules {
   position: relative;
   display: flex;
@@ -1138,12 +1199,17 @@ kbd.keycap.pressed {
   bottom: 3px;
   left: 0;
   width: 0;
+  opacity: 0;
   border-radius: 999px;
   background: var(--accent-gradient);
   box-shadow: 0 2px 8px rgba(0, 102, 220, 0.28);
-  transition: transform 0.34s var(--ease-spring), width 0.34s var(--ease-spring);
+  transition: transform 0.34s var(--ease-spring), width 0.34s var(--ease-spring), opacity 0.2s ease;
   pointer-events: none;
   z-index: 0;
+}
+
+.scope-capsules.glider-ready .scope-glider {
+  opacity: 1;
 }
 
 .scope-pill {
@@ -1162,6 +1228,10 @@ kbd.keycap.pressed {
 
 .scope-pill.active {
   color: #ffffff;
+}
+
+.scope-capsules:not(.glider-ready) .scope-pill.active {
+  background: var(--accent-gradient);
 }
 
 .panel-body {
@@ -1190,7 +1260,6 @@ kbd.keycap.pressed {
   min-width: 0;
 }
 
-/* Staggered Spring Entrance for Dynamic Simulator Items! */
 @keyframes simItemPop {
   from {
     opacity: 0;
@@ -1543,13 +1612,28 @@ kbd.keycap.pressed {
 .footer-hints {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
 }
 
-.footer-hints span {
+.footer-hints span,
+.footer-hint-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  padding: 2.5px 7px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s var(--ease-bounce);
+}
+
+.footer-hint-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.footer-hint-btn:active {
+  transform: scale(0.96);
 }
 
 .hint-label {
@@ -1763,7 +1847,6 @@ kbd.keycap.pressed {
   text-overflow: ellipsis;
 }
 
-/* Tactile Spring Switch */
 .mac-switch {
   width: 40px;
   height: 23px;
@@ -2064,13 +2147,18 @@ kbd.keycap.pressed {
 
 .theatre-stage-box {
   position: relative;
-  min-height: 525px;
   border-radius: var(--radius-panel);
   background: var(--bg-panel-solid);
   box-shadow: var(--shadow-panel);
-  overflow: hidden;
+  overflow: visible;
   padding: 24px;
   min-width: 0;
+}
+
+.theatre-scenes-stack {
+  display: grid;
+  width: 100%;
+  align-items: stretch;
 }
 
 .theatre-mobile-tabs {
@@ -2098,16 +2186,17 @@ kbd.keycap.pressed {
 }
 
 .stage-scene {
-  position: absolute;
-  inset: 24px;
+  grid-area: 1 / 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
   opacity: 0;
-  transform: translateY(24px) scale(0.975);
-  filter: blur(6px);
+  transform: translateY(18px) scale(0.982);
+  filter: blur(5px);
   pointer-events: none;
-  transition: opacity 0.44s var(--ease-spring), transform 0.44s var(--ease-spring), filter 0.4s ease;
+  visibility: hidden;
+  transition: opacity 0.42s var(--ease-spring), transform 0.42s var(--ease-spring), filter 0.36s ease, visibility 0.42s;
 }
 
 .stage-scene.active {
@@ -2115,20 +2204,27 @@ kbd.keycap.pressed {
   transform: translateY(0) scale(1);
   filter: blur(0);
   pointer-events: auto;
+  visibility: visible;
+  z-index: 2;
 }
 
 .scene-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   padding-bottom: 13px;
   border-bottom: 1px solid var(--rim-subtle);
 }
 
 .scene-tech-label {
-  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mcp-replay-btn {
@@ -2144,6 +2240,7 @@ kbd.keycap.pressed {
 .window-dots {
   display: flex;
   gap: 7px;
+  flex-shrink: 0;
 }
 
 .window-dots i {
@@ -2166,7 +2263,6 @@ kbd.keycap.pressed {
   padding: 10px 0;
 }
 
-/* Sequenced MCP Pipeline Choreographer */
 .mcp-seq-item {
   opacity: 0.25;
   transform: translateY(6px);
@@ -2196,7 +2292,6 @@ kbd.keycap.pressed {
   background: var(--bg-row-selected);
 }
 
-/* Levitating Floating Glass HUD Preview in Scene 1 */
 .hud-levitate-card {
   position: relative;
   overflow: hidden;
@@ -2244,14 +2339,131 @@ kbd.keycap.pressed {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 5px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
 .mock-card-title {
+  flex: 1;
+  min-width: 0;
   font-size: 13.5px;
   font-weight: 740;
   color: var(--text-primary);
+}
+
+.interactive-mock-card {
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-spring), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.interactive-mock-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--rim-selected);
+  box-shadow: 0 8px 20px -10px rgba(0, 102, 220, 0.22), inset 0 1px 0 var(--bevel-top);
+}
+
+.interactive-mock-card:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.slider-live-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: 12px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: var(--bg-well);
+  border: 1px solid var(--rim-subtle);
+}
+
+.slider-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9.5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: var(--accent-badge-bg);
+  border: 1px solid var(--accent-badge-border);
+  color: var(--accent-badge-text);
+}
+
+.slider-sample-text {
+  flex: 1;
+  min-width: 180px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.48;
+}
+
+.interactive-form-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mini-form-ctrl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5.5px 12.5px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 620;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--rim-outer);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05), inset 0 1px 0 var(--bevel-top);
+  color: var(--text-secondary);
+  transition: transform 0.18s var(--ease-bounce), border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mini-form-ctrl strong {
+  color: var(--text-primary);
+  font-weight: 720;
+}
+
+.mini-form-ctrl:hover {
+  transform: translateY(-1px);
+  border-color: var(--rim-selected);
+  background: var(--bg-well-strong);
+  color: var(--text-primary);
+  box-shadow: 0 6px 14px -6px rgba(0, 102, 220, 0.22), inset 0 1px 0 var(--bevel-top);
+}
+
+.mini-form-ctrl:active {
+  transform: scale(0.975);
+}
+
+.mini-form-ctrl:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.mini-status-note {
+  margin-top: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3.5px 9.5px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 680;
+  white-space: nowrap;
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
 }
 
 .mock-card-sub {
@@ -2396,8 +2608,58 @@ kbd.keycap.pressed {
   border-top: 1px solid var(--rim-subtle);
 }
 
+.sec-row {
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.18s var(--ease-spring), box-shadow 0.2s ease;
+}
+
+.sec-row:hover {
+  border-color: var(--rim-strong);
+  transform: translateX(2px);
+}
+
+.sec-row.sec-active {
+  border-color: var(--rim-selected);
+  background: var(--bg-row-selected);
+  box-shadow: 0 4px 14px -8px rgba(0, 102, 220, 0.25), inset 0 1px 0 var(--bevel-top);
+}
+
+.mini-hud-preview.compact {
+  justify-content: center;
+  gap: 10px;
+  padding: 5px 10px;
+  border-style: dashed;
+  opacity: 0.92;
+}
+
+.mini-hud-preview.compact span:nth-child(n+2) {
+  display: none;
+}
+
+.dock-app-pill {
+  cursor: pointer;
+}
+
+.ms-pill,
+.mc-loupe {
+  cursor: pointer;
+  transition: transform 0.18s var(--ease-bounce), border-color 0.18s ease, background 0.18s ease;
+}
+
+.ms-pill:hover,
+.mc-loupe:hover {
+  border-color: var(--rim-selected);
+  transform: translateY(-1px);
+}
+
+.mc-loupe.copied {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
+}
+
 /* ==========================================================================
-   8. ACT IV · Bento Grid + Live Animated Micro-Visual Stages!
+   8. ACT IV · Bento Grid + Live Animated Micro-Visual Stages
    ========================================================================== */
 .bento-section {
   padding: 100px 0 92px;
@@ -2491,7 +2753,6 @@ kbd.keycap.pressed {
   gap: 8px;
 }
 
-/* Miniature Kinetic Stages Inside Bento Cards */
 .bento-micro-stage {
   margin-top: 14px;
   padding: 11px 13px;
@@ -2502,7 +2763,6 @@ kbd.keycap.pressed {
   position: relative;
 }
 
-/* 1. Search Micro Stage */
 .ms-bar {
   display: flex;
   align-items: center;
@@ -2573,7 +2833,6 @@ kbd.keycap.pressed {
   color: var(--accent-badge-text);
 }
 
-/* 2. Capture / GIF / OCR Micro Stage */
 .micro-capture {
   display: flex;
   align-items: center;
@@ -2652,7 +2911,6 @@ kbd.keycap.pressed {
   background: #38bdf8;
 }
 
-/* 3. Chip Pulse Sparkline Stage */
 .mp-head {
   display: flex;
   justify-content: space-between;
@@ -2684,7 +2942,6 @@ kbd.keycap.pressed {
   100% { stroke-dashoffset: 0; }
 }
 
-/* 4. Socket Bandwidth Stage */
 .micro-net {
   display: flex;
   flex-direction: column;
@@ -2736,7 +2993,6 @@ kbd.keycap.pressed {
   100% { width: 46%; }
 }
 
-/* 5. 120Hz Smooth Wheel Stage */
 .micro-wheel {
   display: flex;
   flex-direction: column;
@@ -2952,7 +3208,7 @@ kbd.keycap.pressed {
 }
 
 /* ==========================================================================
-   10. ACT VI · Clean Code DAG Blueprint with Animated SVG Optical Conduits!
+   10. ACT VI · Clean Code DAG Blueprint with Animated SVG Optical Conduits
    ========================================================================== */
 .arch-section {
   padding: 92px 0 96px;
@@ -3065,7 +3321,6 @@ kbd.keycap.pressed {
   color: var(--text-secondary);
 }
 
-/* SVG Optical Conduits Between DAG Tiers! */
 .dag-conduit {
   position: relative;
   height: 42px;
@@ -3118,7 +3373,7 @@ kbd.keycap.pressed {
 }
 
 /* ==========================================================================
-   11. ACT VII · Download & Adaptive Code Studio with Sliding Tab Glider
+   11. ACT VII · Download & Adaptive Code Studio with Zero-Artifact Glider
    ========================================================================== */
 .download-section {
   padding: 64px 0 108px;
@@ -3192,13 +3447,19 @@ kbd.keycap.pressed {
   bottom: 2px;
   left: 0;
   width: 0;
+  opacity: 0;
   border-radius: 8px;
   background: var(--bg-card);
-  border: 1px solid var(--studio-border);
+  border: 1px solid transparent;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-  transition: transform 0.34s var(--ease-spring), width 0.34s var(--ease-spring);
+  transition: transform 0.34s var(--ease-spring), width 0.34s var(--ease-spring), opacity 0.2s ease;
   pointer-events: none;
   z-index: 0;
+}
+
+.studio-tabs.glider-ready .studio-tab-glider {
+  opacity: 1;
+  border-color: var(--studio-border);
 }
 
 .term-tab {
@@ -3206,7 +3467,7 @@ kbd.keycap.pressed {
   z-index: 1;
   padding: 5px 10px;
   border-radius: 8px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--studio-muted);
   font-size: 11.5px;
@@ -3217,6 +3478,11 @@ kbd.keycap.pressed {
 
 .term-tab.active {
   color: var(--studio-text);
+}
+
+.studio-tabs:not(.glider-ready) .term-tab.active {
+  background: var(--bg-card);
+  border-color: var(--studio-border);
 }
 
 .copy-cmd-btn {
@@ -3412,7 +3678,7 @@ kbd.keycap.pressed {
   .dag-node:hover { transform: none; }
 }
 
-@media (max-width: 1320px) {
+@media (max-width: 1150px) {
   .brand-tag { display: none; }
 }
 
@@ -3556,7 +3822,7 @@ kbd.keycap.pressed {
 
   .theatre-stage-box { padding: 14px; border-radius: 20px; }
   .scene-top-bar .window-dots { display: none; }
-  .scene-tech-label { font-size: 11px; overflow-wrap: anywhere; }
+  .scene-tech-label { white-space: normal; font-size: 11px; overflow-wrap: anywhere; }
   .mcp-step-row,
   .sniffer-input-mock { flex-direction: column; align-items: flex-start; gap: 6px; }
 
@@ -3590,7 +3856,7 @@ kbd.keycap.pressed {
   .download-actions { flex-direction: column; }
   .studio-head .window-dots { display: none; }
   .studio-tab-glider { display: none; }
-  .term-tab.active { background: var(--bg-card); border: 1px solid var(--studio-border); }
+  .studio-tabs .term-tab.active { background: var(--bg-card); border: 1px solid var(--studio-border); }
   .studio-pre { padding: 14px; font-size: 11.5px; line-height: 1.6; }
 
   .site-footer { padding: 26px 0 40px; }

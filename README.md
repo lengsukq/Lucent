@@ -1,4 +1,4 @@
-# 流光 Lumakey
+# <img src="site/assets/icon.svg" alt="Lumakey 3D Icon" width="44" height="44" align="top" /> 流光 Lumakey
 
 > **在线体验页**：[3D 沉浸式主页](https://lengsukq.github.io/Lumakey/) ｜ [2D 图文详解与交互实验台](https://lengsukq.github.io/Lumakey/overview.html) ｜ **官方插件库**：[`plugin-demo/`](plugin-demo/README.md) ｜ **技术文档**：[文档总览](docs/INDEX.md)
 

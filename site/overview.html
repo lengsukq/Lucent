@@ -67,18 +67,18 @@
       <div class="container">
         <div class="hero-copy" id="heroCopy">
           <div class="hero-badges hero-stagger" style="--stagger: 0ms">
-            <span class="hero-badge">
+            <a href="#builder" class="hero-badge">
               <i class="pulse-dot"></i>
               <span data-i18n="hero_badge_1">全新启动面板自定义 · Plugin v3.7 · 16 项 MCP 工具</span>
-            </span>
-            <span class="hero-badge">
+            </a>
+            <a href="#architecture" class="hero-badge">
               <span>Swift 6</span>
               <code class="mono">arm64 · ~10 MB</code>
-            </span>
-            <span class="hero-badge">
+            </a>
+            <button type="button" class="hero-badge hero-badge-btn" id="heroFocusShortcutBtn">
               <kbd class="keycap" data-key-watch="Alt">⌥</kbd><kbd class="keycap" data-key-watch="Space">Space</kbd>
               <span data-i18n="hero_badge_3">秒呼即走 · 不占后台</span>
-            </span>
+            </button>
           </div>
 
           <h1 class="hero-title hero-stagger" style="--stagger: 80ms">
@@ -121,6 +121,7 @@
           <div class="luma-panel glass-specular" id="heroPanel">
             <div class="panel-sheen" aria-hidden="true"></div>
             <div class="panel-grabber">
+              <span class="panel-action-toast mono" id="panelActionToast" aria-live="polite"></span>
               <div class="panel-grabber-pill"></div>
               <span class="panel-dimension-tag mono">880 × 544 · Custom Home Profiles + 0ms Search</span>
             </div>
@@ -151,11 +152,11 @@
             </div>
 
             <div class="panel-footer">
-              <div class="footer-hints">
-                <span><kbd class="keycap">↵</kbd> <em class="hint-label" data-i18n="hint_open">执行 / 打开</em></span>
-                <span><kbd class="keycap">⌘1-9</kbd> <em class="hint-label" data-i18n="hint_quick">盲按快选</em></span>
-                <span><kbd class="keycap">Right Click</kbd> <em class="hint-label" data-i18n="hint_tab">右键钉上主页</em></span>
-                <span><kbd class="keycap" data-key-watch="Space">⌥Space</kbd> <em class="hint-label" data-i18n="hint_focus">聚焦体验框</em></span>
+              <div class="footer-hints" id="panelFooterHints">
+                <button type="button" class="footer-hint-btn" data-footer-act="exec"><kbd class="keycap">↵</kbd> <em class="hint-label" data-i18n="hint_open">执行 / 打开</em></button>
+                <button type="button" class="footer-hint-btn" data-footer-act="quick"><kbd class="keycap">⌘1-9</kbd> <em class="hint-label" data-i18n="hint_quick">盲按快选</em></button>
+                <button type="button" class="footer-hint-btn" data-footer-act="pin"><kbd class="keycap">Right Click</kbd> <em class="hint-label" data-i18n="hint_tab">右键钉上主页</em></button>
+                <button type="button" class="footer-hint-btn" data-footer-act="focus"><kbd class="keycap" data-key-watch="Space">⌥Space</kbd> <em class="hint-label" data-i18n="hint_focus">聚焦体验框</em></button>
               </div>
               <span class="mono status-heartbeat" id="panelEngineStatus">Home: Balanced · 5 Active Plugins</span>
             </div>
@@ -307,193 +308,209 @@
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="2">03 Store</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="3">04 Sandbox</button>
               </div>
-              <!-- Scene 0 -->
-              <div class="stage-scene active" data-scene="0" id="mcpSceneStage">
-                <div class="scene-top-bar">
-                  <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                  <span class="scene-tech-label mono">lumakey-mcp · 16 Tools (Plugin + Home Layout)</span>
-                  <button type="button" class="ok-pill mono mcp-replay-btn" id="mcpReplayBtn" title="重播 AI 自动编排动画">↻ Live Reload</button>
-                </div>
 
-                <div class="scene-visual-body">
-                  <div class="ai-prompt-bubble" data-i18n="sc0_prompt">
-                    “帮我做一个查待审 PR 的插件（Token 存加密箱），顺便在我的启动面板新建一个『日常开发』主页，把双栏文件台、这个新插件和 GitHub 书签架排上去。”
+              <div class="theatre-scenes-stack">
+                <!-- Scene 0 -->
+                <div class="stage-scene active" data-scene="0" id="mcpSceneStage">
+                  <div class="scene-top-bar">
+                    <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
+                    <span class="scene-tech-label mono">lumakey-mcp · 16 Tools (Plugin + Home Layout)</span>
+                    <button type="button" class="ok-pill mono mcp-replay-btn" id="mcpReplayBtn" title="重播 AI 自动编排流水线动画">↻ Live Reload</button>
                   </div>
 
-                  <div class="mcp-pipeline-steps" id="mcpPipelineSteps">
-                    <div class="mcp-step-row mcp-seq-item" style="--seq: 0">
-                      <span><strong class="mono">1. specs/plugin-v3 + home-layout-v1</strong> · <span data-i18n="sc0_st1">读取内置插件与启动面板双规范及可用能力池</span></span>
-                      <span class="ok-pill mono">0.8ms</span>
+                  <div class="scene-visual-body">
+                    <div class="ai-prompt-bubble" data-i18n="sc0_prompt">
+                      “帮我做一个查待审 PR 的插件（Token 存加密箱），顺便在我的启动面板新建一个『日常开发』主页，把双栏文件台、这个新插件和 GitHub 书签架排上去。”
                     </div>
-                    <div class="mcp-step-row mcp-seq-item" style="--seq: 1">
-                      <span><strong class="mono">2. scaffold + validate + run_test</strong> · <span data-i18n="sc0_st2">自动生成插件并在 Seatbelt 沙箱内完成实跑验证</span></span>
-                      <span class="ok-pill mono">Passed ✓</span>
-                    </div>
-                    <div class="mcp-step-row mcp-seq-item" style="--seq: 2">
-                      <span><strong class="mono">3. lumakey_update_home_layout</strong> · <span data-i18n="sc0_st3">创建新主页 Profile、挂载磁贴与书签架并实时热刷新</span></span>
-                      <span class="ok-pill mono">Synced ✓</span>
-                    </div>
-                  </div>
 
-                  <div class="mock-card selected-mock mcp-seq-item" style="--seq: 3">
-                    <div class="mock-card-head">
-                      <span class="mock-card-title" data-i18n="sc0_live_t">✦ 已热刷新至 ⌥Space：新插件与「日常开发」启动面板同步就绪</span>
-                      <kbd class="keycap">⌘1</kbd>
+                    <div class="mcp-pipeline-steps" id="mcpPipelineSteps">
+                      <div class="mcp-step-row mcp-seq-item" style="--seq: 0">
+                        <span><strong class="mono">1. specs/plugin-v3 + home-layout-v1</strong> · <span data-i18n="sc0_st1">读取内置插件与启动面板双规范及可用能力池</span></span>
+                        <span class="ok-pill mono">0.8ms</span>
+                      </div>
+                      <div class="mcp-step-row mcp-seq-item" style="--seq: 1">
+                        <span><strong class="mono">2. scaffold + validate + run_test</strong> · <span data-i18n="sc0_st2">自动生成插件并在 Seatbelt 沙箱内完成实跑验证</span></span>
+                        <span class="ok-pill mono">Passed ✓</span>
+                      </div>
+                      <div class="mcp-step-row mcp-seq-item" style="--seq: 2">
+                        <span><strong class="mono">3. lumakey_update_home_layout</strong> · <span data-i18n="sc0_st3">创建新主页 Profile、挂载磁贴与书签架并实时热刷新</span></span>
+                        <span class="ok-pill mono">Synced ✓</span>
+                      </div>
                     </div>
-                    <div class="mock-card-sub" data-i18n="sc0_live_d">
-                      全程无需重启 Lumakey，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。
-                    </div>
-                  </div>
-                </div>
 
-                <div class="scene-footer-metrics">
-                  <span class="subtle-chip" data-i18n="sc0_f1">12 项插件全生命周期工具</span>
-                  <span class="subtle-chip" data-i18n="sc0_f2">4 项启动面板实时编排工具</span>
-                  <span class="subtle-chip" data-i18n="sc0_f3">内置 3 套一键脚手架模板</span>
-                </div>
-              </div>
-
-              <!-- Scene 1 -->
-              <div class="stage-scene" data-scene="1">
-                <div class="scene-top-bar">
-                  <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                  <span class="scene-tech-label mono">Plugin v3.7 · Auto Settings · Freeform Glass HUD</span>
-                  <span class="accent-pill mono">High Freedom</span>
-                </div>
-
-                <div class="scene-visual-body">
-                  <div class="mock-card">
-                    <div class="mock-card-head">
-                      <span class="mock-card-title" data-i18n="sc1_slider_t">免写界面的原生设置页（拖动下方滑块实时体验）</span>
-                      <span class="accent-pill mono" id="sliderValueBadge">temperature: 0.35</span>
-                    </div>
-                    <div class="mock-card-sub" data-i18n="sc1_slider_d">
-                      自动渲染输入框、AES-GCM 密钥框、连续滑块、下拉单选、路径选择器与标签组，改动瞬间自动保存。
-                    </div>
-                    <div class="form-slider-track" id="demoSliderTrack" role="slider" aria-label="模型温度滑块演示" aria-valuemin="0" aria-valuemax="100" aria-valuenow="35">
-                      <div class="form-slider-fill" id="demoSliderFill"></div>
-                      <div class="form-slider-knob" id="demoSliderKnob"></div>
+                    <div class="mock-card selected-mock mcp-seq-item interactive-mock-card" id="mcpApplyDemoCard" style="--seq: 3" role="button" tabindex="0">
+                      <div class="mock-card-head">
+                        <span class="mock-card-title" data-i18n="sc0_live_t">✦ 已热刷新至 ⌥Space：新插件与「日常开发」启动面板同步就绪</span>
+                        <span class="accent-pill mono" data-i18n="sc0_try_btn">点击在上方体验 ↗</span>
+                      </div>
+                      <div class="mock-card-sub" data-i18n="sc0_live_d">
+                        全程无需重启 Lumakey，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。
+                      </div>
                     </div>
                   </div>
 
-                  <div class="mock-row-grid">
+                  <div class="scene-footer-metrics">
+                    <span class="subtle-chip" data-i18n="sc0_f1">12 项插件全生命周期工具</span>
+                    <span class="subtle-chip" data-i18n="sc0_f2">4 项启动面板实时编排工具</span>
+                    <span class="subtle-chip" data-i18n="sc0_f3">内置 3 套一键脚手架模板</span>
+                  </div>
+                </div>
+
+                <!-- Scene 1 -->
+                <div class="stage-scene" data-scene="1">
+                  <div class="scene-top-bar">
+                    <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
+                    <span class="scene-tech-label mono">Plugin v3.7 · Auto Settings · Freeform Glass HUD</span>
+                    <span class="ok-pill mono" id="settingsAutoSaveBadge">✓ settings.json Synced</span>
+                  </div>
+
+                  <div class="scene-visual-body">
                     <div class="mock-card">
                       <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc1_hk_t">子命令静默热键 &amp; 权重覆盖</span>
-                        <kbd class="keycap">⌥⇧T</kbd>
+                        <span class="mock-card-title" data-i18n="sc1_slider_t">免写界面的原生设置页（拖动滑块或点选控件实时体验）</span>
+                        <span class="accent-pill mono" id="sliderValueBadge">temperature: 0.35</span>
                       </div>
-                      <div class="mock-card-sub" data-i18n="sc1_hk_d">
-                        每条细分动作都能独立绑快捷键后台静默秒跑；不改插件源码就能自定义唤醒词、菜单栏挂载与搜索排序权重。
+                      <div class="mock-card-sub" data-i18n="sc1_slider_d">
+                        自动渲染输入框、AES-GCM 密钥框、连续滑块、下拉单选、路径选择器与标签组，改动瞬间自动保存并同步插件：
                       </div>
-                    </div>
-
-                    <div class="mock-card hud-levitate-card">
-                      <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc1_dl_t">自由画布透明桌面挂件</span>
-                        <code class="accent-pill mono">floatingWindow</code>
+                      <div class="form-slider-track" id="demoSliderTrack" role="slider" tabindex="0" aria-label="模型温度滑块演示" aria-valuemin="0" aria-valuemax="100" aria-valuenow="35">
+                        <div class="form-slider-fill" id="demoSliderFill"></div>
+                        <div class="form-slider-knob" id="demoSliderKnob"></div>
                       </div>
-                      <div class="mock-card-sub" data-i18n="sc1_dl_d">
-                        支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透，自动注入 window.lumakey 双向桥并在关窗瞬间销毁回收。
+                      <div class="slider-live-feedback">
+                        <span class="slider-mode-pill mono" id="sliderModeLabel">⚖️ 均衡自然 · Balanced</span>
+                        <span class="slider-sample-text" id="sliderSamplePreview">实时译文预览：“用完即焚的原生微内核，轻巧不占内存。”</span>
                       </div>
-                      <div class="mini-hud-preview mono" aria-hidden="true">
-                        <span><i></i> Claude 5h 78%</span>
-                        <span>Codex 91%</span>
-                        <span>DeepSeek ¥42.8</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="scene-footer-metrics">
-                  <span class="subtle-chip" data-i18n="sc1_f1">宿主统一代申系统 TCC 权限</span>
-                  <span class="subtle-chip" data-i18n="sc1_f2">中英双语与深浅主题实时热同步</span>
-                  <span class="subtle-chip" data-i18n="sc1_f3">三层全局热键防冲突检测</span>
-                </div>
-              </div>
-
-              <!-- Scene 2 -->
-              <div class="stage-scene" data-scene="2">
-                <div class="scene-top-bar">
-                  <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                  <span class="scene-tech-label mono">PluginStoreSniffer · 4-Tier URL Resolution</span>
-                  <span class="ok-pill mono">SHA-256 Guard</span>
-                </div>
-
-                <div class="scene-visual-body">
-                  <div class="sniffer-demo-pills" id="snifferDemoPills">
-                    <button type="button" class="sniffer-demo-btn active" data-sniff="repo" data-i18n="sniff_btn_1">试贴开源仓库子目录</button>
-                    <button type="button" class="sniffer-demo-btn" data-sniff="registry" data-i18n="sniff_btn_2">试贴商店索引 JSON</button>
-                    <button type="button" class="sniffer-demo-btn" data-sniff="archive" data-i18n="sniff_btn_3">试贴独立插件压缩包</button>
-                  </div>
-
-                  <div class="sniffer-input-mock" id="snifferInputMock">
-                    <span class="sniffer-scan-beam" aria-hidden="true"></span>
-                    <span class="mono" id="snifferUrlText">lengsukq/Lumakey/tree/main/plugin-demo</span>
-                    <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (8 Plugins)</span>
-                  </div>
-
-                  <div class="mock-row-grid">
-                    <div class="mock-card">
-                      <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc2_verify_t">防伪装双端权限核验</span>
-                        <span class="ok-pill mono">Verified</span>
-                      </div>
-                      <div class="mock-card-sub" id="snifferDetailDesc" data-i18n="sc2_verify_d">
-                        安装前强制核对 64 位 SHA-256 指纹，并比对包内真实权限与商店声明，任何悄悄越权夹带都会被当场拦截。
+                      <div class="interactive-form-strip">
+                        <button type="button" class="mini-form-ctrl mono" id="demoModelSelectBtn" title="点击切换下拉单选模型">
+                          <span>▾ Engine:</span> <strong id="demoModelVal">Ollama · qwen2.5</strong>
+                        </button>
+                        <button type="button" class="mini-form-ctrl mono" id="demoVaultSecretBtn" title="点击切换 AES-GCM 密钥框显隐">
+                          <span id="demoVaultVal">🔒 sk-••••9f2a (AES-GCM)</span>
+                        </button>
                       </div>
                     </div>
 
-                    <div class="mock-card">
-                      <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc2_upg_t">无损平滑检查更新</span>
-                        <span class="accent-pill mono">Lossless</span>
+                    <div class="mock-row-grid">
+                      <div class="mock-card interactive-mock-card" id="demoHotkeyCard" role="button" tabindex="0">
+                        <div class="mock-card-head">
+                          <span class="mock-card-title" data-i18n="sc1_hk_t">子命令静默热键 &amp; 权重覆盖</span>
+                          <kbd class="keycap" id="demoHotkeyKbd">⌥⇧T</kbd>
+                        </div>
+                        <div class="mock-card-sub" data-i18n="sc1_hk_d">
+                          每条细分动作都能独立绑快捷键后台静默秒跑；点击此卡片可轮换测试热键并实时核验冲突：
+                        </div>
+                        <div class="mini-status-note mono" id="demoHotkeyStatus">✓ 三层热键无冲突 · 唤醒词可改</div>
                       </div>
-                      <div class="mock-card-sub" data-i18n="sc2_upg_d">
-                        只读插件代码与个人数据目录严格分离，跨商店批量更新时完整保留你的自定义唤醒词、热键与加密凭据。
+
+                      <div class="mock-card hud-levitate-card interactive-mock-card" id="demoHudCard" role="button" tabindex="0">
+                        <div class="mock-card-head">
+                          <span class="mock-card-title" data-i18n="sc1_dl_t">自由画布透明桌面挂件</span>
+                          <code class="accent-pill mono" id="demoHudModeTag">floatingWindow</code>
+                        </div>
+                        <div class="mock-card-sub" data-i18n="sc1_dl_d">
+                          支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透；点击下方挂件切换「完整 / 紧凑穿透」态：
+                        </div>
+                        <div class="mini-hud-preview mono" id="demoMiniHud">
+                          <span><i></i> Claude 5h 78%</span>
+                          <span>Codex 91%</span>
+                          <span>DeepSeek ¥42.8</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div class="scene-footer-metrics">
-                  <span class="subtle-chip" data-i18n="sc2_f1">lumakey_package_plugin_for_store 一键发版</span>
-                  <span class="subtle-chip" data-i18n="sc2_f2">插件更新免重复勾选系统权限</span>
-                </div>
-              </div>
-
-              <!-- Scene 3 -->
-              <div class="stage-scene" data-scene="3">
-                <div class="scene-top-bar">
-                  <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                  <span class="scene-tech-label mono">PluginSandboxProfileBuilder · LMKYVLT2 · Backup v2</span>
-                  <span class="ok-pill mono">Defense in Depth</span>
-                </div>
-
-                <div class="scene-visual-body">
-                  <div class="mcp-pipeline-steps">
-                    <div class="mcp-step-row">
-                      <span><strong>Seatbelt Kernel Sandbox</strong> · <span data-i18n="sc3_r1">未声明联网或子进程即由系统内核硬阻断，无条件隔离钥匙串与敏感目录</span></span>
-                      <span class="ok-pill mono">Isolated</span>
-                    </div>
-                    <div class="mcp-step-row">
-                      <span><strong>Host Bridge UDS (0700)</strong> · <span data-i18n="sc3_r2">11 项受控宿主桥接（OCR / 划词 / 截屏 / 通知等），一次性令牌随进程结束即焚</span></span>
-                      <span class="accent-pill mono">Scoped</span>
-                    </div>
-                    <div class="mcp-step-row">
-                      <span><strong>LMKYVLT2 Secret Vault</strong> · <span data-i18n="sc3_r3">双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留</span></span>
-                      <span class="ok-pill mono">256-bit</span>
-                    </div>
-                    <div class="mcp-step-row">
-                      <span><strong>.lumakeybackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游</span></span>
-                      <span class="accent-pill mono">LZFSE</span>
-                    </div>
+                  <div class="scene-footer-metrics">
+                    <span class="subtle-chip" data-i18n="sc1_f1">宿主统一代申系统 TCC 权限</span>
+                    <span class="subtle-chip" data-i18n="sc1_f2">中英双语与深浅主题实时热同步</span>
+                    <span class="subtle-chip" data-i18n="sc1_f3">三层全局热键防冲突检测</span>
                   </div>
                 </div>
 
-                <div class="scene-footer-metrics">
-                  <span class="subtle-chip" data-i18n="sc3_f1">21 项全景权限审计面板</span>
-                  <span class="subtle-chip" data-i18n="sc3_f2">子进程超时自动回收兜底</span>
-                  <span class="subtle-chip" data-i18n="sc3_f3">HKDF + AES-GCM 备份口令保护</span>
+                <!-- Scene 2 -->
+                <div class="stage-scene" data-scene="2">
+                  <div class="scene-top-bar">
+                    <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
+                    <span class="scene-tech-label mono">PluginStoreSniffer · 4-Tier URL Resolution</span>
+                    <span class="ok-pill mono" id="snifferDigestBadge">SHA-256: 8f4c…d91a ✓</span>
+                  </div>
+
+                  <div class="scene-visual-body">
+                    <div class="sniffer-demo-pills" id="snifferDemoPills">
+                      <button type="button" class="sniffer-demo-btn active" data-sniff="repo" data-i18n="sniff_btn_1">试贴开源仓库子目录</button>
+                      <button type="button" class="sniffer-demo-btn" data-sniff="registry" data-i18n="sniff_btn_2">试贴商店索引 JSON</button>
+                      <button type="button" class="sniffer-demo-btn" data-sniff="archive" data-i18n="sniff_btn_3">试贴独立插件压缩包</button>
+                    </div>
+
+                    <div class="sniffer-input-mock interactive-mock-card" id="snifferInputMock" role="button" tabindex="0" title="点击重新触发四级嗅探与指纹校验">
+                      <span class="sniffer-scan-beam" aria-hidden="true"></span>
+                      <span class="mono" id="snifferUrlText">lengsukq/Lumakey/tree/main/plugin-demo</span>
+                      <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (8 Plugins)</span>
+                    </div>
+
+                    <div class="mock-row-grid">
+                      <div class="mock-card">
+                        <div class="mock-card-head">
+                          <span class="mock-card-title" data-i18n="sc2_verify_t">防伪装双端权限核验</span>
+                          <span class="ok-pill mono">Verified</span>
+                        </div>
+                        <div class="mock-card-sub" id="snifferDetailDesc" data-i18n="sc2_verify_d">
+                          安装前强制核对 64 位 SHA-256 指纹，并比对包内真实权限与商店声明，任何悄悄越权夹带都会被当场拦截。
+                        </div>
+                      </div>
+
+                      <div class="mock-card">
+                        <div class="mock-card-head">
+                          <span class="mock-card-title" data-i18n="sc2_upg_t">无损平滑检查更新</span>
+                          <span class="accent-pill mono">Lossless</span>
+                        </div>
+                        <div class="mock-card-sub" data-i18n="sc2_upg_d">
+                          只读插件代码与个人数据目录严格分离，跨商店批量更新时完整保留你的自定义唤醒词、热键与加密凭据。
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="scene-footer-metrics">
+                    <span class="subtle-chip" data-i18n="sc2_f1">lumakey_package_plugin_for_store 一键发版</span>
+                    <span class="subtle-chip" data-i18n="sc2_f2">插件更新免重复勾选系统权限</span>
+                  </div>
+                </div>
+
+                <!-- Scene 3 -->
+                <div class="stage-scene" data-scene="3">
+                  <div class="scene-top-bar">
+                    <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
+                    <span class="scene-tech-label mono">PluginSandboxProfileBuilder · LMKYVLT2 · Backup v2</span>
+                    <span class="ok-pill mono" id="sandboxActiveTag">Defense in Depth</span>
+                  </div>
+
+                  <div class="scene-visual-body">
+                    <div class="mcp-pipeline-steps" id="sandboxLayerList">
+                      <div class="mcp-step-row sec-row sec-active" data-sec-idx="0">
+                        <span><strong>Seatbelt Kernel Sandbox</strong> · <span data-i18n="sc3_r1">未声明联网或子进程即由系统内核硬阻断，无条件隔离钥匙串与敏感目录</span></span>
+                        <span class="ok-pill mono">Isolated</span>
+                      </div>
+                      <div class="mcp-step-row sec-row" data-sec-idx="1">
+                        <span><strong>Host Bridge UDS (0700)</strong> · <span data-i18n="sc3_r2">11 项受控宿主桥接（OCR / 划词 / 截屏 / 通知等），一次性令牌随进程结束即焚</span></span>
+                        <span class="accent-pill mono">Scoped</span>
+                      </div>
+                      <div class="mcp-step-row sec-row" data-sec-idx="2">
+                        <span><strong>LMKYVLT2 Secret Vault</strong> · <span data-i18n="sc3_r3">双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留</span></span>
+                        <span class="ok-pill mono">256-bit</span>
+                      </div>
+                      <div class="mcp-step-row sec-row" data-sec-idx="3">
+                        <span><strong>.lumakeybackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游</span></span>
+                        <span class="accent-pill mono">LZFSE</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="scene-footer-metrics">
+                    <span class="subtle-chip" data-i18n="sc3_f1">21 项全景权限审计面板</span>
+                    <span class="subtle-chip" data-i18n="sc3_f2">子进程超时自动回收兜底</span>
+                    <span class="subtle-chip" data-i18n="sc3_f3">HKDF + AES-GCM 备份口令保护</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -542,17 +559,17 @@
                 <span class="squircle-badge" style="background:linear-gradient(135deg,#0066dc,#4338ca)">⌘</span>
                 <kbd class="keycap">⌥Space</kbd>
               </div>
-              <div class="bento-micro-stage micro-search" aria-hidden="true">
+              <div class="bento-micro-stage micro-search">
                 <div class="ms-bar">
                   <span class="ms-dot"></span>
                   <span class="ms-typing mono" id="microSearchTicker">HomeCustomization.swift</span>
                   <span class="ms-speed mono">0.2ms mmap</span>
                 </div>
-                <div class="ms-pills">
-                  <span class="ms-pill active">Bento 3×2</span>
-                  <span class="ms-pill">OmniDock 16</span>
-                  <span class="ms-pill">Undo ×15</span>
-                  <span class="ms-pill">Right-Click Pin</span>
+                <div class="ms-pills" id="microSearchPills">
+                  <button type="button" class="ms-pill active" data-ms-preset="bento">Bento 3×2</button>
+                  <button type="button" class="ms-pill" data-ms-preset="home_min">OmniDock 16</button>
+                  <button type="button" class="ms-pill" data-ms-preset="home_dev">Dev Shelves</button>
+                  <button type="button" class="ms-pill" data-ms-preset="home_shelf">4-Col Tiles</button>
                 </div>
               </div>
               <h3 data-i18n="fc1_title">可定制启动面板 · 全盘秒搜 · 15 步可撤回剪贴板</h3>
@@ -574,21 +591,19 @@
                 <span class="squircle-badge" style="background:linear-gradient(135deg,#7c3aed,#db2777)">✦</span>
                 <span><kbd class="keycap">⌥A</kbd> <kbd class="keycap">⌥G</kbd> <kbd class="keycap">⌥O</kbd></span>
               </div>
-              <div class="bento-micro-stage micro-capture" aria-hidden="true">
+              <div class="bento-micro-stage micro-capture">
                 <div class="mc-crop-box">
-                  <span class="mc-corner tl"></span><span class="mc-corner tr"></span>
-                  <span class="mc-corner bl"></span><span class="mc-corner br"></span>
                   <span class="mc-ocr-scan"></span>
-                  <span class="mc-ocr-tag mono">OCR 99.4% · 0.4s</span>
+                  <span class="mc-ocr-tag mono">OCR 99.4% · Edge-Safe HUD</span>
                 </div>
                 <div class="mc-hud-stack">
                   <div class="mc-island mono"><i class="rec-dot"></i> GIF · 04.2s · 420 KB</div>
-                  <div class="mc-loupe mono"><i class="swatch-dot"></i> #38BDF8 · Copy C</div>
+                  <button type="button" class="mc-loupe mono" id="demoCopyColorBtn" title="点击复制取色 HEX"><i class="swatch-dot" id="demoSwatchDot"></i> <span id="demoColorLabel">#38BDF8 · Copy C</span></button>
                 </div>
               </div>
               <h3 data-i18n="fc2_title">多屏超清截图标注 · 轻巧区域 GIF · 一秒离线识字贴图</h3>
               <p data-i18n="fc2_desc">
-                多块不同分辨率屏幕拼接也能原画质框选与一键抠出独立圆角窗口；自带箭头、荧光笔、实时马赛克、序号、放大镜按 C 取色及半透明悬浮钉图（按 T 穿透对照），还能直接录轻巧 GIF 动图或离线提取图中文字与二维码。
+                多块不同分辨率屏幕拼接也能原画质框选与一键抠出独立圆角窗口（靠近屏幕边缘自动避让菜单）；自带箭头、荧光笔、实时马赛克、序号、放大镜按 C 取色及半透明悬浮钉图（按 T 穿透对照），还能直接录轻巧 GIF 动图或离线提取图中文字与二维码。
               </p>
             </div>
             <div class="f-card-chips">
@@ -820,11 +835,11 @@
         <div class="dag-board spotlight-surface reveal-up">
           <div class="dag-tiers">
             <div class="dag-tier">
-              <div class="dag-node">
+              <div class="dag-node" data-dag-mod="Lumakey.app">
                 <div class="dag-node-name mono"><i class="node-orb cyan"></i>Lumakey.app</div>
                 <div class="dag-node-desc" data-i18n="dag_app">SwiftUI + AppKit 双主题前端 · 启动面板/菜单栏定制 · 自由画布窗口</div>
               </div>
-              <div class="dag-node">
+              <div class="dag-node" data-dag-mod="lumakey-mcp">
                 <div class="dag-node-name mono"><i class="node-orb violet"></i>lumakey-mcp</div>
                 <div class="dag-node-desc" data-i18n="dag_mcp">内置 16 项 JSON-RPC 2.0 工具：AI 插件脚手架、沙箱测试与启动面板实时编排</div>
               </div>
@@ -840,7 +855,7 @@
             </div>
 
             <div class="dag-tier">
-              <div class="dag-node dag-node-wide">
+              <div class="dag-node dag-node-wide" data-dag-mod="LumakeyCore">
                 <div class="dag-node-name mono"><i class="node-orb indigo"></i>LumakeyCore</div>
                 <div class="dag-node-desc" data-i18n="dag_core">HomeLayout 多场景启动面板 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · 智能商店嗅探 · WebDAV 备份</div>
               </div>
@@ -856,15 +871,15 @@
             </div>
 
             <div class="dag-tier">
-              <div class="dag-node">
+              <div class="dag-node" data-dag-mod="LumakeySearch">
                 <div class="dag-node-name mono"><i class="node-orb sky"></i>LumakeySearch</div>
                 <div class="dag-node-desc" data-i18n="dag_search">LMKYIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检</div>
               </div>
-              <div class="dag-node">
+              <div class="dag-node" data-dag-mod="LumakeyMedia">
                 <div class="dag-node-name mono"><i class="node-orb rose"></i>LumakeyMedia</div>
                 <div class="dag-node-desc" data-i18n="dag_media">逐屏冻屏标注合成 · Vision 离线 OCR · hev1 4K 硬解 · 纯原生 Markdown</div>
               </div>
-              <div class="dag-node">
+              <div class="dag-node" data-dag-mod="LumakeySystem">
                 <div class="dag-node-name mono"><i class="node-orb emerald"></i>LumakeySystem</div>
                 <div class="dag-node-desc" data-i18n="dag_sys">Mach/IOKit 功耗遥测 · 进程网速去向 · 120Hz 鼠标平滑滚轮 · 三层热键防冲突</div>
               </div>
@@ -880,7 +895,7 @@
             </div>
 
             <div class="dag-tier">
-              <div class="dag-node dag-node-wide">
+              <div class="dag-node dag-node-wide" data-dag-mod="LumakeyFoundation">
                 <div class="dag-node-name mono"><i class="node-orb amber"></i>LumakeyFoundation</div>
                 <div class="dag-node-desc" data-i18n="dag_found">凝霜/流光双主题模型 · 中英双语免重启 · LMKYVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor</div>
               </div>
