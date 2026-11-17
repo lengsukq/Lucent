@@ -240,6 +240,8 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         webView.autoresizingMask = [.width, .height]
         if spec.transparent || spec.chrome != .standard {
             webView.setValue(false, forKey: "drawsBackground")
+            webView.wantsLayer = true
+            webView.layer?.backgroundColor = NSColor.clear.cgColor
         }
 
         win.contentView = webView

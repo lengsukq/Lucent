@@ -51,7 +51,7 @@ struct PluginDedicatedSettingsView: View {
                             PluginDeveloperDiagnosticsSection(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
                         }
                     }
-                    .padding(.trailing, 6).padding(.bottom, 8)
+                    .padding(.horizontal, 4).padding(.top, 2).padding(.bottom, 10)
                 }
                 .onAppear { state.bindIfNeeded(plugin: plugin, ctrl: ctrl) }
                 .onChange(of: plugin.id) { _, _ in state.bindIfNeeded(plugin: plugin, ctrl: ctrl) }

@@ -19,6 +19,10 @@ final class SelectionQuickBarState: ObservableObject {
 }
 
 struct SelectionQuickBarView: View {
+    static let horizontalShadowInset: CGFloat = 18
+    static let topShadowInset: CGFloat = 14
+    static let bottomShadowInset: CGFloat = 22
+
     @ObservedObject var state: SelectionQuickBarState
     let onTranslate: () -> Void
     let onSpeak: () -> Void
@@ -40,6 +44,9 @@ struct SelectionQuickBarView: View {
                 errorCard(msg)
             }
         }
+        .padding(.horizontal, Self.horizontalShadowInset)
+        .padding(.top, Self.topShadowInset)
+        .padding(.bottom, Self.bottomShadowInset)
         .animation(LiquidMotion.snappySpring, value: state.phase)
     }
 
@@ -91,7 +98,14 @@ struct SelectionQuickBarView: View {
         .overlay {
             Capsule(style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.9)
         }
-        .shadow(color: .black.opacity(0.22), radius: 10, y: 4)
+        .background {
+            RoundedShapeOuterShadow(
+                shape: Capsule(style: .continuous),
+                color: .black.opacity(0.20),
+                radius: 9,
+                yOffset: 4
+            )
+        }
     }
 
     private var loadingCard: some View {
@@ -109,7 +123,14 @@ struct SelectionQuickBarView: View {
         .padding(12)
         .frame(width: 260)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-        .shadow(color: .black.opacity(0.24), radius: 14, y: 6)
+        .background {
+            RoundedShapeOuterShadow(
+                shape: RoundedRectangle(cornerRadius: LiquidRadii.card, style: .continuous),
+                color: .black.opacity(0.20),
+                radius: 9,
+                yOffset: 4
+            )
+        }
     }
 
     private func resultCard(title: String, subtitle: String, detail: String, saveArgs: [String]?) -> some View {
@@ -196,7 +217,14 @@ struct SelectionQuickBarView: View {
         .padding(12)
         .frame(width: 340)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-        .shadow(color: .black.opacity(0.26), radius: 16, y: 8)
+        .background {
+            RoundedShapeOuterShadow(
+                shape: RoundedRectangle(cornerRadius: LiquidRadii.card, style: .continuous),
+                color: .black.opacity(0.20),
+                radius: 9,
+                yOffset: 4
+            )
+        }
     }
 
     private func errorCard(_ msg: String) -> some View {
@@ -211,5 +239,13 @@ struct SelectionQuickBarView: View {
         }
         .padding(12).frame(width: 280)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
+        .background {
+            RoundedShapeOuterShadow(
+                shape: RoundedRectangle(cornerRadius: LiquidRadii.card, style: .continuous),
+                color: .black.opacity(0.20),
+                radius: 9,
+                yOffset: 4
+            )
+        }
     }
 }

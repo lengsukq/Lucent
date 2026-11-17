@@ -124,9 +124,10 @@ final class SelectionQuickBarController {
         let size = NSSize(width: max(fit.width, estimatedSize.width), height: max(fit.height, estimatedSize.height))
         let screen = NSScreen.screens.first(where: { $0.frame.contains(anchor) }) ?? NSScreen.main ?? NSScreen.screens.first
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let x = min(max(visible.minX + 10, anchor.x - size.width / 2), visible.maxX - size.width - 10)
-        let aboveY = anchor.y + 18
-        let y = (aboveY + size.height <= visible.maxY - 8) ? aboveY : max(visible.minY + 10, anchor.y - size.height - 16)
+        let x = min(max(visible.minX + 4, anchor.x - size.width / 2), visible.maxX - size.width - 4)
+        let aboveY = anchor.y + 18 - SelectionQuickBarView.bottomShadowInset
+        let belowY = anchor.y - size.height - 16 + SelectionQuickBarView.topShadowInset
+        let y = (aboveY + size.height <= visible.maxY - 4) ? aboveY : max(visible.minY + 4, belowY)
         panel.setFrame(NSRect(origin: NSPoint(x: x, y: y), size: size), display: true)
         panel.orderFrontRegardless()
     }

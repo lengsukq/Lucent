@@ -65,6 +65,24 @@ struct LiquidGlassShellModifier: ViewModifier {
     }
 }
 
+struct RoundedShapeOuterShadow<S: InsettableShape>: View {
+    let shape: S
+    let color: Color
+    let radius: CGFloat
+    let yOffset: CGFloat
+
+    var body: some View {
+        // Cast shadow from a pure SwiftUI shape rather than around Material/NSVisualEffectView
+        // so macOS never falls back to a rectangular backing-layer shadow, then punch out the interior.
+        shape
+            .fill(Color.black)
+            .shadow(color: color, radius: radius, y: yOffset)
+            .overlay { shape.blendMode(.destinationOut) }
+            .compositingGroup()
+            .allowsHitTesting(false)
+    }
+}
+
 struct LiquidGlassCardModifier: ViewModifier {
     let cornerRadius: CGFloat
     let solidReadable: Bool
@@ -74,6 +92,9 @@ struct LiquidGlassCardModifier: ViewModifier {
         let prefs = SystemDisplayPreferences.shared.snapshot
         let isPrism = themeManager.current == .prismPulse
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let shadowColor = Color.black.opacity(prefs.reduceTransparency ? 0.07 : (isPrism ? 0.065 : 0.035))
+        let shadowRadius: CGFloat = isPrism ? 10 : 5
+        let shadowY: CGFloat = isPrism ? 4 : 2
         content
             .background {
                 ZStack {
@@ -82,13 +103,15 @@ struct LiquidGlassCardModifier: ViewModifier {
                     }
                     shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : (solidReadable ? LiquidColors.elevatedSurface : LiquidColors.cardSurface))
                     if !prefs.reduceTransparency && isPrism {
-                        LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .topLeading, endPoint: .center)
+                        shape.fill(LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .topLeading, endPoint: .center))
                     }
                 }
             }
             .clipShape(shape)
             .overlay { DoubleSpecularBorder(cornerRadius: cornerRadius, isShell: false, highContrast: prefs.increaseContrast) }
-            .shadow(color: .black.opacity(prefs.reduceTransparency ? 0.07 : (isPrism ? 0.065 : 0.035)), radius: isPrism ? 10 : 5, y: isPrism ? 4 : 2)
+            .background {
+                RoundedShapeOuterShadow(shape: shape, color: shadowColor, radius: shadowRadius, yOffset: shadowY)
+            }
     }
 }
 

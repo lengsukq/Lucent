@@ -128,7 +128,7 @@
   btnCompact.addEventListener("click", async () => {
     isCompact = !isCompact;
     shell.classList.toggle("compact", isCompact);
-    if (sdk) await sdk.window.resize(392, isCompact ? 148 : 488, true);
+    if (sdk) await sdk.window.resize(412, isCompact ? 184 : 514, true);
   });
 
   btnPin.addEventListener("click", async () => {
