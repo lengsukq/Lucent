@@ -1055,12 +1055,14 @@
     renderLensForItem(matches[0]);
 
     leftPane.querySelectorAll('.result-row').forEach((row) => {
-      row.addEventListener('mouseenter', () => {
+      const selectRow = () => {
         leftPane.querySelectorAll('.result-row').forEach((r) => r.classList.remove('selected'));
         row.classList.add('selected');
         const item = matches[Number(row.dataset.idx)];
         if (item) renderLensForItem(item);
-      });
+      };
+      row.addEventListener('mouseenter', selectRow);
+      row.addEventListener('click', selectRow);
     });
   }
 
@@ -1403,6 +1405,7 @@ bash scripts/install-macos.sh`,
   const theatreFill = document.getElementById('theatreProgressFill');
   const stepCards = Array.from(document.querySelectorAll('.step-card'));
   const stageScenes = Array.from(document.querySelectorAll('.stage-scene'));
+  const mobileSceneTabs = Array.from(document.querySelectorAll('.theatre-mobile-tab'));
   const dagTiers = Array.from(document.querySelectorAll('.dag-tier'));
   const archSection = document.getElementById('architecture');
   const navLinks = Array.from(document.querySelectorAll('#navLinks a'));
@@ -1415,7 +1418,12 @@ bash scripts/install-macos.sh`,
     state.activeStep = idx;
     stepCards.forEach((c, i) => c.classList.toggle('active', i === idx));
     stageScenes.forEach((s, i) => s.classList.toggle('active', i === idx));
+    mobileSceneTabs.forEach((t, i) => t.classList.toggle('active', i === idx));
   }
+
+  mobileSceneTabs.forEach((tab, idx) => {
+    tab.addEventListener('click', () => setActiveScene(idx));
+  });
 
   stepCards.forEach((card, idx) => {
     card.addEventListener('click', () => {
@@ -1443,7 +1451,8 @@ bash scripts/install-macos.sh`,
       scrollBeam.style.transform = `scaleX(${totalProgress.toFixed(4)})`;
     }
 
-    if (!prefersReducedMotion) {
+    const isDesktop = window.innerWidth > 980;
+    if (!prefersReducedMotion && isDesktop) {
       const heroProgress = Math.min(1, Math.max(0, scrollY / 420));
       if (heroPanel) {
         const rotX = (1 - heroProgress) * 6.5;
@@ -1459,6 +1468,12 @@ bash scripts/install-macos.sh`,
       if (orb1 && orb2) {
         orb1.style.transform = `translate3d(${(scrollY * 0.03).toFixed(1)}px, ${(scrollY * -0.05).toFixed(1)}px, 0)`;
         orb2.style.transform = `translate3d(${(scrollY * -0.025).toFixed(1)}px, ${(scrollY * 0.04).toFixed(1)}px, 0)`;
+      }
+    } else {
+      if (heroPanel) heroPanel.style.transform = '';
+      if (heroCopy) {
+        heroCopy.style.opacity = '';
+        heroCopy.style.transform = '';
       }
     }
 
@@ -1516,7 +1531,7 @@ bash scripts/install-macos.sh`,
           io.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    }, { threshold: 0.05, rootMargin: '0px 0px -12px 0px' });
     revealEls.forEach((el) => io.observe(el));
   } else {
     revealEls.forEach((el) => el.classList.add('in-view'));
