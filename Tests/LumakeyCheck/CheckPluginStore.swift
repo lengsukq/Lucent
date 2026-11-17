@@ -3,8 +3,34 @@ import LumakeyCore
 
 func testV089PluginStoreAndSmartSniffer() throws {
     try verifySmartSnifferPackagerAndAntiSpoofing()
+    try verifyDefaultDemoStoreSeeding()
     try verifyMCPStoreResourceAndTools()
     print("[ok] v0.8.9 Custom Plugin Store Registry, Smart URL Sniffer, Anti-Spoofing & MCP Packaging")
+}
+
+private func verifyDefaultDemoStoreSeeding() throws {
+    let tmp = try makeTempDir("demo-store-seed")
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let demoDir = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .appendingPathComponent("plugin-demo", isDirectory: true)
+    let seeded = PluginStoreDefaults.ensureDefaultDemoStoreSeeded(appSupportDirectory: tmp, bundledDirectory: demoDir)
+    check(seeded.stores.count == 1 && seeded.stores[0].id == PluginStoreDefaults.officialDemoStoreID,
+          "default demo store seeded into empty catalog")
+    check(seeded.stores[0].sourceURL == PluginStoreDefaults.officialDemoSourceURL &&
+          seeded.stores[0].resolvedRegistryURL == PluginStoreDefaults.officialDemoRegistryURL,
+          "default demo store records official GitHub tree & raw registry URLs")
+    check(seeded.stores[0].manifest.plugins.count >= 3, "default demo store contains official sample plugins")
+
+    let removed = try PluginStoreService.removeStore(storeID: PluginStoreDefaults.officialDemoStoreID, appSupportDirectory: tmp)
+    check(removed.stores.isEmpty, "user can unsubscribe built-in demo store")
+    let afterReseed = PluginStoreDefaults.ensureDefaultDemoStoreSeeded(appSupportDirectory: tmp, bundledDirectory: demoDir)
+    check(afterReseed.stores.isEmpty, "unsubscribed built-in demo store is not forced back on reload")
+    let rawZipURL = URL(string: "\(PluginStoreDefaults.officialDemoRawBaseURL)dist/browser-hub.zip")!
+    check(PluginStoreDefaults.bundledDemoArchiveURL(for: rawZipURL, bundledDirectory: demoDir) != nil,
+          "bundledDemoArchiveURL resolves fallback local zip for official demo store")
 }
 
 private func verifySmartSnifferPackagerAndAntiSpoofing() throws {

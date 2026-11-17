@@ -73,13 +73,25 @@ public enum PluginStoreService {
         guard let existing = catalog.stores.first(where: { $0.id == storeID }) else {
             throw LumakeyError.pluginInvalid("未找到商店订阅源：\(storeID)")
         }
-        let resolved = try await PluginStoreSniffer.resolveSource(from: existing.resolvedRegistryURL, fetcher: fetcher)
+        let resolved: DiscoveredPluginSource
+        var usedLocalFallback = false
+        do {
+            resolved = try await PluginStoreSniffer.resolveSource(from: existing.resolvedRegistryURL, fetcher: fetcher)
+        } catch {
+            if storeID == PluginStoreDefaults.officialDemoStoreID,
+               let demoDir = PluginStoreDefaults.bundledDemoDirectory() {
+                resolved = try await PluginStoreSniffer.resolveSource(from: demoDir.path, fetcher: fetcher)
+                usedLocalFallback = true
+            } else {
+                throw error
+            }
+        }
         guard case .storeRegistry(var updated) = resolved else {
             throw LumakeyError.pluginInvalid("刷新失败：远端地址不再返回有效的商店清单")
         }
         updated = PluginStoreSubscription(
             sourceURL: existing.sourceURL,
-            resolvedRegistryURL: updated.resolvedRegistryURL,
+            resolvedRegistryURL: usedLocalFallback ? existing.resolvedRegistryURL : updated.resolvedRegistryURL,
             addedAtISO8601: existing.addedAtISO8601,
             lastSyncedAtISO8601: ISO8601DateFormatter().string(from: Date()),
             manifest: updated.manifest
@@ -212,7 +224,18 @@ public enum PluginStoreService {
             resolvedURL = try PluginStoreSniffer.normalizeInputURL(item.downloadURL)
         }
         try PluginStoreSniffer.validateSafeScheme(resolvedURL)
-        let (archiveData, _) = try await fetcher(resolvedURL)
+        let archiveData: Data
+        do {
+            let (fetched, _) = try await fetcher(resolvedURL)
+            archiveData = fetched
+        } catch {
+            if let fallbackURL = PluginStoreDefaults.bundledDemoArchiveURL(for: resolvedURL),
+               let localData = try? Data(contentsOf: fallbackURL) {
+                archiveData = localData
+            } else {
+                throw error
+            }
+        }
         let unpacked = try unpackArchiveSafely(archiveData: archiveData, expectedSHA256: item.sha256)
         defer { try? FileManager.default.removeItem(at: unpacked.stagingRoot) }
 

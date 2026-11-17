@@ -161,4 +161,29 @@ struct LumakeyRound2AuditFixesTests {
         let dirPerm = (try FileManager.default.attributesOfItem(atPath: f1.deletingLastPathComponent().path)[.posixPermissions] as? Int) ?? 0
         #expect((filePerm & 0o777) == 0o600 && (dirPerm & 0o777) == 0o700)
     }
+
+    @Test("PluginStoreDefaults seeds official GitHub demo store, respects unsubscribe, and resolves bundled archive fallback")
+    func officialDemoStoreSeedingAndFallback() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("lumakey-demo-seed-test-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let demoDir = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("plugin-demo", isDirectory: true)
+        let seeded = PluginStoreDefaults.ensureDefaultDemoStoreSeeded(appSupportDirectory: dir, bundledDirectory: demoDir)
+        #expect(seeded.stores.count == 1)
+        #expect(seeded.stores.first?.id == PluginStoreDefaults.officialDemoStoreID)
+        #expect(seeded.stores.first?.sourceURL == PluginStoreDefaults.officialDemoSourceURL)
+        #expect(seeded.stores.first?.resolvedRegistryURL == PluginStoreDefaults.officialDemoRegistryURL)
+        #expect((seeded.stores.first?.manifest.plugins.count ?? 0) >= 3)
+
+        let removed = try PluginStoreService.removeStore(storeID: PluginStoreDefaults.officialDemoStoreID, appSupportDirectory: dir)
+        #expect(removed.stores.isEmpty)
+        let reloadAfterUnsubscribe = PluginStoreDefaults.ensureDefaultDemoStoreSeeded(appSupportDirectory: dir, bundledDirectory: demoDir)
+        #expect(reloadAfterUnsubscribe.stores.isEmpty)
+
+        let rawZip = URL(string: "\(PluginStoreDefaults.officialDemoRawBaseURL)dist/browser-hub.zip")!
+        #expect(PluginStoreDefaults.bundledDemoArchiveURL(for: rawZip, bundledDirectory: demoDir) != nil)
+    }
 }

@@ -203,6 +203,26 @@ class BrowserHubTests(unittest.TestCase):
         )
         self.assertTrue(pinned_card["items"][0]["title"].startswith("⭐ Swift.org Official Blog"))
 
+    def test_chromium_history_permission_error_degrades_gracefully(self) -> None:
+        from unittest import mock
+
+        orig_copy = bh.shutil.copyfile
+
+        def fail_edge_history(src: Path, dst: Path, *args: object, **kwargs: object) -> object:
+            if "Microsoft Edge" in str(src) and str(src).endswith("History"):
+                raise PermissionError(1, "Operation not permitted", str(src))
+            return orig_copy(src, dst, *args, **kwargs)
+
+        with mock.patch.object(bh.shutil, "copyfile", side_effect=fail_edge_history):
+            card = bh.dispatch(
+                {"query": "", "dataDir": str(self.data_dir), "locale": "zh-Hans"},
+                [],
+                user_home=self.fake_home,
+            )
+        titles = [it["title"] for it in card["items"]]
+        self.assertTrue(any("Azure Portal Docs" in t for t in titles))
+        self.assertTrue(any("Swift Concurrency Guide" in t for t in titles))
+
 
 if __name__ == "__main__":
     unittest.main()

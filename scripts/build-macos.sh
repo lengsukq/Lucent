@@ -83,6 +83,12 @@ for lproj in zh-Hans.lproj en.lproj; do
     cp -R "$ROOT_DIR/apps/macos/$lproj" "$RESOURCES_DIR/$lproj"
   fi
 done
+if [[ -f "$ROOT_DIR/plugin-demo/lumakey-registry.json" && -d "$ROOT_DIR/plugin-demo/dist" ]]; then
+  rm -rf "$RESOURCES_DIR/plugin-demo"
+  mkdir -p "$RESOURCES_DIR/plugin-demo"
+  cp "$ROOT_DIR/plugin-demo/lumakey-registry.json" "$RESOURCES_DIR/plugin-demo/lumakey-registry.json"
+  cp -R "$ROOT_DIR/plugin-demo/dist" "$RESOURCES_DIR/plugin-demo/dist"
+fi
 if [[ -n "${LUMAKEY_BUNDLE_SHORT_VERSION:-}" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $LUMAKEY_BUNDLE_SHORT_VERSION" "$CONTENTS_DIR/Info.plist"
 fi
@@ -102,7 +108,8 @@ for candidate in \
   "/opt/homebrew/bin/macos-rdp-daemon" \
   "/opt/homebrew/sbin/macos-rdp-daemon" \
   "/usr/local/bin/macos-rdp-daemon" \
-  "/usr/local/sbin/macos-rdp-daemon"; do
+  "/usr/local/sbin/macos-rdp-daemon" \
+  "/Volumes/lightlsle/dependencies/build/macos-rdp-server-macos14-final/macos-rdp-daemon"; do
   if [[ -n "$candidate" && -x "$candidate" ]]; then
     RDP_HELPER_SRC="$candidate"
     break

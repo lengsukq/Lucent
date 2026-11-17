@@ -85,8 +85,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "2d8d7343161c435424eb27506095a9891e38564ad530f5cdc4bb341f5f95aca6",
-      "sizeBytes" : 19891,
+      "sha256" : "2d1c92f69fe6e30e1f27c94d55c3287757bd97950d3f18d1fd666d3729b06754",
+      "sizeBytes" : 20333,
       "version" : "1.0.0"
     },
     {
@@ -166,7 +166,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "87556fff1faf8647702a58a5f0ba9ffc0787447d87b7b5e4a6294ee82c596b8c",
+      "sha256" : "e4b7d5e4e1c1bc61c25b4ebba86496c79722c9bf5cf51049ed0c5cf2bfa8855f",
       "sizeBytes" : 18291,
       "version" : "2.2.0"
     },
@@ -247,7 +247,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "f86986cbbfc7e980f8e5e592de5ee39795fd47b9dd476dcc88ee58d368848490",
+      "sha256" : "bfd9c1ac3ba6387fb5df5071da7b8078a374c705b4232bf0be46443107566b11",
       "sizeBytes" : 24971,
       "version" : "1.4.0"
     }
@@ -255,5 +255,5 @@
   "schemaVersion" : 1,
   "storeId" : "lumakey-demo-store",
   "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-16T15:38:31Z"
+  "updatedAt" : "2026-11-17T01:32:35Z"
 }

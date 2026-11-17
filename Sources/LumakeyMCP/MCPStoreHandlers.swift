@@ -86,7 +86,7 @@ extension MCPServer {
     }
 
     func handleListPluginStores() -> [String: Any] {
-        let catalog = PluginStoreService.loadCatalog(appSupportDirectory: storeAppSupportDirectory)
+        let catalog = PluginStoreDefaults.ensureDefaultDemoStoreSeeded(appSupportDirectory: storeAppSupportDirectory)
         let stores = catalog.stores.map { sub -> [String: Any] in
             let maintainerVal: Any = sub.manifest.maintainer ?? NSNull()
             return [

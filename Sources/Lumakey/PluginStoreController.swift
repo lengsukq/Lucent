@@ -25,11 +25,24 @@ final class PluginStoreController: ObservableObject {
     }
 
     func loadSavedStores() {
-        let catalog = PluginStoreService.loadCatalog()
+        let catalog = PluginStoreDefaults.ensureDefaultDemoStoreSeeded()
         stores = catalog.stores
         if selectedSourceID != Self.officialSourceID,
            !stores.contains(where: { $0.id == selectedSourceID }) {
             selectedSourceID = stores.first?.id ?? Self.officialSourceID
+        }
+    }
+
+    func fillOfficialDemoURL(viewModel: AppViewModel, centerCtrl: PluginCenterController) {
+        smartURLInput = PluginStoreDefaults.officialDemoSourceURL
+        if !stores.contains(where: { $0.id == PluginStoreDefaults.officialDemoStoreID }) {
+            submitSmartURL(viewModel: viewModel, centerCtrl: centerCtrl)
+        } else if let existing = stores.first(where: { $0.id == PluginStoreDefaults.officialDemoStoreID }) {
+            selectedSourceID = existing.id
+            showBanner(
+                L10n.pick("已填入官方示例仓库地址：\(existing.sourceURL)", "Filled demo store URL: \(existing.sourceURL)"),
+                isError: false
+            )
         }
     }
 
@@ -72,6 +85,33 @@ final class PluginStoreController: ObservableObject {
                 }
             } catch {
                 guard !Task.isCancelled, let self else { return }
+                if (input == PluginStoreDefaults.officialDemoSourceURL || input == PluginStoreDefaults.officialDemoRegistryURL),
+                   let demoDir = PluginStoreDefaults.bundledDemoDirectory(),
+                   let data = try? Data(contentsOf: demoDir.appendingPathComponent(PluginStoreRegistryManifest.defaultFileName)),
+                   let manifest = try? JSONDecoder().decode(PluginStoreRegistryManifest.self, from: data),
+                   manifest.validate().isEmpty {
+                    let now = ISO8601DateFormatter().string(from: Date())
+                    let sub = PluginStoreSubscription(
+                        sourceURL: PluginStoreDefaults.officialDemoSourceURL,
+                        resolvedRegistryURL: PluginStoreDefaults.officialDemoRegistryURL,
+                        addedAtISO8601: now,
+                        lastSyncedAtISO8601: manifest.updatedAt ?? now,
+                        manifest: manifest
+                    )
+                    if let updated = try? PluginStoreService.upsertStore(sub) {
+                        self.isResolvingURL = false
+                        self.stores = updated.stores
+                        self.selectedSourceID = sub.id
+                        self.smartURLInput = ""
+                        let msg = L10n.pick(
+                            "已入驻官方示例商店（使用随包离线索引，共 \(manifest.plugins.count) 款插件）",
+                            "Added official demo store (bundled offline manifest, \(manifest.plugins.count) plugins)"
+                        )
+                        self.showBanner(msg, isError: false)
+                        centerCtrl?.statusNote = msg
+                        return
+                    }
+                }
                 self.isResolvingURL = false
                 let reason = (error as? LumakeyError)?.diagnostic.reason ?? error.localizedDescription
                 self.showBanner(reason, isError: true)

@@ -188,10 +188,12 @@ public struct PluginStoreCatalogSnapshot: Codable, Sendable, Hashable {
     public static let fileName = "plugin-registries.json"
     public var schemaVersion: Int
     public var stores: [PluginStoreSubscription]
+    public var seededDefaultStoreIDs: [String]?
 
-    public init(schemaVersion: Int = 1, stores: [PluginStoreSubscription] = []) {
+    public init(schemaVersion: Int = 1, stores: [PluginStoreSubscription] = [], seededDefaultStoreIDs: [String]? = nil) {
         self.schemaVersion = schemaVersion
         self.stores = stores
+        self.seededDefaultStoreIDs = seededDefaultStoreIDs
     }
 }
 

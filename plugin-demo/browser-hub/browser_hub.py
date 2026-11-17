@@ -109,35 +109,48 @@ def resolve_browser_roots(user_home: Path | None = None) -> dict[str, Path]:
 
 
 def discover_chromium_profiles(browser_root: Path) -> list[tuple[Path, str]]:
-    if not browser_root.is_dir():
+    try:
+        if not browser_root.is_dir():
+            return []
+    except OSError:
         return []
     name_map: dict[str, str] = {}
     local_state = browser_root / "Local State"
-    if local_state.is_file():
-        try:
+    try:
+        if local_state.is_file():
             state_obj = json.loads(local_state.read_text(encoding="utf-8", errors="replace"))
             info_cache = ((state_obj.get("profile") or {}).get("info_cache")) or {}
             if isinstance(info_cache, dict):
                 for dir_name, meta in info_cache.items():
                     if isinstance(meta, dict) and meta.get("name"):
                         name_map[str(dir_name)] = str(meta["name"]).strip()
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     candidates: list[Path] = []
     default_dir = browser_root / "Default"
-    if default_dir.is_dir():
-        candidates.append(default_dir)
+    try:
+        if default_dir.is_dir():
+            candidates.append(default_dir)
+    except OSError:
+        pass
     try:
         for child in sorted(browser_root.iterdir(), key=lambda p: p.name):
-            if child.is_dir() and child.name.startswith("Profile "):
-                candidates.append(child)
+            try:
+                if child.is_dir() and child.name.startswith("Profile "):
+                    candidates.append(child)
+            except OSError:
+                continue
     except OSError:
         pass
 
     profiles: list[tuple[Path, str]] = []
     for prof_dir in candidates:
-        if (prof_dir / "Bookmarks").is_file() or (prof_dir / "History").is_file():
+        try:
+            has_data = (prof_dir / "Bookmarks").is_file() or (prof_dir / "History").is_file()
+        except OSError:
+            has_data = False
+        if has_data:
             label = name_map.get(prof_dir.name) or prof_dir.name
             profiles.append((prof_dir, label))
     return profiles
@@ -187,9 +200,9 @@ def _FallbackTitle(url_val: str) -> str:
 
 
 def read_chromium_bookmarks(bookmarks_file: Path, browser_key: str, profile_label: str) -> list[dict[str, Any]]:
-    if not bookmarks_file.is_file():
-        return []
     try:
+        if not bookmarks_file.is_file():
+            return []
         data = json.loads(bookmarks_file.read_text(encoding="utf-8", errors="replace"))
     except Exception:
         return []
@@ -205,19 +218,24 @@ def read_chromium_bookmarks(bookmarks_file: Path, browser_key: str, profile_labe
 
 
 def _query_sqlite_snapshot(db_file: Path, sql: str, params: tuple[Any, ...]) -> list[tuple[Any, ...]]:
-    if not db_file.is_file():
+    try:
+        if not db_file.is_file():
+            return []
+    except OSError as exc:
+        if isinstance(exc, PermissionError):
+            raise
         return []
     scratch_root = Path(tempfile.mkdtemp(prefix="lk-bh-db-"))
     try:
         staged_db = scratch_root / db_file.name
-        shutil.copy2(db_file, staged_db)
+        shutil.copyfile(db_file, staged_db)
         for suffix in ("-wal", "-shm"):
             sidecar = Path(str(db_file) + suffix)
-            if sidecar.is_file():
-                try:
-                    shutil.copy2(sidecar, Path(str(staged_db) + suffix))
-                except OSError:
-                    pass
+            try:
+                if sidecar.is_file():
+                    shutil.copyfile(sidecar, Path(str(staged_db) + suffix))
+            except OSError:
+                pass
         conn = sqlite3.connect(str(staged_db), timeout=2.5)
         try:
             conn.execute("PRAGMA query_only = ON;")
@@ -235,6 +253,7 @@ def read_chromium_history(
     profile_label: str,
     cutoff_unix: float,
     limit: int = 400,
+    permission_sink: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     min_webkit_us = int((cutoff_unix + WEBKIT_EPOCH_OFFSET_SEC) * 1_000_000)
     sql = """
@@ -246,7 +265,11 @@ def read_chromium_history(
     """
     try:
         rows = _query_sqlite_snapshot(history_db, sql, (min_webkit_us, limit))
-    except sqlite3.Error:
+    except PermissionError:
+        if permission_sink is not None:
+            permission_sink.add(browser_key)
+        return []
+    except (sqlite3.Error, OSError):
         return []
 
     out: list[dict[str, Any]] = []
@@ -563,6 +586,7 @@ def collect_or_load_snapshot(
     raw_records: list[dict[str, Any]] = []
     browser_counts: dict[str, int] = {"edge": 0, "chrome": 0, "safari": 0}
     safari_denied = False
+    denied_browsers: set[str] = set()
 
     for b_key in enabled_browsers:
         if b_key in ("edge", "chrome"):
@@ -570,17 +594,27 @@ def collect_or_load_snapshot(
             b_recs: list[dict[str, Any]] = []
             for prof_dir, prof_label in profiles:
                 b_recs.extend(read_chromium_bookmarks(prof_dir / "Bookmarks", b_key, prof_label))
-                b_recs.extend(read_chromium_history(prof_dir / "History", b_key, prof_label, cutoff_unix))
+                b_recs.extend(
+                    read_chromium_history(
+                        prof_dir / "History",
+                        b_key,
+                        prof_label,
+                        cutoff_unix,
+                        permission_sink=denied_browsers,
+                    )
+                )
             browser_counts[b_key] = len(b_recs)
             raw_records.extend(b_recs)
         elif b_key == "safari":
             s_recs, denied = read_safari_store(roots["safari"], cutoff_unix)
             safari_denied = denied
+            if denied:
+                denied_browsers.add("safari")
             browser_counts["safari"] = len(s_recs)
             raw_records.extend(s_recs)
 
     items = aggregate_records(raw_records, pins)
-    export_launcher_search_index(items, data_dir, safari_denied)
+    export_launcher_search_index(items, data_dir, bool(denied_browsers))
 
     if cache_file:
         try:

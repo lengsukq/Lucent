@@ -48,6 +48,10 @@ struct PluginStoreMarketplaceView: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(LiquidColors.textPrimary)
                 Spacer(minLength: 4)
+                Button(L10n.pick("示例仓库", "Demo Repo")) {
+                    storeCtrl.fillOfficialDemoURL(viewModel: viewModel, centerCtrl: centerCtrl)
+                }
+                .buttonStyle(GlassPillButtonStyle(compact: true))
                 Button(L10n.pick("粘贴", "Paste")) { storeCtrl.pasteClipboardURL() }
                     .buttonStyle(GlassPillButtonStyle(compact: true))
                 Button(L10n.pick("入驻规范", "Spec")) { storeCtrl.showFormatGuideSheet = true }

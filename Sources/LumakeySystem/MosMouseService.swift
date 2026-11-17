@@ -61,6 +61,7 @@ public struct MosConfig: Codable, Sendable, Hashable {
 public final class MosEngine: @unchecked Sendable {
     public static let shared = MosEngine()
     public static let syntheticEventTag: Int64 = 0x4C4D_4D4F
+    public static let rdpSyntheticEventTag: Int64 = 0x4C4D_5244
 
     private let lock = NSLock()
     private var _config = MosConfig()
@@ -163,7 +164,8 @@ public final class MosEngine: @unchecked Sendable {
         }
         let cfg = config
         guard type == .scrollWheel, cfg.enabled else { return Unmanaged.passUnretained(event) }
-        if event.getIntegerValueField(.eventSourceUserData) == Self.syntheticEventTag {
+        let sourceTag = event.getIntegerValueField(.eventSourceUserData)
+        if sourceTag == Self.syntheticEventTag || sourceTag == Self.rdpSyntheticEventTag {
             return Unmanaged.passUnretained(event)
         }
         if event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0 {
