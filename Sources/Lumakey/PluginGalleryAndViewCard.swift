@@ -216,6 +216,7 @@ struct PluginStructuredViewCard: View {
     private func openButtonTitle(for url: URL) -> String {
         if url.scheme?.lowercased() == "lumakey" {
             switch url.host?.lowercased() {
+            case "panel": return L10n.pick("悬浮面板", "Float Panel")
             case "reader": return L10n.pick("阅读窗", "Reader")
             case "pin": return L10n.pick("钉在屏幕", "Pin")
             case "image": return L10n.pick("看图窗", "Viewer")

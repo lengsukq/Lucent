@@ -121,6 +121,7 @@ enum WindowRoute: Hashable {
     case networkMonitor
     case settings(SettingsSection)
     case pluginSettings(String)
+    case pluginPanel(PluginFloatingPanelRequest, PluginViewPayload?)
     case documentReader(URL, [URL])
     case imageViewer(URL, [URL], Bool)
     case videoPlayer(URL, [URL], Bool)

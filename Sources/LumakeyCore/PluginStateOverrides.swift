@@ -85,7 +85,6 @@ extension PluginSystem {
         next.commandSearchOverrides = cleanedCmdSearch
         next.priorityBoost = min(max(next.priorityBoost, -200), 300)
         next.quickButtonCommandIDs = deduplicateIDs(next.quickButtonCommandIDs)
-        next.disabledCommandIDs = deduplicateIDs(next.disabledCommandIDs)
         inst.overrides = next
         snap.plugins[id] = inst
         try saveStateSnapshot(snap, in: rootDir)
@@ -141,14 +140,8 @@ extension PluginSystem {
         try updatePluginOverrides(id: pluginID, in: rootDir) { ov in
             if let enabled {
                 ov.commandSearchOverrides[commandID] = enabled
-                if enabled {
-                    ov.disabledCommandIDs.removeAll { $0 == commandID }
-                } else if !ov.disabledCommandIDs.contains(commandID) {
-                    ov.disabledCommandIDs.append(commandID)
-                }
             } else {
                 ov.commandSearchOverrides.removeValue(forKey: commandID)
-                ov.disabledCommandIDs.removeAll { $0 == commandID }
             }
         }
     }

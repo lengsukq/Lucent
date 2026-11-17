@@ -61,11 +61,12 @@ extension PluginSystem {
         if let firstCap = capabilities.first {
             let defaultAction: String = switch firstCap {
             case .clipboard, .selection: "read"
+            case .window, .floatingWindow: "open"
+            case .screenCapture, .notifications, .systemControl, .lumaLinkStatus: "status"
             case .audio: "stop"
             case .ocr: "recognize"
             case .everythingSearch: "search"
             case .displayInfo: "list"
-            case .systemControl, .lumaLinkStatus: "status"
             }
             return """
             #!/bin/zsh

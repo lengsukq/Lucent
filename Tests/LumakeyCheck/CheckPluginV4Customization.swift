@@ -99,7 +99,7 @@ private func verifyRichConfigValidationAndDemoManifest() throws {
     let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     let notionDir = repoRoot.appendingPathComponent("plugin-demo/notion-bookmarks", isDirectory: true)
     if FileManager.default.fileExists(atPath: notionDir.appendingPathComponent("plugin.json").path) {
-        let notionDesc = PluginSystem.loadPlugin(at: notionDir, in: tmp, includeSecrets: false, allowKeychainInteraction: false)
+        let notionDesc = PluginSystem.loadPlugin(at: notionDir, in: tmp, includeSecrets: false)
         check(notionDesc.isValid, "plugin-demo/notion-bookmarks validates cleanly: \(notionDesc.validationIssues)")
         check(notionDesc.declaredContextKinds == [.url, .text], "notion-bookmarks declares url & text context hooks")
         check(notionDesc.declaredCommands.map(\.id) == ["add-clipboard", "refresh-bookmarks", "list-bookmarks"],
@@ -161,14 +161,14 @@ private func verifyDataInspectorAutoRefreshAndMCPOverrides() throws {
     )
     try JSONEncoder().encode(manifest).write(to: plugDir.appendingPathComponent("plugin.json"))
 
-    let missingSecretDesc = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot, includeSecrets: false, allowKeychainInteraction: false)
+    let missingSecretDesc = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot, includeSecrets: false)
     let status1 = PluginDataInspector.inspect(missingSecretDesc, in: pluginsRoot)
     check(status1.missingRequiredSecretKeys == ["tok"] && !status1.needsAutoRefresh,
           "missing required secret reported and suppresses auto-refresh")
 
     let configuredDesc: PluginDescriptor
     if (try? PluginSystem.updatePluginConfig(id: "sync-plug", values: ["tok": "SECRET_OK"], in: pluginsRoot)) != nil {
-        configuredDesc = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot, allowKeychainInteraction: false)
+        configuredDesc = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot)
     } else {
         configuredDesc = PluginDescriptor(
             id: "sync-plug", directoryURL: plugDir, manifest: manifest,

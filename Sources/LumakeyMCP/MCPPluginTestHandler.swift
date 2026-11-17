@@ -80,15 +80,9 @@ extension MCPServer {
                 }
                 if let pin = arguments["pinnedInOverlay"] as? Bool { ov.pinnedInOverlay = pin }
                 if let qbs = arguments["quickButtonCommandIDs"] as? [String] { ov.quickButtonCommandIDs = qbs }
-                if let dis = arguments["disabledCommandIDs"] as? [String] {
-                    ov.disabledCommandIDs = dis
-                    for cmdID in dis { ov.commandSearchOverrides[cmdID] = false }
-                }
                 if let cmdSearch = arguments["commandSearchOverrides"] as? [String: Bool] {
                     for (cmdID, flag) in cmdSearch {
                         ov.commandSearchOverrides[cmdID] = flag
-                        if flag { ov.disabledCommandIDs.removeAll { $0 == cmdID } }
-                        else if !ov.disabledCommandIDs.contains(cmdID) { ov.disabledCommandIDs.append(cmdID) }
                     }
                 }
                 if let glob = arguments["includeInGlobalSearch"] as? Bool { ov.includeInGlobalSearchOverride = glob }
@@ -111,7 +105,6 @@ extension MCPServer {
                 "commandHotKeys": updated.commandHotKeys,
                 "pinnedInOverlay": updated.pinnedInOverlay,
                 "quickButtonCommandIDs": updated.quickButtonCommandIDs,
-                "disabledCommandIDs": updated.disabledCommandIDs,
                 "commandSearchOverrides": updated.commandSearchOverrides,
                 "revokedResourceScopes": revokedNow,
                 "includeInGlobalSearch": updated.includeInGlobalSearch,
@@ -145,10 +138,10 @@ extension MCPServer {
         }
         guard PluginSystem.isSafePluginID(id) else { return textResult("Invalid plugin id: \(id)", isError: true) }
         let dir = pluginsDirectory.appendingPathComponent(id, isDirectory: true)
-        var desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory, allowKeychainInteraction: false)
+        var desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory)
         if (arguments["autoGrantDeclaredCapabilities"] as? Bool) == true, !desc.declaredCapabilities.isEmpty {
             try? PluginSystem.setPluginCapabilities(id: id, capabilities: Set(desc.declaredCapabilities), in: pluginsDirectory)
-            desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory, allowKeychainInteraction: false)
+            desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory)
         }
         do {
             let resolved = try PluginSystem.runPluginSync(

@@ -155,7 +155,6 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
     public var launchCount: Int
     public var lastUsedAtEpoch: Double?
     public var quickButtonCommandIDs: [String]
-    public var disabledCommandIDs: [String]
     public var commandSearchOverrides: [String: Bool]
 
     public var includeInGlobalSearch: Bool {
@@ -165,9 +164,9 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case customKeywords, customHotKey, commandHotKeys, pinnedInOverlay
-        case includeInGlobalSearch, includeInGlobalSearchOverride, searchIndexGlobalOverride
+        case includeInGlobalSearchOverride, searchIndexGlobalOverride
         case showInSettingsSidebar, priorityBoost, launchCount, lastUsedAtEpoch
-        case quickButtonCommandIDs, disabledCommandIDs, commandSearchOverrides
+        case quickButtonCommandIDs, commandSearchOverrides
     }
 
     public init(
@@ -182,7 +181,6 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
         launchCount: Int = 0,
         lastUsedAtEpoch: Double? = nil,
         quickButtonCommandIDs: [String] = [],
-        disabledCommandIDs: [String] = [],
         commandSearchOverrides: [String: Bool] = [:]
     ) {
         self.customKeywords = customKeywords
@@ -196,7 +194,6 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
         self.launchCount = max(0, launchCount)
         self.lastUsedAtEpoch = lastUsedAtEpoch
         self.quickButtonCommandIDs = quickButtonCommandIDs
-        self.disabledCommandIDs = disabledCommandIDs
         self.commandSearchOverrides = commandSearchOverrides
     }
 
@@ -206,13 +203,7 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
         self.customHotKey = try c.decodeIfPresent(String.self, forKey: .customHotKey)
         self.commandHotKeys = try c.decodeIfPresent([String: String].self, forKey: .commandHotKeys) ?? [:]
         self.pinnedInOverlay = try c.decodeIfPresent(Bool.self, forKey: .pinnedInOverlay) ?? false
-        if let explicit = try c.decodeIfPresent(Bool.self, forKey: .includeInGlobalSearchOverride) {
-            self.includeInGlobalSearchOverride = explicit
-        } else if let legacy = try c.decodeIfPresent(Bool.self, forKey: .includeInGlobalSearch), legacy == false {
-            self.includeInGlobalSearchOverride = false
-        } else {
-            self.includeInGlobalSearchOverride = nil
-        }
+        self.includeInGlobalSearchOverride = try c.decodeIfPresent(Bool.self, forKey: .includeInGlobalSearchOverride)
         self.searchIndexGlobalOverride = try c.decodeIfPresent(Bool.self, forKey: .searchIndexGlobalOverride)
         self.showInSettingsSidebar = try c.decodeIfPresent(Bool.self, forKey: .showInSettingsSidebar) ?? true
         let rawBoost = try c.decodeIfPresent(Int.self, forKey: .priorityBoost) ?? 0
@@ -221,7 +212,6 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
         self.launchCount = max(0, rawCount)
         self.lastUsedAtEpoch = try c.decodeIfPresent(Double.self, forKey: .lastUsedAtEpoch)
         self.quickButtonCommandIDs = try c.decodeIfPresent([String].self, forKey: .quickButtonCommandIDs) ?? []
-        self.disabledCommandIDs = try c.decodeIfPresent([String].self, forKey: .disabledCommandIDs) ?? []
         self.commandSearchOverrides = try c.decodeIfPresent([String: Bool].self, forKey: .commandSearchOverrides) ?? [:]
     }
 
@@ -238,7 +228,6 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
         try c.encode(launchCount, forKey: .launchCount)
         try c.encodeIfPresent(lastUsedAtEpoch, forKey: .lastUsedAtEpoch)
         try c.encode(quickButtonCommandIDs, forKey: .quickButtonCommandIDs)
-        try c.encode(disabledCommandIDs, forKey: .disabledCommandIDs)
         try c.encode(commandSearchOverrides, forKey: .commandSearchOverrides)
     }
 
@@ -246,7 +235,7 @@ public struct PluginUserOverrides: Codable, Sendable, Hashable, Equatable {
         customKeywords != nil || customHotKey != nil || !commandHotKeys.isEmpty || pinnedInOverlay
             || includeInGlobalSearchOverride != nil || searchIndexGlobalOverride != nil
             || !showInSettingsSidebar || priorityBoost != 0
-            || !quickButtonCommandIDs.isEmpty || !disabledCommandIDs.isEmpty || !commandSearchOverrides.isEmpty
+            || !quickButtonCommandIDs.isEmpty || !commandSearchOverrides.isEmpty
     }
 
     public func usageScoreBoost(now: Date = Date()) -> Int {

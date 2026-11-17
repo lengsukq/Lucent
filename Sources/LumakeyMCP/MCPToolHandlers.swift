@@ -71,7 +71,7 @@ extension MCPServer {
                    "Enable or disable an external or BUILTIN plugin. Disabling BUILTIN plugins stops their listeners/timers immediately.",
                    ["id": ["type": "string"], "enabled": ["type": "boolean"]], ["id", "enabled"]),
             schema("lumakey_update_plugin_overrides",
-                   "Configure user-level overrides for a plugin (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs`, `commandSearchOverrides`, `revokedResourceScopes`, `includeInGlobalSearch`, `searchIndexInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) without modifying plugin.json.",
+                   "Configure user-level overrides for a plugin (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `commandSearchOverrides`, `revokedResourceScopes`, `includeInGlobalSearch`, `searchIndexInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) without modifying plugin.json.",
                    [
                        "id": ["type": "string"],
                        "customKeywords": ["type": "array", "items": ["type": "string"]],
@@ -79,7 +79,6 @@ extension MCPServer {
                        "commandHotKeys": ["type": "object", "description": "Map of sub-command ID to global shortcut string (pass empty string to clear)."],
                        "pinnedInOverlay": ["type": "boolean"],
                        "quickButtonCommandIDs": ["type": "array", "items": ["type": "string"], "description": "Sub-command IDs enabled as Quick Buttons (default [])."],
-                       "disabledCommandIDs": ["type": "array", "items": ["type": "string"], "description": "Sub-command IDs hidden from Global Search (default [])."],
                        "commandSearchOverrides": ["type": "object", "description": "Map of sub-command ID to boolean Global Search visibility override."],
                        "revokedResourceScopes": ["type": "array", "items": ["type": "string", "enum": scopeIDs], "description": "Declared resource scopes revoked via Seatbelt sandbox."],
                        "includeInGlobalSearch": ["type": "boolean"],

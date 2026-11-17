@@ -162,7 +162,7 @@ func testPluginAndMCPSubprocess() throws {
     let requests: [String] = [
         #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
         #"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#,
-        #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v1"}}"#,
+        #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v3"}}"#,
         #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_scaffold_plugin","arguments":{"id":"demo-echo","name":"Demo Echo","keywords":["echo"],"mode":"script","capabilities":[],"resourceScopes":[]}}}"#,
         #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_validate_plugin","arguments":{"id":"demo-echo"}}}"#,
         #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"demo-echo","query":"ping"}}}"#
@@ -339,7 +339,7 @@ func testV04ScreenshotCompositorAndFastIndex() throws {
     )
     check(cropped.width == 100 && cropped.height == 80, "renderCroppedImage produces exact cropped dimensions")
 
-    let outURL = try ScreenshotCompositor.saveTempCapture(cropped)
+    let outURL = try ScreenshotCompositor.saveTempCapture(cropped, scale: 1.0)
     defer { try? FileManager.default.removeItem(at: outURL) }
     check(FileManager.default.fileExists(atPath: outURL.path), "saveTempCapture writes PNG file")
     let reloaded = NSImage(contentsOf: outURL)

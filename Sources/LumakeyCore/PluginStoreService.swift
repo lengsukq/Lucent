@@ -239,7 +239,7 @@ public enum PluginStoreService {
         let unpacked = try unpackArchiveSafely(archiveData: archiveData, expectedSHA256: item.sha256)
         defer { try? FileManager.default.removeItem(at: unpacked.stagingRoot) }
 
-        let candidate = PluginSystem.loadPlugin(at: unpacked.pluginDir, snapshot: PluginStateSnapshot(), in: pluginsRoot, includeSecrets: false, allowKeychainInteraction: false)
+        let candidate = PluginSystem.loadPlugin(at: unpacked.pluginDir, snapshot: PluginStateSnapshot(), in: pluginsRoot, includeSecrets: false)
         guard candidate.isValid else {
             throw LumakeyError.pluginInvalid("插件包校验未通过：\(candidate.validationIssues.joined(separator: "；"))")
         }

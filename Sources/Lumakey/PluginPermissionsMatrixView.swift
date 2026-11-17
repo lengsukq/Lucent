@@ -74,6 +74,12 @@ struct PluginPermissionsMatrixView: View {
                             .foregroundStyle(catColor)
                             .padding(.horizontal, 5).padding(.vertical, 1)
                             .background(LiquidColors.pillSurface, in: Capsule())
+                        if perm.category == .systemTCC, let tcc = perm.tccKind {
+                            let ok = PluginHostTCCBroker.status(for: tcc).isGranted
+                            Text(ok ? L10n.pick("宿主已获授权", "Granted") : L10n.pick("待代申", "Pending"))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(ok ? .green : .orange)
+                        }
                     }
                     Text(perm.summary)
                         .font(.caption2)
@@ -81,9 +87,17 @@ struct PluginPermissionsMatrixView: View {
                         .lineLimit(2)
                 }
                 Spacer(minLength: 4)
+                if perm.category == .systemTCC, let tcc = perm.tccKind, !PluginHostTCCBroker.status(for: tcc).isGranted {
+                    Button(L10n.pick("宿主代申", "Request TCC")) {
+                        _ = PluginHostTCCBroker.requestAccessOnBehalfOfPlugin(tcc, allowSystemPrompt: true)
+                        viewModel.refreshMosStatus()
+                        viewModel.reloadPlugins()
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                }
                 if let urlStr = perm.systemPreferencesURL, let url = URL(string: urlStr) {
-                    Button("系统设置") { NSWorkspace.shared.open(url) }
-                        .buttonStyle(GlassPillButtonStyle())
+                    Button(L10n.pick("系统设置", "System Settings")) { NSWorkspace.shared.open(url) }
+                        .buttonStyle(GlassPillButtonStyle(compact: true))
                 }
             }
 

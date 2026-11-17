@@ -73,26 +73,25 @@ private func verifySecretKeychainAndClipboardGate() throws {
     )
     try JSONEncoder().encode(manifest).write(to: plugDir.appendingPathComponent("plugin.json"))
 
-    // 1. Seed legacy plaintext secret in plugin-state.json -> verify auto-migration & scrubbing on loadPlugin
-    let legacySnap = PluginStateSnapshot(plugins: [
-        "sec-clip": PluginInstanceState(isEnabled: true, configValues: ["apiToken": "LEGACY_TOK_99", "region": "eu"], grantedCapabilities: [])
+    // 1. Verify plaintext secrets placed in plugin-state.json are ignored (secrets reside strictly in LocalSecretVault)
+    let rawSnap = PluginStateSnapshot(plugins: [
+        "sec-clip": PluginInstanceState(isEnabled: true, configValues: ["apiToken": "PLAINTEXT_IGNORED", "region": "eu"], grantedCapabilities: [])
     ])
-    try PluginSystem.saveStateSnapshot(legacySnap, in: pluginsRoot)
-    let migratedDesc = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot)
+    try PluginSystem.saveStateSnapshot(rawSnap, in: pluginsRoot)
+    let initialDesc = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot)
     defer { try? PluginSystem.removePlugin(id: "sec-clip", in: pluginsRoot) }
+    check(initialDesc.userConfig["apiToken"] == "", "plaintext secret in plugin-state.json is never trusted")
+    check(initialDesc.userConfig["region"] == "eu", "non-secret config loaded from plugin-state.json")
 
-    check(migratedDesc.userConfig["apiToken"] == "LEGACY_TOK_99", "legacy secret migrated into Keychain and loaded")
-    let rawStateAfter = try String(contentsOf: PluginSystem.stateFileURL(for: pluginsRoot), encoding: .utf8)
-    check(!rawStateAfter.contains("LEGACY_TOK_99"), "plugin-state.json scrubbed of plaintext secret after migration")
-
-    // 2. Update secret cleanly -> never touches plugin-state.json
+    // 2. Update secret cleanly -> stored in LocalSecretVault, never written to plugin-state.json
     try PluginSystem.updatePluginConfig(id: "sec-clip", values: ["apiToken": "KC_SECRET_42", "region": "jp"], in: pluginsRoot)
     let rawAfterUpdate = try String(contentsOf: PluginSystem.stateFileURL(for: pluginsRoot), encoding: .utf8)
     check(!rawAfterUpdate.contains("KC_SECRET_42") && rawAfterUpdate.contains("jp"),
-          "secret stored in Keychain while non-secret remains in plugin-state.json")
+          "secret stored in LocalSecretVault while non-secret remains in plugin-state.json")
 
     // 3. Ungranted clipboard => stdin clipboard MUST be empty; granted => injected
-    let ungrantedOut = try PluginSystem.runPluginSync(migratedDesc, query: "q1", clipboardText: "TOP_SECRET_CLIP", in: pluginsRoot)
+    let reloadedWithSecret = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot)
+    let ungrantedOut = try PluginSystem.runPluginSync(reloadedWithSecret, query: "q1", clipboardText: "TOP_SECRET_CLIP", in: pluginsRoot)
     check(!ungrantedOut.execution.stdout.contains("TOP_SECRET_CLIP"), "ungranted clipboard is NOT leaked to stdin")
     check(ungrantedOut.execution.stdout.contains("KC_SECRET_42"), "Keychain secret hydrated into runtime stdin config")
 

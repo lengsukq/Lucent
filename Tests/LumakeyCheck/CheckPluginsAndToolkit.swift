@@ -23,18 +23,18 @@ private func verifyPluginV2LifecycleAndWatcher() throws {
     }
     check(watcher != nil && watcher?.isWatching == true, "PluginDirectoryWatcher started")
 
-    // 2. v1 backward compatibility (7-arg manifest + script scaffold)
-    let v1Desc = try PluginSystem.scaffoldPlugin(
-        id: "legacy-v1",
-        name: "Legacy V1",
-        keywords: ["leg"],
-        description: "v1 script compat",
+    // 2. Basic script plugin scaffold & execution
+    let scriptDesc = try PluginSystem.scaffoldPlugin(
+        id: "basic-script",
+        name: "Basic Script",
+        keywords: ["bsc"],
+        description: "script execution check",
         mode: .script,
         in: pluginsRoot
     )
-    check(v1Desc.isValid && v1Desc.isEnabled, "v1 scaffolded plugin valid & enabled")
-    let v1Exec = try PluginSystem.runScriptPlugin(v1Desc, query: "hello", in: pluginsRoot)
-    check(v1Exec.exitCode == 0 && v1Exec.stdout.contains("[legacy-v1] ok"), "v1 script execution compatible")
+    check(scriptDesc.isValid && scriptDesc.isEnabled, "scaffolded script plugin valid & enabled")
+    let scriptExec = try PluginSystem.runScriptPlugin(scriptDesc, query: "hello", in: pluginsRoot)
+    check(scriptExec.exitCode == 0 && scriptExec.stdout.contains("[basic-script] ok"), "script execution succeeded")
 
     // Confirm hot-reload watcher fired on scaffold write
     let watchWait = watcherHit.wait(timeout: .now() + 3.0)
@@ -174,7 +174,7 @@ private func verifyMCPServerV2Subprocess() throws {
 
     let requests = [
         #"{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}"#,
-        #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v2"}}"#,
+        #"{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"lumakey://specs/plugin-v3"}}"#,
         #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lumakey_install_starter_plugin","arguments":{"id":"port-killer"}}}"#,
         #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lumakey_set_plugin_enabled","arguments":{"id":"port-killer","enabled":false}}}"#,
         #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lumakey_run_plugin_test","arguments":{"id":"port-killer","query":"65531"}}}"#,
@@ -185,13 +185,13 @@ private func verifyMCPServerV2Subprocess() throws {
     try inPipe.fileHandleForWriting.write(contentsOf: Data((requests.joined(separator: "\n") + "\n").utf8))
     try inPipe.fileHandleForWriting.close()
     proc.waitUntilExit()
-    check(proc.terminationStatus == 0, "lumakey-mcp v2 exited 0")
+    check(proc.terminationStatus == 0, "lumakey-mcp exited 0")
 
     let lines = (String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "")
         .split(separator: "\n").map(String.init)
     check(lines.count == 8, "expected 8 MCP responses, got \(lines.count)")
-    check(lines[0].contains("lumakey://specs/plugin-v1") && lines[0].contains("lumakey://specs/plugin-v2"), "resources/list exposes v1 & v2")
-    check(lines[1].contains("PluginViewPayload"), "plugin-v2 spec content returned")
+    check(lines[0].contains("lumakey://specs/plugin-v3") && lines[0].contains("lumakey://specs/plugin-store-v1"), "resources/list exposes current plugin specs")
+    check(lines[1].contains("Lumakey Plugin Specification (v3") && lines[1].contains("window.lumakey"), "plugin-v3 spec content returned")
     check(lines[2].contains("port-killer"), "lumakey_install_starter_plugin succeeded")
     check(lines[4].contains(#""isError":true"#), "disabled plugin run returns isError=true")
     check(lines[6].contains(#""isError":false"#), "re-enabled plugin run succeeds")

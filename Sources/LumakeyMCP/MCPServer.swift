@@ -47,18 +47,6 @@ final class MCPServer {
             return ok(id: id, result: [
                 "resources": [
                     [
-                        "uri": "lumakey://specs/plugin-v1",
-                        "name": "Lumakey Plugin Spec v1",
-                        "description": "Manifest fields, directory layout and stdin/stdout script contract.",
-                        "mimeType": "text/markdown"
-                    ],
-                    [
-                        "uri": "lumakey://specs/plugin-v2",
-                        "name": "Lumakey Plugin Spec v2",
-                        "description": "Declarative view JSON payload, config fields, state persistence and hot-reload.",
-                        "mimeType": "text/markdown"
-                    ],
-                    [
                         "uri": "lumakey://specs/plugin-v3",
                         "name": "Lumakey Plugin Spec v3",
                         "description": "Unified Builtin/External model, mandatory registration capabilities declaration, and ephemeral UDS Host Bridge protocol.",
@@ -75,8 +63,6 @@ final class MCPServer {
         case "resources/read":
             let uri = params["uri"] as? String ?? ""
             let specText: String? = switch uri {
-            case "lumakey://specs/plugin-v1": PluginSystem.specMarkdown
-            case "lumakey://specs/plugin-v2": PluginSystem.specV2Markdown
             case "lumakey://specs/plugin-v3": PluginSystem.specV3Markdown
             case "lumakey://specs/plugin-store-v1": PluginSystem.specStoreV1Markdown
             default: nil

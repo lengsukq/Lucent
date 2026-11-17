@@ -54,7 +54,7 @@ struct LumakeyBackupV2AndSearchTierTests {
     }
 
     @Test("Backup v2 compresses LZFSE, bundles PluginData & includeInBackup paths, seals optional secrets, and reloads singletons")
-    func backupV2EndToEndAndBackwardCompat() throws {
+    func backupV2EndToEndEncryptionAndRestore() throws {
         let root = try makeIsolatedDir("backup-v2")
         defer { try? FileManager.default.removeItem(at: root) }
         let srcSupport = root.appendingPathComponent("src-support", isDirectory: true)
@@ -114,7 +114,7 @@ struct LumakeyBackupV2AndSearchTierTests {
         #expect(report.restoredSecretPluginIDs == ["note-box"])
         #expect(try String(contentsOf: dstHome.appendingPathComponent("Notes/inbox.md"), encoding: .utf8).contains("Hello v2"))
 
-        let loaded = PluginSystem.loadPlugin(at: dstPlugins.appendingPathComponent("note-box"), in: dstPlugins, allowKeychainInteraction: false)
+        let loaded = PluginSystem.loadPlugin(at: dstPlugins.appendingPathComponent("note-box"), in: dstPlugins)
         #expect(loaded.userConfig["secretKey"] == "TOP_SECRET_V2")
     }
 

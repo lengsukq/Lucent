@@ -37,7 +37,7 @@ public enum PluginStorePackager {
         guard FileManager.default.fileExists(atPath: sourceDir.path) else {
             throw LumakeyError.pluginInvalid("未找到插件目录：\(pluginID)")
         }
-        let loaded = PluginSystem.loadPlugin(at: sourceDir, snapshot: PluginStateSnapshot(), in: pluginsRoot, includeSecrets: false, allowKeychainInteraction: false)
+        let loaded = PluginSystem.loadPlugin(at: sourceDir, snapshot: PluginStateSnapshot(), in: pluginsRoot, includeSecrets: false)
         guard loaded.isValid else {
             throw LumakeyError.pluginInvalid("打包前校验未通过：\(loaded.validationIssues.joined(separator: "；"))")
         }

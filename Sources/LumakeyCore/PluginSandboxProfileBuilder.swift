@@ -76,10 +76,11 @@ public enum PluginSandboxProfileBuilder {
             lines.append("(deny file-read* (subpath \"\(escapeSBPL(home))/.ssh\") (subpath \"\(escapeSBPL(home))/.gnupg\") (subpath \"\(escapeSBPL(home))/.aws\"))")
         }
 
-        // 3. 外部子进程作用域控制：未授权 .subprocess 时拦截包管理器/第三方命令与高敏系统探测工具，仅保留插件自身与基础 Shell/JSON 工具
+        // 3. 外部子进程作用域控制：未授权 .subprocess 时拦截包管理器/第三方命令与高敏系统探测工具，仅保留插件自身、基础 Shell/JSON 工具与 Xcode 系统 Python3 运行时
         if !allowedScopes.contains(.subprocess) {
             lines.append("(deny process-exec* (subpath \"/opt/homebrew\") (subpath \"/usr/local\") (subpath \"/Applications\") (subpath \"/usr/sbin\"))")
             lines.append("(deny process-exec* (literal \"/usr/bin/curl\") (literal \"/usr/bin/ssh\") (literal \"/usr/bin/scp\") (literal \"/usr/bin/git\") (literal \"/usr/bin/sftp\"))")
+            lines.append("(allow process-exec* (literal \"/Applications/Xcode.app/Contents/Developer/usr/bin/python3\") (subpath \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework\"))")
             lines.append("(allow process-exec* (subpath \"\(escapeSBPL(plugPath))\"))")
         }
 

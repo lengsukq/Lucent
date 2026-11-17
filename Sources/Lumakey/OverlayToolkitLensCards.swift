@@ -9,6 +9,7 @@ struct PluginViewLensContainerCard: View {
     let onOpenURL: (URL) -> Void
     let onRunCommandArgs: ([String]) -> Void
     var onGrantCapabilitiesAndRerun: (() -> Void)? = nil
+    var onPopOutFloatingPanel: (() -> Void)? = nil
     let onClose: () -> Void
 
     private var missingCapabilities: [PluginCapability] {
@@ -30,6 +31,13 @@ struct PluginViewLensContainerCard: View {
                     .foregroundStyle(LiquidColors.textSecondary)
                     .lineLimit(1)
                 Spacer()
+                if let onPopOutFloatingPanel {
+                    Button(action: onPopOutFloatingPanel) {
+                        Label(L10n.pick("悬浮窗", "Float"), systemImage: "macwindow.on.rectangle")
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                    .help(L10n.pick("弹出独立置顶悬浮面板", "Pop out as pinned floating live panel"))
+                }
                 LiquidKeyHintBadge(keyText: L10n.pick("Esc 关闭", "Esc"))
                 Button(action: onClose) {
                     Image(systemName: "xmark")

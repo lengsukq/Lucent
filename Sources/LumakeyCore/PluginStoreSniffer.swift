@@ -175,7 +175,7 @@ public enum PluginStoreSniffer {
         }
         let plugJson = dirURL.appendingPathComponent("plugin.json")
         if FileManager.default.fileExists(atPath: plugJson.path) {
-            let loaded = PluginSystem.loadPlugin(at: dirURL, snapshot: PluginStateSnapshot(), includeSecrets: false, allowKeychainInteraction: false)
+            let loaded = PluginSystem.loadPlugin(at: dirURL, snapshot: PluginStateSnapshot(), includeSecrets: false)
             guard loaded.isValid else {
                 throw LumakeyError.pluginInvalid("本地插件校验未通过：\(loaded.validationIssues.joined(separator: "；"))")
             }
@@ -267,7 +267,7 @@ public enum PluginStoreSniffer {
         data: Data, sourceInput: String, downloadURL: URL, expectedSHA256: String?
     ) throws -> DiscoveredPluginSource {
         let unpacked = try PluginStoreService.unpackArchiveSafely(archiveData: data, expectedSHA256: expectedSHA256)
-        let loaded = PluginSystem.loadPlugin(at: unpacked.pluginDir, snapshot: PluginStateSnapshot(), includeSecrets: false, allowKeychainInteraction: false)
+        let loaded = PluginSystem.loadPlugin(at: unpacked.pluginDir, snapshot: PluginStateSnapshot(), includeSecrets: false)
         guard loaded.isValid else {
             try? FileManager.default.removeItem(at: unpacked.stagingRoot)
             throw LumakeyError.pluginInvalid("插件包校验失败：\(loaded.validationIssues.joined(separator: "；"))")

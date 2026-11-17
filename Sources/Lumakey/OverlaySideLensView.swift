@@ -32,6 +32,9 @@ struct OverlaySideLensView: View {
                         guard let plugin = viewModel.activeInlinePlugin else { return }
                         viewModel.grantMissingCapabilitiesAndRerun(plugin)
                     },
+                    onPopOutFloatingPanel: viewModel.activeInlinePlugin.map { activePlug in
+                        { viewModel.openFloatingPluginPanel(for: activePlug, seedPayload: viewPayload) }
+                    },
                     onClose: {
                         withAnimation(LiquidMotion.snappySpring) {
                             viewModel.inlinePluginViewPayload = nil
@@ -230,8 +233,12 @@ struct OverlaySideLensView: View {
                     }
                 }
                 HStack(spacing: 7) {
+                    if !plugin.isBuiltin && plugin.manifest.mode == .view {
+                        Button(L10n.pick("悬浮窗", "Float")) { viewModel.openFloatingPluginPanel(for: plugin) }
+                            .buttonStyle(GlassPillButtonStyle())
+                    }
                     Button(L10n.pick("设置 ⌘,", "Settings ⌘,")) { viewModel.openPluginSettings(id: plugin.id) }.buttonStyle(GlassPillButtonStyle())
-                    Button(plugin.pinnedInOverlay ? L10n.pick("移出快捷按钮", "Unpin") : L10n.pick("加入快捷按钮", "Quick Button")) {
+                    Button(plugin.pinnedInOverlay ? L10n.pick("移出快捷按钮", "Unpin") : L10n.pick("快捷按钮", "Quick Btn")) {
                         viewModel.togglePluginOverlayPin(plugin)
                     }.buttonStyle(GlassPillButtonStyle())
                 }

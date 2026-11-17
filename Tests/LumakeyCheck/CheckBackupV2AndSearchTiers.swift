@@ -134,20 +134,24 @@ private func verifyBackupV2PluginDataCompressionSecretsAndCacheReload() throws {
     try FileManager.default.createDirectory(at: srcHome.appendingPathComponent("Documents"), withIntermediateDirectories: true)
     try FileManager.default.createDirectory(at: dstHome, withIntermediateDirectories: true)
 
-    // 1. Verify v1 schema archive backward compatibility
-    let v1Payload = BackupPayload(
+    // 1. Verify mismatched schemaVersion is strictly rejected
+    let mismatchPayload = BackupPayload(
         mosConfig: MosConfig(), telemetryConfig: SystemMonitorConfig(),
         rawConfigFiles: [:], pinnedClipboardItems: [], plugins: []
     )
-    let v1SHA = try BackupArchiveService.computePayloadSHA256(v1Payload)
-    let v1Env = BackupEnvelope(
+    let mismatchSHA = try BackupArchiveService.computePayloadSHA256(mismatchPayload)
+    let mismatchEnv = BackupEnvelope(
         schemaVersion: 1, createdAtISO8601: "2026-11-01T00:00:00Z",
-        appVersion: "0.7.0", hostName: "legacy-mac", payloadSHA256: v1SHA, payload: v1Payload
+        appVersion: "0.9.0", hostName: "test-mac", payloadSHA256: mismatchSHA, payload: mismatchPayload
     )
-    let v1Bytes = try JSONEncoder().encode(v1Env)
-    let v1Summary = try BackupArchiveService.inspectBackupData(v1Bytes)
-    check(v1Summary.schemaVersion == 1 && !v1Summary.isCompressed && v1Summary.pluginDataFileCount == 0,
-          "v1 archive inspects cleanly under v2 service")
+    let mismatchBytes = try JSONEncoder().encode(mismatchEnv)
+    var rejectedOldSchema = false
+    do {
+        _ = try BackupArchiveService.inspectBackupData(mismatchBytes)
+    } catch BackupArchiveError.unsupportedSchemaVersion(1) {
+        rejectedOldSchema = true
+    }
+    check(rejectedOldSchema, "BackupArchiveService strictly rejects unsupported schemaVersion")
 
     // 2. Create plugin with secret field, backupExclude, PluginData files, and external path file
     let extNoteURL = srcHome.appendingPathComponent("Documents/Lumakey-Notes.md")
@@ -254,7 +258,7 @@ private func verifyBackupV2PluginDataCompressionSecretsAndCacheReload() throws {
     let dstNoteText = try String(contentsOf: dstHome.appendingPathComponent("Documents/Lumakey-Notes.md"), encoding: .utf8)
     check(dstNoteText.contains("Test external note backup"), "restored external path file into new home directory")
 
-    let restoredPlugin = PluginSystem.loadPlugin(at: dstPlugins.appendingPathComponent("vault-notes"), in: dstPlugins, allowKeychainInteraction: false)
+    let restoredPlugin = PluginSystem.loadPlugin(at: dstPlugins.appendingPathComponent("vault-notes"), in: dstPlugins)
     check(restoredPlugin.userConfig["apiToken"] == "sk-super-secret-token-2026",
           "restored secret decrypted into destination scoped LocalSecretVault")
 

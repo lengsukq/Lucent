@@ -61,6 +61,7 @@ public struct PluginManifest: Codable, Sendable, Hashable {
     public let resourceScopes: [String]?
     public let accepts: [String]?
     public let refreshIntervalSeconds: Int?
+    public let window: PluginManifestWindowDefaults?
     public let commands: [PluginCommandSpec]?
     public let locales: [String: PluginLocaleStrings]?
 
@@ -97,6 +98,7 @@ public struct PluginManifest: Codable, Sendable, Hashable {
         config: [PluginConfigField]? = nil,
         capabilities: [String]? = nil, resourceScopes: [String]? = nil,
         accepts: [String]? = nil, refreshIntervalSeconds: Int? = nil,
+        window: PluginManifestWindowDefaults? = nil,
         commands: [PluginCommandSpec]? = nil, locales: [String: PluginLocaleStrings]? = nil
     ) {
         self.schemaVersion = schemaVersion; self.id = id; self.name = name
@@ -108,6 +110,7 @@ public struct PluginManifest: Codable, Sendable, Hashable {
         self.backupExclude = backupExclude
         self.config = config; self.capabilities = capabilities; self.resourceScopes = resourceScopes
         self.accepts = accepts; self.refreshIntervalSeconds = refreshIntervalSeconds
+        self.window = window
         self.commands = commands; self.locales = locales
     }
 }
@@ -198,7 +201,6 @@ public struct PluginDescriptor: Identifiable, Sendable, Hashable {
     }
     public func isCommandSearchEnabled(_ spec: PluginCommandSpec) -> Bool {
         if let explicit = overrides.commandSearchOverrides[spec.id] { return explicit }
-        if overrides.disabledCommandIDs.contains(spec.id) { return false }
         if let cmdDefault = spec.includeInGlobalSearch { return cmdDefault }
         return includeInGlobalSearch
     }

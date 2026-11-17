@@ -33,7 +33,7 @@ extension AppViewModel {
     }
 
     func makePluginBridgeContext() -> PluginBridgeHostContext {
-        PluginBridgeHostContext(everythingIndex: everythingIndex, preCapturedSelection: lastCapturedSelection)
+        buildRichPluginBridgeContext()
     }
 
     func setPluginEnabled(_ plugin: PluginDescriptor, isEnabled: Bool) throws {
@@ -136,35 +136,6 @@ extension AppViewModel {
         }
     }
 
-    func handlePluginOpenURL(_ url: URL) {
-        if let parsed = PluginDeepLinkParser.parse(url) {
-            switch parsed {
-            case .pluginSettings(let id):
-                openPluginSettings(id: id)
-            case .settingsSection(let target):
-                switch target {
-                case "mos": openRoute(.settings(.mos))
-                case "lumaLink": openRoute(.settings(.lumaLink))
-                case "monitor": openRoute(.settings(.monitor))
-                case "network": openRoute(.networkMonitor)
-                case "cache": openRoute(.settings(.cache))
-                case "plugins": openRoute(.settings(.plugins))
-                default:
-                    if plugins.contains(where: { $0.id == target }) { openPluginSettings(id: target) }
-                    else { openRoute(.settings(.general)) }
-                }
-            case .documentReader(let docURL):
-                openMediaWindow(for: docURL, kind: .markdown)
-            case .imageViewer(let imgURL, let pinOnTop):
-                openMediaWindow(for: imgURL, kind: .image, pinOnTop: pinOnTop)
-            case .pinImage(let pinURL):
-                PinWindowController.shared.pinImage(at: pinURL)
-            }
-            return
-        }
-        NSWorkspace.shared.open(url)
-    }
-
     func runPlugin(
         _ plugin: PluginDescriptor,
         query: String,
@@ -196,17 +167,22 @@ extension AppViewModel {
                 if resolved.execution.exitCode == 0 {
                     self.reloadPlugins()
                 }
+                let updatedPlugin = self.plugins.first(where: { $0.id == plugin.id }) ?? plugin
                 if let effect = resolved.viewPayload?.effect {
-                    self.applyPostActionEffect(effect)
+                    self.applyPluginPostActionEffect(effect, sourcePlugin: updatedPlugin, seedPayload: resolved.viewPayload)
                 }
-                if showInline {
+                let openedPanelAndClosed = (
+                    resolved.viewPayload?.effect?.openFloatingPanel == true
+                    || resolved.viewPayload?.effect?.openWindow != nil
+                ) && resolved.viewPayload?.effect?.closeOverlay == true
+                if showInline && !openedPanelAndClosed {
                     if let payload = resolved.viewPayload {
-                        self.activeInlinePlugin = self.plugins.first(where: { $0.id == plugin.id }) ?? plugin
+                        self.activeInlinePlugin = updatedPlugin
                         self.inlinePluginViewPayload = payload
                         self.inlineResultBody = nil
                     } else {
                         self.inlinePluginViewPayload = nil
-                        self.inlineResultTitle = plugin.displayName
+                        self.inlineResultTitle = updatedPlugin.displayName
                         let diagNote = resolved.viewParseDiagnostic.map { "\($0)\n\n" } ?? ""
                         let body = resolved.plainText.isEmpty ? "(无输出)" : resolved.plainText
                         self.inlineResultBody = diagNote + body
@@ -214,7 +190,7 @@ extension AppViewModel {
                 }
                 if self.serviceMessage == nil || payloadHasNoToast(resolved.viewPayload) {
                     self.serviceMessage = resolved.execution.exitCode == 0
-                        ? L10n.pick("\(plugin.displayName) 已就绪 (\(resolved.execution.durationMs) ms)", "\(plugin.displayName) ready (\(resolved.execution.durationMs) ms)")
+                        ? L10n.pick("\(updatedPlugin.displayName) 已就绪 (\(resolved.execution.durationMs) ms)", "\(updatedPlugin.displayName) ready (\(resolved.execution.durationMs) ms)")
                         : "插件返回退出码 \(resolved.execution.exitCode)"
                 }
             } catch is CancellationError {
@@ -225,24 +201,6 @@ extension AppViewModel {
                 self.serviceMessage = error.localizedDescription
             }
         }
-    }
-
-    private func applyPostActionEffect(_ effect: PluginPostActionEffect) {
-        if effect.reloadSearchIndex == true { reloadPluginSearchIndex() }
-        if let rawReader = effect.openReaderPath {
-            let docURL = URL(fileURLWithPath: rawReader).standardizedFileURL
-            if FileManager.default.fileExists(atPath: docURL.path) { openMediaWindow(for: docURL, kind: .markdown) }
-        }
-        if let rawImg = effect.openImagePath {
-            let imgURL = URL(fileURLWithPath: rawImg).standardizedFileURL
-            if FileManager.default.fileExists(atPath: imgURL.path) { openMediaWindow(for: imgURL, kind: .image) }
-        }
-        if let rawPin = effect.pinImagePath {
-            let pinURL = URL(fileURLWithPath: rawPin).standardizedFileURL
-            if FileManager.default.fileExists(atPath: pinURL.path) { PinWindowController.shared.pinImage(at: pinURL) }
-        }
-        if effect.closeOverlay == true { onHideOverlayRequest?() }
-        if let toast = effect.toast, !toast.isEmpty { serviceMessage = toast }
     }
 
     func runBackgroundPluginSync(_ plugin: PluginDescriptor, arguments: [String] = ["--sync"]) {
@@ -258,6 +216,9 @@ extension AppViewModel {
                 if resolved.execution.exitCode == 0 {
                     self.reloadPluginSearchIndex()
                     self.reloadPlugins()
+                    if let note = resolved.viewPayload?.effect?.notification {
+                        _ = PluginNotificationService.shared.post(note, pluginID: plugin.id, pluginName: plugin.displayName)
+                    }
                 }
             } catch {}
         }

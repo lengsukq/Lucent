@@ -43,7 +43,7 @@ private func verifyCustomIconsAccentAndSliderValidation() throws {
     )
     try JSONEncoder().encode(validManifest).write(to: plugDir.appendingPathComponent("plugin.json"))
 
-    let loaded = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot, includeSecrets: false, allowKeychainInteraction: false)
+    let loaded = PluginSystem.loadPlugin(at: plugDir, in: pluginsRoot, includeSecrets: false)
     check(loaded.isValid, "plugin with valid relative bundle icon & slider validates cleanly: \(loaded.validationIssues)")
     check(loaded.customIconURL?.standardizedFileURL == svgURL.standardizedFileURL, "customIconURL resolves to bundle SVG")
     check(loaded.displayCategoryBadge == "书签", "displayCategoryBadge uses natural categoryTag instead of raw VIEW")
@@ -80,12 +80,12 @@ private func verifyBilingualManifestAndRuntimeLocaleTheme() throws {
 
     if FileManager.default.fileExists(atPath: notionDir.appendingPathComponent("plugin.json").path) {
         L10n.setCurrent(.zhHans)
-        let zhDesc = PluginSystem.loadPlugin(at: notionDir, in: tmp, includeSecrets: false, allowKeychainInteraction: false)
+        let zhDesc = PluginSystem.loadPlugin(at: notionDir, in: tmp, includeSecrets: false)
         check(zhDesc.isValid && zhDesc.customIconURL != nil, "upgraded notion-bookmarks has valid custom icon.svg")
         check(zhDesc.displayName == "Notion 书签收藏" && zhDesc.displayCategoryBadge == "书签", "zh-Hans localized name & category")
 
         L10n.setCurrent(.english)
-        let enDesc = PluginSystem.loadPlugin(at: notionDir, in: tmp, includeSecrets: false, allowKeychainInteraction: false)
+        let enDesc = PluginSystem.loadPlugin(at: notionDir, in: tmp, includeSecrets: false)
         check(enDesc.displayName == "Notion Bookmarks" && enDesc.displayCategoryBadge == "Bookmarks", "English locale switches manifest name & categoryTag")
         let addCmd = enDesc.declaredCommands.first(where: { $0.id == "add-clipboard" })!
         check(enDesc.manifest.localizedCommandTitle(addCmd) == "Save Clipboard URL to Notion", "English locale switches command title")

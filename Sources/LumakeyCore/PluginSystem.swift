@@ -53,16 +53,14 @@ public enum PluginSystem {
     public static func loadPlugin(
         at directoryURL: URL,
         in rootDir: URL? = nil,
-        includeSecrets: Bool = true,
-        allowKeychainInteraction: Bool = true
+        includeSecrets: Bool = true
     ) -> PluginDescriptor {
         let resolvedRoot = rootDir ?? directoryURL.deletingLastPathComponent()
         return loadPlugin(
             at: directoryURL,
             snapshot: loadStateSnapshot(in: resolvedRoot),
             in: resolvedRoot,
-            includeSecrets: includeSecrets,
-            allowKeychainInteraction: allowKeychainInteraction
+            includeSecrets: includeSecrets
         )
     }
 
@@ -70,8 +68,7 @@ public enum PluginSystem {
         at directoryURL: URL,
         snapshot: PluginStateSnapshot,
         in rootDir: URL? = nil,
-        includeSecrets: Bool = true,
-        allowKeychainInteraction: Bool = true
+        includeSecrets: Bool = true
     ) -> PluginDescriptor {
         let resolvedRoot = rootDir ?? directoryURL.deletingLastPathComponent()
         let folderName = directoryURL.lastPathComponent
@@ -88,8 +85,7 @@ public enum PluginSystem {
             for: manifest,
             stored: inst.configValues,
             pluginsRoot: resolvedRoot,
-            includeSecrets: includeSecrets,
-            allowKeychainInteraction: allowKeychainInteraction
+            includeSecrets: includeSecrets
         )
         let granted = Set(inst.grantedCapabilities.compactMap { PluginCapability(rawValue: $0) })
         let revokedScopes = Set(inst.revokedResourceScopes.compactMap { PluginResourceScope(rawValue: $0) })
@@ -106,29 +102,19 @@ public enum PluginSystem {
         for manifest: PluginManifest,
         stored: [String: String],
         pluginsRoot: URL? = nil,
-        includeSecrets: Bool = true,
-        allowKeychainInteraction: Bool = true
+        includeSecrets: Bool = true
     ) -> [String: String] {
         var merged: [String: String] = [:]
         let service = pluginsRoot.map { PluginDataPaths.keychainService(forPluginsRoot: $0) } ?? PluginKeychainStore.defaultService
         let scopedVault = pluginsRoot.flatMap { PluginDataPaths.scopedVaultFileURL(forPluginsRoot: $0) }
-        var migratedLegacySecret = false
         for field in manifest.config ?? [] {
             if field.type == .secret {
                 guard includeSecrets else { continue }
                 if let kcValue = try? PluginKeychainStore.loadSecret(
                     pluginID: manifest.id, fieldKey: field.key,
-                    service: service, allowInteraction: allowKeychainInteraction,
-                    customVaultURL: scopedVault
+                    service: service, customVaultURL: scopedVault
                 ), !kcValue.isEmpty {
                     merged[field.key] = kcValue
-                } else if let legacy = stored[field.key], !legacy.isEmpty {
-                    try? PluginKeychainStore.saveSecret(
-                        legacy, pluginID: manifest.id, fieldKey: field.key,
-                        service: service, customVaultURL: scopedVault
-                    )
-                    merged[field.key] = legacy
-                    migratedLegacySecret = true
                 } else if let def = field.defaultValue {
                     merged[field.key] = def
                 }
@@ -139,9 +125,6 @@ public enum PluginSystem {
         let secretKeys = Set((manifest.config ?? []).filter { $0.type == .secret }.map(\.key))
         for (k, v) in stored where !secretKeys.contains(k) {
             merged[k] = v
-        }
-        if migratedLegacySecret, let pluginsRoot {
-            scrubLegacySecrets(pluginID: manifest.id, secretKeys: secretKeys, in: pluginsRoot)
         }
         return merged
     }
@@ -154,22 +137,8 @@ public enum PluginSystem {
         let resolvedRoot = rootDir ?? plugin.directoryURL.deletingLastPathComponent()
         let stored = loadStateSnapshot(in: resolvedRoot).plugins[plugin.id]?.configValues ?? plugin.userConfig
         return resolvedConfig(
-            for: plugin.manifest, stored: stored, pluginsRoot: resolvedRoot,
-            includeSecrets: true, allowKeychainInteraction: false
+            for: plugin.manifest, stored: stored, pluginsRoot: resolvedRoot, includeSecrets: true
         )
-    }
-
-    private static func scrubLegacySecrets(pluginID: String, secretKeys: Set<String>, in rootDir: URL) {
-        guard !secretKeys.isEmpty else { return }
-        var snap = loadStateSnapshot(in: rootDir)
-        guard var inst = snap.plugins[pluginID] else { return }
-        var changed = false
-        for key in secretKeys where inst.configValues.removeValue(forKey: key) != nil {
-            changed = true
-        }
-        guard changed else { return }
-        snap.plugins[pluginID] = inst
-        try? saveStateSnapshot(snap, in: rootDir)
     }
 
     public static func validate(manifest: PluginManifest, in directoryURL: URL) -> [String] {
@@ -181,6 +150,7 @@ public enum PluginSystem {
         if let iconErr = PluginIconResolver.validateManifestIcon(manifest.icon, in: directoryURL) {
             issues.append(iconErr)
         }
+        issues.append(contentsOf: PluginCustomWindowSpec.validateManifestWindowDefaults(manifest.window, in: directoryURL))
         let entryURL = directoryURL.appendingPathComponent(manifest.entry).standardizedFileURL
         let rootPath = directoryURL.standardizedFileURL.path
         if manifest.entry.isEmpty || !entryURL.path.hasPrefix(rootPath + "/") {

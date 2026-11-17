@@ -83,9 +83,10 @@ public enum PluginDataInspector {
         var configuredSecrets: [String] = []
         var missingRequired: [String] = []
         let kcService = PluginDataPaths.keychainService(forPluginsRoot: resolvedRoot)
+        let scopedVault = PluginDataPaths.scopedVaultFileURL(forPluginsRoot: resolvedRoot)
         for field in secretFields {
             let val = plugin.userConfig[field.key]
-                ?? (try? PluginKeychainStore.loadSecret(pluginID: plugin.id, fieldKey: field.key, service: kcService, allowInteraction: false))
+                ?? (try? PluginKeychainStore.loadSecret(pluginID: plugin.id, fieldKey: field.key, service: kcService, customVaultURL: scopedVault))
             if let val, !val.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 configuredSecrets.append(field.key)
             } else if field.required == true {

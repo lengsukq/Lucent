@@ -99,7 +99,7 @@ extension BackupArchiveService {
             for field in secretFields {
                 if let val = try? PluginKeychainStore.loadSecret(
                     pluginID: plugin.id, fieldKey: field.key,
-                    service: service, allowInteraction: false, customVaultURL: scopedVault
+                    service: service, customVaultURL: scopedVault
                 ), !val.isEmpty {
                     perPlugin[field.key] = val
                 }

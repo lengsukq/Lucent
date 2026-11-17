@@ -59,6 +59,7 @@ extension MenuBarAndWindowCoordinator {
         addMenuItem(to: menu, rawTitle: "选区截图离线识字", key: "⌥O") { [weak self] in self?.viewModel.captureAndAnalyzeOCR() }
         addMenuItem(to: menu, rawTitle: "区域 GIF 动图录制", key: "⌥G") { [weak self] in self?.viewModel.startGifRecording() }
         addMenuItem(to: menu, rawTitle: "关闭全部钉图", key: "") { PinWindowController.shared.closeAll() }
+        addMenuItem(to: menu, rawTitle: "关闭全部插件自由窗口", key: "") { PluginCustomWebWindowController.shared.closeAll() }
         menu.addItem(.separator())
         addMenuItem(to: menu, rawTitle: "导出、备份与 WebDAV 云同步", key: "") { [weak self] in self?.open(route: .settings(.backup)) }
         addMenuItem(to: menu, rawTitle: "流光随行手机远控与极速 RDP", key: "") { [weak self] in self?.openLumaLinkConsole() }

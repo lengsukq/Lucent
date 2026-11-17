@@ -26,7 +26,7 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
     ) throws {
         self.descriptor = descriptor
         self.grantedCapabilities = grantedCapabilities
-        self.hostContext = hostContext
+        self.hostContext = hostContext.scoped(to: descriptor)
 
         var randomBytes = [UInt8](repeating: 0, count: 24)
         let rc = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
@@ -164,10 +164,14 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
         else {
             return PluginHostBridgeHandlers.errorJSON("invalid_capability", "未识别的 capability 名称")
         }
-        guard descriptor.declaredCapabilities.contains(capability) else {
+        let isDeclared = descriptor.declaredCapabilities.contains(capability)
+            || (capability == .window && descriptor.declaredCapabilities.contains(.floatingWindow))
+        guard isDeclared else {
             return PluginHostBridgeHandlers.errorJSON("capability_not_declared", "plugin.json 未声明 capability '\(capability.rawValue)'", capability: capability)
         }
-        guard grantedCapabilities.contains(capability) else {
+        let isGranted = grantedCapabilities.contains(capability)
+            || (capability == .window && grantedCapabilities.contains(.floatingWindow))
+        guard isGranted else {
             return PluginHostBridgeHandlers.errorJSON("capability_not_granted", "用户尚未在 Lumakey 插件中心授权 '\(capability.rawValue)'", capability: capability)
         }
         let action = req["action"] as? String ?? ""

@@ -8,13 +8,29 @@ public struct PluginBridgeHostContext: Sendable {
     public let clipboardWriter: @Sendable (String) -> Bool
     public let selectionReader: @Sendable () -> PluginSelectionSnapshot
     public let preCapturedSelection: PluginSelectionSnapshot?
+    public let pluginID: String?
+    public let pluginName: String?
+    public let pluginDirectoryURL: URL?
+    public let manifestWindowDefaults: PluginManifestWindowDefaults?
+    public let pasteBackHandler: (@Sendable (String) -> PluginPasteBackOutcome)?
+    public let interactiveCaptureHandler: (@Sendable () throws -> PluginCapturedScreenFile)?
+    public let customWindowOpener: (@Sendable (PluginCustomWindowSpec) -> Bool)?
+    public let customWindowCloser: (@Sendable (String, String) -> Bool)?
 
     public init(
         everythingIndex: EverythingIndex? = nil,
         clipboardReader: (@Sendable () -> String)? = nil,
         clipboardWriter: (@Sendable (String) -> Bool)? = nil,
         selectionReader: (@Sendable () -> PluginSelectionSnapshot)? = nil,
-        preCapturedSelection: PluginSelectionSnapshot? = nil
+        preCapturedSelection: PluginSelectionSnapshot? = nil,
+        pluginID: String? = nil,
+        pluginName: String? = nil,
+        pluginDirectoryURL: URL? = nil,
+        manifestWindowDefaults: PluginManifestWindowDefaults? = nil,
+        pasteBackHandler: (@Sendable (String) -> PluginPasteBackOutcome)? = nil,
+        interactiveCaptureHandler: (@Sendable () throws -> PluginCapturedScreenFile)? = nil,
+        customWindowOpener: (@Sendable (PluginCustomWindowSpec) -> Bool)? = nil,
+        customWindowCloser: (@Sendable (String, String) -> Bool)? = nil
     ) {
         self.everythingIndex = everythingIndex
         self.clipboardReader = clipboardReader ?? {
@@ -30,6 +46,32 @@ public struct PluginBridgeHostContext: Sendable {
             PluginSelectionReader.captureFrontmostSelection()
         }
         self.preCapturedSelection = preCapturedSelection
+        self.pluginID = pluginID
+        self.pluginName = pluginName
+        self.pluginDirectoryURL = pluginDirectoryURL
+        self.manifestWindowDefaults = manifestWindowDefaults
+        self.pasteBackHandler = pasteBackHandler
+        self.interactiveCaptureHandler = interactiveCaptureHandler
+        self.customWindowOpener = customWindowOpener
+        self.customWindowCloser = customWindowCloser
+    }
+
+    public func scoped(to descriptor: PluginDescriptor) -> PluginBridgeHostContext {
+        PluginBridgeHostContext(
+            everythingIndex: everythingIndex,
+            clipboardReader: clipboardReader,
+            clipboardWriter: clipboardWriter,
+            selectionReader: selectionReader,
+            preCapturedSelection: preCapturedSelection,
+            pluginID: descriptor.id,
+            pluginName: descriptor.displayName,
+            pluginDirectoryURL: descriptor.directoryURL,
+            manifestWindowDefaults: descriptor.manifest.window,
+            pasteBackHandler: pasteBackHandler,
+            interactiveCaptureHandler: interactiveCaptureHandler,
+            customWindowOpener: customWindowOpener,
+            customWindowCloser: customWindowCloser
+        )
     }
 
     public static let `default` = PluginBridgeHostContext()
@@ -40,8 +82,8 @@ public struct PluginBridgeHostContext: Sendable {
     }
 }
 
-enum PluginHostBridgeHandlers {
-    static func dispatch(
+public enum PluginHostBridgeHandlers {
+    public static func dispatch(
         capability: PluginCapability,
         action: String,
         params: [String: Any],
@@ -49,51 +91,60 @@ enum PluginHostBridgeHandlers {
     ) -> [String: Any] {
         switch capability {
         case .clipboard:
-            if action == "read" {
+            switch action {
+            case "read":
                 return okJSON(capability, action, ["text": hostContext.clipboardReader()])
-            } else if action == "write" {
+            case "write":
                 guard let text = params["text"] as? String else { return errorJSON("invalid_params", "缺少 text 参数", capability: capability) }
                 return okJSON(capability, action, ["written": hostContext.clipboardWriter(text), "length": text.count])
+            case "writeImage":
+                guard let path = params["imagePath"] as? String, !path.isEmpty else {
+                    return errorJSON("invalid_params", "缺少 imagePath 参数", capability: capability)
+                }
+                return PluginScreenAndWindowBridge.writeImageToPasteboard(imagePath: path)
+            default:
+                return errorJSON("invalid_action", "clipboard 支持 read / write / writeImage", capability: capability)
             }
-            return errorJSON("invalid_action", "clipboard 仅支持 read / write", capability: capability)
 
         case .selection:
-            guard action == "read" else { return errorJSON("invalid_action", "selection 仅支持 read", capability: capability) }
-            let snapshot: PluginSelectionSnapshot
-            if let pre = hostContext.preCapturedSelection, !pre.text.isEmpty {
-                snapshot = pre
-            } else {
-                let live = hostContext.selectionReader()
-                snapshot = live.text.isEmpty ? (hostContext.preCapturedSelection ?? live) : live
+            switch action {
+            case "read":
+                let snapshot: PluginSelectionSnapshot
+                if let pre = hostContext.preCapturedSelection, !pre.text.isEmpty {
+                    snapshot = pre
+                } else {
+                    let live = hostContext.selectionReader()
+                    snapshot = live.text.isEmpty ? (hostContext.preCapturedSelection ?? live) : live
+                }
+                return okJSON(capability, action, [
+                    "text": snapshot.text,
+                    "sourceApp": snapshot.sourceApp,
+                    "bundleIdentifier": snapshot.bundleIdentifier,
+                    "accessibilityGranted": PluginHostTCCBroker.status(for: .accessibility).isGranted
+                ])
+            case "pasteBack":
+                return PluginScreenAndWindowBridge.handlePasteBack(params: params, hostContext: hostContext)
+            default:
+                return errorJSON("invalid_action", "selection 支持 read / pasteBack", capability: capability)
             }
-            return okJSON(capability, action, [
-                "text": snapshot.text,
-                "sourceApp": snapshot.sourceApp,
-                "bundleIdentifier": snapshot.bundleIdentifier
-            ])
+
+        case .window, .floatingWindow:
+            return PluginScreenAndWindowBridge.handleCustomWindow(
+                capability: capability, action: action, params: params, hostContext: hostContext
+            )
+
+        case .screenCapture:
+            return PluginScreenAndWindowBridge.handleScreenCapture(
+                action: action, params: params, hostContext: hostContext
+            )
+
+        case .notifications:
+            return PluginScreenAndWindowBridge.handleNotifications(
+                action: action, params: params, hostContext: hostContext
+            )
 
         case .audio:
-            switch action {
-            case "play":
-                guard let path = params["path"] as? String, !path.isEmpty else {
-                    return errorJSON("invalid_params", "缺少 path 参数", capability: capability)
-                }
-                do {
-                    return okJSON(capability, action, try PluginAudioBridgePlayer.shared.play(path: path))
-                } catch {
-                    return errorJSON("execution_failed", error.localizedDescription, capability: capability)
-                }
-            case "speak":
-                guard let text = params["text"] as? String, !text.isEmpty else {
-                    return errorJSON("invalid_params", "缺少 text 参数", capability: capability)
-                }
-                let language = params["language"] as? String
-                return okJSON(capability, action, PluginAudioBridgePlayer.shared.speak(text: text, language: language))
-            case "stop":
-                return okJSON(capability, action, PluginAudioBridgePlayer.shared.stop())
-            default:
-                return errorJSON("invalid_action", "audio 仅支持 play / speak / stop", capability: capability)
-            }
+            return handleAudio(action: action, params: params)
 
         case .ocr:
             guard action == "recognize" else { return errorJSON("invalid_action", "ocr 仅支持 recognize", capability: capability) }
@@ -141,6 +192,26 @@ enum PluginHostBridgeHandlers {
         }
     }
 
+    private static func handleAudio(action: String, params: [String: Any]) -> [String: Any] {
+        switch action {
+        case "play":
+            guard let path = params["path"] as? String, !path.isEmpty else {
+                return errorJSON("invalid_params", "缺少 path 参数", capability: .audio)
+            }
+            do { return okJSON(.audio, action, try PluginAudioBridgePlayer.shared.play(path: path)) }
+            catch { return errorJSON("execution_failed", error.localizedDescription, capability: .audio) }
+        case "speak":
+            guard let text = params["text"] as? String, !text.isEmpty else {
+                return errorJSON("invalid_params", "缺少 text 参数", capability: .audio)
+            }
+            return okJSON(.audio, action, PluginAudioBridgePlayer.shared.speak(text: text, language: params["language"] as? String))
+        case "stop":
+            return okJSON(.audio, action, PluginAudioBridgePlayer.shared.stop())
+        default:
+            return errorJSON("invalid_action", "audio 仅支持 play / speak / stop", capability: .audio)
+        }
+    }
+
     private static func handleSystemControl(action: String, params: [String: Any]) -> [String: Any] {
         let sys = LumaLinkSystemControlService.shared
         let shield = StatusScreenOverlayService.shared
@@ -167,27 +238,20 @@ enum PluginHostBridgeHandlers {
             let audio = sys.readAudioState()
             return okJSON(.systemControl, action, ["volumePercent": audio.volumePercent, "isMuted": audio.isMuted])
         case "setCaffeine":
-            let active = params["active"] as? Bool ?? !sys.isCaffeineActive
-            sys.setCaffeine(active)
+            sys.setCaffeine(params["active"] as? Bool ?? !sys.isCaffeineActive)
             return okJSON(.systemControl, action, ["caffeineActive": sys.isCaffeineActive])
         case "setStatusScreen":
-            let active = params["active"] as? Bool ?? true
-            if !active {
-                shield.dismiss()
-                return okJSON(.systemControl, action, mergedStatus())
+            if (params["active"] as? Bool ?? true) == false {
+                shield.dismiss(); return okJSON(.systemControl, action, mergedStatus())
             }
             let cfg = StatusScreenConfiguration(
-                preset: params["preset"] as? String ?? "clean",
-                icon: params["icon"] as? String ?? "",
-                title: params["title"] as? String ?? "",
-                subtitle: params["subtitle"] as? String ?? "",
-                blockInput: params["blockInput"] as? Bool ?? true,
-                keepAwake: params["keepAwake"] as? Bool ?? true,
+                preset: params["preset"] as? String ?? "clean", icon: params["icon"] as? String ?? "",
+                title: params["title"] as? String ?? "", subtitle: params["subtitle"] as? String ?? "",
+                blockInput: params["blockInput"] as? Bool ?? true, keepAwake: params["keepAwake"] as? Bool ?? true,
                 muteAudio: params["muteAudio"] as? Bool ?? false,
                 holdSeconds: (params["holdSeconds"] as? NSNumber)?.doubleValue ?? 2.0
             )
-            let delay = (params["delaySeconds"] as? NSNumber)?.doubleValue ?? 0.12
-            shield.activate(cfg, delaySeconds: delay)
+            shield.activate(cfg, delaySeconds: (params["delaySeconds"] as? NSNumber)?.doubleValue ?? 0.12)
             return okJSON(.systemControl, action, mergedStatus())
         case "clearStatusScreen":
             shield.dismiss()
@@ -197,11 +261,11 @@ enum PluginHostBridgeHandlers {
         }
     }
 
-    static func okJSON(_ cap: PluginCapability, _ action: String, _ data: [String: Any]) -> [String: Any] {
+    public static func okJSON(_ cap: PluginCapability, _ action: String, _ data: [String: Any]) -> [String: Any] {
         ["ok": true, "capability": cap.rawValue, "action": action, "data": data]
     }
 
-    static func errorJSON(_ code: String, _ message: String, capability: PluginCapability? = nil) -> [String: Any] {
+    public static func errorJSON(_ code: String, _ message: String, capability: PluginCapability? = nil) -> [String: Any] {
         var out: [String: Any] = ["ok": false, "error": code, "message": message]
         if let capability { out["capability"] = capability.rawValue }
         return out
