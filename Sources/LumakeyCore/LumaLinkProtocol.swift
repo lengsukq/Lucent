@@ -86,23 +86,12 @@ public struct LumaLinkConfig: Codable, Sendable, Hashable {
               var decoded = try? JSONDecoder().decode(LumaLinkConfig.self, from: data)
         else { return LumaLinkConfig() }
         let vaultURL = resolvedVaultURL(forConfigURL: url, vaultDirectory: vaultDirectory)
-        var migratedPlaintext = false
         for idx in decoded.pairedDevices.indices {
             let devID = decoded.pairedDevices[idx].id
-            let inlineToken = decoded.pairedDevices[idx].token
-            if let vaulted = try? LocalSecretVault.loadValue(
+            decoded.pairedDevices[idx].token = (try? LocalSecretVault.loadValue(
                 service: LumakeyAppPaths.lumaLinkKeychainService, account: devID, customVaultURL: vaultURL
-            ), !vaulted.isEmpty {
-                decoded.pairedDevices[idx].token = vaulted
-                if !inlineToken.isEmpty { migratedPlaintext = true }
-            } else if !inlineToken.isEmpty {
-                try? LocalSecretVault.saveValue(
-                    inlineToken, service: LumakeyAppPaths.lumaLinkKeychainService, account: devID, customVaultURL: vaultURL
-                )
-                migratedPlaintext = true
-            }
+            )) ?? ""
         }
-        if migratedPlaintext { decoded.writeScrubbedJSON(to: url) }
         return decoded
     }
 

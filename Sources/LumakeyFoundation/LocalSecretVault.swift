@@ -33,13 +33,10 @@ public enum LumakeyAppPaths {
 }
 
 /// 基于双轨 256-bit 随机主密钥（`LocalSecretMasterKeyStore`）与 `0700/0600` 原子持久化的 `AES-GCM` 本地密钥保险箱。
-/// 支持将旧版 `LMKYVLT1` 密文静默无感升级为高熵 `LMKYVLT2`，并彻底消除临时目录散落密文与无证书重编弹窗。
 public enum LocalSecretVault {
     public static let magicHeader = Data("LMKYVLT2".utf8)
-    public static let legacyV1MagicHeader = Data("LMKYVLT1".utf8)
     public static let vaultDirectoryName = ".vault"
     public static let vaultFileName = "secrets.v2.enc"
-    public static let legacyVaultFileName = "secrets.v1.enc"
 
     private static let lock = NSLock()
     private nonisolated(unsafe) static var memoryCache: [String: [String: [String: String]]] = [:]
@@ -120,10 +117,7 @@ public enum LocalSecretVault {
     ) throws {
         let fileURL = vaultFileURL(forService: service, customVaultURL: customVaultURL)
         try lock.withLock {
-            let legacySibling = legacySiblingURL(for: fileURL)
-            let existsPrimary = FileManager.default.fileExists(atPath: fileURL.path)
-            let existsLegacy = legacySibling.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
-            guard existsPrimary || existsLegacy else {
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
                 memoryCache.removeValue(forKey: fileURL.standardizedFileURL.path)
                 return
             }
@@ -134,7 +128,6 @@ public enum LocalSecretVault {
             }
             if services.isEmpty {
                 try? FileManager.default.removeItem(at: fileURL)
-                if let legacySibling { try? FileManager.default.removeItem(at: legacySibling) }
                 memoryCache.removeValue(forKey: fileURL.standardizedFileURL.path)
             } else {
                 try writeServicesLocked(services, to: fileURL)
@@ -174,34 +167,18 @@ public enum LocalSecretVault {
         keyOverride: SymmetricKey? = nil
     ) throws -> Data {
         let resolvedDir = vaultDirectory ?? defaultVaultFileURL().deletingLastPathComponent()
-        if rawData.count > magicHeader.count + 28,
-           rawData.prefix(magicHeader.count) == magicHeader {
-            let combined = rawData.dropFirst(magicHeader.count)
-            let key = try keyOverride ?? LocalSecretMasterKeyStore.loadOrCreateMasterKey(forVaultDirectory: resolvedDir)
-            do {
-                let box = try AES.GCM.SealedBox(combined: combined)
-                return try AES.GCM.open(box, using: key, authenticating: magicHeader)
-            } catch {
-                throw LocalSecretVaultError.invalidCiphertext
-            }
+        guard rawData.count > magicHeader.count + 28,
+              rawData.prefix(magicHeader.count) == magicHeader else {
+            throw LocalSecretVaultError.invalidCiphertext
         }
-        if rawData.count > legacyV1MagicHeader.count + 28,
-           rawData.prefix(legacyV1MagicHeader.count) == legacyV1MagicHeader {
-            let combined = rawData.dropFirst(legacyV1MagicHeader.count)
-            let key = keyOverride ?? LocalSecretMasterKeyStore.deriveLegacyV1Key()
-            do {
-                let box = try AES.GCM.SealedBox(combined: combined)
-                return try AES.GCM.open(box, using: key, authenticating: legacyV1MagicHeader)
-            } catch {
-                throw LocalSecretVaultError.invalidCiphertext
-            }
+        let combined = rawData.dropFirst(magicHeader.count)
+        let key = try keyOverride ?? LocalSecretMasterKeyStore.loadOrCreateMasterKey(forVaultDirectory: resolvedDir)
+        do {
+            let box = try AES.GCM.SealedBox(combined: combined)
+            return try AES.GCM.open(box, using: key, authenticating: magicHeader)
+        } catch {
+            throw LocalSecretVaultError.invalidCiphertext
         }
-        throw LocalSecretVaultError.invalidCiphertext
-    }
-
-    private static func legacySiblingURL(for fileURL: URL) -> URL? {
-        guard fileURL.lastPathComponent == vaultFileName else { return nil }
-        return fileURL.deletingLastPathComponent().appendingPathComponent(legacyVaultFileName, isDirectory: false)
     }
 
     private static func loadServicesLocked(at fileURL: URL) throws -> [String: [String: String]] {
@@ -209,33 +186,14 @@ public enum LocalSecretVault {
         if let cached = memoryCache[key] {
             return cached
         }
-        let fm = FileManager.default
-        let vaultDir = fileURL.deletingLastPathComponent()
-
-        var sourceURL = fileURL
-        var shouldRemoveLegacyFile: URL?
-        if !fm.fileExists(atPath: fileURL.path),
-           let legacyURL = legacySiblingURL(for: fileURL),
-           fm.fileExists(atPath: legacyURL.path) {
-            sourceURL = legacyURL
-            shouldRemoveLegacyFile = legacyURL
-        } else if !fm.fileExists(atPath: fileURL.path) {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
             return [:]
         }
-
-        let raw = try Data(contentsOf: sourceURL)
-        let isLegacyHeader = raw.prefix(legacyV1MagicHeader.count) == legacyV1MagicHeader
+        let vaultDir = fileURL.deletingLastPathComponent()
+        let raw = try Data(contentsOf: fileURL)
         let plain = try openPayloadData(raw, vaultDirectory: vaultDir)
         let decoded = try JSONDecoder().decode(VaultPayload.self, from: plain)
-
-        if isLegacyHeader || shouldRemoveLegacyFile != nil {
-            try? writeServicesLocked(decoded.services, to: fileURL)
-            if let legacy = shouldRemoveLegacyFile, legacy.standardizedFileURL != fileURL.standardizedFileURL {
-                try? fm.removeItem(at: legacy)
-            }
-        } else {
-            memoryCache[key] = decoded.services
-        }
+        memoryCache[key] = decoded.services
         return decoded.services
     }
 

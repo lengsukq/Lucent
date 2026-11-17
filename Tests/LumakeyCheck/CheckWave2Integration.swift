@@ -31,9 +31,11 @@ func testV070Wave2Integration() throws {
     let idxPayload = """
     {"version":1,"items":[{"id":"bm-1","title":"开源导航测试","subtitle":"github.com · #开发","url":"https://github.com/lengsukq/Lumakey","copyText":"https://github.com/lengsukq/Lumakey","icon":"bookmark.fill","badge":"开发","tags":["开发","Swift"],"pinned":true,"priority":10,"commandArgs":["--detail","bm-1"]}]}
     """
-    try idxPayload.write(to: enabledDesc.directoryURL.appendingPathComponent(PluginSearchIndex.defaultIndexFileName), atomically: true, encoding: .utf8)
-    try idxPayload.write(to: tmpPlugDir.appendingPathComponent("w2-off").appendingPathComponent(PluginSearchIndex.defaultIndexFileName), atomically: true, encoding: .utf8)
-    let searchEntries = PluginSearchIndex.loadEntries(for: allPlugs)
+    let onDataDir = PluginDataPaths.ensureDataDirectory(for: "w2-on", pluginsRoot: tmpPlugDir)!
+    let offDataDir = PluginDataPaths.ensureDataDirectory(for: "w2-off", pluginsRoot: tmpPlugDir)!
+    try idxPayload.write(to: onDataDir.appendingPathComponent(PluginSearchIndex.defaultIndexFileName), atomically: true, encoding: .utf8)
+    try idxPayload.write(to: offDataDir.appendingPathComponent(PluginSearchIndex.defaultIndexFileName), atomically: true, encoding: .utf8)
+    let searchEntries = PluginSearchIndex.loadEntries(for: allPlugs, in: tmpPlugDir)
     check(searchEntries.count == 1 && searchEntries.first?.pluginID == "w2-on", "PluginSearchIndex loads enabled plugin search-index.json and skips disabled")
     let bmByPinyin = LauncherEngine.rankCandidates(query: "kydh", filter: .all, apps: [], plugins: allPlugs, pluginSearchEntries: searchEntries)
     let bmByTag = LauncherEngine.rankCandidates(query: "#swift", filter: .all, apps: [], plugins: allPlugs, pluginSearchEntries: searchEntries)

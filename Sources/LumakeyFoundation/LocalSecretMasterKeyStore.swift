@@ -36,18 +36,6 @@ public enum LocalSecretMasterKeyStore {
         return derived
     }
 
-    /// 仅供读取历史 `LMKYVLT1` 密文并透明迁移至 `LMKYVLT2` 使用。
-    public static func deriveLegacyV1Key() -> SymmetricKey {
-        let uuid = readHardwarePlatformUUID()
-        let ikm = Data("lumakey-local-vault-v1|\(uuid)|uid=\(getuid())".utf8)
-        return HKDF<SHA256>.deriveKey(
-            inputKeyMaterial: SymmetricKey(data: ikm),
-            salt: Data("app.lumakey.macos.local-secret-vault.salt.v1".utf8),
-            info: Data("aes-256-gcm-v1".utf8),
-            outputByteCount: 32
-        )
-    }
-
     // MARK: - Internal Seed Resolution
 
     private static func resolveRawSeed(

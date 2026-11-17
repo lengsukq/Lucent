@@ -14,41 +14,36 @@ struct LumakeySecurityAndSnapshotTests {
         return dir
     }
 
-    @Test("LocalSecretVault v2 uses high-entropy CSPRNG seed and migrates legacy LMKYVLT1")
-    func vaultCSPRNGAndLegacyMigration() throws {
+    @Test("LocalSecretVault seals secrets with high-entropy CSPRNG seed and rejects legacy headers or foreign keys")
+    func vaultCSPRNGSealingAndTamperRejection() throws {
         let root = try makeIsolatedDir("vault")
         defer { try? FileManager.default.removeItem(at: root) }
 
         let vaultDir = root.appendingPathComponent(".vault", isDirectory: true)
-        try FileManager.default.createDirectory(at: vaultDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        let legacyURL = vaultDir.appendingPathComponent(LocalSecretVault.legacyVaultFileName)
-
-        let v1Plain = Data(#"{"schemaVersion":1,"services":{"svc":{"acct":"migrated-secret-42"}}}"#.utf8)
-        let v1Sealed = try AES.GCM.seal(
-            v1Plain,
-            using: LocalSecretMasterKeyStore.deriveLegacyV1Key(),
-            nonce: AES.GCM.Nonce(),
-            authenticating: LocalSecretVault.legacyV1MagicHeader
-        )
-        var legacyBlob = Data(LocalSecretVault.legacyV1MagicHeader)
-        legacyBlob.append(try #require(v1Sealed.combined))
-        try legacyBlob.write(to: legacyURL, options: .atomic)
+        let vaultURL = LocalSecretVault.defaultVaultFileURL(in: root)
         LocalSecretVault.clearMemoryCache()
 
-        let v2URL = LocalSecretVault.defaultVaultFileURL(in: root)
-        let loaded = try LocalSecretVault.loadValue(service: "svc", account: "acct", customVaultURL: v2URL)
-        #expect(loaded == "migrated-secret-42")
-        #expect(FileManager.default.fileExists(atPath: v2URL.path))
-        #expect(!FileManager.default.fileExists(atPath: legacyURL.path))
+        try LocalSecretVault.saveValue("fresh-secret-42", service: "svc", account: "acct", customVaultURL: vaultURL)
+        LocalSecretVault.clearMemoryCache()
 
-        let v2Bytes = try Data(contentsOf: v2URL)
+        let loaded = try LocalSecretVault.loadValue(service: "svc", account: "acct", customVaultURL: vaultURL)
+        #expect(loaded == "fresh-secret-42")
+        #expect(FileManager.default.fileExists(atPath: vaultURL.path))
+
+        let v2Bytes = try Data(contentsOf: vaultURL)
         #expect(v2Bytes.prefix(LocalSecretVault.magicHeader.count) == LocalSecretVault.magicHeader)
         #expect(throws: LocalSecretVaultError.invalidCiphertext) {
             _ = try LocalSecretVault.openPayloadData(
                 v2Bytes,
                 vaultDirectory: vaultDir,
-                keyOverride: LocalSecretMasterKeyStore.deriveLegacyV1Key()
+                keyOverride: SymmetricKey(size: .bits256)
             )
+        }
+
+        var unsupportedHeaderBlob = Data("LMKYVLT1".utf8)
+        unsupportedHeaderBlob.append(Data(repeating: 0xAB, count: 48))
+        #expect(throws: LocalSecretVaultError.invalidCiphertext) {
+            _ = try LocalSecretVault.openPayloadData(unsupportedHeaderBlob, vaultDirectory: vaultDir)
         }
     }
 
@@ -77,6 +72,7 @@ struct LumakeySecurityAndSnapshotTests {
         #expect(strictProfile.contains("(allow network-outbound (remote unix-socket (path-literal \"/tmp/lk-bridge.sock\")))"))
         #expect(strictProfile.contains("(deny file-write*"))
         #expect(strictProfile.contains("(deny process-exec*"))
+        #expect(strictProfile.contains("(allow process-exec* (literal \"/Applications/Xcode.app/Contents/Developer/usr/bin/python3\")"))
         #expect(strictProfile.contains("(deny file-read* file-write* (subpath \"\(vaultDir.standardizedFileURL.path)\"))"))
 
         // Even when all scopes are granted, .vault and Keychains remain unconditionally blocked at profile tail

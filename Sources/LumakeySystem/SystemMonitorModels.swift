@@ -97,10 +97,6 @@ public struct SystemMonitorConfig: Codable, Equatable, Sendable {
     }
 
     public static func load(from url: URL = defaultURL) -> SystemMonitorConfig {
-        if url == defaultURL {
-            let legacy = url.deletingLastPathComponent().appendingPathComponent("telemetry-config.json")
-            try? FileManager.default.removeItem(at: legacy)
-        }
         guard let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode(SystemMonitorConfig.self, from: data) else {
             return SystemMonitorConfig()

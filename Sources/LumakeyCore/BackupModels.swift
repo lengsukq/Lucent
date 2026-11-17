@@ -169,7 +169,6 @@ public struct BackupPayload: Codable, Sendable, Equatable {
 }
 
 public struct BackupEnvelope: Codable, Sendable, Equatable {
-    public static let minimumSupportedSchemaVersion: Int = 1
     public static let currentSchemaVersion: Int = 2
     public static let fileExtension: String = "lumakeybackup"
 

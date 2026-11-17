@@ -10,7 +10,7 @@ extension BackupArchiveService {
         } catch {
             throw BackupArchiveError.corruptedArchive(error.localizedDescription)
         }
-        guard (BackupEnvelope.minimumSupportedSchemaVersion...BackupEnvelope.currentSchemaVersion).contains(envelope.schemaVersion) else {
+        guard envelope.schemaVersion == BackupEnvelope.currentSchemaVersion else {
             throw BackupArchiveError.unsupportedSchemaVersion(envelope.schemaVersion)
         }
         let computed = try computePayloadSHA256(envelope.payload)

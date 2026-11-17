@@ -28,37 +28,20 @@ func testV087LocalSecretVaultAndLazyLoading() throws {
     check(onDiskBytes.range(of: Data(rawSecret.utf8)) == nil, "plaintext secret never appears in on-disk vault bytes")
     check(onDiskBytes.range(of: Data("notion:token".utf8)) == nil, "account identifiers encrypted inside AES-GCM payload")
 
-    // Verify deterministic legacy v1 key CANNOT decrypt v2 ciphertext (proves high-entropy CSPRNG seed is required)
-    var rejectedLegacyDeterministicKey = false
-    do {
-        _ = try LocalSecretVault.openPayloadData(onDiskBytes, vaultDirectory: vaultDir, keyOverride: LocalSecretMasterKeyStore.deriveLegacyV1Key())
-    } catch LocalSecretVaultError.invalidCiphertext {
-        rejectedLegacyDeterministicKey = true
-    }
-    check(rejectedLegacyDeterministicKey, "deterministic UUID+UID key cannot decrypt v2 CSPRNG-protected vault")
-
     LocalSecretVault.clearMemoryCache()
     let reloaded = try LocalSecretVault.loadValue(service: "test.svc", account: "notion:token", customVaultURL: vaultURL)
     check(reloaded == rawSecret, "cold reload from disk decrypts exact secret")
 
-    // Verify transparent LMKYVLT1 -> LMKYVLT2 migration
-    let migSupportDir = tmp.appendingPathComponent("LegacyMigrate", isDirectory: true)
-    let migVaultDir = migSupportDir.appendingPathComponent(".vault", isDirectory: true)
-    try FileManager.default.createDirectory(at: migVaultDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-    let legacyV1URL = migVaultDir.appendingPathComponent(LocalSecretVault.legacyVaultFileName, isDirectory: false)
-    let legacyPlain = Data(#"{"schemaVersion":1,"services":{"app.lumakey.macos.plugins":{"p1:tok":"legacy-v1-secret-88"}}}"#.utf8)
-    let v1Key = LocalSecretMasterKeyStore.deriveLegacyV1Key()
-    let v1Sealed = try AES.GCM.seal(legacyPlain, using: v1Key, nonce: AES.GCM.Nonce(), authenticating: LocalSecretVault.legacyV1MagicHeader)
-    var v1Blob = Data(LocalSecretVault.legacyV1MagicHeader)
-    v1Blob.append(v1Sealed.combined!)
-    try v1Blob.write(to: legacyV1URL, options: .atomic)
-    LocalSecretVault.clearMemoryCache()
-
-    let targetV2URL = LocalSecretVault.defaultVaultFileURL(in: migSupportDir)
-    let migratedVal = try LocalSecretVault.loadValue(service: "app.lumakey.macos.plugins", account: "p1:tok", customVaultURL: targetV2URL)
-    check(migratedVal == "legacy-v1-secret-88", "legacy LMKYVLT1 vault transparently decrypted")
-    check(FileManager.default.fileExists(atPath: targetV2URL.path) && !FileManager.default.fileExists(atPath: legacyV1URL.path),
-          "legacy secrets.v1.enc upgraded in-place to secrets.v2.enc and old file removed")
+    // Verify unsupported header bytes are strictly rejected
+    var unsupportedHeaderBlob = Data("LMKYVLT1".utf8)
+    unsupportedHeaderBlob.append(Data(repeating: 0xCC, count: 48))
+    var rejectedUnsupportedHeader = false
+    do {
+        _ = try LocalSecretVault.openPayloadData(unsupportedHeaderBlob, vaultDirectory: vaultDir)
+    } catch LocalSecretVaultError.invalidCiphertext {
+        rejectedUnsupportedHeader = true
+    }
+    check(rejectedUnsupportedHeader, "LocalSecretVault strictly rejects unsupported header bytes")
 
     // Verify wrong symmetric key fails authentication
     let foreignKey = SymmetricKey(size: .bits256)

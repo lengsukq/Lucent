@@ -111,17 +111,11 @@ public enum PluginSearchIndex {
         in pluginsRoot: URL? = nil
     ) -> URL? {
         let resolvedRoot = pluginsRoot ?? plugin.directoryURL.deletingLastPathComponent()
-        if let managedURL = PluginDataPaths.searchIndexURL(for: plugin.id, pluginsRoot: resolvedRoot),
-           FileManager.default.fileExists(atPath: managedURL.path) {
-            return managedURL
-        }
-        let rootPath = plugin.directoryURL.standardizedFileURL.path
-        let legacyURL = plugin.directoryURL.appendingPathComponent(defaultIndexFileName).standardizedFileURL
-        guard legacyURL.path.hasPrefix(rootPath + "/"),
-              FileManager.default.fileExists(atPath: legacyURL.path) else {
+        guard let managedURL = PluginDataPaths.searchIndexURL(for: plugin.id, pluginsRoot: resolvedRoot),
+              FileManager.default.fileExists(atPath: managedURL.path) else {
             return nil
         }
-        return legacyURL
+        return managedURL
     }
 
     public static func loadEntries(

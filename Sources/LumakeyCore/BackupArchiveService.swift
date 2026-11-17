@@ -5,7 +5,7 @@ import Foundation
 public enum BackupArchiveService {
     public static let defaultMaxEmbeddedImageBytes: Int = 2 * 1024 * 1024
     static let typedConfigReservedNames: Set<String> = [
-        "mos-config.json", "telemetry-v2.json", "telemetry-config.json", "pinned-clipboard.json"
+        "mos-config.json", "telemetry-v2.json", "pinned-clipboard.json"
     ]
     static let redactedWebDAVKeys: Set<String> = [
         "password", "passwd", "apppassword", "webdavpassword", "authpassword", "secret", "token"

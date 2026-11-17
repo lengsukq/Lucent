@@ -1,6 +1,5 @@
 import LumakeyFoundation; import LumakeySearch; import LumakeyMedia; import LumakeySystem
 import Foundation
-import LocalAuthentication
 import Security
 
 public struct WebDAVConfig: Codable, Sendable, Equatable {
@@ -162,9 +161,6 @@ public enum WebDAVKeychainStore {
         let acct = normalizedAccount(account)
         do {
             try LocalSecretVault.saveValue(password, service: service, account: acct, customVaultURL: customVaultURL)
-            if password.isEmpty && customVaultURL == nil {
-                deleteLegacyPasswordSilently(account: acct, service: service)
-            }
         } catch {
             throw WebDAVKeychainError.vaultError(error.localizedDescription)
         }
@@ -180,12 +176,6 @@ public enum WebDAVKeychainStore {
            !stored.isEmpty {
             return stored
         }
-        guard customVaultURL == nil else { return nil }
-        if let legacy = loadLegacyPasswordSilently(account: acct, service: service), !legacy.isEmpty {
-            try? LocalSecretVault.saveValue(legacy, service: service, account: acct)
-            deleteLegacyPasswordSilently(account: acct, service: service)
-            return legacy
-        }
         return nil
     }
 
@@ -197,40 +187,8 @@ public enum WebDAVKeychainStore {
         let acct = normalizedAccount(account)
         do {
             try LocalSecretVault.deleteValue(service: service, account: acct, customVaultURL: customVaultURL)
-            if customVaultURL == nil {
-                deleteLegacyPasswordSilently(account: acct, service: service)
-            }
         } catch {
             throw WebDAVKeychainError.vaultError(error.localizedDescription)
         }
-    }
-
-    private static func loadLegacyPasswordSilently(account: String, service: String) -> String? {
-        let ctx = LAContext()
-        ctx.interactionNotAllowed = true
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationContext as String: ctx
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-
-    private static func deleteLegacyPasswordSilently(account: String, service: String) {
-        let ctx = LAContext()
-        ctx.interactionNotAllowed = true
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecUseAuthenticationContext as String: ctx
-        ]
-        _ = SecItemDelete(query as CFDictionary)
     }
 }
