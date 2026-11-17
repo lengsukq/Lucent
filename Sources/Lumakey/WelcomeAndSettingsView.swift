@@ -161,6 +161,7 @@ struct SettingsCenterView: View {
             Group {
                 switch viewModel.activeSettingsSection.canonicalSection {
                 case .general: generalSection
+                case .homeLayout: HomeCustomizationSettingsView(viewModel: viewModel)
                 case .monitor: TelemetrySettingsView(viewModel: viewModel)
                 case .cache: ScrollView { AppCacheSettingsView(viewModel: viewModel).padding(.trailing, 4) }
                 case .mos: MosPluginSettingsView(viewModel: viewModel)

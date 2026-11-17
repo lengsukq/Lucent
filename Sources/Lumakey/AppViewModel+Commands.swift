@@ -36,9 +36,9 @@ extension AppViewModel {
     }
 
     func quickExecuteCandidate(at index: Int) {
+        if tryExecuteHomeShortcut(at: index) { return }
         guard index >= 0, index < displayedCandidates.count else { return }
-        overlaySelectedIndex = index
-        executeCandidate(displayedCandidates[index])
+        overlaySelectedIndex = index; executeCandidate(displayedCandidates[index])
     }
 
     func copySelectedCandidateValue() {

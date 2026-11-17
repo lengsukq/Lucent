@@ -58,6 +58,7 @@ enum BackupCoordinator {
         viewModel.clipboardItems = merged
         viewModel.reloadThemeFromDisk()
         viewModel.reloadLanguageFromDisk()
+        viewModel.reloadHomeLayoutFromDisk()
         viewModel.reloadAppsAndPlugins()
     }
 

@@ -101,7 +101,12 @@ struct OverlayBottomFooterBar: View {
                     .lineLimit(1)
                 Spacer()
 
-                if !viewModel.enabledQuickButtons.isEmpty {
+                let isHomeEmpty = viewModel.omniFilter == .all
+                    && viewModel.scopedPluginID == nil
+                    && viewModel.overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                let compactFooter = viewModel.homeLayoutConfig.activeProfile.compactFooterBar
+
+                if !viewModel.enabledQuickButtons.isEmpty && !(isHomeEmpty && compactFooter) {
                     HStack(spacing: 6) {
                         ForEach(viewModel.enabledQuickButtons.prefix(5)) { item in
                             Button {
@@ -141,31 +146,38 @@ struct OverlayBottomFooterBar: View {
                 }
                 .buttonStyle(.plain).foregroundStyle(LiquidColors.textSecondary)
 
-                Button { viewModel.startGifRecording() } label: {
-                    Image(systemName: "record.circle.fill").font(.caption).foregroundStyle(.pink)
-                }
-                .buttonStyle(.plain).help("区域 / 窗口 GIF 动图录制 (⌥G)")
+                if !compactFooter {
+                    Button { viewModel.startGifRecording() } label: {
+                        Image(systemName: "record.circle.fill").font(.caption).foregroundStyle(.pink)
+                    }
+                    .buttonStyle(.plain).help("区域 / 窗口 GIF 动图录制 (⌥G)")
 
-                Button { viewModel.openRoute(.networkMonitor) } label: {
-                    Image(systemName: "network").font(.caption).foregroundStyle(LiquidColors.textSecondary)
-                }
-                .buttonStyle(.plain).help("本机网络流量与去向监控 (⌥N)")
+                    Button { viewModel.openRoute(.networkMonitor) } label: {
+                        Image(systemName: "network").font(.caption).foregroundStyle(LiquidColors.textSecondary)
+                    }
+                    .buttonStyle(.plain).help("本机网络流量与去向监控 (⌥N)")
 
-                Button { SystemPulseWindowController.shared.toggleFloatingWidget() } label: {
-                    Image(systemName: "waveform.path.ecg").font(.caption).foregroundStyle(LiquidColors.textSecondary)
-                }
-                .buttonStyle(.plain).help("系统脉搏悬浮监控 (⌥M)")
+                    Button { SystemPulseWindowController.shared.toggleFloatingWidget() } label: {
+                        Image(systemName: "waveform.path.ecg").font(.caption).foregroundStyle(LiquidColors.textSecondary)
+                    }
+                    .buttonStyle(.plain).help("系统脉搏悬浮监控 (⌥M)")
 
-                Button { viewModel.openRoute(.settings(.backup)) } label: {
-                    Image(systemName: "externaldrive.badge.icloud").font(.caption).foregroundStyle(LiquidColors.textSecondary)
-                }
-                .buttonStyle(.plain).help("数据导出与 WebDAV 云同步")
+                    Button { viewModel.openRoute(.settings(.backup)) } label: {
+                        Image(systemName: "externaldrive.badge.icloud").font(.caption).foregroundStyle(LiquidColors.textSecondary)
+                    }
+                    .buttonStyle(.plain).help("数据导出与 WebDAV 云同步")
 
-                Button { viewModel.openRoute(.settings(.mos)) } label: {
-                    Image(systemName: "computermouse.fill").font(.caption)
-                        .foregroundStyle(viewModel.mosTapActive ? .cyan : LiquidColors.textSecondary)
+                    Button { viewModel.openRoute(.settings(.mos)) } label: {
+                        Image(systemName: "computermouse.fill").font(.caption)
+                            .foregroundStyle(viewModel.mosTapActive ? .cyan : LiquidColors.textSecondary)
+                    }
+                    .buttonStyle(.plain).help("鼠标平滑滚动与滚轮方向")
                 }
-                .buttonStyle(.plain).help("鼠标平滑滚动与滚轮方向")
+
+                Button { viewModel.openRoute(.settings(.homeLayout)) } label: {
+                    Image(systemName: "square.grid.3x2.fill").font(.caption)
+                }
+                .buttonStyle(.plain).foregroundStyle(LiquidColors.textSecondary).help(L10n.pick("启动页定制与场景切换", "Customize Home Layout"))
 
                 Button { viewModel.openRoute(.settings(.general)) } label: {
                     Image(systemName: "gearshape.fill").font(.caption)

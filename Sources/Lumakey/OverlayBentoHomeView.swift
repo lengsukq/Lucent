@@ -2,234 +2,245 @@ import AppKit
 import LumakeyCore
 import SwiftUI
 
-private struct BentoTileDescriptor: Identifiable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let hotkey: String
-    let symbol: String
-    let topColor: Color
-    let bottomColor: Color
+@MainActor
+final class OverlayHomeUIState: ObservableObject {
+    @Published var isEditingHome: Bool = false
+    @Published var editorContext: HomeItemEditorContext? = nil
 }
 
 struct OverlayBentoHomeView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var usageTracker = AppUsageTrackerController.shared
+    @StateObject var uiState = OverlayHomeUIState()
 
-    private var tiles: [BentoTileDescriptor] {
-        [
-            BentoTileDescriptor(id: "files", title: "全盘文件", subtitle: "极速检索 / ext:md", hotkey: "⌥F", symbol: "magnifyingglass", topColor: .cyan, bottomColor: .blue),
-            BentoTileDescriptor(id: "clipboard", title: "剪贴板库", subtitle: L10n.pick("已记录 \(viewModel.clipboardHistoryCount) 条", "\(viewModel.clipboardHistoryCount) items saved"), hotkey: "⌥C", symbol: "doc.on.clipboard.fill", topColor: .orange, bottomColor: .pink),
-            BentoTileDescriptor(id: "pin", title: "截图钉屏", subtitle: "选区标注悬浮置顶", hotkey: "⌥A", symbol: "camera.viewfinder", topColor: .mint, bottomColor: .teal),
-            BentoTileDescriptor(id: "gif", title: "动图录屏", subtitle: "区域/窗口高帧率 GIF", hotkey: "⌥G", symbol: "record.circle.fill", topColor: .pink, bottomColor: .red),
-            BentoTileDescriptor(id: "ocr", title: "离线识字", subtitle: "Vision OCR / 抠图", hotkey: "⌥O", symbol: "text.viewfinder", topColor: .purple, bottomColor: .indigo),
-            BentoTileDescriptor(id: "network", title: "网络流量", subtitle: "本机进程 · 远端去向", hotkey: "⌥N", symbol: "network", topColor: .blue, bottomColor: .cyan)
-        ]
+    var isEditingHome: Bool { uiState.isEditingHome }
+    var config: HomeLayoutConfig { viewModel.homeLayoutConfig }
+    var profile: HomeProfile { config.activeProfile }
+
+    func toggleInlineEditMode() {
+        uiState.isEditingHome.toggle()
     }
 
-    private let tryChips: [String] = ["128 * 48", "ts", "uuid", ";date", "qr Lumakey", "port 3000"]
+    func openEditor(for destination: HomeItemDestination, existing: HomeLaunchItem?) {
+        uiState.editorContext = HomeItemEditorContext(destination: destination, existingItem: existing)
+    }
+
+    func activateShelfEditor(shelfID: String, item: HomeLaunchItem?) {
+        uiState.editorContext = HomeItemEditorContext(destination: .shelf(shelfID), existingItem: item)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            bentoGrid
-            quickAppDock
-            if !viewModel.enabledQuickButtons.isEmpty {
-                quickButtonsStrip
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 11) {
+                if config.profiles.count > 1 || isEditingHome {
+                    topProfileAndEditStrip
+                }
+                ForEach(profile.visibleSections) { section in
+                    sectionView(for: section)
+                }
             }
-            bottomUtilityStrip
-            Spacer(minLength: 0)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(WindowDragRegion())
+        .contextMenu { homeBackgroundContextMenu }
+        .sheet(item: $uiState.editorContext) { ctx in
+            HomeItemEditorSheet(viewModel: viewModel, context: ctx) { uiState.editorContext = nil }
+        }
         .onAppear { usageTracker.ensureSystemProbe(for: viewModel.installedApps) }
-        .onChange(of: viewModel.installedApps) { _, apps in
-            usageTracker.ensureSystemProbe(for: apps)
+        .onChange(of: viewModel.installedApps) { _, apps in usageTracker.ensureSystemProbe(for: apps) }
+    }
+
+    private var topProfileAndEditStrip: some View {
+        HStack(spacing: 6) {
+            ForEach(config.profiles) { p in
+                let active = p.id == config.activeProfileID
+                Button {
+                    withAnimation(LiquidMotion.snappySpring) {
+                        viewModel.mutateHomeLayout { _ = $0.selectProfile(id: p.id) }
+                    }
+                } label: {
+                    Label(p.name, systemImage: p.symbol)
+                }
+                .buttonStyle(GlassPillButtonStyle(prominent: active, compact: true))
+            }
+            Spacer(minLength: 4)
+            if isEditingHome {
+                Menu(L10n.pick("套用预设", "Presets")) {
+                    ForEach(HomeLayoutPreset.allCases) { preset in
+                        Button(preset.title) { viewModel.mutateHomeLayout { $0.applyPreset(preset) } }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                if config.lastUndoProfile != nil {
+                    Button(L10n.pick("撤回", "Undo")) {
+                        viewModel.mutateHomeLayout { _ = $0.undoLastChange() }
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                }
+                Button(L10n.pick("+ 添加项", "+ Add")) { openEditor(for: .bento, existing: nil) }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                Button(L10n.pick("更多设置", "Settings")) { viewModel.openRoute(.settings(.homeLayout)) }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                Button(L10n.pick("完成", "Done")) {
+                    withAnimation(LiquidMotion.snappySpring) { uiState.isEditingHome = false }
+                }
+                .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+            } else {
+                Button {
+                    withAnimation(LiquidMotion.snappySpring) { uiState.isEditingHome = true }
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .buttonStyle(GlassPillButtonStyle(compact: true))
+                .help(L10n.pick("就地编辑当前主页布局", "Edit Home Layout"))
+            }
         }
     }
 
-    private var bentoGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-            ForEach(Array(tiles.enumerated()), id: \.element.id) { index, tile in
-                Button { handleTileTap(tile.id) } label: {
-                    HStack(alignment: .center, spacing: 13) {
-                        SquircleBadge(symbol: tile.symbol, topColor: tile.topColor, bottomColor: tile.bottomColor, size: 44)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(L10n.translate(tile.title)).font(.callout.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary).lineLimit(1)
-                            Text(L10n.translate(tile.subtitle)).font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
-                        }
-                        Spacer(minLength: 4)
-                        LiquidKeyHintBadge(keyText: tile.hotkey)
+    @ViewBuilder
+    private func sectionView(for section: HomeSectionKind) -> some View {
+        switch section {
+        case .bentoGrid: bentoGridSection
+        case .omniDock: omniDockSection
+        case .pillShelves: pillShelvesSection
+        case .utilityStrip: utilityStripSection
+        }
+    }
+
+    private var bentoGridSection: some View {
+        let cols = profile.bentoColumns.rawValue
+        let compact = cols == 4
+        let cardHeight: CGFloat = compact ? 64 : 74
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: cols), spacing: 10) {
+            ForEach(Array(profile.bentoItems.enumerated()), id: \.element.id) { index, item in
+                bentoTileCard(item: item, index: index, compact: compact, height: cardHeight)
+            }
+            if isEditingHome && profile.bentoItems.count < 16 {
+                Button { openEditor(for: .bento, existing: nil) } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill").font(.title3).foregroundStyle(LiquidColors.accentPrimary)
+                        Text(L10n.pick("添加磁贴 / 书签", "Add Tile"))
+                            .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                     }
-                    .padding(.horizontal, 14)
-                    .frame(height: 76)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: cardHeight).frame(maxWidth: .infinity)
                     .liquidGlassCard(cornerRadius: LiquidRadii.bento)
-                    .contentShape(RoundedRectangle(cornerRadius: LiquidRadii.bento, style: .continuous))
                 }
                 .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.bento))
-                .liquidHoverLift(cornerRadius: LiquidRadii.bento, scale: 1.016, staggerDelay: Double(index) * 0.022)
             }
         }
     }
 
-    private var quickButtonsStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                Label("快捷按钮", systemImage: "bolt.circle.fill")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.orange)
-                ForEach(viewModel.enabledQuickButtons) { item in
-                    let tint = PluginVisualPalette.tint(from: item.accentColor, fallback: .cyan)
-                    Button {
-                        viewModel.executeQuickButton(item)
-                    } label: {
-                        HStack(spacing: 6) {
-                            if let iconURL = item.customIconURL,
-                               let nsImg = IconCache.shared.pluginIcon(for: iconURL, pointSize: 14) {
-                                Image(nsImage: nsImg)
-                                    .resizable().scaledToFit().frame(width: 13, height: 13)
-                                    .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
-                            } else {
-                                Image(systemName: item.symbolName)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(tint)
-                            }
-                            Text(item.title)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(LiquidColors.textPrimary)
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 10).padding(.vertical, 5.5)
-                        .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
-                        .overlay { Capsule(style: .continuous).strokeBorder(Color.orange.opacity(0.35), lineWidth: 0.8) }
+    private func bentoTileCard(item: HomeLaunchItem, index: Int, compact: Bool, height: CGFloat) -> some View {
+        let vis = viewModel.resolvedHomeVisual(for: item)
+        let pair = PluginVisualPalette.colors(accentColor: vis.accentColor, isBuiltin: true)
+        return Button {
+            if isEditingHome { openEditor(for: .bento, existing: item) }
+            else { viewModel.executeHomeLaunchItem(item) }
+        } label: {
+            HStack(alignment: .center, spacing: compact ? 9 : 12) {
+                leadingVisualIcon(vis, size: compact ? 36 : 42, colors: pair)
+                VStack(alignment: .leading, spacing: 2.5) {
+                    Text(vis.title).font((compact ? Font.caption : Font.callout).weight(.semibold))
+                        .foregroundStyle(LiquidColors.textPrimary).lineLimit(1)
+                    Text(vis.subtitle).font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
+                }
+                Spacer(minLength: 2)
+                if isEditingHome {
+                    HStack(spacing: 3) {
+                        Button { viewModel.mutateHomeLayout { _ = $0.moveItem(id: item.id, in: .bento, offset: -1) } } label: {
+                            Image(systemName: "chevron.left").font(.system(size: 10, weight: .bold))
+                        }.buttonStyle(.plain)
+                        Button { viewModel.mutateHomeLayout { _ = $0.moveItem(id: item.id, in: .bento, offset: 1) } } label: {
+                            Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold))
+                        }.buttonStyle(.plain)
+                        Button { viewModel.mutateHomeLayout { _ = $0.removeItem(id: item.id, from: .bento) } } label: {
+                            Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(.orange)
+                        }.buttonStyle(.plain)
                     }
-                    .buttonStyle(LiquidBentoTileStyle(cornerRadius: 999))
-                    .help(item.subtitle)
-                    .contextMenu {
-                        Button("立即执行") { viewModel.executeQuickButton(item) }
-                        Button("打开所属插件设置") { viewModel.openPluginSettings(id: item.pluginID) }
-                        Divider()
-                        Button("从快捷按钮移除") { viewModel.removeQuickButton(item) }
-                    }
+                } else if let hint = vis.hotkeyHint ?? (index < 9 ? "⌘\(index + 1)" : nil) {
+                    LiquidKeyHintBadge(keyText: hint)
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, compact ? 10 : 13)
+            .frame(height: height).frame(maxWidth: .infinity, alignment: .leading)
+            .liquidGlassCard(cornerRadius: LiquidRadii.bento)
+            .contentShape(RoundedRectangle(cornerRadius: LiquidRadii.bento, style: .continuous))
         }
+        .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.bento))
+        .liquidHoverLift(cornerRadius: LiquidRadii.bento, scale: 1.015, staggerDelay: Double(index) * 0.018)
+        .contextMenu { itemContextMenu(item, in: .bento) }
     }
 
-    private var quickAppDock: some View {
-        let dockApps = usageTracker.rankedDockApps(from: viewModel.installedApps, limit: 8)
-        let pinnedCount = usageTracker.pinnedCount
-
-        return VStack(alignment: .leading, spacing: 7) {
-            HStack {
-                Text("常用应用直达（右键钉应用 · 插件子功能可在设置中按需挂载为快捷按钮）")
-                    .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
+    private var omniDockSection: some View {
+        let slots = viewModel.resolvedHomeDockSlots()
+        let pinnedCount = slots.filter(\.isExplicitlyPinned).count
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(L10n.pick("混合高频坞（支持本机应用 · 自制插件 · 网页书签 · 目录）", "Omni Dock (Apps · Plugins · Bookmarks · Folders)"))
+                    .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
                 Spacer()
-                Text(
-                    pinnedCount > 0
-                        ? L10n.pick("已钉 \(pinnedCount) · 已索引 \(viewModel.installedApps.count) 应用", "Pinned \(pinnedCount) · Indexed \(viewModel.installedApps.count) apps")
-                        : L10n.pick("已索引 \(viewModel.installedApps.count) 应用", "Indexed \(viewModel.installedApps.count) apps")
-                )
-                .font(.caption2.monospacedDigit()).foregroundStyle(LiquidColors.textSecondary)
+                if isEditingHome {
+                    Button(L10n.pick("+ 钉入坞栏", "+ Pin to Dock")) { openEditor(for: .dock, existing: nil) }
+                        .buttonStyle(GlassPillButtonStyle(compact: true))
+                } else {
+                    Text(L10n.pick("已钉 \(pinnedCount) · 共 \(slots.count) 格", "Pinned \(pinnedCount) · \(slots.count) slots"))
+                        .font(.caption2.monospacedDigit()).foregroundStyle(LiquidColors.textSecondary)
+                }
             }
             .padding(.horizontal, 4)
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8), spacing: 6) {
-                ForEach(dockApps) { app in dockAppTile(app) }
+                ForEach(slots) { slot in dockSlotTile(slot) }
             }
-            .padding(.horizontal, 10).padding(.vertical, 9)
+            .padding(.horizontal, 10).padding(.vertical, 8)
             .liquidGlassCard(cornerRadius: LiquidRadii.bento)
-            .animation(LiquidMotion.snappySpring, value: pinnedCount)
         }
     }
 
-    private func dockAppTile(_ app: InstalledAppItem) -> some View {
-        let pinned = usageTracker.isPinned(app)
-        let summary = usageTracker.usageSummary(for: app)
-        let badge = usageTracker.compactUsageBadge(for: app).map { L10n.translate($0) }
+    private func dockSlotTile(_ slot: HomeResolvedDockSlot) -> some View {
+        let vis = slot.visual
+        let pinned = slot.isExplicitlyPinned
+        let pair = PluginVisualPalette.colors(accentColor: vis.accentColor, isBuiltin: false)
         let tileShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-
-        return Button { viewModel.launchApp(app) } label: {
+        return Button {
+            if isEditingHome && pinned { openEditor(for: .dock, existing: slot.item) }
+            else { viewModel.executeHomeLaunchItem(slot.item) }
+        } label: {
             VStack(spacing: 4) {
-                Image(nsImage: IconCache.shared.appIcon(for: app.url)).resizable().scaledToFit().frame(width: 38, height: 38)
-                Text(app.displayName).font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textPrimary).lineLimit(1)
-                Text(badge ?? (pinned ? L10n.pick("已钉住", "Pinned") : " "))
+                leadingVisualIcon(vis, size: 36, colors: pair)
+                Text(vis.title).font(.caption2.weight(.medium)).foregroundStyle(LiquidColors.textPrimary).lineLimit(1)
+                Text(vis.badgeText ?? (pinned ? L10n.pick("已钉住", "Pinned") : " "))
                     .font(.system(size: 9.5, weight: .medium, design: .rounded).monospacedDigit())
                     .foregroundStyle(pinned ? Color.orange : LiquidColors.textSecondary.opacity(0.85)).lineLimit(1)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 6).padding(.horizontal, 3)
-            .background(LiquidColors.pillSurface.opacity(pinned ? 0.50 : 0.35), in: tileShape)
+            .frame(maxWidth: .infinity).padding(.vertical, 5.5).padding(.horizontal, 3)
+            .background(LiquidColors.pillSurface.opacity(pinned ? 0.50 : 0.34), in: tileShape)
             .overlay { if pinned { tileShape.strokeBorder(Color.orange.opacity(0.38), lineWidth: 0.85) } }
-            .overlay(alignment: .topTrailing) { if pinned { pinnedIndicatorBadge } }
             .contentShape(tileShape)
         }
         .buttonStyle(LiquidBentoTileStyle(cornerRadius: 12))
-        .liquidHoverLift(cornerRadius: 12, scale: 1.03, staggerDelay: 0.06)
-        .help("\(app.displayName) · \(L10n.translate(summary))")
-        .contextMenu { dockAppContextMenu(for: app, isPinned: pinned) }
-    }
-
-    private var pinnedIndicatorBadge: some View {
-        Image(systemName: "pin.fill")
-            .font(.system(size: 8.5, weight: .bold)).foregroundStyle(.white).padding(3.5)
-            .background(LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing), in: Circle())
-            .overlay { Circle().strokeBorder(.white.opacity(0.45), lineWidth: 0.6) }
-            .shadow(color: .orange.opacity(0.32), radius: 2.5, y: 1).padding(4)
+        .liquidHoverLift(cornerRadius: 12, scale: 1.03, staggerDelay: 0.04)
+        .help("\(vis.title) · \(vis.subtitle)")
+        .contextMenu { dockSlotContextMenu(slot) }
     }
 
     @ViewBuilder
-    private func dockAppContextMenu(for app: InstalledAppItem, isPinned: Bool) -> some View {
-        Button { usageTracker.togglePin(app) } label: {
-            Label(isPinned ? "取消钉住" : "钉在常用栏", systemImage: isPinned ? "pin.slash" : "pin.fill")
-        }
-        if isPinned {
-            Button { usageTracker.movePin(app, delta: -1) } label: { Label("左移", systemImage: "arrow.left") }
-                .disabled(!usageTracker.canMovePin(app, delta: -1))
-            Button { usageTracker.movePin(app, delta: 1) } label: { Label("右移", systemImage: "arrow.right") }
-                .disabled(!usageTracker.canMovePin(app, delta: 1))
-        }
-        Divider()
-        Button { NSWorkspace.shared.activateFileViewerSelecting([app.url]) } label: { Label("在访达中显示", systemImage: "folder") }
-        Button(role: .destructive) { usageTracker.resetStats(for: app.id) } label: { Label("重置该应用使用记录", systemImage: "arrow.counterclockwise") }
-    }
-
-    private var bottomUtilityStrip: some View {
-        HStack(spacing: 8) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    Text("试试输入").font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
-                    ForEach(tryChips, id: \.self) { chip in
-                        Button(chip) {
-                            withAnimation(LiquidMotion.snappySpring) { viewModel.overlayQuery = chip }
-                            viewModel.bumpFocusToken()
-                        }
-                        .buttonStyle(GlassPillButtonStyle())
-                    }
-                }
-            }
-            Spacer(minLength: 6)
-            Button { SystemPulseWindowController.shared.toggleFloatingWidget() } label: { Label("脉搏 ⌥M", systemImage: "waveform.path.ecg") }
-                .buttonStyle(GlassPillButtonStyle())
-            Button { viewModel.setOmniFilter(.plugins) } label: { Label("插件列表", systemImage: "puzzlepiece.extension.fill") }
-                .buttonStyle(GlassPillButtonStyle())
-            Button { viewModel.openRoute(.settings(.backup)) } label: { Label("备份", systemImage: "externaldrive.badge.icloud") }
-                .buttonStyle(GlassPillButtonStyle())
-        }
-    }
-
-    private func handleTileTap(_ id: String) {
-        switch id {
-        case "files": viewModel.setOmniFilter(.files)
-        case "clipboard": viewModel.setOmniFilter(.clipboard)
-        case "pin": viewModel.captureAndPinScreenshot()
-        case "gif": viewModel.startGifRecording()
-        case "ocr": viewModel.captureAndAnalyzeOCR()
-        case "network": viewModel.openRoute(.networkMonitor)
-        default: break
+    private func leadingVisualIcon(_ vis: HomeResolvedVisual, size: CGFloat, colors: (top: Color, bottom: Color)) -> some View {
+        if let appURL = vis.nativeAppURL {
+            Image(nsImage: IconCache.shared.appIcon(for: appURL)).resizable().scaledToFit().frame(width: size, height: size)
+        } else if let iconURL = vis.customIconURL, let nsImg = IconCache.shared.pluginIcon(for: iconURL, pointSize: size) {
+            Image(nsImage: nsImg).resizable().scaledToFit().frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
+        } else if let fileURL = vis.localFileURL {
+            Image(nsImage: IconCache.shared.fileIcon(isDirectory: vis.isDirectory, extensionLowercased: fileURL.pathExtension.lowercased()))
+                .resizable().scaledToFit().frame(width: size * 0.88, height: size * 0.88)
+        } else {
+            SquircleBadge(symbol: vis.symbolName, topColor: colors.top, bottomColor: colors.bottom, size: size)
         }
     }
 }

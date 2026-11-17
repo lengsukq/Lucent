@@ -5,6 +5,7 @@ import LumakeyCore
 
 extension AppViewModel {
     func configureLifecycleIntegrations() {
+        installHomeLayoutObservers()
         let tracker = AppUsageTrackerController.shared
         usageCancellable = tracker.$revision.sink { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -46,6 +47,7 @@ extension AppViewModel {
     }
 
     func shutdownAllServicesAndTasks() {
+        removeHomeLayoutObservers()
         stopClipboardMonitor()
         stopPluginWatcher()
         removeVolumeObservers()

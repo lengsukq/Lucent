@@ -25,6 +25,7 @@ extension OmniFilter {
 
 enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     case general
+    case homeLayout
     case monitor
     case network
     case cache
@@ -42,7 +43,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
 
     static let coreSidebarSections: [SettingsSection] = [
-        .general, .snippets, .shortcuts, .plugins, .cache, .backup, .about
+        .general, .homeLayout, .snippets, .shortcuts, .plugins, .cache, .backup, .about
     ]
 
     static let builtinPluginSections: [SettingsSection] = [
@@ -60,6 +61,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         let raw = switch self {
         case .general: "通用与检索"
+        case .homeLayout: L10n.pick("启动页定制", "Home Layout")
         case .monitor: "系统脉搏监控"
         case .network: "网络流量"
         case .cache: "存储与缓存"
@@ -80,6 +82,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     var symbolName: String {
         switch self {
         case .general: "slider.horizontal.3"
+        case .homeLayout: "square.grid.3x2.fill"
         case .monitor: "waveform.path.ecg"
         case .network: "network"
         case .cache: "internaldrive.fill"
@@ -99,6 +102,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     var badgeColors: (top: Color, bottom: Color) {
         switch self {
         case .general: (.cyan, .blue)
+        case .homeLayout: (.cyan, .indigo)
         case .monitor: (.mint, .cyan)
         case .network: (.cyan, .teal)
         case .cache: (.orange, .indigo)

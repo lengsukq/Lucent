@@ -51,6 +51,7 @@ final class AppViewModel: ObservableObject {
     @Published var activeInlinePlugin: PluginDescriptor?
     @Published var showDockIcon: Bool
     @Published var menuBarConfig: MenuBarConfig = MenuBarConfig.load()
+    @Published var homeLayoutConfig: HomeLayoutConfig = HomeLayoutConfig.loadOrBootstrap(legacyPinnedAppIDs: AppUsageService.shared.pinnedAppIDs)
     @Published var appTheme: AppThemeID = ThemeManager.shared.current
     @Published var appLanguage: AppLanguageID = LanguageManager.shared.current
     @Published var activeSettingsSection: SettingsSection = .general
@@ -141,6 +142,7 @@ final class AppViewModel: ObservableObject {
     var backgroundPluginTasks: [String: Task<Void, Never>] = [:]
     var fsEventWatcher: EverythingFSEventWatcher?
     var pluginWatcher: PluginDirectoryWatcher?
+    var homeLayoutObserver: NSObjectProtocol?
     var usageCancellable: AnyCancellable?
     weak var hotKeyManager: GlobalHotKeyManager?
     var directoryCache = WorkspaceDirectoryCache(maxEntries: 48)
