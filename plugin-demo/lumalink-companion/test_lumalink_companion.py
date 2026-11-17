@@ -3,9 +3,15 @@ import unittest
 import lumalink_companion as lc
 
 
-class LumaLinkCompanionV2Tests(unittest.TestCase):
+class LumaLinkCompanionV21Tests(unittest.TestCase):
     def test_parse_cli_and_query_routes_all_subviews_and_actions(self) -> None:
         self.assertEqual(lc.parse_cli_and_query(["--toggle"], "")[:2], ("main", "toggle"))
+        self.assertEqual(lc.parse_cli_and_query(["--pin"], "")[:2], ("pin_detail", "setEnabled"))
+        self.assertEqual(lc.parse_cli_and_query(["--networks"], "")[:2], ("networks", "status"))
+        self.assertEqual(
+            lc.parse_cli_and_query(["--select-net", "en0:192.168.1.88"], ""),
+            ("main", "selectNetwork", {"interface": "en0:192.168.1.88", "customHost": "", "renderQR": True}),
+        )
         self.assertEqual(lc.parse_cli_and_query(["--qr"], "")[:2], ("qr_popup", "setEnabled"))
         self.assertEqual(lc.parse_cli_and_query(["--displays"], "")[:2], ("displays", "status"))
         self.assertEqual(
@@ -16,20 +22,22 @@ class LumaLinkCompanionV2Tests(unittest.TestCase):
             lc.parse_cli_and_query(["--revoke", "dev-42"], ""),
             ("devices", "revokeDevice", {"deviceId": "dev-42", "renderQR": False}),
         )
-        self.assertEqual(lc.parse_cli_and_query([], "黑屏")[:2], ("main", "toggleCurtain"))
+        self.assertEqual(lc.parse_cli_and_query([], "配对码")[:2], ("pin_detail", "setEnabled"))
+        self.assertEqual(lc.parse_cli_and_query([], "内网穿透")[:2], ("networks", "status"))
 
     def test_ungranted_bridge_returns_auth_guidance_card(self) -> None:
         card = lc.build_card_payload({"ok": False, "error": "capability_not_granted"}, locale="zh-Hans")
-        self.assertEqual(card["badge"], "AUTH")
+        self.assertEqual(card["badge"], "SETUP")
         self.assertEqual(card["items"][0]["openURL"], "lumakey://settings/plugin/lumalink-companion")
 
-    def test_main_console_includes_qr_viewer_guards_and_subview_entries(self) -> None:
+    def test_main_console_includes_pin_network_switcher_and_qr_popup(self) -> None:
         resp = {
             "ok": True,
             "data": {
                 "enabled": True,
                 "isListening": True,
                 "localIPv4": "192.168.1.88",
+                "selectedNetworkLabel": "自动优选 · 局域网 · en0 (192.168.1.88)",
                 "port": 59480,
                 "pairingPin": "482910",
                 "pairURI": "lumalink://pair?host=192.168.1.88&port=59480&pin=482910",
@@ -48,43 +56,43 @@ class LumaLinkCompanionV2Tests(unittest.TestCase):
         self.assertEqual(card["badge"], "ONLINE")
         self.assertEqual(card["effect"]["pinImagePath"], "/tmp/lumakey-lumalink-qr/qr-test.png")
         ids = [x["id"] for x in card["items"]]
-        self.assertEqual(ids, ["toggle-service", "pair-pin-qr", "switch-displays", "privacy-guards", "toggle-rdp", "manage-devices"])
-        self.assertIn("lumakey://image?path=", card["items"][1]["openURL"])
+        self.assertEqual(
+            ids,
+            ["toggle-service", "pair-pin-qr", "toggle-rdp", "switch-network", "switch-displays", "privacy-guards", "manage-devices"],
+        )
+        self.assertEqual(card["metrics"][0]["value"], "482910")
 
-    def test_displays_and_devices_subviews_render_interactive_actions(self) -> None:
-        disp_resp = {
+    def test_networks_and_pin_detail_cards_render_manual_fields(self) -> None:
+        resp = {
             "ok": True,
             "data": {
-                "hasModifiedDisplays": True,
-                "displays": [
-                    {
-                        "displayID": 69733382,
-                        "name": "Built-in Retina",
-                        "currentModeKey": "1440x900@2x_60",
-                        "modes": [
-                            {"modeKey": "1280x720@2x_60", "label": "1280×720 HiDPI", "refreshHz": 60, "isHiDPI": True, "isCurrent": False},
-                            {"modeKey": "1440x900@2x_60", "label": "1440×900 HiDPI (当前)", "refreshHz": 60, "isHiDPI": True, "isCurrent": True},
-                        ],
-                    }
+                "enabled": True,
+                "isListening": True,
+                "localIPv4": "192.168.1.88",
+                "preferredInterface": "",
+                "customConnectHost": "",
+                "selectedNetworkLabel": "局域网 · en0 (192.168.1.88)",
+                "port": 59480,
+                "rdpPort": 3389,
+                "pairingPin": "903412",
+                "pairURI": "lumalink://pair?host=192.168.1.88&port=59480&pin=903412",
+                "qrImagePath": "/tmp/qr.png",
+                "networkInterfaces": [
+                    {"id": "en0:192.168.1.88", "interfaceName": "en0", "ipv4": "192.168.1.88", "kind": "lan", "displayLabel": "局域网 · en0 (192.168.1.88)"},
+                    {"id": "utun4:100.88.1.2", "interfaceName": "utun4", "ipv4": "100.88.1.2", "kind": "tunnel", "displayLabel": "内网穿透/组网 · utun4 (100.88.1.2)"},
                 ],
             },
         }
-        dcard = lc.build_card_payload(disp_resp, view_mode="displays", action_triggered="setDisplayMode", locale="en")
-        self.assertEqual(dcard["badge"], "DISPLAY")
-        self.assertEqual(dcard["items"][1]["commandArgs"], ["--restore-displays"])
-        self.assertEqual(dcard["items"][2]["commandArgs"], ["--set-mode", "69733382", "1280x720@2x_60"])
-        self.assertEqual(dcard["items"][3]["commandArgs"], [])
+        net_card = lc.build_card_payload(resp, view_mode="networks", locale="zh-Hans")
+        self.assertEqual(net_card["badge"], "NETWORK")
+        self.assertEqual(net_card["items"][2]["commandArgs"], ["--select-net", "en0:192.168.1.88"])
+        self.assertEqual(net_card["items"][3]["commandArgs"], ["--select-net", "utun4:100.88.1.2"])
 
-        dev_resp = {
-            "ok": True,
-            "data": {"pairedDevices": [{"id": "d-9", "name": "Pixel 9 Pro", "pairedAt": 1731700000}]},
-        }
-        pcard = lc.build_card_payload(dev_resp, view_mode="devices", action_triggered="revokeDevice", locale="zh-Hans")
-        self.assertEqual(pcard["badge"], "1 DEV")
-        revoke_act = pcard["items"][1]["actions"][0]
-        self.assertEqual(revoke_act["style"], "destructive")
-        self.assertEqual(revoke_act["commandArgs"], ["--revoke", "d-9"])
-        self.assertTrue(bool(revoke_act["confirmMessage"]))
+        pin_card = lc.build_card_payload(resp, view_mode="pin_detail", locale="zh-Hans")
+        self.assertEqual(pin_card["badge"], "PIN READY")
+        self.assertEqual(pin_card["items"][1]["copyText"], "903412")
+        self.assertEqual(pin_card["items"][2]["copyText"], "192.168.1.88")
+        self.assertIn("192.168.1.88", pin_card["markdown"])
 
 
 if __name__ == "__main__":

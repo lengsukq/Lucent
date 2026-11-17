@@ -85,7 +85,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "88b23b235deecc2ff3eca2927787d9526ab8a39235239267ca4a0731eb5e7c8a",
+      "sha256" : "2d8d7343161c435424eb27506095a9891e38564ad530f5cdc4bb341f5f95aca6",
       "sizeBytes" : 19891,
       "version" : "1.0.0"
     },
@@ -96,7 +96,7 @@
         "lumaLinkStatus"
       ],
       "categoryTag" : "远控伴侣",
-      "description" : "免开设置窗的全功能手机局域网远控台：支持一键弹出扫码二维码、HiDPI 分辨率切换、物理隐私黑屏、防休眠、RDP 硬编加速与已配对手机解绑",
+      "description" : "免开设置窗的全功能手机远控台：支持物理局域网与内网穿透网卡一键切换、6 位配对码与手动连接参数复制、扫码二维码、HiDPI 分辨率切换、物理隐私黑屏与已配对手机管理",
       "downloadURL" : "./dist/lumalink-companion.zip",
       "id" : "lumalink-companion",
       "keywords" : [
@@ -126,6 +126,14 @@
               "subtitle" : "Switch Mac display resolution or restore native mode inline",
               "title" : "Switch HiDPI Display Resolution"
             },
+            "lumalink-network" : {
+              "subtitle" : "Choose between physical LAN (en0) and Tunnel/VPN (Tailscale/ZeroTier)",
+              "title" : "Switch Network Interface / IP"
+            },
+            "lumalink-pin" : {
+              "subtitle" : "Start listener and inspect 6-digit PIN, Host IP, and ports",
+              "title" : "Show Pairing PIN & Manual Connect Info"
+            },
             "lumalink-qr" : {
               "subtitle" : "Ensure listener is active and open crisp QR code viewer",
               "title" : "Pop Up LumaLink Pairing QR Code"
@@ -149,7 +157,7 @@
               "section" : "Console Preferences"
             }
           },
-          "description" : "Full LAN remote console: instant QR pairing, live HiDPI display switching, privacy curtain, sleep guard, RDP engine & paired device revocation",
+          "description" : "Full LAN & Tunnel remote console: network/IP switcher, 6-digit pairing PIN & manual connect details, QR popup, HiDPI display switcher, privacy curtain & paired device revocation",
           "name" : "LumaLink Remote Companion"
         }
       },
@@ -158,9 +166,9 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "f8c110047cd15c9100bf855167223d8a50b813eb2115420a6c18da2c1d5ae986",
-      "sizeBytes" : 15232,
-      "version" : "2.0.0"
+      "sha256" : "87556fff1faf8647702a58a5f0ba9ffc0787447d87b7b5e4a6294ee82c596b8c",
+      "sizeBytes" : 18291,
+      "version" : "2.2.0"
     },
     {
       "accentColor" : "teal",
@@ -239,7 +247,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "822653fcfb893e497c54531570e24b9d41e31f4cf109aad826cd65f99c33b17a",
+      "sha256" : "f86986cbbfc7e980f8e5e592de5ee39795fd47b9dd476dcc88ee58d368848490",
       "sizeBytes" : 24971,
       "version" : "1.4.0"
     }
@@ -247,5 +255,5 @@
   "schemaVersion" : 1,
   "storeId" : "lumakey-demo-store",
   "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-16T10:02:12Z"
+  "updatedAt" : "2026-11-16T15:38:31Z"
 }

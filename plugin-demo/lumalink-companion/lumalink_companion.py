@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Lumakey Flagship Store Plugin: LumaLink Remote Companion v2.0.
+"""Lumakey Flagship Store Plugin: LumaLink Remote Companion v2.1.
 
-Provides a complete, self-contained remote-control console directly inside the
-Lumakey launcher without requiring any built-in sidebar page:
+Provides a complete, self-contained remote-control console inside Lumakey:
 - Start/stop Bonjour LAN listener & VideoToolbox RDP sidecar
+- Switch between physical LAN (en0/en1) and Tunnel/VPN (utun/Tailscale/ZeroTier) interfaces
+- View & copy 6-digit CSPRNG pairing PIN and individual manual connection fields (Host, Port, PIN)
 - Render & pop up crisp 380x380 pairing QR code window (`lumakey://image`)
-- Rotate CSPRNG 6-digit pairing PIN (protected by 5-strike brute-force lockout)
 - Switch Mac HiDPI display resolutions & restore native display modes inline
 - Toggle physical screen privacy curtain & idle sleep prevention (Caffeine)
 - Inspect paired phones & revoke individual encrypted tokens with confirmation
@@ -33,7 +33,14 @@ def parse_cli_and_query(argv: list[str], query: str) -> tuple[str, str, dict[str
     if flag == "--toggle-rdp":
         return ("main", "toggleRdp", {"renderQR": True})
     if flag == "--regen-pin":
-        return ("main", "regeneratePin", {"renderQR": True})
+        return ("pin_detail", "regeneratePin", {"renderQR": True})
+    if flag == "--pin":
+        return ("pin_detail", "setEnabled", {"enabled": True, "renderQR": True})
+    if flag == "--networks":
+        return ("networks", "status", {"renderQR": False})
+    if flag == "--select-net":
+        iface = argv[1] if len(argv) >= 2 else ""
+        return ("main", "selectNetwork", {"interface": iface, "customHost": "", "renderQR": True})
     if flag == "--curtain":
         return ("main", "toggleCurtain", {"renderQR": True})
     if flag == "--caffeine":
@@ -59,6 +66,10 @@ def parse_cli_and_query(argv: list[str], query: str) -> tuple[str, str, dict[str
         return ("main", "setEnabled", {"enabled": True, "renderQR": True})
     if q in {"off", "stop", "disable", "关闭", "停用"}:
         return ("main", "setEnabled", {"enabled": False, "renderQR": False})
+    if q in {"pin", "code", "manual", "配对码", "密码", "手动连接", "连接"}:
+        return ("pin_detail", "setEnabled", {"enabled": True, "renderQR": True})
+    if q in {"ip", "net", "network", "lan", "网卡", "网络", "内网穿透"}:
+        return ("networks", "status", {"renderQR": False})
     if q in {"qr", "二维码", "扫码"}:
         return ("qr_popup", "setEnabled", {"enabled": True, "renderQR": True})
     if q in {"display", "displays", "hidpi", "分辨率", "屏幕"}:
@@ -119,6 +130,188 @@ def _format_paired_time(epoch_sec: float, is_en: bool) -> str:
         return "Unknown time" if is_en else "未知时间"
     stamp = dt.datetime.fromtimestamp(epoch_sec).strftime("%Y-%m-%d %H:%M")
     return f"Paired at {stamp}" if is_en else f"配对于 {stamp}"
+
+
+def _build_networks_card(d: dict[str, Any], is_en: bool) -> dict[str, Any]:
+    interfaces = d.get("networkInterfaces") or []
+    pref_iface = str(d.get("preferredInterface") or "")
+    custom_host = str(d.get("customConnectHost") or "")
+    auto_selected = (not pref_iface) and (not custom_host)
+
+    items: list[dict[str, Any]] = [
+        {
+            "id": "nav-back-main",
+            "title": "← Back to LumaLink Console" if is_en else "← 返回流光随行主控台",
+            "subtitle": "Return to remote control overview & pairing PIN"
+            if is_en
+            else "返回远控总开关、配对码与手动连接主视图",
+            "icon": "chevron.backward.circle",
+            "badge": "BACK",
+            "commandArgs": [],
+        },
+        {
+            "id": "net-auto",
+            "title": "Auto-Select Physical LAN (Recommended)" if is_en else "自动优选物理局域网网卡（推荐默认）",
+            "subtitle": "Prioritizes Wi-Fi / Ethernet (en0/en1) and skips proxy Fake-IPs"
+            if is_en
+            else "优先选择 Wi-Fi / 以太网 (en0/en1)，自动跳过代理与内网穿透虚拟网段",
+            "icon": "checkmark.circle.fill" if auto_selected else "sparkles",
+            "badge": "ACTIVE" if auto_selected else "AUTO",
+            "commandArgs": [] if auto_selected else ["--select-net", ""],
+        },
+    ]
+
+    for cand in interfaces:
+        cid = str(cand.get("id") or "")
+        ifname = str(cand.get("interfaceName") or "")
+        ipv4 = str(cand.get("ipv4") or "")
+        kind = str(cand.get("kind") or "lan")
+        label = str(cand.get("displayLabel") or f"{ifname} ({ipv4})")
+        explicit_sel = (not custom_host) and (pref_iface in {cid, ifname})
+        icon = "wifi" if kind == "lan" else ("point.3.connected.trianglepath.dotted" if kind == "tunnel" else "network")
+        badge = "SELECTED" if explicit_sel else ("LAN" if kind == "lan" else kind.upper())
+        sub = (
+            "Physical local network interface (same Wi-Fi/router)"
+            if kind == "lan"
+            else "Intranet penetration / VPN overlay (Tailscale / ZeroTier / WireGuard)"
+        ) if is_en else (
+            "物理局域网网卡（手机与 Mac 在同一路由器/Wi-Fi 下请选择此项）"
+            if kind == "lan"
+            else "内网穿透 / 异地组网虚拟网卡（跨外网通过 Tailscale / ZeroTier 远控时选择）"
+        )
+        items.append(
+            {
+                "id": f"net-{cid}",
+                "title": label,
+                "subtitle": sub,
+                "icon": "checkmark.circle.fill" if explicit_sel else icon,
+                "badge": badge,
+                "commandArgs": [] if explicit_sel else ["--select-net", cid],
+            }
+        )
+
+    items.append(
+        {
+            "id": "open-native-net-settings",
+            "title": "Custom Hostname / Port in Plugin Settings →" if is_en else "在设置页填写自定义域名或修改端口 →",
+            "subtitle": (f"Current custom host: {custom_host}" if custom_host else "Configure DDNS domain or custom port")
+            if is_en
+            else (f"当前自定义地址：{custom_host}" if custom_host else "支持填写 FRP/DDNS 域名及修改默认 59480 控制端口"),
+            "icon": "slider.horizontal.3",
+            "badge": "CUSTOM" if custom_host else "SETTINGS",
+            "openURL": "lumakey://settings/plugin/lumalink-companion",
+        }
+    )
+
+    return {
+        "schemaVersion": 2,
+        "title": "LumaLink · Network & IP Selector" if is_en else "流光随行 · 连接网卡与 IP 选择",
+        "subtitle": (
+            f"{len(interfaces)} active IPv4 interface(s) detected"
+            if is_en
+            else f"检测到 {len(interfaces)} 张可用网卡 · 点击即可切换配对二维码与手动连接地址"
+        ),
+        "badge": "NETWORK",
+        "items": items,
+    }
+
+
+def _build_pin_detail_card(d: dict[str, Any], action_triggered: str, is_en: bool, pin_qr_on_top: bool) -> dict[str, Any]:
+    ip = str(d.get("localIPv4") or "127.0.0.1")
+    port = int(d.get("port") or d.get("preferredPort") or 59480)
+    rdp_port = int(d.get("rdpPort") or 3389)
+    pin = str(d.get("pairingPin") or "------")
+    net_label = str(d.get("selectedNetworkLabel") or ip)
+    pair_uri = str(d.get("pairURI") or f"lumalink://pair?host={ip}&port={port}&pin={pin}")
+    qr_path = str(d.get("qrImagePath") or "")
+
+    items: list[dict[str, Any]] = [
+        {
+            "id": "nav-back-main",
+            "title": "← Back to LumaLink Console" if is_en else "← 返回流光随行主控台",
+            "subtitle": "Return to main LumaLink remote control overview"
+            if is_en
+            else "返回远控服务总览与快捷控制",
+            "icon": "chevron.backward.circle",
+            "badge": "BACK",
+            "commandArgs": [],
+        },
+        {
+            "id": "copy-pin",
+            "title": f"6-Digit Pairing PIN: {pin}" if is_en else f"6 位安全配对码：{pin}（回车复制）",
+            "subtitle": "Auto-rotates after each successful pairing; 5 wrong attempts trigger 60s lockout"
+            if is_en
+            else "每次成功配对后自动轮换；连续输错 5 次自动锁定 60 秒防爆破",
+            "icon": "key.horizontal.fill",
+            "badge": "COPY PIN",
+            "copyText": pin,
+            "actions": [
+                {
+                    "id": "act-rotate-pin",
+                    "label": "Rotate PIN" if is_en else "轮换新配对码",
+                    "commandArgs": ["--regen-pin"],
+                }
+            ],
+        },
+        {
+            "id": "copy-host-port",
+            "title": f"Manual Host & Port: {ip}:{port}" if is_en else f"手动连接地址与端口：{ip}:{port}（回车复制 IP）",
+            "subtitle": (f"Interface: {net_label} · Control Port: {port}" if is_en else f"当前网卡：{net_label} · 控制端口：{port}"),
+            "icon": "network",
+            "badge": "HOST",
+            "copyText": ip,
+            "actions": [
+                {
+                    "id": "act-switch-net",
+                    "label": "Switch Network/IP" if is_en else "切换网卡/IP",
+                    "commandArgs": ["--networks"],
+                }
+            ],
+        },
+        {
+            "id": "copy-uri",
+            "title": "Copy Full Pairing Link (lumalink://)" if is_en else "复制完整配对直连 URI（含 IP + 端口 + 配对码）",
+            "subtitle": pair_uri,
+            "icon": "link",
+            "badge": "URI",
+            "copyText": pair_uri,
+        },
+    ]
+
+    if qr_path:
+        encoded_qr = urllib.parse.quote(qr_path, safe="/")
+        pin_flag = "1" if pin_qr_on_top else "0"
+        items.append(
+            {
+                "id": "popup-qr",
+                "title": "Pop Up Scannable Pairing QR Code" if is_en else "弹出高清扫码配对二维码窗口",
+                "subtitle": "Scan from LumaLink mobile client on the same network"
+                if is_en
+                else "手机与 Mac 在同一网络下可直接扫码一键填入连接信息",
+                "icon": "qrcode.viewfinder",
+                "badge": "QR",
+                "openURL": f"lumakey://image?path={encoded_qr}&pin={pin_flag}",
+            }
+        )
+
+    md_block = (
+        f"**Manual Connection Guide**\n- **Host / IP**: `{ip}`\n- **Control Port**: `{port}`\n- **6-Digit PIN**: `{pin}`\n- **RDP Port (Optional)**: `{rdp_port}`"
+        if is_en
+        else f"**手机端手动连接四要素**\n- **主机地址 (Host / IP)**：`{ip}`（{net_label}）\n- **控制端口 (Port)**：`{port}`\n- **6 位配对码 (PIN)**：`{pin}`\n- **RDP 桌面端口（可选）**：`{rdp_port}`"
+    )
+    payload: dict[str, Any] = {
+        "schemaVersion": 2,
+        "title": f"PIN: {pin} · {ip}:{port}" if is_en else f"配对码：{pin} · 连接地址 {ip}:{port}",
+        "subtitle": "Select any row below to copy or switch network interface"
+        if is_en
+        else "回车即可复制对应项；若 IP 显示为内网穿透网卡可点击「切换网卡/IP」改为局域网",
+        "badge": "PIN READY",
+        "markdown": md_block,
+        "items": items,
+    }
+    if action_triggered == "regeneratePin":
+        payload["effect"] = {"toast": f"New PIN: {pin}" if is_en else f"已生成新 6 位配对码：{pin}"}
+    return payload
 
 
 def _build_displays_card(d: dict[str, Any], action_triggered: str, is_en: bool) -> dict[str, Any]:
@@ -207,12 +400,12 @@ def _build_devices_card(d: dict[str, Any], action_triggered: str, is_en: bool) -
             {
                 "id": "empty-devices",
                 "title": "No Paired Phones Yet" if is_en else "当前暂无已配对手机",
-                "subtitle": "Enable LumaLink and scan the pairing QR code from your phone"
+                "subtitle": "Enable LumaLink and scan the pairing QR code or enter 6-digit PIN"
                 if is_en
-                else "启用远控服务后，在手机端扫码或输入 6 位配对码即可完成加密绑定",
+                else "启用远控服务后，在手机端扫码或手动输入主机 IP + 端口 + 6 位配对码即可绑定",
                 "icon": "iphone.slash",
                 "badge": "EMPTY",
-                "commandArgs": ["--qr"],
+                "commandArgs": ["--pin"],
             }
         )
     else:
@@ -270,32 +463,36 @@ def build_card_payload(
     is_en = locale.lower().startswith("en")
     if not resp.get("ok"):
         msg = resp.get("message") or (
-            "Grant 'lumaLinkStatus' in Plugin Settings first."
+            "Open LumaLink Plugin Settings to view PIN, pick network IP, or grant Host Bridge."
             if is_en
-            else "请先在插件独立设置页开启「LumaLink 状态」宿主桥接授权。"
+            else "打开流光随行设置页即可直接查看 6 位配对码、切换网卡 IP，或开启 lumaLinkStatus 浮窗桥接授权。"
         )
         return {
             "schemaVersion": 2,
-            "title": "LumaLink · Authorization Required" if is_en else "流光随行 · 待开启宿主桥接授权",
+            "title": "LumaLink · Open Console & Grant Bridge" if is_en else "流光随行 · 打开控制台查看配对码或授权浮窗",
             "subtitle": msg,
-            "badge": "AUTH",
+            "badge": "SETUP",
             "items": [
                 {
                     "id": "grant-cap",
-                    "title": "Open Plugin Settings to Grant lumaLinkStatus"
+                    "title": "Open LumaLink Settings (PIN, Network Switcher & Bridge Grant)"
                     if is_en
-                    else "打开插件设置开启 lumaLinkStatus 授权",
-                    "subtitle": "Default least-privilege; once granted, manage all LumaLink features inline"
+                    else "打开流光随行设置页（直接查看配对码 / 切换局域网网卡 / 授权桥接）",
+                    "subtitle": "Manage listener, 6-digit PIN, LAN vs Tunnel IP & permissions"
                     if is_en
-                    else "默认最小权限关闭，授权后即可在浮窗内直接扫码配对、切分辨率与管理设备",
-                    "icon": "lock.shield",
-                    "badge": "GRANT",
+                    else "设置页顶部已内置完整远控开关、网卡选择器、6 位配对码与手动连接参数",
+                    "icon": "ipad.and.iphone",
+                    "badge": "OPEN",
                     "openURL": "lumakey://settings/plugin/lumalink-companion",
                 }
             ],
         }
 
     d = resp.get("data") or {}
+    if view_mode == "networks":
+        return _build_networks_card(d, is_en=is_en)
+    if view_mode == "pin_detail":
+        return _build_pin_detail_card(d, action_triggered=action_triggered, is_en=is_en, pin_qr_on_top=pin_qr_on_top)
     if view_mode == "displays":
         return _build_displays_card(d, action_triggered=action_triggered, is_en=is_en)
     if view_mode == "devices":
@@ -303,10 +500,10 @@ def build_card_payload(
 
     enabled = bool(d.get("enabled"))
     listening = bool(d.get("isListening"))
-    ip = d.get("localIPv4") or "127.0.0.1"
+    ip = str(d.get("localIPv4") or "127.0.0.1")
+    net_label = str(d.get("selectedNetworkLabel") or ip)
     port = int(d.get("port") or d.get("preferredPort") or 59480)
     pin = str(d.get("pairingPin") or "------")
-    pair_uri = str(d.get("pairURI") or "")
     qr_path = str(d.get("qrImagePath") or "")
     connected = int(d.get("connectedDeviceCount") or 0)
     paired = int(d.get("pairedDeviceCount") or 0)
@@ -319,9 +516,9 @@ def build_card_payload(
     sr_ok = bool(d.get("screenRecordingTrusted", True))
 
     if enabled and listening:
-        summary = f"Listening {ip}:{port} · {connected} active" if is_en else f"监听 {ip}:{port} · 在线 {connected} 台"
+        summary = f"Listening {ip}:{port} · PIN {pin} · {connected} active" if is_en else f"监听 {ip}:{port} · 配对码 {pin} · 在线 {connected} 台"
     elif enabled:
-        summary = "Starting Bonjour listener…" if is_en else "正在启动局域网监听…"
+        summary = f"Starting on {ip}:{port} · PIN {pin}" if is_en else f"正在启动监听 {ip}:{port} · 配对码 {pin}"
     else:
         summary = "Stopped · Zero resident ports" if is_en else "已停用 · 零监听零端口占用"
 
@@ -338,31 +535,75 @@ def build_card_payload(
         }
     ]
 
-    if enabled and show_pair_uri:
-        uri_val = pair_uri or f"lumalink://pair?host={ip}&port={port}&pin={pin}"
+    if enabled:
         pin_item: dict[str, Any] = {
             "id": "pair-pin-qr",
-            "title": (f"Pairing PIN: {pin}" if is_en else f"6 位动态防爆破配对码：{pin}"),
-            "subtitle": uri_val,
-            "icon": "qrcode.viewfinder",
-            "badge": "PIN",
-            "copyText": uri_val,
+            "title": (f"Pairing PIN: {pin} · Manual Connect {ip}:{port}" if is_en else f"6 位配对码：{pin} · 手动连接 {ip}:{port}"),
+            "subtitle": (
+                "Click for manual connection breakdown, or use buttons to copy PIN / pop up QR"
+                if is_en
+                else "点击打开手动连接详情卡，或使用右侧按钮复制配对码 / 弹出二维码"
+            ),
+            "icon": "key.horizontal.fill",
+            "badge": f"PIN {pin}",
+            "commandArgs": ["--pin"],
             "actions": [
                 {
                     "id": "rotate-pin",
                     "label": "Rotate PIN" if is_en else "轮换配对码",
                     "commandArgs": ["--regen-pin"],
-                }
+                },
+                {
+                    "id": "pop-qr",
+                    "label": "QR Code" if is_en else "扫码二维码",
+                    "commandArgs": ["--qr"],
+                },
             ],
         }
-        if qr_path:
-            encoded_qr = urllib.parse.quote(qr_path, safe="/")
-            pin_flag = "1" if pin_qr_on_top else "0"
-            pin_item["openURL"] = f"lumakey://image?path={encoded_qr}&pin={pin_flag}"
-        items.append(pin_item)
+        if show_pair_uri or view_mode == "qr_popup":
+            items.append(pin_item)
+    else:
+        items.append(
+            {
+                "id": "start-and-show-pin",
+                "title": "Enable & Show 6-Digit Pairing PIN / Manual Connect →"
+                if is_en
+                else "一键开启并查看 6 位配对码与手动连接地址 →",
+                "subtitle": f"Target endpoint: {ip}:{port} ({net_label})"
+                if is_en
+                else f"目标连接地址：{ip}:{port}（{net_label}）",
+                "icon": "key.horizontal.fill",
+                "badge": "START + PIN",
+                "commandArgs": ["--pin"],
+            }
+        )
 
     items.extend(
         [
+            {
+                "id": "toggle-rdp",
+                "title": ("Disable Turbo RDP Service (Port 3389)" if rdp_on else "Enable Turbo RDP Service (Live Screen Control)")
+                if is_en
+                else ("关闭极速 RDP 远程桌面服务" if rdp_on else "开启极速 RDP 远程桌面服务（手机端看桌面必开）"),
+                "subtitle": (
+                    f"Port {rdp_port} · Engine: {'Running' if rdp_running else 'Idle'} · TCC AX:{'OK' if ax_ok else 'Missing'} SR:{'OK' if sr_ok else 'Missing'}"
+                    if is_en
+                    else f"端口 {rdp_port} · 引擎：{'运行中' if rdp_running else '待启动'} · 辅助功能:{'已授' if ax_ok else '未授'} 录屏:{'已授' if sr_ok else '未授'}"
+                ),
+                "icon": "bolt.horizontal.circle.fill" if rdp_on else "bolt.horizontal.circle",
+                "badge": "RDP ON" if (rdp_on and rdp_running) else ("STARTING" if rdp_on else "RDP OFF"),
+                "commandArgs": ["--toggle-rdp"],
+            },
+            {
+                "id": "switch-network",
+                "title": (f"Network / IP: {net_label} →" if is_en else f"连接网卡与 IP：{net_label} →"),
+                "subtitle": "Switch between physical LAN (Wi-Fi/Ethernet) and Tunnel/VPN (Tailscale/ZeroTier)"
+                if is_en
+                else "在物理局域网 (en0/en1) 与内网穿透网卡 (Tailscale/ZeroTier/utun) 之间切换",
+                "icon": "network",
+                "badge": "IP",
+                "commandArgs": ["--networks"],
+            },
             {
                 "id": "switch-displays",
                 "title": "Switch HiDPI Display Resolution →" if is_en else "切换多屏 HiDPI 分辨率与恢复 →",
@@ -399,20 +640,6 @@ def build_card_payload(
                 ],
             },
             {
-                "id": "toggle-rdp",
-                "title": ("Disable VideoToolbox RDP Engine" if rdp_on else "Enable VideoToolbox RDP Engine")
-                if is_en
-                else ("关闭 RDP VideoToolbox 硬件加速" if rdp_on else "开启 RDP VideoToolbox 硬件加速"),
-                "subtitle": (
-                    f"Port {rdp_port} · Sidecar: {'Running' if rdp_running else 'Idle'} · TCC AX:{'OK' if ax_ok else 'Missing'} SR:{'OK' if sr_ok else 'Missing'}"
-                    if is_en
-                    else f"端口 {rdp_port} · 侧车：{'运行中' if rdp_running else '待机'} · 辅助功能:{'已授' if ax_ok else '未授'} 录屏:{'已授' if sr_ok else '未授'}"
-                ),
-                "icon": "bolt.horizontal.circle",
-                "badge": "RDP ON" if rdp_on else "RDP OFF",
-                "commandArgs": ["--toggle-rdp"],
-            },
-            {
                 "id": "manage-devices",
                 "title": (f"Manage Paired Phones ({paired}) →" if is_en else f"管理已配对手机与解绑 ({paired} 台) →"),
                 "subtitle": "Inspect authorized phones and revoke individual Vault tokens"
@@ -426,6 +653,8 @@ def build_card_payload(
     )
 
     effect: dict[str, Any] = {"statusSummary": summary, "statusBadge": "ON" if enabled else "OFF"}
+    if action_triggered == "selectNetwork":
+        effect["toast"] = f"Switched to {net_label}" if is_en else f"已切换连接网卡：{net_label}"
     if view_mode == "qr_popup" and qr_path:
         if pin_qr_on_top:
             effect["pinImagePath"] = qr_path
@@ -440,8 +669,8 @@ def build_card_payload(
         "badge": "ONLINE" if enabled else "IDLE",
         "effect": effect,
         "metrics": [
-            {"key": "Service" if is_en else "服务状态", "value": ("Running" if enabled else "Stopped") if is_en else ("运行中" if enabled else "已关闭")},
-            {"key": "Endpoint" if is_en else "局域网地址", "value": f"{ip}:{port}" if enabled else ("Idle" if is_en else "未监听")},
+            {"key": "PIN" if is_en else "6 位配对码", "value": pin if enabled else ("Off" if is_en else "未开启")},
+            {"key": "Endpoint" if is_en else "手动连接地址", "value": f"{ip}:{port}"},
             {"key": "Paired" if is_en else "已配对手机", "value": f"{paired} ({connected} live)" if is_en else f"{paired} 台 ({connected} 在线)"},
             {"key": "Guards" if is_en else "幕布 / 防休眠", "value": f"{'ON' if curtain_on else 'OFF'} / {'ON' if caffeine_on else 'OFF'}"},
         ],

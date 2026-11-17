@@ -18,7 +18,7 @@ extension PluginSystem {
     """
 
     public static let specV3Markdown: String = """
-    # Lumakey Plugin Specification (v3.4 · Native Experience, Bilingual Locales & Command Hotkeys)
+    # Lumakey Plugin Specification (v3.5 · Tiered Global Search Registration, PluginData Backup & Native Experience)
 
     Lumakey is a **lightweight macOS productivity hub** — NOT a background application server, gateway, or daemon runner.
 
@@ -27,7 +27,12 @@ extension PluginSystem {
     2. **On-Demand Execution Only**: Plugins are spawned when triggered, emit stdout, and exit immediately. Swift Task cancellation terminates the entire child process group cleanly.
     3. **Mandatory Permission & Resource Declaration on Registration**: Every plugin MUST explicitly declare BOTH `"capabilities"` (Host Bridge capabilities or `[]`) AND `"resourceScopes"` (`network`, `filesystem`, `subprocess`, or `[]`). Omitting either fails strict validation.
     4. **Encrypted Secrets & Gated Context**: `type: "secret"` fields are encrypted locally (never stored in plaintext in `plugin-state.json`). `stdin.clipboard` is injected ONLY when `"clipboard"` is both declared and granted.
-    5. **Code/State/Override Separation & Default-OFF Quick Buttons**: Put immutable code/icons in `Plugins/<id>/`, write caches/`search-index.json`/`status.json` into `LUMAKEY_DATA_DIR`, while user customizations (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs`, `includeInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) live in `plugin-state.json` (`overrides`). **By default, ALL plugins and ALL sub-commands have NO Quick Button enabled (`pinnedInOverlay = false`, `quickButtonCommandIDs = []`)**.
+    5. **Code/State/Override Separation & Default-OFF Quick Buttons**: Put immutable code/icons in `Plugins/<id>/`, write caches/`search-index.json`/`status.json` into `LUMAKEY_DATA_DIR`, while user customizations (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `commandSearchOverrides`, `includeInGlobalSearchOverride`, `searchIndexGlobalOverride`, `showInSettingsSidebar`, `priorityBoost`) live in `plugin-state.json` (`overrides`). **By default, ALL plugins and ALL sub-commands have NO Quick Button enabled (`pinnedInOverlay = false`, `quickButtonCommandIDs = []`)**.
+    6. **Tiered Global Search Control on Registration**:
+       - Manifest root supports `"includeInGlobalSearch": true|false` (default `true`) and `"searchIndexInGlobalSearch": true|false` (default inherits main entry).
+       - Each item in `"commands"` supports `"includeInGlobalSearch": true|false` independently of the main entry (allowing hotkey-only or scoped-only commands, or exposing selected commands while hiding the main entry).
+       - Each item in `search-index.json` supports `"includeInGlobalSearch": true|false` (default `true` when index pool is enabled).
+    7. **Backup v2 & External Path Inclusion**: `PluginData/<id>/` is backed up automatically (skipping `.tmp-*`, `cache/`, `*.log`, `*.sock`, plus optional manifest `"backupExclude": ["raw/*"]`). `config` fields with `type: "path"` may set `"includeInBackup": true` to bundle user-home data files with portable `~/...` path restoration.
 
     ## Native Visuals, Bilingual Manifest & Deep Links
     - **Custom Bundle Icons & Brand Accent**: `icon` accepts either an SF Symbol (`"bookmark.fill"`) or a relative image path inside the plugin folder (`"icon.svg"`, `"assets/icon.png"`). Optional `"accentColor"` (`"teal"`, `"cyan"`, `"orange"`, `"#14B8A6"`, etc.) and `"categoryTag"` (`"书签"`) give external plugins first-class native badges instead of raw `VIEW`/`SCRIPT` labels.

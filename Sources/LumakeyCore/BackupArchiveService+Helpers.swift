@@ -10,7 +10,7 @@ extension BackupArchiveService {
         } catch {
             throw BackupArchiveError.corruptedArchive(error.localizedDescription)
         }
-        guard envelope.schemaVersion == BackupEnvelope.currentSchemaVersion else {
+        guard (BackupEnvelope.minimumSupportedSchemaVersion...BackupEnvelope.currentSchemaVersion).contains(envelope.schemaVersion) else {
             throw BackupArchiveError.unsupportedSchemaVersion(envelope.schemaVersion)
         }
         let computed = try computePayloadSHA256(envelope.payload)
@@ -24,7 +24,8 @@ extension BackupArchiveService {
     static func validatePayloadSafety(
         _ payload: BackupPayload,
         appSupportDirectory: URL,
-        pluginsDirectory: URL
+        pluginsDirectory: URL,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) throws {
         let appRootPath = appSupportDirectory.standardizedFileURL.path
         for (name, rawJSON) in payload.rawConfigFiles {
@@ -42,24 +43,56 @@ extension BackupArchiveService {
 
         let pluginsRootPath = pluginsDirectory.standardizedFileURL.path
         for bundle in payload.plugins {
-            guard PluginSystem.isSafePluginID(bundle.id) else {
-                throw BackupArchiveError.unsafePluginID(bundle.id)
+            try validateBundleFiles(id: bundle.id, files: bundle.files, parentRoot: pluginsDirectory, parentStdPath: pluginsRootPath)
+        }
+
+        let dataRootDir = PluginDataPaths.dataRoot(forPluginsRoot: pluginsDirectory)
+        let dataRootStdPath = dataRootDir.standardizedFileURL.path
+        for dataBundle in payload.pluginData {
+            try validateBundleFiles(id: dataBundle.id, files: dataBundle.files, parentRoot: dataRootDir, parentStdPath: dataRootStdPath)
+        }
+
+        let homeStdPath = homeDirectory.standardizedFileURL.path
+        for ext in payload.externalPluginFiles {
+            guard PluginSystem.isSafePluginID(ext.pluginID) else {
+                throw BackupArchiveError.unsafePluginID(ext.pluginID)
             }
-            let bundleRoot = pluginsDirectory.appendingPathComponent(bundle.id, isDirectory: true).standardizedFileURL
-            guard bundleRoot.deletingLastPathComponent().path == pluginsRootPath else {
-                throw BackupArchiveError.unsafePluginID(bundle.id)
+            guard isSafeHomeRelativeBackupPath(ext.homeRelativePath) else {
+                throw BackupArchiveError.unsafePath(ext.homeRelativePath)
             }
-            for file in bundle.files {
-                guard isSafeRelativePluginPath(file.relativePath) else {
-                    throw BackupArchiveError.unsafePath("\(bundle.id)/\(file.relativePath)")
-                }
-                let fileURL = bundleRoot.appendingPathComponent(file.relativePath, isDirectory: false).standardizedFileURL
-                guard fileURL.path.hasPrefix(bundleRoot.path + "/") else {
-                    throw BackupArchiveError.unsafePath("\(bundle.id)/\(file.relativePath)")
-                }
-                guard Data(base64Encoded: file.contentBase64) != nil else {
-                    throw BackupArchiveError.corruptedArchive("插件文件 \(bundle.id)/\(file.relativePath) Base64 无效")
-                }
+            let target = homeDirectory.appendingPathComponent(ext.homeRelativePath, isDirectory: false).standardizedFileURL
+            guard target.path.hasPrefix(homeStdPath + "/") else {
+                throw BackupArchiveError.unsafePath(ext.homeRelativePath)
+            }
+            guard Data(base64Encoded: ext.contentBase64) != nil else {
+                throw BackupArchiveError.corruptedArchive("外部文件 \(ext.homeRelativePath) Base64 无效")
+            }
+        }
+    }
+
+    private static func validateBundleFiles(
+        id: String,
+        files: [BackupPluginFileRecord],
+        parentRoot: URL,
+        parentStdPath: String
+    ) throws {
+        guard PluginSystem.isSafePluginID(id) else {
+            throw BackupArchiveError.unsafePluginID(id)
+        }
+        let bundleRoot = parentRoot.appendingPathComponent(id, isDirectory: true).standardizedFileURL
+        guard bundleRoot.deletingLastPathComponent().path == parentStdPath else {
+            throw BackupArchiveError.unsafePluginID(id)
+        }
+        for file in files {
+            guard isSafeRelativePluginPath(file.relativePath) else {
+                throw BackupArchiveError.unsafePath("\(id)/\(file.relativePath)")
+            }
+            let fileURL = bundleRoot.appendingPathComponent(file.relativePath, isDirectory: false).standardizedFileURL
+            guard fileURL.path.hasPrefix(bundleRoot.path + "/") else {
+                throw BackupArchiveError.unsafePath("\(id)/\(file.relativePath)")
+            }
+            guard Data(base64Encoded: file.contentBase64) != nil else {
+                throw BackupArchiveError.corruptedArchive("归档文件 \(id)/\(file.relativePath) Base64 无效")
             }
         }
     }

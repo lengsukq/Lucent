@@ -13,17 +13,31 @@ struct PluginDedicatedDataAndContextCard: View {
         let idxCount = ds?.searchIndexEntryCount ?? 0
         let updatedStr = (ds?.searchIndexUpdatedAt).map { FastFormatters.formatModificationDate($0) }
             ?? L10n.pick("尚未生成索引", "No index yet")
-        let hasIndexOrSync = idxCount > 0 || (plugin.manifest.refreshIntervalSeconds ?? 0) > 0 || !plugin.declaredContextKinds.isEmpty
+        let hasIndexOrSync = idxCount > 0 || (plugin.manifest.refreshIntervalSeconds ?? 0) > 0
+            || !plugin.declaredContextKinds.isEmpty
+            || plugin.manifest.searchIndexInGlobalSearch != nil
+            || plugin.overrides.searchIndexGlobalOverride != nil
 
         if hasIndexOrSync {
             VStack(alignment: .leading, spacing: 10) {
-                HStack {
+                HStack(spacing: 8) {
                     Label(
                         L10n.pick("跨模块联动与免前缀检索索引", "Context Hooks & Instant Search Index"),
                         systemImage: "sparkles.rectangle.stack"
                     )
                     .font(.callout.weight(.semibold))
                     Spacer()
+                    Toggle(L10n.pick("索引混入全局搜索", "Index in Global Search"), isOn: Binding(
+                        get: { plugin.searchIndexInGlobalSearch },
+                        set: { val in
+                            state.mutateOverrides(for: plugin, viewModel: viewModel) {
+                                $0.searchIndexGlobalOverride = val
+                            }
+                        }
+                    ))
+                    .font(.caption2)
+                    .fixedSize(horizontal: true, vertical: false)
+
                     if let refreshSec = plugin.manifest.refreshIntervalSeconds, refreshSec > 0 {
                         Text(L10n.pick("按需同步：\(refreshSec)s", "On-demand sync: \(refreshSec)s"))
                             .font(.caption2.monospacedDigit()).foregroundStyle(LiquidColors.accentPrimary)

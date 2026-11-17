@@ -16,7 +16,8 @@ extension PluginStarterGallery {
             PluginConfigField(
                 key: "notesPath", label: "Markdown 收件箱文件路径", type: .path,
                 defaultValue: "~/Documents/Lumakey-Notes.md",
-                placeholder: "~/Documents/Lumakey-Notes.md", section: "存储与标签"
+                placeholder: "~/Documents/Lumakey-Notes.md", section: "存储与标签",
+                includeInBackup: true
             ),
             PluginConfigField(
                 key: "defaultTag", label: "未带标签时的默认分类标签", type: .text,

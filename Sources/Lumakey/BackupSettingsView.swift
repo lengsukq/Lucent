@@ -9,21 +9,23 @@ struct BackupSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-            SettingsSectionHeroHeader(
-                symbol: "externaldrive.fill.badge.icloud", topColor: .cyan, bottomColor: .indigo,
-                title: "数据导出、本地备份与 WebDAV 云同步",
-                subtitle: "一键归档全量配置、收藏剪贴板与外部插件包（SHA-256 完整性防篡改），密码仅存系统钥匙串。"
-            ) {
-                Button { state.exportLocalBackupInteractive(viewModel: viewModel) } label: {
-                    Label("导出备份包", systemImage: "square.and.arrow.up.fill")
+                SettingsSectionHeroHeader(
+                    symbol: "externaldrive.fill.badge.icloud", topColor: .cyan, bottomColor: .indigo,
+                    title: "数据导出、本地备份与 WebDAV 云同步",
+                    subtitle: "一键 LZFSE 压缩归档配置、收藏剪贴板、外部插件包及插件数据索引（SHA-256 防篡改），支持可选口令端到端加密迁移插件密钥。"
+                ) {
+                    Button { state.exportLocalBackupInteractive(viewModel: viewModel) } label: {
+                        Label("导出备份包", systemImage: "square.and.arrow.up.fill")
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: true)).disabled(state.isBusy)
                 }
-                .buttonStyle(GlassPillButtonStyle(prominent: true)).disabled(state.isBusy)
-            }
-            statusBannerSection
-            if let pending = state.pendingRestore { restorePreviewCard(pending) }
-            localArchiveCard
-            webdavConfigCard
-            remoteHistoryCard
+                statusBannerSection
+                if let pending = state.pendingRestore {
+                    BackupRestorePreviewCard(state: state, viewModel: viewModel, pending: pending)
+                }
+                localArchiveCard
+                webdavConfigCard
+                remoteHistoryCard
             }
         }
         .onAppear { state.onAppearLoad() }
@@ -56,70 +58,48 @@ struct BackupSettingsView: View {
         }
     }
 
-    private func restorePreviewCard(_ pending: PendingBackupRestore) -> some View {
-        let s = pending.summary
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.shield.fill").foregroundStyle(.mint)
-                Text("恢复前快照核验：\(pending.sourceLabel)").font(.callout.weight(.bold))
-                Spacer()
-                Text("SHA-256 \(s.payloadSHA256.prefix(12))")
-                    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.mint)
-                    .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.mint.opacity(0.14), in: Capsule())
-            }
-            Text("创建于 \(s.createdAtISO8601) · 来源主机 \(s.hostName) (v\(s.appVersion)) · 大小 \(FastFormatters.formatFileBytes(Int64(s.archiveByteCount)))")
-                .font(.caption2).foregroundStyle(LiquidColors.textSecondary)
-
-            HStack(spacing: 16) {
-                Label("\(s.configCount) 项配置文件", systemImage: "slider.horizontal.3")
-                Label("\(s.pinnedClipboardCount) 条收藏剪贴板", systemImage: "pin.fill")
-                Label("\(s.pluginCount) 个外部插件", systemImage: "puzzlepiece.extension.fill")
-            }
-            .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
-
-            FlowWrapLayout(horizontalSpacing: 16, verticalSpacing: 8) {
-                Toggle("恢复配置", isOn: pendingOptionBinding(\.restoreConfigs)).fixedSize()
-                Toggle("恢复收藏剪贴板", isOn: pendingOptionBinding(\.restoreClipboard)).fixedSize()
-                Toggle("恢复外部插件包", isOn: pendingOptionBinding(\.restorePlugins)).fixedSize()
-            }
-            .font(.caption)
-
-            HStack(spacing: 8) {
-                Spacer()
-                Button("取消") { state.pendingRestore = nil }.buttonStyle(GlassPillButtonStyle())
-                Button("确认恢复此快照") { state.confirmPendingRestore(viewModel: viewModel) }.buttonStyle(GlassPillButtonStyle(prominent: true))
-            }
-        }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
-    }
-
     private var localArchiveCard: some View {
-        HStack(alignment: .center, spacing: 12) {
-            SquircleBadge(symbol: "archivebox.fill", topColor: .teal, bottomColor: .blue, size: 40)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("本地 .lumakeybackup 快照归档").font(.callout.weight(.semibold)).lineLimit(1)
-                Text("包含鼠标滚轮、系统脉搏、热键/短语 JSON、收藏剪贴板（单图 ≤ 2MB 内嵌）与可执行插件。")
-                    .font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(2)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                SquircleBadge(symbol: "archivebox.fill", topColor: .teal, bottomColor: .blue, size: 40)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("本地 .lumakeybackup 快照归档 (v2 压缩)").font(.callout.weight(.semibold)).lineLimit(1)
+                    Text("包含宿主配置、短语与使用统计、收藏剪贴板、插件代码包、PluginData 索引数据及声明备份的收件箱文件。")
+                        .font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(-1)
+
+                HStack(spacing: 8) {
+                    Button("打开配置目录") {
+                        let dir = BackupArchiveService.defaultAppSupportDirectory()
+                        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                        NSWorkspace.shared.open(dir)
+                    }
+                    .buttonStyle(GlassPillButtonStyle())
+
+                    Button("从本地恢复…") { state.chooseLocalBackupForRestore() }
+                        .buttonStyle(GlassPillButtonStyle()).disabled(state.isBusy)
+                    Button("导出本地备份包") { state.exportLocalBackupInteractive(viewModel: viewModel) }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true)).disabled(state.isBusy)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .layoutPriority(-1)
 
             HStack(spacing: 8) {
-                Button("打开配置目录") {
-                    let dir = BackupArchiveService.defaultAppSupportDirectory()
-                    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-                    NSWorkspace.shared.open(dir)
+                HStack(spacing: 7) {
+                    Image(systemName: "lock.shield.fill").font(.caption).foregroundStyle(.cyan)
+                    SecureField("可选：设置备份加密口令以端到端加密随包迁移插件 API 密钥（留空则不导出密钥）", text: $state.archivePassphraseInput)
+                        .textFieldStyle(.plain).font(.caption).foregroundStyle(LiquidColors.textPrimary)
+                    Text("AES-GCM").font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.cyan)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.cyan.opacity(0.14), in: Capsule())
                 }
-                .buttonStyle(GlassPillButtonStyle())
+                .padding(.horizontal, 11).padding(.vertical, 7)
+                .background(LiquidColors.inputFieldSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).strokeBorder(LiquidColors.inputFieldBorder, lineWidth: 0.9) }
 
-                Button("从本地恢复…") { state.chooseLocalBackupForRestore() }
-                    .buttonStyle(GlassPillButtonStyle()).disabled(state.isBusy)
-                Button("导出本地备份包") { state.exportLocalBackupInteractive(viewModel: viewModel) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: true)).disabled(state.isBusy)
+                Button("保存口令") { _ = state.saveArchivePassphrase() }
+                    .buttonStyle(GlassPillButtonStyle())
             }
         }
         .padding(14)
@@ -175,7 +155,7 @@ struct BackupSettingsView: View {
             HStack(spacing: 8) {
                 Button("保存配置") {
                     if state.persistSettings() {
-                        state.banner = BackupStatusBanner(tone: .success, message: "WebDAV 配置已保存，应用密码已加密存入系统钥匙串")
+                        state.banner = BackupStatusBanner(tone: .success, message: "WebDAV 配置与备份加密口令已安全保存")
                     }
                 }
                 .buttonStyle(GlassPillButtonStyle())
@@ -200,9 +180,9 @@ struct BackupSettingsView: View {
     private var secureKeychainField: some View {
         HStack(spacing: 7) {
             Image(systemName: "key.fill").font(.caption).foregroundStyle(.mint)
-            SecureField("应用专用密码（仅存系统钥匙串）", text: $state.passwordInput)
+            SecureField("应用专用密码（加密存本机密钥库）", text: $state.passwordInput)
                 .textFieldStyle(.plain).font(.caption).foregroundStyle(LiquidColors.textPrimary)
-            Text("Keychain").font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.mint)
+            Text("Vault").font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.mint)
                 .padding(.horizontal, 6).padding(.vertical, 2)
                 .background(Color.mint.opacity(0.14), in: Capsule())
         }
@@ -244,12 +224,5 @@ struct BackupSettingsView: View {
         }
         .padding(14)
         .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
-    }
-
-    private func pendingOptionBinding(_ kp: WritableKeyPath<BackupRestoreOptions, Bool>) -> Binding<Bool> {
-        Binding(
-            get: { state.pendingRestore?.options[keyPath: kp] ?? true },
-            set: { val in state.pendingRestore?.options[keyPath: kp] = val }
-        )
     }
 }

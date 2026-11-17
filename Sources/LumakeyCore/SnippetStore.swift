@@ -79,6 +79,15 @@ public final class SnippetStore: @unchecked Sendable {
     }
 
     @discardableResult
+    public func reloadFromDisk() -> [SnippetItem] {
+        lock.withLock {
+            let loaded = loadFromDiskUnlocked()
+            cached = loaded
+            return loaded
+        }
+    }
+
+    @discardableResult
     public func upsert(_ item: SnippetItem) throws -> SnippetItem {
         try lock.withLock {
             var list = cached ?? loadFromDiskUnlocked()

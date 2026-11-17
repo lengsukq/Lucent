@@ -130,7 +130,8 @@ public enum LumaLinkRdpProcessGuard {
             return false
         }
         if path.contains("/Lumakey.app/Contents/Helpers/macos-rdp-daemon")
-            || path.contains("/Lumakey.app/Contents/Resources/macos-rdp-daemon") {
+            || path.contains("/Lumakey.app/Contents/Resources/macos-rdp-daemon")
+            || path.contains("/Library/Application Support/Lumakey/Remote/macos-rdp-daemon") {
             return true
         }
         let homeLocal = FileManager.default.homeDirectoryForCurrentUser

@@ -66,7 +66,7 @@ struct LumakeyRound2AuditFixesTests {
         #expect(installed.isValid)
         #expect(installed.declaredCapabilities == [.lumaLinkStatus])
         #expect(installed.declaredResourceScopes.isEmpty)
-        #expect(installed.declaredCommands.count == 7)
+        #expect(installed.declaredCommands.count == 9)
 
         let cfgURL = dir.appendingPathComponent("lumalink-config.json")
         let vaultDir = dir.appendingPathComponent(".vault", isDirectory: true)

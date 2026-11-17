@@ -52,6 +52,7 @@ public final class LumaLinkServer: @unchecked Sendable {
 
     public func currentSnapshot() -> LumaLinkRuntimeSnapshot {
         lock.withLock {
+            if _pin.isEmpty { _pin = Self.generatePin() }
             let connected = sessions.values.filter { $0.authenticatedDeviceName != nil }.count
             return LumaLinkRuntimeSnapshot(
                 isListening: _isListening, port: _listeningPort, pairingPin: _pin,
@@ -71,14 +72,30 @@ public final class LumaLinkServer: @unchecked Sendable {
 
     public func apply(config next: LumaLinkConfig, persist: Bool = true) {
         if persist { next.save() }
-        lock.withLock { _config = next }
+        let oldPort = lock.withLock { () -> UInt16 in
+            let prev = _config.preferredPort
+            _config = next
+            if _pin.isEmpty { _pin = Self.generatePin() }
+            return prev
+        }
         if next.enabled {
-            startIfNeeded(preferredPort: next.preferredPort)
+            let portChanged = oldPort != next.preferredPort
+            startOrRebind(preferredPort: next.preferredPort, forceRebind: portChanged)
             LumaLinkRdpSidecarService.shared.sync(
                 enabled: next.rdpEnabled, port: next.rdpPort, localAudioEnabled: next.rdpLocalAudioEnabled
             )
         } else {
             stopAll()
+        }
+        notifyStatusChanged()
+    }
+
+    public func waitUntilListening(timeoutSeconds: Double = 0.22) {
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+        while Date() < deadline {
+            let ready = lock.withLock { _isListening || _lastError != nil }
+            if ready { return }
+            Thread.sleep(forTimeInterval: 0.015)
         }
     }
 
@@ -117,9 +134,16 @@ public final class LumaLinkServer: @unchecked Sendable {
         }
     }
 
-    private func startIfNeeded(preferredPort: UInt16) {
+    private func startOrRebind(preferredPort: UInt16, forceRebind: Bool) {
         queue.async {
-            if self.listener == nil { self.startListener(port: preferredPort, allowPortFallback: true) }
+            if forceRebind, let existing = self.listener {
+                existing.cancel()
+                self.listener = nil
+                self.lock.withLock { self._isListening = false; self._listeningPort = 0 }
+            }
+            if self.listener == nil {
+                self.startListener(port: preferredPort, allowPortFallback: true)
+            }
         }
     }
 
@@ -241,20 +265,20 @@ public final class LumaLinkServer: @unchecked Sendable {
         return String(format: "%06d", Int.random(in: 100_000...999_999))
     }
 
+    public static func availableNetworkCandidates() -> [LumaLinkNetworkCandidate] {
+        LumaLinkNetworkResolver.listActiveCandidates()
+    }
+
+    public func resolvedConnectEndpoint() -> (host: String, port: UInt16, candidate: LumaLinkNetworkCandidate?, isCustomHost: Bool) {
+        let cfg = currentConfig()
+        let snap = currentSnapshot()
+        let resolved = LumaLinkNetworkResolver.resolveConnectHost(config: cfg)
+        let effectivePort = snap.port > 0 ? snap.port : cfg.preferredPort
+        return (resolved.host, effectivePort, resolved.activeCandidate, resolved.isCustomHost)
+    }
+
     public static func localIPv4Address() -> String? {
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return nil }
-        defer { freeifaddrs(ifaddr) }
-        for ptr in sequence(first: first, next: { $0.pointee.ifa_next }) {
-            let flags = Int32(ptr.pointee.ifa_flags)
-            guard (flags & IFF_UP) != 0, (flags & IFF_LOOPBACK) == 0,
-                  let addr = ptr.pointee.ifa_addr, addr.pointee.sa_family == UInt8(AF_INET) else { continue }
-            var buf = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            if getnameinfo(addr, socklen_t(addr.pointee.sa_len), &buf, socklen_t(buf.count), nil, 0, NI_NUMERICHOST) == 0 {
-                let ip = buf.withUnsafeBufferPointer { String(decoding: $0.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)), as: UTF8.self) }
-                if !ip.hasPrefix("169.254.") { return ip }
-            }
-        }
-        return nil
+        let resolved = LumaLinkNetworkResolver.resolveConnectHost(config: shared.currentConfig())
+        return resolved.host == "127.0.0.1" ? nil : resolved.host
     }
 }

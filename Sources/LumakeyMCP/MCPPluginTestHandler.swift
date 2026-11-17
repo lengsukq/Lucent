@@ -2,6 +2,30 @@ import Foundation
 import LumakeyCore
 
 extension MCPServer {
+    func handleAppPermissions(arguments: [String: Any]) -> [String: Any] {
+        let onlyUsed = arguments["onlyUsed"] as? Bool ?? false
+        let plugins = PluginSystem.listPlugins(in: pluginsDirectory, includeDisabled: true, includeBuiltin: true, includeSecrets: false)
+        let entries = PluginPermissionAudit.buildAudit(plugins: plugins)
+            .filter { !onlyUsed || $0.declaredPluginCount > 0 }
+            .map { entry -> [String: Any] in
+                [
+                    "permission": entry.permission.rawValue, "title": entry.permission.title,
+                    "category": entry.permission.category.rawValue, "summary": entry.permission.summary,
+                    "declaredPluginCount": entry.declaredPluginCount, "activePluginCount": entry.activePluginCount,
+                    "usedByPlugins": entry.plugins.map { u -> [String: Any] in
+                        [
+                            "id": u.pluginID, "name": u.pluginName, "kind": u.kind.rawValue,
+                            "enabled": u.isPluginEnabled, "authorized": u.isAuthorized, "role": u.roleNote
+                        ]
+                    }
+                ]
+            }
+        let sandbox = PluginPermissionAudit.sandboxOnlyPlugins(in: plugins).map {
+            ["id": $0.id, "name": $0.displayName, "kind": $0.kind.rawValue]
+        }
+        return textResult(prettyJSON(["permissions": entries, "sandboxOnlyPlugins": sandbox]))
+    }
+
     func handleValidatePlugin(arguments: [String: Any]) -> [String: Any] {
         let id = arguments["id"] as? String ?? ""
         if PluginBuiltinRegistry.isBuiltin(id: id) {
@@ -25,6 +49,8 @@ extension MCPServer {
             "hasResourceScopesDeclaration": desc.manifest.resourceScopes != nil,
             "hasCustomBundleIcon": desc.customIconURL != nil,
             "categoryBadge": desc.displayCategoryBadge,
+            "includeInGlobalSearch": desc.includeInGlobalSearch,
+            "searchIndexInGlobalSearch": desc.searchIndexInGlobalSearch,
             "declaredCommands": desc.declaredCommands.map(\.id),
             "declaredCapabilities": desc.declaredCapabilities.map(\.rawValue),
             "declaredResourceScopes": desc.declaredResourceScopes.map(\.rawValue),
@@ -54,8 +80,19 @@ extension MCPServer {
                 }
                 if let pin = arguments["pinnedInOverlay"] as? Bool { ov.pinnedInOverlay = pin }
                 if let qbs = arguments["quickButtonCommandIDs"] as? [String] { ov.quickButtonCommandIDs = qbs }
-                if let dis = arguments["disabledCommandIDs"] as? [String] { ov.disabledCommandIDs = dis }
-                if let glob = arguments["includeInGlobalSearch"] as? Bool { ov.includeInGlobalSearch = glob }
+                if let dis = arguments["disabledCommandIDs"] as? [String] {
+                    ov.disabledCommandIDs = dis
+                    for cmdID in dis { ov.commandSearchOverrides[cmdID] = false }
+                }
+                if let cmdSearch = arguments["commandSearchOverrides"] as? [String: Bool] {
+                    for (cmdID, flag) in cmdSearch {
+                        ov.commandSearchOverrides[cmdID] = flag
+                        if flag { ov.disabledCommandIDs.removeAll { $0 == cmdID } }
+                        else if !ov.disabledCommandIDs.contains(cmdID) { ov.disabledCommandIDs.append(cmdID) }
+                    }
+                }
+                if let glob = arguments["includeInGlobalSearch"] as? Bool { ov.includeInGlobalSearchOverride = glob }
+                if let idxGlob = arguments["searchIndexInGlobalSearch"] as? Bool { ov.searchIndexGlobalOverride = idxGlob }
                 if let side = arguments["showInSettingsSidebar"] as? Bool { ov.showInSettingsSidebar = side }
                 if let boost = arguments["priorityBoost"] as? Int { ov.priorityBoost = boost }
             }
@@ -75,8 +112,10 @@ extension MCPServer {
                 "pinnedInOverlay": updated.pinnedInOverlay,
                 "quickButtonCommandIDs": updated.quickButtonCommandIDs,
                 "disabledCommandIDs": updated.disabledCommandIDs,
+                "commandSearchOverrides": updated.commandSearchOverrides,
                 "revokedResourceScopes": revokedNow,
                 "includeInGlobalSearch": updated.includeInGlobalSearch,
+                "searchIndexGlobalOverride": updated.searchIndexGlobalOverride ?? NSNull(),
                 "showInSettingsSidebar": updated.showInSettingsSidebar,
                 "priorityBoost": updated.priorityBoost
             ]))

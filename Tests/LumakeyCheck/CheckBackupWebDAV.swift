@@ -246,7 +246,7 @@ func testV070BackupAndWebDAV() throws {
     check(!archiveString.contains("ignore-me"), "Unpinned clipboard entry excluded from export")
 
     let summary = try BackupArchiveService.inspectBackupData(archiveData)
-    check(summary.schemaVersion == 1, "BackupEnvelope schemaVersion == 1")
+    check(summary.schemaVersion == BackupEnvelope.currentSchemaVersion, "BackupEnvelope schemaVersion == \(BackupEnvelope.currentSchemaVersion)")
     check(summary.configCount == 5, "Expected 5 configs (mos + telemetry + 3 json), got \(summary.configCount)")
     check(summary.pinnedClipboardCount == 4, "Expected 4 pinned clipboard items, got \(summary.pinnedClipboardCount)")
     check(summary.skippedLargeImageCount == 1, "Image > 2MB skipped from Base64 embedding")

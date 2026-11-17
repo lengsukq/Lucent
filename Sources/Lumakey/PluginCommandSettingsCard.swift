@@ -80,8 +80,8 @@ struct PluginCommandSettingsCard: View {
                 }
 
                 Text(L10n.pick(
-                    "每项子功能已自动接入 ⌥Space 全局搜索，支持单独录制一键瞬发全局热键（⌫ 清空）或挂载到首页快捷按钮栏。",
-                    "Every command is searchable in ⌥Space and can bind its own global hotkey (⌫ to clear) or mount as a Quick Button."
+                    "每项子功能可按注册策略或手动开关独立决定是否接入 ⌥Space 全局搜索，支持单独录制全局热键（⌫ 清空）或挂载快捷按钮。",
+                    "Each command can independently join ⌥Space Global Search (via manifest default or user override), bind a global hotkey, or mount as a Quick Button."
                 ))
                 .font(.caption2)
                 .foregroundStyle(LiquidColors.textSecondary)
@@ -100,7 +100,7 @@ struct PluginCommandSettingsCard: View {
 
     private func commandRow(_ spec: PluginCommandSpec) -> some View {
         let isQuickOn = plugin.overrides.quickButtonCommandIDs.contains(spec.id)
-        let isSearchOn = plugin.includeInGlobalSearch && !plugin.overrides.disabledCommandIDs.contains(spec.id)
+        let isSearchOn = plugin.isCommandSearchEnabled(spec)
         let cmdTitle = plugin.manifest.localizedCommandTitle(spec)
         let cmdSub = plugin.manifest.localizedCommandSubtitle(spec)
         let cmdHK = plugin.effectiveCommandHotKey(for: spec.id)
@@ -123,6 +123,14 @@ struct PluginCommandSettingsCard: View {
                         .foregroundStyle(LiquidColors.textPrimary)
                         .lineLimit(1)
                         .layoutPriority(1)
+                    if spec.includeInGlobalSearch == false && plugin.overrides.commandSearchOverrides[spec.id] == nil {
+                        Text(L10n.pick("默认域内", "Scoped"))
+                            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                            .foregroundStyle(LiquidColors.textSecondary)
+                            .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 5.5).padding(.vertical, 1.5)
+                            .background(LiquidColors.pillSurface, in: Capsule())
+                    }
                     ForEach(spec.keywords.prefix(3), id: \.self) { kw in
                         Text(kw)
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
@@ -146,7 +154,7 @@ struct PluginCommandSettingsCard: View {
                     get: { isSearchOn },
                     set: { viewModel.setPluginCommandSearchEnabled(pluginID: plugin.id, commandID: spec.id, title: cmdTitle, enabled: $0) }
                 ))
-                .font(.caption2).fixedSize(horizontal: true, vertical: false).disabled(!plugin.includeInGlobalSearch)
+                .font(.caption2).fixedSize(horizontal: true, vertical: false)
 
                 Toggle(L10n.pick("快捷按钮", "Quick"), isOn: Binding(
                     get: { isQuickOn },

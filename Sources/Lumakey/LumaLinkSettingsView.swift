@@ -1,7 +1,83 @@
 import AppKit
-import CoreImage.CIFilterBuiltins
+import CoreGraphics
 import LumakeyCore
 import SwiftUI
+
+@MainActor
+final class LumaLinkConsoleUIState: ObservableObject {
+    @Published var showAdvancedPluginOptions = false
+}
+
+struct LumaLinkDedicatedConsoleView<CustomCard: View>: View {
+    let plugin: PluginDescriptor
+    @ObservedObject var state: PluginDedicatedSettingsState
+    @ObservedObject var ctrl: PluginCenterController
+    @ObservedObject var viewModel: AppViewModel
+    let customizationCard: () -> CustomCard
+    @StateObject private var uiState = LumaLinkConsoleUIState()
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                LumaLinkServiceControlCard(viewModel: viewModel, companionPlugin: plugin, ctrl: ctrl)
+                LumaLinkNetworkAndPairingCard(viewModel: viewModel)
+                LumaLinkSafetyAndDevicesCard(viewModel: viewModel)
+                advancedPluginSection
+            }
+            .padding(.trailing, 6).padding(.bottom, 8)
+        }
+        .onAppear {
+            viewModel.refreshLumaLinkStatus()
+            state.bindIfNeeded(plugin: plugin, ctrl: ctrl)
+        }
+        .onDisappear { state.stopRecordingHotKey() }
+    }
+
+    private var advancedPluginSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) { uiState.showAdvancedPluginOptions.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: uiState.showAdvancedPluginOptions ? "chevron.down.circle.fill" : "chevron.right.circle")
+                        .foregroundStyle(LiquidColors.accentPrimary)
+                    Text(L10n.pick("高级选项：快捷台子指令、全局热键与插件管理", "Advanced: Launcher Commands, Hotkeys & Plugin Management"))
+                        .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
+                    Spacer()
+                    Text(uiState.showAdvancedPluginOptions ? L10n.pick("收起", "Hide") : L10n.pick("展开", "Expand"))
+                        .font(.caption2).foregroundStyle(LiquidColors.textSecondary)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 9).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
+
+            if uiState.showAdvancedPluginOptions {
+                HStack(spacing: 8) {
+                    Button(L10n.pick("在快捷台打开 ↩", "Open in Launcher ↩")) { viewModel.enterPluginScopedOverlay(plugin) }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                    Button(L10n.pick("插件市场 →", "Plugin Store →")) {
+                        viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = .plugins
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                    Button(L10n.pick("访达目录", "Show in Finder")) {
+                        NSWorkspace.shared.activateFileViewerSelecting([plugin.directoryURL])
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                    Button(L10n.pick("卸载伴侣插件", "Uninstall Plugin")) {
+                        ctrl.remove(plugin, viewModel: viewModel)
+                        viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = .plugins
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                    Spacer()
+                }
+                PluginCommandSettingsCard(plugin: plugin, viewModel: viewModel, settingsState: state)
+                customizationCard()
+                PluginPermissionsAndSandboxSection(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
+            }
+        }
+    }
+}
 
 struct LumaLinkSettingsView: View {
     @ObservedObject var viewModel: AppViewModel
@@ -9,258 +85,204 @@ struct LumaLinkSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                SettingsSectionHeroHeader(
-                    symbol: "ipad.and.iphone", topColor: .cyan, bottomColor: .blue,
-                    title: "流光随行 · LumaLink 远控伴侣",
-                    subtitle: "为手机端解锁真·分辨率切换、隐私黑屏防窥、中文直发、音量/媒体/防休眠与性能遥测；关闭即零后台驻留。"
-                ) {
-                    HStack(spacing: 10) {
-                        Button(L10n.pick("所有插件", "All Plugins")) {
-                            viewModel.activeSettingsSection = .plugins
-                        }
-                        .buttonStyle(GlassPillButtonStyle(compact: true))
-                        Toggle("", isOn: configBinding(\.enabled))
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-                }
-                statusRow
-                if viewModel.lumaLinkConfig.enabled {
-                    pairingCard
-                    rdpEngineCard
-                }
-                behaviorCard
-                if let companion = viewModel.plugins.first(where: { $0.id == LumaLinkServer.companionPluginID }) {
-                    PluginCommandSettingsCard(plugin: companion, viewModel: viewModel)
-                }
-                pairedDevicesCard
+                LumaLinkServiceControlCard(viewModel: viewModel, companionPlugin: nil, ctrl: nil)
+                LumaLinkNetworkAndPairingCard(viewModel: viewModel)
+                LumaLinkSafetyAndDevicesCard(viewModel: viewModel)
             }
             .padding(.trailing, 4)
         }
-        .onAppear {
-            viewModel.refreshLumaLinkStatus()
+        .onAppear { viewModel.refreshLumaLinkStatus() }
+    }
+}
+
+struct LumaLinkServiceControlCard: View {
+    @ObservedObject var viewModel: AppViewModel
+    let companionPlugin: PluginDescriptor?
+    let ctrl: PluginCenterController?
+
+    var body: some View {
+        let cfg = viewModel.lumaLinkConfig
+        let snap = viewModel.lumaLinkStatus
+        let rdp = viewModel.lumaLinkRdpStatus
+        let ep = LumaLinkServer.shared.resolvedConnectEndpoint()
+        let bothOn = cfg.enabled && cfg.rdpEnabled
+
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                SquircleBadge(symbol: "ipad.and.iphone", topColor: .cyan, bottomColor: .blue, size: 42)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.pick("流光随行 · 手机远控与极速桌面", "LumaLink · Phone Remote & Turbo RDP"))
+                        .font(.title3.weight(.bold))
+                    Text(L10n.pick("控制监听负责扫码配对与快捷控制；手机端查看实时桌面画面请同时开启右侧「极速 RDP 服务」。", "Listener handles pairing & quick controls; enable 'Turbo RDP Service' on the right for live desktop streaming."))
+                        .font(.caption).foregroundStyle(LiquidColors.textSecondary)
+                }
+                Spacer(minLength: 8)
+                Button(bothOn ? L10n.pick("全部停用", "Stop All") : L10n.pick("一键全开（远控 + 极速 RDP）", "Start All (Remote + RDP)")) {
+                    setServices(listener: !bothOn, rdp: !bothOn)
+                }
+                .buttonStyle(GlassPillButtonStyle(prominent: !bothOn))
+            }
+
+            HStack(alignment: .top, spacing: 10) {
+                listenerTile(cfg: cfg, snap: snap, ep: ep)
+                rdpTile(cfg: cfg, rdp: rdp)
+            }
         }
+        .padding(14)
+        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
     }
 
-    private var statusRow: some View {
-        let snap = viewModel.lumaLinkStatus
-        let dotColor: Color = if !viewModel.lumaLinkConfig.enabled {
-            .secondary
-        } else if snap.isListening {
-            snap.connectedDeviceCount > 0 ? .green : .cyan
-        } else {
-            .orange
-        }
-        let ipText = LumaLinkServer.localIPv4Address() ?? "局域网"
-        let summary: String = if !viewModel.lumaLinkConfig.enabled {
-            "伴侣服务已关闭（零网络监听 · 零内存驻留）"
+    private func listenerTile(
+        cfg: LumaLinkConfig, snap: LumaLinkRuntimeSnapshot,
+        ep: (host: String, port: UInt16, candidate: LumaLinkNetworkCandidate?, isCustomHost: Bool)
+    ) -> some View {
+        let dot: Color = !cfg.enabled ? .secondary : (snap.isListening ? .mint : .orange)
+        let desc: String = if !cfg.enabled {
+            L10n.pick("已关闭 · 零端口监听", "Off · Zero open ports")
         } else if let err = snap.lastError, !err.isEmpty {
-            "监听异常：\(err)"
+            L10n.pick("监听异常：\(err)", "Error: \(err)")
         } else if snap.isListening {
-            "正在广播 _lumakey-remote._tcp · \(ipText):\(snap.port) · 已连接 \(snap.connectedDeviceCount) 台手机"
+            L10n.pick("监听中 \(ep.host):\(ep.port) · 在线 \(snap.connectedDeviceCount) 台", "Listening \(ep.host):\(ep.port) · \(snap.connectedDeviceCount) live")
         } else {
-            "正在启动 Bonjour 监听…"
+            L10n.pick("正在启动监听…", "Starting listener…")
         }
 
-        return HStack(spacing: 10) {
-            Circle().fill(dotColor).frame(width: 9, height: 9)
-            Text(summary).font(.caption.weight(.medium))
-            Spacer()
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 7) {
+                Circle().fill(dot).frame(width: 8, height: 8)
+                Text(L10n.pick("① 基础远控监听", "1. Remote Control Listener")).font(.callout.weight(.semibold))
+                Spacer()
+                Button(cfg.enabled ? L10n.pick("关闭监听", "Turn Off") : L10n.pick("开启监听", "Turn On")) {
+                    setServices(listener: !cfg.enabled, rdp: !cfg.enabled ? cfg.rdpEnabled : false)
+                }
+                .buttonStyle(GlassPillButtonStyle(prominent: !cfg.enabled, compact: true))
+            }
+            Text(desc).font(.caption2).foregroundStyle(LiquidColors.textSecondary).fixedSize(horizontal: false, vertical: true)
             if !viewModel.mosAccessibilityTrusted {
-                Button("授权辅助功能") {
+                Button(L10n.pick("授权辅助功能（支持远控键鼠/音量）", "Grant Accessibility")) {
                     viewModel.requestMosAccessibilityPermission()
                 }
-                .buttonStyle(GlassPillButtonStyle(prominent: true))
+                .buttonStyle(GlassPillButtonStyle(compact: true))
             }
-            Button("刷新状态") {
-                viewModel.refreshLumaLinkStatus()
-            }
-            .buttonStyle(GlassPillButtonStyle())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
+        .padding(12).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.8) }
     }
 
-    private var pairingCard: some View {
-        let snap = viewModel.lumaLinkStatus
-        let ip = LumaLinkServer.localIPv4Address() ?? "Mac"
-        let qrPayload = "lumalink://pair?host=\(ip)&port=\(snap.port)&pin=\(snap.pairingPin)"
-
-        return HStack(spacing: 16) {
-            if let qrImage = Self.makeQRImage(from: qrPayload) {
-                Image(nsImage: qrImage)
-                    .interpolation(.none)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 96, height: 96)
-                    .padding(6)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("6 位安全配对码").font(.callout.weight(.semibold))
-                Text(snap.pairingPin.isEmpty ? "------" : snap.pairingPin)
-                    .font(.system(size: 30, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.cyan)
-                    .textSelection(.enabled)
-                Text("在移动端远控客户端内点击「配对 LumaLink」并输入配对码或扫码；每次成功配对后自动轮换。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 8) {
-                    Button("刷新配对码") {
-                        viewModel.regenerateLumaLinkPin()
-                    }
-                    .buttonStyle(GlassPillButtonStyle())
-                    Button("复制地址") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString("\(ip):\(snap.port) · PIN \(snap.pairingPin)", forType: .string)
-                        viewModel.serviceMessage = "已复制 LumaLink 配对信息"
-                    }
-                    .buttonStyle(GlassPillButtonStyle())
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
-    }
-
-    private var rdpEngineCard: some View {
-        let rdp = viewModel.lumaLinkRdpStatus
-        let dotColor: Color = if !viewModel.lumaLinkConfig.rdpEnabled {
-            .secondary
+    private func rdpTile(cfg: LumaLinkConfig, rdp: LumaLinkRdpStatus) -> some View {
+        let screenRecOK = CGPreflightScreenCaptureAccess()
+        let dot: Color = !cfg.rdpEnabled ? .secondary : (rdp.running ? .green : .orange)
+        let desc: String = if !cfg.rdpEnabled {
+            L10n.pick("未开启 · 手机提示「开启极速 RDP」时请点右上开启", "Off · Turn on here for mobile live screen streaming")
         } else if rdp.running {
-            .green
-        } else if rdp.lastError != nil || !rdp.binaryFound {
-            .red
-        } else {
-            .orange
-        }
-        let stateText: String = if !viewModel.lumaLinkConfig.rdpEnabled {
-            "未开启（关闭状态零进程、零端口占用）"
-        } else if rdp.running {
-            "VideoToolbox H.264 硬编码已就绪 · 端口 \(rdp.port) · 广播 _rdp._tcp"
+            L10n.pick("极速引擎运行中 · 端口 \(rdp.port) (H.264 硬编)", "Running on port \(rdp.port) (H.264 HW encode)")
         } else if !rdp.binaryFound {
-            "未检测到 macos-rdp-daemon 助手程序"
+            L10n.pick("缺少 macos-rdp-daemon 助手组件，请点击下方导入", "Missing macos-rdp-daemon helper binary")
         } else if let err = rdp.lastError, !err.isEmpty {
-            "启动失败：\(err)"
+            L10n.pick("未就绪：\(err)", "Not ready: \(err)")
         } else {
-            "正在准备自签名证书与启动引擎…"
+            L10n.pick("正在启动极速 RDP 引擎…", "Starting Turbo RDP engine…")
         }
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("极速 RDP 引擎（VideoToolbox H.264 硬编码）")
-                        .font(.callout.weight(.semibold))
-                    Text("相比标准 VNC 大幅降低 70%+ 流量占用与延迟，支持动态分辨率、双向剪贴板与系统音频透传。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 7) {
+                Circle().fill(dot).frame(width: 8, height: 8)
+                Text(L10n.pick("② 极速 RDP 桌面服务", "2. Turbo RDP Service")).font(.callout.weight(.semibold))
                 Spacer()
-                Toggle("", isOn: configBinding(\.rdpEnabled))
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-            }
-            HStack(spacing: 8) {
-                Circle().fill(dotColor).frame(width: 8, height: 8)
-                Text(stateText).font(.caption.weight(.medium))
-                Spacer()
-                Text("端口 \(viewModel.lumaLinkConfig.rdpPort)")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            if rdp.binaryFound && (!rdp.screenRecordingGranted || !rdp.accessibilityGranted) {
-                HStack(spacing: 8) {
-                    Text("权限检查：屏幕录制 \(rdp.screenRecordingGranted ? "✓" : "未授权") · 辅助功能 \(rdp.accessibilityGranted ? "✓" : "未授权")")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                    Spacer()
-                    if !rdp.screenRecordingGranted {
-                        Button("授权屏幕录制") {
-                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }
-                        .buttonStyle(GlassPillButtonStyle())
-                    }
-                    if !rdp.accessibilityGranted {
-                        Button("授权辅助功能") {
-                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }
-                        .buttonStyle(GlassPillButtonStyle())
-                    }
+                Button(cfg.rdpEnabled ? L10n.pick("关闭极速 RDP", "Disable RDP") : L10n.pick("开启极速 RDP", "Enable Turbo RDP")) {
+                    let turnOn = !cfg.rdpEnabled
+                    setServices(listener: turnOn ? true : cfg.enabled, rdp: turnOn)
                 }
+                .buttonStyle(GlassPillButtonStyle(prominent: !cfg.rdpEnabled, compact: true))
             }
-        }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
-    }
+            Text(desc)
+                .font(.caption2).foregroundStyle((cfg.rdpEnabled && !rdp.running) ? .orange : LiquidColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-    private var behaviorCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("安全与显示行为").font(.callout.weight(.semibold))
-            Toggle("所有手机断开连接时自动还原 Mac 原始分辨率并关闭隐私幕布", isOn: configBinding(\.autoRestoreDisplayOnDisconnect))
-            Toggle("开启隐私黑屏幕布时自动静音 Mac 扬声器", isOn: configBinding(\.muteMacWhenCurtainEnabled))
-            Toggle("RDP 远控收听声音时 Mac 本地同步出声", isOn: configBinding(\.rdpLocalAudioEnabled))
-            let audioSt = LumaLinkAudioBridgeService.shared.status(preferredName: viewModel.lumaLinkConfig.preferredVirtualMicName)
             HStack(spacing: 6) {
-                Circle()
-                    .fill(audioSt.virtualMicDeviceName != nil ? Color.green : Color.orange)
-                    .frame(width: 7, height: 7)
-                if let dev = audioSt.virtualMicDeviceName {
-                    Text("虚拟麦克风已就绪：\(dev)（手机麦克风将路由为此 Mac 输入设备）")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("未检测到虚拟声卡（建议 brew install blackhole-2ch 以接收手机麦克风）")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
+                if !rdp.binaryFound {
+                    Button(L10n.pick("选择 macos-rdp-daemon…", "Locate macos-rdp-daemon…")) { pickAndInstallRdpHelper() }
+                        .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
                 }
-            }
-            if !viewModel.mosAccessibilityTrusted {
-                Text("提示：中文直接上屏 (⌘V)、Spaces / 调度中心快捷键与远程锁屏需要授予 Lumakey「辅助功能」权限。")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
+                if cfg.rdpEnabled && !screenRecOK {
+                    Button(L10n.pick("授权屏幕录制", "Grant Screen Recording")) {
+                        _ = CGRequestScreenCaptureAccess()
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                }
+                Button(L10n.pick("刷新状态", "Refresh")) { viewModel.refreshLumaLinkStatus(refreshPermissions: true) }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
             }
         }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
+        .padding(12).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
+                .strokeBorder(!cfg.rdpEnabled ? Color.cyan.opacity(0.45) : LiquidColors.pillBorder, lineWidth: !cfg.rdpEnabled ? 1.1 : 0.8)
+        }
     }
 
-    private var pairedDevicesCard: some View {
+    private func setServices(listener: Bool, rdp: Bool) {
+        if listener, let plugin = companionPlugin, !plugin.isEnabled {
+            ctrl?.setEnabled(plugin, isEnabled: true, viewModel: viewModel)
+        }
+        var next = viewModel.lumaLinkConfig
+        next.enabled = listener || rdp; next.rdpEnabled = rdp
+        viewModel.applyLumaLinkConfig(next)
+    }
+
+    private func pickAndInstallRdpHelper() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true; panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+        panel.prompt = L10n.pick("导入 macos-rdp-daemon", "Import Helper")
+        panel.message = L10n.pick("请选择 macos-rdp-daemon 可执行文件", "Select the macos-rdp-daemon binary")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            _ = try LumaLinkRdpSidecarService.shared.installHelperBinary(from: url)
+            setServices(listener: true, rdp: true)
+            viewModel.serviceMessage = "已导入 macos-rdp-daemon 并启动极速 RDP 服务"
+        } catch {
+            viewModel.serviceMessage = "导入失败：\(error.localizedDescription)"
+        }
+    }
+}
+
+struct LumaLinkSafetyAndDevicesCard: View {
+    @ObservedObject var viewModel: AppViewModel
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("已授权手机设备 (\(viewModel.lumaLinkConfig.pairedDevices.count))")
+            Label(L10n.pick("已配对手机 (\(viewModel.lumaLinkConfig.pairedDevices.count)) 与安全偏好", "Paired Phones (\(viewModel.lumaLinkConfig.pairedDevices.count)) & Safety"), systemImage: "iphone.badge.play")
                 .font(.callout.weight(.semibold))
             if viewModel.lumaLinkConfig.pairedDevices.isEmpty {
-                Text("暂无已配对手机；首次输入 6 位配对码后将自动记住该设备。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(L10n.pick("暂无已配对手机；首次扫码或输入上方 6 位配对码连接后自动加密绑定。", "No paired phones yet; scan QR or enter 6-digit PIN above to pair."))
+                    .font(.caption2).foregroundStyle(.secondary)
             } else {
                 ForEach(viewModel.lumaLinkConfig.pairedDevices) { device in
                     HStack(spacing: 10) {
-                        Image(systemName: "iphone")
-                            .foregroundStyle(.cyan)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(device.name).font(.callout.weight(.medium))
-                            Text("配对时间：\(FastFormatters.formatModificationDate(Date(timeIntervalSince1970: device.pairedAt)))")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                        Image(systemName: "iphone").foregroundStyle(.cyan)
+                        Text(device.name).font(.caption.weight(.semibold))
+                        Text(FastFormatters.formatModificationDate(Date(timeIntervalSince1970: device.pairedAt)))
+                            .font(.caption2).foregroundStyle(.secondary)
                         Spacer()
-                        Button("移除") {
-                            viewModel.revokeLumaLinkDevice(id: device.id)
-                        }
-                        .buttonStyle(GlassPillButtonStyle())
+                        Button(L10n.pick("解绑", "Revoke")) { viewModel.revokeLumaLinkDevice(id: device.id) }
+                            .buttonStyle(GlassPillButtonStyle(compact: true))
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
                     .background(LiquidColors.pillSurface, in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
                 }
             }
+            Divider().opacity(0.2)
+            FlowWrapLayout(horizontalSpacing: 16, verticalSpacing: 6) {
+                Toggle("断开连接自动还原分辨率与关闭黑屏", isOn: configBinding(\.autoRestoreDisplayOnDisconnect))
+                Toggle("隐私黑屏时静音 Mac 扬声器", isOn: configBinding(\.muteMacWhenCurtainEnabled))
+                Toggle("RDP 远控时 Mac 本地同步出声", isOn: configBinding(\.rdpLocalAudioEnabled))
+            }
+            .font(.caption)
         }
         .padding(14)
         .liquidGlassCard(cornerRadius: LiquidRadii.bento, solidReadable: true)
@@ -269,23 +291,7 @@ struct LumaLinkSettingsView: View {
     private func configBinding<T>(_ keyPath: WritableKeyPath<LumaLinkConfig, T>) -> Binding<T> {
         Binding(
             get: { viewModel.lumaLinkConfig[keyPath: keyPath] },
-            set: { newValue in
-                var next = viewModel.lumaLinkConfig
-                next[keyPath: keyPath] = newValue
-                viewModel.applyLumaLinkConfig(next)
-            }
+            set: { val in var next = viewModel.lumaLinkConfig; next[keyPath: keyPath] = val; viewModel.applyLumaLinkConfig(next) }
         )
-    }
-
-    private static func makeQRImage(from text: String) -> NSImage? {
-        let filter = CIFilter.qrCodeGenerator()
-        filter.message = Data(text.utf8)
-        filter.correctionLevel = "M"
-        guard let output = filter.outputImage else { return nil }
-        let scaled = output.transformed(by: CGAffineTransform(scaleX: 6, y: 6))
-        let rep = NSCIImageRep(ciImage: scaled)
-        let img = NSImage(size: rep.size)
-        img.addRepresentation(rep)
-        return img
     }
 }

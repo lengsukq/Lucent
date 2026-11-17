@@ -11,6 +11,7 @@ public struct PluginCommandSpec: Codable, Sendable, Hashable, Identifiable {
     public let arguments: [String]
     public let passQuery: Bool?
     public let silentWhenHotKeyTriggered: Bool?
+    public let includeInGlobalSearch: Bool?
 
     public init(
         id: String,
@@ -21,7 +22,8 @@ public struct PluginCommandSpec: Codable, Sendable, Hashable, Identifiable {
         hotkey: String? = nil,
         arguments: [String] = [],
         passQuery: Bool? = nil,
-        silentWhenHotKeyTriggered: Bool? = nil
+        silentWhenHotKeyTriggered: Bool? = nil,
+        includeInGlobalSearch: Bool? = nil
     ) {
         self.id = id
         self.title = title
@@ -32,6 +34,7 @@ public struct PluginCommandSpec: Codable, Sendable, Hashable, Identifiable {
         self.arguments = arguments
         self.passQuery = passQuery
         self.silentWhenHotKeyTriggered = silentWhenHotKeyTriggered
+        self.includeInGlobalSearch = includeInGlobalSearch
     }
 }
 
@@ -80,8 +83,7 @@ public struct PluginRegisteredCommand: Identifiable, Sendable, Hashable {
         self.localizedTitle = locTitle
         self.localizedSubtitle = locSub
         self.effectiveHotKey = plugin.effectiveCommandHotKey(for: command.id)
-        let commandDisabled = plugin.overrides.disabledCommandIDs.contains(command.id)
-        self.isSearchEnabled = plugin.includeInGlobalSearch && !commandDisabled
+        self.isSearchEnabled = plugin.isCommandSearchEnabled(command)
         self.isQuickButtonEnabled = plugin.overrides.quickButtonCommandIDs.contains(command.id)
         self.rankingBoost = plugin.effectiveRankingBoost
         self.titleLowercased = command.title.lowercased()

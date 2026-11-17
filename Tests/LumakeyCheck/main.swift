@@ -783,6 +783,7 @@ func testV065PerformanceCompactIndexHeaderAndFormatters() throws {
 do {
     L10n.setCurrent(.zhHans)
     if CommandLine.arguments.contains("--sandbox-safe") {
+        try testV092TieredGlobalSearchAndBackupV2()
         try testClipboardMediaCaptureAndPasteModel()
         try testV089PluginStoreAndSmartSniffer()
         try testV088PluginNativeExperience()
@@ -834,6 +835,7 @@ do {
     try testV087LocalSecretVaultAndLazyLoading()
     try testV088PluginNativeExperience()
     try testV089PluginStoreAndSmartSniffer()
+    try testV092TieredGlobalSearchAndBackupV2()
     try testClipboardMediaCaptureAndPasteModel()
     try testLivePasteboardImageAndVideoRoundtrip()
     try testV070Wave2Integration()

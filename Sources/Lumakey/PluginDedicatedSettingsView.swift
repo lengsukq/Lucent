@@ -17,39 +17,46 @@ struct PluginDedicatedSettingsView: View {
 
     var body: some View {
         if let plugin = activePlugin {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    heroHeader(for: plugin)
-                    if let banner = state.bannerMessage {
-                        HStack(spacing: 8) {
-                            Image(systemName: "sparkles").foregroundStyle(LiquidColors.accentPrimary)
-                            Text(banner).font(.caption).foregroundStyle(LiquidColors.textPrimary)
-                            Spacer()
-                            Button { state.bannerMessage = nil } label: {
-                                Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(LiquidColors.textSecondary)
+            if plugin.id == LumaLinkServer.companionPluginID {
+                LumaLinkDedicatedConsoleView(
+                    plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel,
+                    customizationCard: { customizationCard(for: plugin) }
+                )
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        heroHeader(for: plugin)
+                        if let banner = state.bannerMessage {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles").foregroundStyle(LiquidColors.accentPrimary)
+                                Text(banner).font(.caption).foregroundStyle(LiquidColors.textPrimary)
+                                Spacer()
+                                Button { state.bannerMessage = nil } label: {
+                                    Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(LiquidColors.textSecondary)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .liquidGlassCard(cornerRadius: LiquidRadii.row, solidReadable: true)
                         }
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .liquidGlassCard(cornerRadius: LiquidRadii.row, solidReadable: true)
+                        if let fields = plugin.manifest.config, !fields.isEmpty {
+                            PluginConfigFormCard(plugin: plugin, fields: fields, ctrl: ctrl, viewModel: viewModel)
+                        }
+                        PluginCommandSettingsCard(plugin: plugin, viewModel: viewModel, settingsState: state)
+                        customizationCard(for: plugin)
+                        if !plugin.isBuiltin {
+                            PluginPermissionsAndSandboxSection(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
+                            PluginDedicatedDataAndContextCard(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
+                            PluginDeveloperDiagnosticsSection(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
+                        }
                     }
-                    if let fields = plugin.manifest.config, !fields.isEmpty {
-                        PluginConfigFormCard(plugin: plugin, fields: fields, ctrl: ctrl, viewModel: viewModel)
-                    }
-                    PluginCommandSettingsCard(plugin: plugin, viewModel: viewModel, settingsState: state)
-                    customizationCard(for: plugin)
-                    if !plugin.isBuiltin {
-                        PluginPermissionsAndSandboxSection(plugin: plugin, ctrl: ctrl, viewModel: viewModel)
-                        PluginDedicatedDataAndContextCard(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
-                        PluginDeveloperDiagnosticsSection(plugin: plugin, state: state, ctrl: ctrl, viewModel: viewModel)
-                    }
+                    .padding(.trailing, 6)
+                    .padding(.bottom, 8)
                 }
-                .padding(.trailing, 6)
-                .padding(.bottom, 8)
+                .onAppear { state.bindIfNeeded(plugin: plugin, ctrl: ctrl) }
+                .onChange(of: plugin.id) { _, _ in state.bindIfNeeded(plugin: plugin, ctrl: ctrl) }
+                .onDisappear { state.stopRecordingHotKey() }
             }
-            .onAppear { state.bindIfNeeded(plugin: plugin, ctrl: ctrl) }
-            .onChange(of: plugin.id) { _, _ in state.bindIfNeeded(plugin: plugin, ctrl: ctrl) }
-            .onDisappear { state.stopRecordingHotKey() }
         } else {
             ContentUnavailableView(
                 L10n.pick("未找到已安装插件", "No Plugins Found"),
@@ -231,13 +238,11 @@ struct PluginDedicatedSettingsView: View {
                 ))
                 .fixedSize(horizontal: true, vertical: false)
 
-                if !plugin.isBuiltin {
-                    Toggle(L10n.pick("混入全局搜索", "Show in Global Search"), isOn: Binding(
-                        get: { plugin.includeInGlobalSearch },
-                        set: { val in state.mutateOverrides(for: plugin, viewModel: viewModel) { $0.includeInGlobalSearch = val } }
-                    ))
-                    .fixedSize(horizontal: true, vertical: false)
-                }
+                Toggle(L10n.pick("主入口混入全局搜索", "Main Entry in Global Search"), isOn: Binding(
+                    get: { plugin.includeInGlobalSearch },
+                    set: { val in state.mutateOverrides(for: plugin, viewModel: viewModel) { $0.includeInGlobalSearchOverride = val } }
+                ))
+                .fixedSize(horizontal: true, vertical: false)
             }
             .font(.caption)
 

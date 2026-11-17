@@ -190,6 +190,35 @@ extension LumaLinkServer {
                 rdpEnabled: rdp.enabled && rdp.running,
                 rdpPort: Int(rdp.port)
             ), to: session)
+        case "rdp.enable", "rdp.start":
+            var cfg = currentConfig()
+            cfg.enabled = true
+            cfg.rdpEnabled = true
+            apply(config: cfg, persist: true)
+            Thread.sleep(forTimeInterval: 0.15)
+            let rdp = LumaLinkRdpSidecarService.shared.currentStatus(refreshPermissions: true)
+            send(LumaLinkResponse(
+                id: req.id,
+                ok: rdp.running,
+                error: rdp.running ? nil : (rdp.lastError ?? "极速 RDP 服务尚未就绪，请在 Mac 端检查权限或引擎组件"),
+                hostName: Host.current().localizedName ?? "Mac",
+                protocolVersion: 2,
+                rdpEnabled: rdp.enabled && rdp.running,
+                rdpPort: Int(rdp.port)
+            ), to: session)
+        case "rdp.disable", "rdp.stop":
+            var cfg = currentConfig()
+            cfg.rdpEnabled = false
+            apply(config: cfg, persist: true)
+            let rdp = LumaLinkRdpSidecarService.shared.currentStatus(refreshPermissions: false)
+            send(LumaLinkResponse(
+                id: req.id,
+                ok: true,
+                hostName: Host.current().localizedName ?? "Mac",
+                protocolVersion: 2,
+                rdpEnabled: false,
+                rdpPort: Int(rdp.port)
+            ), to: session)
         case "audio.status":
             let pref = currentConfig().preferredVirtualMicName
             send(LumaLinkResponse(id: req.id, ok: true, audio: LumaLinkAudioBridgeService.shared.status(preferredName: pref)), to: session)

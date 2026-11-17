@@ -3,83 +3,11 @@ import Foundation
 import LumakeyCore
 import UniformTypeIdentifiers
 
-struct PendingBackupRestore: Equatable {
-    let sourceLabel: String
-    let data: Data
-    let summary: BackupInspectionSummary
-    var options: BackupRestoreOptions
-}
-
-enum BackupBannerTone: Equatable { case success, info, error }
-
-struct BackupStatusBanner: Equatable {
-    let tone: BackupBannerTone
-    let message: String
-}
-
-@MainActor
-enum BackupCoordinator {
-    static func exportCurrentArchiveData(viewModel: AppViewModel) throws -> Data {
-        try BackupArchiveService.exportBackupData(
-            clipboardEntries: viewModel.clipboardItems,
-            mosConfig: viewModel.mosConfig,
-            telemetryConfig: SystemPulseWindowController.shared.state.config
-        )
-    }
-
-    static func applyRestoreReport(_ report: BackupRestoreReport, to viewModel: AppViewModel) {
-        viewModel.applyMosConfig(report.mosConfig)
-        let pulse = SystemPulseWindowController.shared
-        pulse.state.config = report.telemetryConfig
-        pulse.state.config.save()
-        pulse.setMenuBarEnabled(report.telemetryConfig.showInMenuBar)
-        pulse.setFloatingEnabled(report.telemetryConfig.floatingEnabled)
-
-        var merged = viewModel.clipboardItems
-        for entry in report.restoredClipboardEntries.reversed() {
-            merged = ClipboardService.insert(entry, into: merged)
-        }
-        viewModel.clipboardItems = merged
-        viewModel.reloadThemeFromDisk()
-        viewModel.reloadLanguageFromDisk()
-        viewModel.reloadAppsAndPlugins()
-    }
-
-    static func triggerQuickBackup(viewModel: AppViewModel) {
-        let cfg = WebDAVConfig.load()
-        if cfg.isConfigured, let pwd = try? WebDAVKeychainStore.loadPassword(account: cfg.username), !pwd.isEmpty {
-            viewModel.serviceMessage = "正在后台上传 WebDAV 快照备份…"
-            Task { @MainActor in
-                do {
-                    let archive = try exportCurrentArchiveData(viewModel: viewModel)
-                    let client = WebDAVClient(config: cfg, password: pwd)
-                    let item = try await Task.detached(priority: .utility) { try await client.uploadBackup(data: archive) }.value
-                    viewModel.serviceMessage = "已上传云备份：\(item.fileName)"
-                } catch {
-                    viewModel.serviceMessage = "云备份失败：\(error.localizedDescription)"
-                }
-            }
-        } else {
-            BackupSettingsViewState().exportLocalBackupInteractive(viewModel: viewModel)
-        }
-    }
-
-    static func triggerAutoBackupOnLaunchIfNeeded(viewModel: AppViewModel) {
-        let cfg = WebDAVConfig.load()
-        guard cfg.autoBackupOnLaunch, cfg.isConfigured,
-              let pwd = try? WebDAVKeychainStore.loadPassword(account: cfg.username), !pwd.isEmpty else { return }
-        Task { @MainActor in
-            guard let archive = try? exportCurrentArchiveData(viewModel: viewModel) else { return }
-            let client = WebDAVClient(config: cfg, password: pwd)
-            _ = try? await Task.detached(priority: .background) { try await client.uploadBackup(data: archive) }.value
-        }
-    }
-}
-
 @MainActor
 final class BackupSettingsViewState: ObservableObject {
     @Published var webdavConfig: WebDAVConfig = WebDAVConfig.load()
     @Published var passwordInput: String = ""
+    @Published var archivePassphraseInput: String = ""
     @Published var selectedPresetID: String = "jianguoyun"
     @Published var remoteItems: [WebDAVRemoteItem] = []
     @Published var pendingRestore: PendingBackupRestore?
@@ -99,6 +27,9 @@ final class BackupSettingsViewState: ObservableObject {
         if let saved = try? WebDAVKeychainStore.loadPassword(account: cfg.username) {
             passwordInput = saved
         }
+        if let savedArchivePass = WebDAVKeychainStore.loadBackupPassphrase() {
+            archivePassphraseInput = savedArchivePass
+        }
         if let matched = WebDAVProviderPreset.allPresets.first(where: {
             !cfg.serverURL.isEmpty && cfg.serverURL.lowercased().contains($0.id)
         }) {
@@ -115,6 +46,22 @@ final class BackupSettingsViewState: ObservableObject {
     }
 
     @discardableResult
+    func saveArchivePassphrase() -> Bool {
+        do {
+            try WebDAVKeychainStore.saveBackupPassphrase(archivePassphraseInput)
+            let hasPass = !archivePassphraseInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            banner = BackupStatusBanner(
+                tone: .success,
+                message: hasPass ? "已保存备份加密口令，后续导出与云同步将自动加密携带插件密钥" : "已清空备份加密口令，备份将仅包含非敏感配置与插件数据"
+            )
+            return true
+        } catch {
+            banner = BackupStatusBanner(tone: .error, message: error.localizedDescription)
+            return false
+        }
+    }
+
+    @discardableResult
     func persistSettings() -> Bool {
         webdavConfig.save()
         do {
@@ -122,6 +69,7 @@ final class BackupSettingsViewState: ObservableObject {
                 try? WebDAVKeychainStore.deletePassword(account: previousAccount)
             }
             try WebDAVKeychainStore.savePassword(passwordInput, account: webdavConfig.username)
+            try WebDAVKeychainStore.saveBackupPassphrase(archivePassphraseInput)
             previousAccount = webdavConfig.username
             return true
         } catch {
@@ -132,16 +80,20 @@ final class BackupSettingsViewState: ObservableObject {
 
     func exportLocalBackupInteractive(viewModel: AppViewModel) {
         let panel = NSSavePanel()
-        panel.title = "导出 Lumakey 全量备份归档"
+        panel.title = "导出 Lumakey 全量备份归档 (v2 压缩)"
         panel.nameFieldStringValue = BackupArchiveService.defaultBackupFileName()
         panel.canCreateDirectories = true
         panel.allowsOtherFileTypes = true
         guard panel.runModal() == .OK, let targetURL = panel.url else { return }
         do {
-            let data = try BackupCoordinator.exportCurrentArchiveData(viewModel: viewModel)
+            try? WebDAVKeychainStore.saveBackupPassphrase(archivePassphraseInput)
+            let data = try BackupCoordinator.exportCurrentArchiveData(
+                viewModel: viewModel, passphraseOverride: archivePassphraseInput
+            )
             try data.write(to: targetURL, options: .atomic)
             let s = try BackupArchiveService.inspectBackupData(data)
-            let msg = "已导出 \(targetURL.lastPathComponent)（\(s.configCount) 项配置 · \(s.pinnedClipboardCount) 条收藏 · \(s.pluginCount) 个插件）"
+            let secretNote = s.hasEncryptedSecrets ? " · 含口令加密密钥" : ""
+            let msg = "已导出 \(targetURL.lastPathComponent)（\(s.configCount) 项配置 · \(s.pinnedClipboardCount) 条收藏 · \(s.pluginCount) 个插件 · \(s.pluginDataFileCount) 份插件数据\(secretNote)）"
             banner = BackupStatusBanner(tone: .success, message: msg)
             viewModel.serviceMessage = msg
         } catch {
@@ -160,7 +112,13 @@ final class BackupSettingsViewState: ObservableObject {
         do {
             let data = try Data(contentsOf: sourceURL)
             let summary = try BackupArchiveService.inspectBackupData(data)
-            pendingRestore = PendingBackupRestore(sourceLabel: sourceURL.lastPathComponent, data: data, summary: summary, options: .all)
+            pendingRestore = PendingBackupRestore(
+                sourceLabel: sourceURL.lastPathComponent,
+                data: data,
+                summary: summary,
+                options: .all,
+                passphraseInput: archivePassphraseInput
+            )
             banner = BackupStatusBanner(tone: .info, message: "SHA-256 校验通过，请核对下方快照摘要后确认恢复")
         } catch {
             banner = BackupStatusBanner(tone: .error, message: error.localizedDescription)
@@ -168,7 +126,8 @@ final class BackupSettingsViewState: ObservableObject {
     }
 
     func confirmPendingRestore(viewModel: AppViewModel) {
-        guard let pending = pendingRestore else { return }
+        guard var pending = pendingRestore else { return }
+        pending.options.decryptionPassphrase = pending.passphraseInput
         do {
             let r = try BackupArchiveService.restoreBackupData(pending.data, options: pending.options)
             BackupCoordinator.applyRestoreReport(r, to: viewModel)
@@ -176,10 +135,14 @@ final class BackupSettingsViewState: ObservableObject {
             let missingPlugins = viewModel.plugins
                 .filter { r.restoredPluginIDs.contains($0.id) && !PluginDataInspector.inspect($0).missingRequiredSecretKeys.isEmpty }
                 .map(\.manifest.name)
-            let secretNote = missingPlugins.isEmpty
-                ? ""
-                : "（提示：\(missingPlugins.joined(separator: "、")) 的钥匙串密钥需在对应插件独立设置页重新录入）"
-            let msg = "恢复完成：\(r.restoredConfigFileNames.count) 项配置、\(r.restoredClipboardEntries.count) 条收藏、\(r.restoredPluginIDs.count) 个插件已生效\(secretNote)"
+            let secretNote = if !r.restoredSecretPluginIDs.isEmpty {
+                " · 已解密恢复 \(r.restoredSecretPluginIDs.count) 个插件密钥"
+            } else if !missingPlugins.isEmpty {
+                "（提示：\(missingPlugins.joined(separator: "、")) 的密钥需在独立设置页录入）"
+            } else {
+                ""
+            }
+            let msg = "恢复完成：\(r.restoredConfigFileNames.count) 项配置、\(r.restoredClipboardEntries.count) 条收藏、\(r.restoredPluginIDs.count) 个插件、\(r.restoredPluginDataIDs.count) 组插件数据已生效\(secretNote)"
             banner = BackupStatusBanner(tone: .success, message: msg)
             viewModel.serviceMessage = msg
         } catch {
@@ -199,10 +162,15 @@ final class BackupSettingsViewState: ObservableObject {
     func uploadBackupToWebDAV(viewModel: AppViewModel) {
         guard persistSettings() else { return }
         let archive: Data
-        do { archive = try BackupCoordinator.exportCurrentArchiveData(viewModel: viewModel) }
-        catch { banner = BackupStatusBanner(tone: .error, message: error.localizedDescription); return }
+        do {
+            archive = try BackupCoordinator.exportCurrentArchiveData(
+                viewModel: viewModel, passphraseOverride: archivePassphraseInput
+            )
+        } catch {
+            banner = BackupStatusBanner(tone: .error, message: error.localizedDescription); return
+        }
         let client = WebDAVClient(config: webdavConfig, password: passwordInput)
-        runAsyncTask(label: "正在上传备份并执行快照轮转…") {
+        runAsyncTask(label: "正在上传 v2 压缩备份并执行快照轮转…") {
             let uploaded = try await client.uploadBackup(data: archive)
             self.remoteItems = (try? await client.listBackups()) ?? [uploaded]
             self.banner = BackupStatusBanner(tone: .success, message: "云备份成功：\(uploaded.fileName)（保留最近 \(self.webdavConfig.keepLatestCount) 份）")
@@ -229,7 +197,13 @@ final class BackupSettingsViewState: ObservableObject {
         runAsyncTask(label: "正在下载 \(item.fileName)…") {
             let data = try await client.downloadBackup(item: item)
             let summary = try BackupArchiveService.inspectBackupData(data)
-            self.pendingRestore = PendingBackupRestore(sourceLabel: "云端 · \(item.fileName)", data: data, summary: summary, options: .all)
+            self.pendingRestore = PendingBackupRestore(
+                sourceLabel: "云端 · \(item.fileName)",
+                data: data,
+                summary: summary,
+                options: .all,
+                passphraseInput: self.archivePassphraseInput
+            )
             self.banner = BackupStatusBanner(tone: .info, message: "云端快照下载并通过 SHA-256 校验，请确认恢复")
         }
     }

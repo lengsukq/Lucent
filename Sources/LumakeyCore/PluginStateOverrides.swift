@@ -78,6 +78,11 @@ extension PluginSystem {
             cleanedCmdHKs[cmdID] = rawChord.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         next.commandHotKeys = cleanedCmdHKs
+        var cleanedCmdSearch: [String: Bool] = [:]
+        for (cmdID, flag) in next.commandSearchOverrides where PluginCommandRegistry.isSafeCommandID(cmdID) {
+            cleanedCmdSearch[cmdID] = flag
+        }
+        next.commandSearchOverrides = cleanedCmdSearch
         next.priorityBoost = min(max(next.priorityBoost, -200), 300)
         next.quickButtonCommandIDs = deduplicateIDs(next.quickButtonCommandIDs)
         next.disabledCommandIDs = deduplicateIDs(next.disabledCommandIDs)
@@ -127,18 +132,34 @@ extension PluginSystem {
     public static func setPluginCommandSearchEnabled(
         pluginID: String,
         commandID: String,
-        enabled: Bool,
+        enabled: Bool?,
         in rootDir: URL = defaultPluginsDirectory()
     ) throws {
         guard PluginCommandRegistry.isSafeCommandID(commandID) else {
             throw LumakeyError.pluginInvalid("子功能 id '\(commandID)' 不合法")
         }
         try updatePluginOverrides(id: pluginID, in: rootDir) { ov in
-            if enabled {
+            if let enabled {
+                ov.commandSearchOverrides[commandID] = enabled
+                if enabled {
+                    ov.disabledCommandIDs.removeAll { $0 == commandID }
+                } else if !ov.disabledCommandIDs.contains(commandID) {
+                    ov.disabledCommandIDs.append(commandID)
+                }
+            } else {
+                ov.commandSearchOverrides.removeValue(forKey: commandID)
                 ov.disabledCommandIDs.removeAll { $0 == commandID }
-            } else if !ov.disabledCommandIDs.contains(commandID) {
-                ov.disabledCommandIDs.append(commandID)
             }
+        }
+    }
+
+    public static func setPluginSearchIndexGlobalEnabled(
+        pluginID: String,
+        enabled: Bool?,
+        in rootDir: URL = defaultPluginsDirectory()
+    ) throws {
+        try updatePluginOverrides(id: pluginID, in: rootDir) { ov in
+            ov.searchIndexGlobalOverride = enabled
         }
     }
 

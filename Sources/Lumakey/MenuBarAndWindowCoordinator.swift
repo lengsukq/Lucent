@@ -119,15 +119,9 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             .workspace: { [weak self] in self?.open(route: .workspace) },
             .systemPulse: { SystemPulseWindowController.shared.toggleFloatingWidget() },
             .networkMonitor: { [weak self] in self?.open(route: .networkMonitor) },
-            .quickBackup: { [weak self] in
-                guard let vm = self?.viewModel else { return }
-                BackupCoordinator.triggerQuickBackup(viewModel: vm)
-            }
+            .quickBackup: { [weak self] in if let vm = self?.viewModel { BackupCoordinator.triggerQuickBackup(viewModel: vm) } }
         ]
-        _ = hotKeyManager.applyConfig(
-            HotKeyBindingConfig.load(), handlers: handlers,
-            externalBindings: viewModel.externalPluginHotKeyBindings()
-        )
+        _ = hotKeyManager.applyConfig(HotKeyBindingConfig.load(), handlers: handlers, externalBindings: viewModel.externalPluginHotKeyBindings())
     }
 
     private func installMemoryPressureMonitor() {
@@ -162,6 +156,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         addMenuItem(to: menu, rawTitle: "关闭全部钉图", key: "") { PinWindowController.shared.closeAll() }
         menu.addItem(.separator())
         addMenuItem(to: menu, rawTitle: "导出、备份与 WebDAV 云同步", key: "") { [weak self] in self?.open(route: .settings(.backup)) }
+        addMenuItem(to: menu, rawTitle: "流光随行手机远控与极速 RDP", key: "") { [weak self] in self?.openLumaLinkConsole() }
         addMenuItem(to: menu, rawTitle: "应用缓存与存储清理", key: "") { [weak self] in self?.open(route: .settings(.cache)) }
         addMenuItem(to: menu, rawTitle: "鼠标平滑与滚轮反转", key: "") { [weak self] in self?.open(route: .settings(.mos)) }
         addMenuItem(to: menu, rawTitle: "立即释放空闲内存", key: "") { [weak self] in self?.viewModel.reclaimAllIdleMemoryNow() }
@@ -172,6 +167,11 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         menu.addItem(.separator())
         addMenuItem(to: menu, rawTitle: "退出 流光 Lumakey", key: "⌘Q") { NSApp.terminate(nil) }
         return menu
+    }
+
+    func openLumaLinkConsole() {
+        let hasPlugin = viewModel.plugins.contains { $0.id == LumaLinkServer.companionPluginID }
+        open(route: hasPlugin ? .pluginSettings(LumaLinkServer.companionPluginID) : .settings(.lumaLink))
     }
 
     private func refreshLocalizedChrome() {

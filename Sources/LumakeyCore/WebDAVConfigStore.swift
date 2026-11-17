@@ -126,6 +126,27 @@ public enum WebDAVKeychainError: Error, LocalizedError, Sendable, Equatable {
 
 public enum WebDAVKeychainStore {
     public static let defaultService = "app.lumakey.macos.webdav"
+    public static let backupPassphraseAccount = "__lumakey_backup_passphrase__"
+
+    public static func saveBackupPassphrase(
+        _ passphrase: String,
+        service: String = defaultService,
+        customVaultURL: URL? = nil
+    ) throws {
+        try savePassword(
+            passphrase.trimmingCharacters(in: .whitespacesAndNewlines),
+            account: backupPassphraseAccount,
+            service: service,
+            customVaultURL: customVaultURL
+        )
+    }
+
+    public static func loadBackupPassphrase(
+        service: String = defaultService,
+        customVaultURL: URL? = nil
+    ) -> String? {
+        try? loadPassword(account: backupPassphraseAccount, service: service, customVaultURL: customVaultURL)
+    }
 
     private static func normalizedAccount(_ account: String) -> String {
         let trimmed = account.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -15,6 +15,8 @@ public struct LumaLinkPairedDevice: Codable, Sendable, Hashable, Identifiable {
 public struct LumaLinkConfig: Codable, Sendable, Hashable {
     public var enabled: Bool = false
     public var preferredPort: UInt16 = 59480
+    public var preferredInterface: String = ""
+    public var customConnectHost: String = ""
     public var autoRestoreDisplayOnDisconnect: Bool = true
     public var muteMacWhenCurtainEnabled: Bool = true
     public var rdpEnabled: Bool = false
@@ -24,19 +26,23 @@ public struct LumaLinkConfig: Codable, Sendable, Hashable {
     public var pairedDevices: [LumaLinkPairedDevice] = []
 
     enum CodingKeys: String, CodingKey {
-        case enabled, preferredPort, autoRestoreDisplayOnDisconnect
+        case enabled, preferredPort, preferredInterface, customConnectHost
+        case autoRestoreDisplayOnDisconnect
         case muteMacWhenCurtainEnabled, rdpEnabled, rdpPort
         case rdpLocalAudioEnabled, preferredVirtualMicName, pairedDevices
     }
 
     public init(
         enabled: Bool = false, preferredPort: UInt16 = 59480,
+        preferredInterface: String = "", customConnectHost: String = "",
         autoRestoreDisplayOnDisconnect: Bool = true, muteMacWhenCurtainEnabled: Bool = true,
         rdpEnabled: Bool = false, rdpPort: UInt16 = 3389,
         rdpLocalAudioEnabled: Bool = true, preferredVirtualMicName: String = "",
         pairedDevices: [LumaLinkPairedDevice] = []
     ) {
         self.enabled = enabled; self.preferredPort = preferredPort
+        self.preferredInterface = preferredInterface
+        self.customConnectHost = LumaLinkNetworkResolver.sanitizeHostInput(customConnectHost)
         self.autoRestoreDisplayOnDisconnect = autoRestoreDisplayOnDisconnect
         self.muteMacWhenCurtainEnabled = muteMacWhenCurtainEnabled
         self.rdpEnabled = rdpEnabled; self.rdpPort = rdpPort
@@ -49,6 +55,9 @@ public struct LumaLinkConfig: Codable, Sendable, Hashable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? false
         preferredPort = try c.decodeIfPresent(UInt16.self, forKey: .preferredPort) ?? 59480
+        preferredInterface = try c.decodeIfPresent(String.self, forKey: .preferredInterface) ?? ""
+        let rawHost = try c.decodeIfPresent(String.self, forKey: .customConnectHost) ?? ""
+        customConnectHost = LumaLinkNetworkResolver.sanitizeHostInput(rawHost)
         autoRestoreDisplayOnDisconnect = try c.decodeIfPresent(Bool.self, forKey: .autoRestoreDisplayOnDisconnect) ?? true
         muteMacWhenCurtainEnabled = try c.decodeIfPresent(Bool.self, forKey: .muteMacWhenCurtainEnabled) ?? true
         rdpEnabled = try c.decodeIfPresent(Bool.self, forKey: .rdpEnabled) ?? false

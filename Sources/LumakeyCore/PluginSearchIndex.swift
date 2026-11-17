@@ -62,7 +62,7 @@ public struct PluginSearchEntry: Identifiable, Sendable, Hashable {
         self.copyText = copyText
         self.icon = icon
         self.customIconURL = customIconURL
-        self.tintColor = tintColor
+        self.tintColor = itemIconTintFallback(tintColor)
         self.badge = badge
         self.tags = tags
         self.pinned = pinned
@@ -79,6 +79,8 @@ public struct PluginSearchEntry: Identifiable, Sendable, Hashable {
         self.pinyinInitials = initials
     }
 }
+
+private func itemIconTintFallback(_ raw: String?) -> String? { raw }
 
 public enum PluginSearchIndex {
     public static let defaultIndexFileName = "search-index.json"
@@ -101,6 +103,7 @@ public enum PluginSearchIndex {
         let pinned: Bool?
         let priority: Int?
         let commandArgs: [String]?
+        let includeInGlobalSearch: Bool?
     }
 
     public static func indexFileURL(
@@ -146,6 +149,7 @@ public enum PluginSearchIndex {
             }
 
             let boost = plugin.effectiveRankingBoost
+            let indexPoolEnabled = plugin.searchIndexInGlobalSearch
             let dataDir = PluginDataPaths.dataDirectory(for: plugin.id, pluginsRoot: resolvedRoot)
             let pName = plugin.displayName
             for (idx, item) in rawItems.prefix(maxItemsPerPlugin).enumerated() {
@@ -172,7 +176,7 @@ public enum PluginSearchIndex {
                         pinned: item.pinned ?? false,
                         priority: item.priority ?? 0,
                         commandArgs: item.commandArgs,
-                        includeInGlobalSearch: plugin.includeInGlobalSearch,
+                        includeInGlobalSearch: indexPoolEnabled && (item.includeInGlobalSearch ?? true),
                         pluginBoost: boost
                     )
                 )
@@ -252,8 +256,10 @@ public enum PluginSearchIndex {
         if entry.pinyinInitials.hasPrefix(token) { return 8_300 }
         if entry.titleLowercased.contains(token) || entry.fullPinyin.hasPrefix(token) { return 7_700 }
         if entry.tagsLowercased.contains(where: { $0 == token || $0.contains(token) }) { return 7_500 }
-        if entry.fullPinyin.contains(token) || entry.pinyinInitials.contains(token) { return 6_800 }
+        if entry.fullPinyin.contains(needleOrToken(token)) || entry.pinyinInitials.contains(token) { return 6_800 }
         if entry.urlLowercased.contains(token) || entry.subtitleLowercased.contains(token) { return 6_200 }
         return 0
     }
+
+    private static func needleOrToken(_ t: String) -> String { t }
 }

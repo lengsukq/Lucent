@@ -54,10 +54,14 @@ public enum BackupArchiveService {
     public static func exportBackupData(
         appSupportDirectory: URL = defaultAppSupportDirectory(),
         pluginsDirectory: URL? = nil,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
         clipboardEntries: [ClipboardEntry] = [],
         mosConfig: MosConfig? = nil,
         telemetryConfig: SystemMonitorConfig? = nil,
         maxEmbeddedImageBytes: Int = defaultMaxEmbeddedImageBytes,
+        maxPluginDataBytesPerPlugin: Int = defaultMaxPluginDataBytesPerPlugin,
+        encryptionPassphrase: String? = nil,
+        compress: Bool = false,
         appVersion: String = "0.7.1",
         createdAt: Date = Date()
     ) throws -> Data {
@@ -67,13 +71,23 @@ public enum BackupArchiveService {
         let rawConfigs = collectRawConfigFiles(in: appSupportDirectory)
         let clipboardRecords = encodePinnedClipboard(clipboardEntries, maxEmbeddedImageBytes: maxEmbeddedImageBytes)
         let pluginBundles = collectPluginBundles(in: resolvedPluginsDir)
+        let pluginDataBundles = collectPluginDataBundles(in: resolvedPluginsDir, maxBytesPerPlugin: maxPluginDataBytesPerPlugin)
+        let externalFiles = collectExternalPluginFiles(in: resolvedPluginsDir, homeDirectory: homeDirectory)
+        let encryptedSecrets: BackupEncryptedSecretsEnvelope? = if let pass = encryptionPassphrase, !pass.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            try sealPluginSecrets(in: resolvedPluginsDir, passphrase: pass)
+        } else {
+            nil
+        }
 
         let draftPayload = BackupPayload(
             mosConfig: resolvedMos,
             telemetryConfig: resolvedTelemetry,
             rawConfigFiles: rawConfigs,
             pinnedClipboardItems: clipboardRecords,
-            plugins: pluginBundles
+            plugins: pluginBundles,
+            pluginData: pluginDataBundles,
+            externalPluginFiles: externalFiles,
+            encryptedPluginSecrets: encryptedSecrets
         )
         let canonicalEnc = JSONEncoder()
         canonicalEnc.outputFormatting = [.sortedKeys]
@@ -89,16 +103,20 @@ public enum BackupArchiveService {
             payloadSHA256: sha256,
             payload: normalizedPayload
         )
-        let prettyEnc = JSONEncoder()
-        prettyEnc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return try prettyEnc.encode(envelope)
+        let outEnc = JSONEncoder()
+        outEnc.outputFormatting = compress ? [.sortedKeys] : [.prettyPrinted, .sortedKeys]
+        let rawJSON = try outEnc.encode(envelope)
+        return compress ? try compressLZFSEFrame(rawJSON) : rawJSON
     }
 
     public static func inspectBackupData(_ data: Data) throws -> BackupInspectionSummary {
-        let envelope = try decodeAndVerifyEnvelope(data)
+        let compressed = isCompressedArchive(data)
+        let rawJSON = try decompressIfNeeded(data)
+        let envelope = try decodeAndVerifyEnvelope(rawJSON)
         let p = envelope.payload
         let configNames = ["mos-config.json", "telemetry-v2.json"] + p.rawConfigFiles.keys.sorted()
         let skippedImages = p.pinnedClipboardItems.filter(\.skippedLargeImage).count
+        let dataFiles = p.pluginData.reduce(0) { $0 + $1.files.count }
         return BackupInspectionSummary(
             schemaVersion: envelope.schemaVersion,
             createdAtISO8601: envelope.createdAtISO8601,
@@ -106,10 +124,15 @@ public enum BackupArchiveService {
             hostName: envelope.hostName,
             payloadSHA256: envelope.payloadSHA256,
             archiveByteCount: data.count,
+            isCompressed: compressed,
             configFileNames: configNames,
             pinnedClipboardCount: p.pinnedClipboardItems.count,
             skippedLargeImageCount: skippedImages,
-            pluginIDs: p.plugins.map(\.id)
+            pluginIDs: p.plugins.map(\.id),
+            pluginDataPluginIDs: p.pluginData.map(\.id),
+            pluginDataFileCount: dataFiles,
+            externalFileCount: p.externalPluginFiles.count,
+            hasEncryptedSecrets: p.encryptedPluginSecrets != nil
         )
     }
 
@@ -118,14 +141,32 @@ public enum BackupArchiveService {
         options: BackupRestoreOptions = .all,
         appSupportDirectory: URL = defaultAppSupportDirectory(),
         pluginsDirectory: URL? = nil,
-        clipboardImagesDirectory: URL? = nil
+        clipboardImagesDirectory: URL? = nil,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) throws -> BackupRestoreReport {
-        let envelope = try decodeAndVerifyEnvelope(data)
+        let rawJSON = try decompressIfNeeded(data)
+        let envelope = try decodeAndVerifyEnvelope(rawJSON)
         let payload = envelope.payload
         let resolvedPluginsDir = pluginsDirectory ?? appSupportDirectory.appendingPathComponent("Plugins", isDirectory: true)
         let resolvedClipDir = clipboardImagesDirectory ?? appSupportDirectory.appendingPathComponent("ClipboardPinned", isDirectory: true)
 
-        try validatePayloadSafety(payload, appSupportDirectory: appSupportDirectory, pluginsDirectory: resolvedPluginsDir)
+        try validatePayloadSafety(
+            payload,
+            appSupportDirectory: appSupportDirectory,
+            pluginsDirectory: resolvedPluginsDir,
+            homeDirectory: homeDirectory
+        )
+
+        var restoredSecretPlugins: [String] = []
+        if options.restoreEncryptedSecrets, let secretEnv = payload.encryptedPluginSecrets {
+            restoredSecretPlugins = try openAndRestorePluginSecrets(
+                secretEnv, passphrase: options.decryptionPassphrase, in: resolvedPluginsDir
+            )
+        }
+
+        let safetyURL: URL? = options.createSafetySnapshotBeforeRestore
+            ? writePreRestoreSafetySnapshot(appSupportDirectory: appSupportDirectory, pluginsDirectory: resolvedPluginsDir)
+            : nil
 
         var restoredConfigs: [String] = []
         if options.restoreConfigs {
@@ -160,10 +201,29 @@ public enum BackupArchiveService {
             )
         }
 
+        var restoredDataIDs: [String] = []
+        var restoredExtCount = 0
+        if options.restorePluginData {
+            restoredDataIDs = try restorePluginDataBundles(
+                payload.pluginData, in: resolvedPluginsDir, overwrite: options.overwriteExistingPlugins
+            )
+            restoredExtCount = try restoreExternalPluginFiles(
+                payload.externalPluginFiles, in: resolvedPluginsDir,
+                homeDirectory: homeDirectory, overwrite: options.overwriteExistingPlugins
+            )
+        }
+
         return BackupRestoreReport(
-            mosConfig: payload.mosConfig, telemetryConfig: payload.telemetryConfig,
-            restoredConfigFileNames: restoredConfigs, restoredClipboardEntries: restoredClip,
-            skippedClipboardCount: skippedClip, restoredPluginIDs: restoredPlugins
+            mosConfig: payload.mosConfig,
+            telemetryConfig: payload.telemetryConfig,
+            restoredConfigFileNames: restoredConfigs,
+            restoredClipboardEntries: restoredClip,
+            skippedClipboardCount: skippedClip,
+            restoredPluginIDs: restoredPlugins,
+            restoredPluginDataIDs: restoredDataIDs,
+            restoredExternalFileCount: restoredExtCount,
+            restoredSecretPluginIDs: restoredSecretPlugins,
+            safetySnapshotURL: safetyURL
         )
     }
 }

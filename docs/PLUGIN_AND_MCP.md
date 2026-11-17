@@ -20,8 +20,10 @@
    - **多语言本地化清单 (`locales`) 与宿主环境注入**：
      - 可选声明 `"locales": { "en": { "name": "...", "description": "...", "categoryTag": "...", "commands": { ... }, "config": { ... } } }`，免重启切换中英文时，外部插件的名称、分类标签、子功能标题与表单字段实时联动切换，且全局搜索同时匹配多语言词条；
      - 运行子进程时，`stdin` JSON 与环境变量同步注入当前语言（`stdin.locale` / `LUMAKEY_LOCALE`）与视觉主题（`stdin.theme` / `LUMAKEY_THEME`）。
-   - **子功能全局注册 (`commands`) 与子功能级全局热键 (`commandHotKeys`)**：
-     - 插件可在 `"commands"` 声明多项子功能（含 `id`、`title`、`subtitle`、`keywords`、`icon`、`hotkey`、`arguments`、`passQuery` 与可选 `silentWhenHotKeyTriggered`）；
+   - **子功能全局注册 (`commands`)、三级独立全局搜索开关与子功能级全局热键 (`commandHotKeys`)**：
+     - 插件可在 `"commands"` 声明多项子功能（含 `id`、`title`、`subtitle`、`keywords`、`icon`、`hotkey`、`arguments`、`passQuery`、`silentWhenHotKeyTriggered` 与可选 `includeInGlobalSearch`）；
+     - **注册期分级全局搜索接入控制**：顶层 `plugin.json` 支持声明 `"includeInGlobalSearch": true|false`（主入口默认是否混入 `⌥Space` 全局搜索）与 `"searchIndexInGlobalSearch": true|false`（免前缀索引池默认是否混入全局搜索），每条 `commands[]` 与 `search-index.json` 的 `items[]` 均可独立声明 `"includeInGlobalSearch"`，并与用户设置页的三态覆盖（`includeInGlobalSearchOverride` / `searchIndexGlobalOverride` / `commandSearchOverrides`）按「用户显式覆盖 -> 条目/子命令声明 -> 主入口生效值」解耦决策（即使隐藏主入口也可单独放行指定高频子命令）；
+     - **插件运行时数据与外部路径备份（Backup v2）**：`.lumakeybackup` v2 自动采用原生 `LZFSE` 压缩纳入 `PluginData/<id>/` 持久化数据与检索索引（自动跳过 `.tmp-*`、`cache/`、`*.log`、`*.sock` 及 `plugin.json` 中 `"backupExclude"` 规则），支持 `type: "path"` 配置项声明 `"includeInBackup": true` 随包备份主目录文件并按 `~/...` 跨机还原，同时支持可选备份口令经 `SHA256x65536 + HKDF + AES-GCM` 端到端加密迁移插件 `secret` 密钥；
      - 除插件主入口热键外，每项子功能均可在独立设置页单独录制全局快捷键（持久化于 `overrides.commandHotKeys` 并纳入三层热键冲突检测），配置 `silentWhenHotKeyTriggered: true` 的动作类子功能按下热键即可后台静默瞬发。
    - **快捷按钮 (`快捷按钮`) — 严格默认关闭、按需挂载**：
      - **默认状态下，所有插件与所有插件子功能均没有开启快捷按钮**（`pinnedInOverlay = false`，`quickButtonCommandIDs = []`），确保新装与新增插件零界面打扰；

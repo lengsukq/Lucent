@@ -232,4 +232,16 @@ public final class AppUsageService: @unchecked Sendable {
             if let snapshot { Self.writeState(snapshot, to: storageURL) }
         }
     }
+
+    public func discardPendingAndReloadFromDisk() {
+        ioLock.withLock {
+            lock.withLock {
+                pendingSaveTask?.cancel()
+                pendingSaveTask = nil
+                isDirty = false
+                state = Self.loadState(from: storageURL)
+                _ = migrateAliasesLocked()
+            }
+        }
+    }
 }

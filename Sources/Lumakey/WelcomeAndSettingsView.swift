@@ -41,6 +41,9 @@ struct SettingsCenterView: View {
                 ForEach(SettingsSection.builtinPluginSections) { section in
                     sectionButton(section, dotActive: isBuiltinActive(section))
                 }
+                if !sidebarExternalPlugins.contains(where: { $0.id == LumaLinkServer.companionPluginID }) {
+                    sectionButton(.lumaLink, dotActive: viewModel.lumaLinkConfig.enabled)
+                }
                 ForEach(sidebarExternalPlugins) { plugin in externalPluginSidebarButton(plugin) }
             }
         }

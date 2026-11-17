@@ -97,8 +97,11 @@ chmod +x "$MACOS_DIR/Lumakey" "$MACOS_DIR/lumakey-mcp"
 RDP_HELPER_SRC=""
 for candidate in \
   "${LUMAKEY_RDP_HELPER_SRC:-}" \
+  "$HOME/Library/Application Support/Lumakey/Remote/macos-rdp-daemon" \
   "$HOME/.local/share/lumakey/macos-rdp-daemon" \
+  "/opt/homebrew/bin/macos-rdp-daemon" \
   "/opt/homebrew/sbin/macos-rdp-daemon" \
+  "/usr/local/bin/macos-rdp-daemon" \
   "/usr/local/sbin/macos-rdp-daemon"; do
   if [[ -n "$candidate" && -x "$candidate" ]]; then
     RDP_HELPER_SRC="$candidate"

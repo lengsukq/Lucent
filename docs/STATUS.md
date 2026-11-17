@@ -2,6 +2,15 @@
 
 本文件如实记录当前仓库中已经编写并经过校验的真实实现，规划中能力见 [版本路线图](ROADMAP.md)。
 
+## 已完成与已验证 (v0.9.2)
+
+- **流光随行 (`LumaLink`) 多网卡识别切换、6 位配对码直显与手动连接修复 (`LumaLinkNetworkResolver`, `LumaLinkServer`, `PluginHostBridgeLumaLink`, `LumaLinkNetworkAndPairingCard`, `LumaLinkSettingsView`, `PluginDedicatedSettingsView`, `plugin-demo/lumalink-companion` v2.1.0)**：
+  - **修复内网穿透/代理虚拟网卡抢占默认 IP 问题**：新增 `LumaLinkNetworkResolver` 自动识别并剔除 Clash/Surge 虚拟网段（`198.18.0.0/15`）、链路本地地址（`169.254.*`）与 `awdl`/`llw`/`anpi` 内部接口，将活跃网卡分级为「物理局域网 (`en0`/`en1`)」「内网穿透/异地组网 (`utun*`/`zt*`/`100.64.*`)」与「虚拟桥接」，默认始终优先选用真实局域网 IP，同时在 `LumaLinkConfig` 持久化 `preferredInterface` 与 `customConnectHost` 支持一键切换指定内网穿透网卡或自定义域名/端口；
+  - **打通设置页与主浮窗双端配对码与手动连接面板**：在 `lumalink-companion` 插件独立设置页顶部直接挂载原生 `LumaLinkEmbeddedConsoleSection`（提供一键开启监听、网卡切换胶囊、端口与自定义地址配置、30pt 大号 6 位安全配对码、扫码二维码以及可逐项点击复制的主机 IP / 控制端口 / 配对码手动连接卡片）；Host Bridge 新增 `selectNetwork`、`setPort` 动作与监听就绪同步等待，官方示例商店 `lumalink-companion` 升级至 `v2.1.0` 新增「查看配对码与手动连接地址 (`--pin`)」和「切换连接网卡与 IP (`--networks`)」子功能。
+- **插件注册期三级全局搜索接入控制与备份归档 v2 升级 (`PluginModels`, `PluginCommandModels`, `PluginCustomizationModels`, `PluginSearchIndex`, `BackupModels`, `BackupArchiveService`, `BackupArchiveCryptoAndCompression`, `BackupArchivePluginData`, `BackupCoordinator`, `BackupRestorePreviewCard`)**：
+  - **注册期全局搜索分级声明与三态覆盖解耦**：`PluginManifest` 支持在注册时声明 `includeInGlobalSearch` 与 `searchIndexInGlobalSearch`，`PluginCommandSpec` 与 `search-index.json` 单条词条均支持独立声明 `includeInGlobalSearch`；`PluginUserOverrides` 升级为向后兼容旧版 `plugin-state.json` 的三态可选覆盖（`includeInGlobalSearchOverride`、`searchIndexGlobalOverride`、`commandSearchOverrides`），彻底解除主入口关闭对子命令搜索的一刀切锁死，并在插件独立设置页、内置插件及 `lumakey-mcp` 同步开放独立开关；
+  - **备份归档 Schema v2（`PluginData` + 外部路径文件 + `LZFSE` 压缩 + 可选口令密钥迁移 + 恢复热刷新）**：升级 `.lumakeybackup` 至 `schemaVersion = 2`（完整兼容读取 v1 归档），新增 `LMKYBK02` 原生 `LZFSE` 压缩帧；自动归档 `PluginData/<id>/` 持久化数据与免前缀检索索引（自动过滤 `.tmp-*`、`cache/`、`*.log`、`*.sock` 并支持 `manifest.backupExclude` 规则），支持 `type: "path"` 字段通过 `includeInBackup: true` 携带主目录收件箱文件并以 `~/...` 跨机还原；支持可选备份口令（`SHA256x65536 + HKDF-SHA256 + AES-GCM`）端到端加密迁移插件 `secret` 密钥；补齐恢复前本地自动防呆快照（`Backups/pre-restore-latest.lumakeybackup`）以及恢复后 `SnippetStore`、`AppUsageService`（含挂起延迟写盘取消）与 `LocalSecretVault` 内存单例热刷新。
+
 ## 已完成与已验证 (v0.9.1)
 
 - **示例与模板插件去重清理与精品化重写 + LumaLink 全功能商店化 (`plugin-demo/`, `PluginHostBridgeLumaLink`, `PluginStarterNetDiagTemplate`, `PluginStarterPortManagerTemplate`, `PluginStarterInboxNoteTemplate`)**：

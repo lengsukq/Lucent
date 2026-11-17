@@ -85,12 +85,16 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser.path
         let envOverride = ProcessInfo.processInfo.environment["LUMAKEY_RDP_HELPER_PATH"]
+        let appSupportHelper = Self.defaultCertDirectoryURL().appendingPathComponent("macos-rdp-daemon").path
         let candidates: [String?] = [
             envOverride,
             Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/macos-rdp-daemon").path,
             Bundle.main.sharedSupportURL?.appendingPathComponent("macos-rdp-daemon").path,
+            appSupportHelper,
             "\(home)/.local/share/lumakey/macos-rdp-daemon",
+            "/opt/homebrew/bin/macos-rdp-daemon",
             "/opt/homebrew/sbin/macos-rdp-daemon",
+            "/usr/local/bin/macos-rdp-daemon",
             "/usr/local/sbin/macos-rdp-daemon"
         ]
         for case let path? in candidates where fm.isExecutableFile(atPath: path) {
@@ -98,6 +102,21 @@ public final class LumaLinkRdpSidecarService: @unchecked Sendable {
             return path
         }
         return nil
+    }
+
+    @discardableResult
+    public func installHelperBinary(from sourceURL: URL) throws -> URL {
+        let fm = FileManager.default
+        let destDir = Self.defaultCertDirectoryURL()
+        try fm.createDirectory(at: destDir, withIntermediateDirectories: true)
+        let destURL = destDir.appendingPathComponent("macos-rdp-daemon", isDirectory: false)
+        if fm.fileExists(atPath: destURL.path) {
+            try fm.removeItem(at: destURL)
+        }
+        try fm.copyItem(at: sourceURL, to: destURL)
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: destURL.path)
+        lock.withLock { cachedBinaryPath = destURL.path; _lastError = nil }
+        return destURL
     }
 
     public static func defaultCertDirectoryURL() -> URL {

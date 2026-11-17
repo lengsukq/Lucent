@@ -55,7 +55,10 @@ public final class LumaLinkSpeakerTapService: @unchecked Sendable {
         guard #available(macOS 14.4, *) else {
             return "系统音频转发需要 macOS 14.4 及以上版本"
         }
-        let desc = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+        // Exclude Lumakey itself so bridged mobile mic audio written to BlackHole 2ch
+        // is never looped back into the speaker tap stream.
+        let excludedProcesses: [AudioObjectID] = Self.currentProcessAudioObjectID().map { [$0] } ?? []
+        let desc = CATapDescription(stereoGlobalTapButExcludeProcesses: excludedProcesses)
         desc.name = "LumaLink Speaker Tap"
         desc.isPrivate = true
         desc.muteBehavior = .unmuted
@@ -147,6 +150,27 @@ public final class LumaLinkSpeakerTapService: @unchecked Sendable {
             }
             tapID = kAudioObjectUnknown
         }
+    }
+
+    private static func currentProcessAudioObjectID() -> AudioObjectID? {
+        var pid = ProcessInfo.processInfo.processIdentifier
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyTranslatePIDToProcessObject,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var objID: AudioObjectID = kAudioObjectUnknown
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &addr,
+            UInt32(MemoryLayout<pid_t>.size),
+            &pid,
+            &size,
+            &objID
+        )
+        guard status == noErr, objID != kAudioObjectUnknown else { return nil }
+        return objID
     }
 
     private static let ioProc: AudioDeviceIOProc = { _, _, inInputData, _, _, _, clientData in

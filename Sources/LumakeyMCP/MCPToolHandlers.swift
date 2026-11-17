@@ -27,7 +27,7 @@ extension MCPServer {
         let acceptIDs = PluginContextKind.allCases.map(\.rawValue)
         return [
             schema("lumakey_list_plugins",
-                   "List installed external plugins and (by default) builtin native plugins (`BUILTIN`) with their localized names, custom icons/accent colors, declared permissions, sub-commands, command hotkeys, quick buttons (OFF by default), runtime status summary, and enabled state.",
+                   "List installed external plugins and (by default) builtin native plugins (`BUILTIN`) with their localized names, custom icons/accent colors, declared permissions, sub-commands, command hotkeys, quick buttons (OFF by default), tiered Global Search flags, runtime status summary, and enabled state.",
                    ["includeBuiltin": ["type": "boolean", "description": "Include BUILTIN native plugins (default true)."]], []),
             schema("lumakey_app_permissions",
                    "Return Lumakey's app-wide permission matrix: every system TCC / kernel / Host Bridge / Resource Scope permission and the exact list of builtin & external plugins that declared or use each permission, plus pure sandbox (`[]`) plugins.",
@@ -41,6 +41,9 @@ extension MCPServer {
                        "capabilities": ["type": "array", "items": ["type": "string", "enum": capIDs], "description": "REQUIRED Host Bridge declaration on registration. Pass [] if no host permission needed."],
                        "resourceScopes": ["type": "array", "items": ["type": "string", "enum": scopeIDs], "description": "REQUIRED external resource declaration on registration (`network`, `filesystem`, `subprocess`, or [])."],
                        "accepts": ["type": "array", "items": ["type": "string", "enum": acceptIDs], "description": "Optional context targets (`url`, `text`, `image`, `file`, `directory`) for cross-module action routing."],
+                       "includeInGlobalSearch": ["type": "boolean", "description": "Optional manifest default for main entry visibility in ⌥Space Global Search (default true)."],
+                       "searchIndexInGlobalSearch": ["type": "boolean", "description": "Optional manifest default for search-index.json visibility in ⌥Space Global Search (default inherits main entry)."],
+                       "backupExclude": ["type": "array", "items": ["type": "string"], "description": "Optional relative glob/prefix exclusions inside PluginData/<id>/ during backup."],
                        "description": ["type": "string", "description": "Short functional description."],
                        "mode": ["type": "string", "enum": ["script", "view"], "description": "Prefer 'view' for rich structured cards."],
                        "author": ["type": "string"],
@@ -68,7 +71,7 @@ extension MCPServer {
                    "Enable or disable an external or BUILTIN plugin. Disabling BUILTIN plugins stops their listeners/timers immediately.",
                    ["id": ["type": "string"], "enabled": ["type": "boolean"]], ["id", "enabled"]),
             schema("lumakey_update_plugin_overrides",
-                   "Configure user-level overrides for a plugin (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs`, `revokedResourceScopes`, `includeInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) without modifying plugin.json.",
+                   "Configure user-level overrides for a plugin (`customKeywords`, `customHotKey`, `commandHotKeys`, `pinnedInOverlay`, `quickButtonCommandIDs`, `disabledCommandIDs`, `commandSearchOverrides`, `revokedResourceScopes`, `includeInGlobalSearch`, `searchIndexInGlobalSearch`, `showInSettingsSidebar`, `priorityBoost`) without modifying plugin.json.",
                    [
                        "id": ["type": "string"],
                        "customKeywords": ["type": "array", "items": ["type": "string"]],
@@ -77,8 +80,10 @@ extension MCPServer {
                        "pinnedInOverlay": ["type": "boolean"],
                        "quickButtonCommandIDs": ["type": "array", "items": ["type": "string"], "description": "Sub-command IDs enabled as Quick Buttons (default [])."],
                        "disabledCommandIDs": ["type": "array", "items": ["type": "string"], "description": "Sub-command IDs hidden from Global Search (default [])."],
+                       "commandSearchOverrides": ["type": "object", "description": "Map of sub-command ID to boolean Global Search visibility override."],
                        "revokedResourceScopes": ["type": "array", "items": ["type": "string", "enum": scopeIDs], "description": "Declared resource scopes revoked via Seatbelt sandbox."],
                        "includeInGlobalSearch": ["type": "boolean"],
+                       "searchIndexInGlobalSearch": ["type": "boolean"],
                        "showInSettingsSidebar": ["type": "boolean"],
                        "priorityBoost": ["type": "integer"]
                    ], ["id"]),
@@ -110,6 +115,7 @@ extension MCPServer {
                     "pinnedInOverlay": desc.pinnedInOverlay,
                     "quickButtonCommandIDs": desc.overrides.quickButtonCommandIDs,
                     "includeInGlobalSearch": desc.includeInGlobalSearch,
+                    "searchIndexInGlobalSearch": desc.searchIndexInGlobalSearch,
                     "settingsDeepLink": desc.isBuiltin ? "lumakey://settings/\(desc.builtinMetadata?.settingsTarget ?? "plugins")" : "lumakey://settings/plugin/\(desc.id)",
                     "enabled": desc.isEnabled,
                     "valid": desc.isValid,
@@ -121,7 +127,8 @@ extension MCPServer {
                             "title": desc.manifest.localizedCommandTitle(cmd),
                             "keywords": cmd.keywords,
                             "arguments": cmd.arguments,
-                            "effectiveHotKey": cmdHKVal
+                            "effectiveHotKey": cmdHKVal,
+                            "includeInGlobalSearch": desc.isCommandSearchEnabled(cmd)
                         ]
                     },
                     "declaredCapabilities": desc.declaredCapabilities.map(\.rawValue),
@@ -143,30 +150,6 @@ extension MCPServer {
                 return item
             }
         return textResult(prettyJSON(plugins))
-    }
-
-    private func handleAppPermissions(arguments: [String: Any]) -> [String: Any] {
-        let onlyUsed = arguments["onlyUsed"] as? Bool ?? false
-        let plugins = PluginSystem.listPlugins(in: pluginsDirectory, includeDisabled: true, includeBuiltin: true, includeSecrets: false)
-        let entries = PluginPermissionAudit.buildAudit(plugins: plugins)
-            .filter { !onlyUsed || $0.declaredPluginCount > 0 }
-            .map { entry -> [String: Any] in
-                [
-                    "permission": entry.permission.rawValue, "title": entry.permission.title,
-                    "category": entry.permission.category.rawValue, "summary": entry.permission.summary,
-                    "declaredPluginCount": entry.declaredPluginCount, "activePluginCount": entry.activePluginCount,
-                    "usedByPlugins": entry.plugins.map { u -> [String: Any] in
-                        [
-                            "id": u.pluginID, "name": u.pluginName, "kind": u.kind.rawValue,
-                            "enabled": u.isPluginEnabled, "authorized": u.isAuthorized, "role": u.roleNote
-                        ]
-                    }
-                ]
-            }
-        let sandbox = PluginPermissionAudit.sandboxOnlyPlugins(in: plugins).map {
-            ["id": $0.id, "name": $0.displayName, "kind": $0.kind.rawValue]
-        }
-        return textResult(prettyJSON(["permissions": entries, "sandboxOnlyPlugins": sandbox]))
     }
 
     private func handleScaffoldPlugin(arguments: [String: Any]) -> [String: Any] {
@@ -211,11 +194,16 @@ extension MCPServer {
                 id: id, name: displayName, keywords: keywords, description: description,
                 mode: mode, author: arguments["author"] as? String,
                 icon: arguments["icon"] as? String, hotkey: arguments["hotkey"] as? String,
+                includeInGlobalSearch: arguments["includeInGlobalSearch"] as? Bool,
+                searchIndexInGlobalSearch: arguments["searchIndexInGlobalSearch"] as? Bool,
+                backupExclude: arguments["backupExclude"] as? [String],
                 capabilities: caps, resourceScopes: scopes, accepts: accepts, in: pluginsDirectory
             )
             return textResult(prettyJSON([
                 "id": created.id, "path": created.directoryURL.path,
                 "mode": created.manifest.mode.rawValue,
+                "includeInGlobalSearch": created.includeInGlobalSearch,
+                "searchIndexInGlobalSearch": created.searchIndexInGlobalSearch,
                 "capabilities": created.declaredCapabilities.map(\.rawValue),
                 "resourceScopes": created.declaredResourceScopes.map(\.rawValue),
                 "accepts": created.declaredContextKinds.map(\.rawValue),
