@@ -3,9 +3,11 @@ import LumakeyCore
 
 final class MCPServer {
     let pluginsDirectory: URL
+    let customHomeLayoutURL: URL?
 
-    init(pluginsDirectory: URL) {
+    init(pluginsDirectory: URL, customHomeLayoutURL: URL? = nil) {
         self.pluginsDirectory = pluginsDirectory
+        self.customHomeLayoutURL = customHomeLayoutURL
     }
 
     func runStdioLoop() {
@@ -29,16 +31,17 @@ final class MCPServer {
             return ok(id: id, result: [
                 "protocolVersion": "2024-11-05",
                 "capabilities": ["resources": [:], "tools": [:]],
-                "serverInfo": ["name": "lumakey-mcp", "version": "0.3.0"],
+                "serverInfo": ["name": "lumakey-mcp", "version": "0.3.2"],
                 "instructions": """
                 Lumakey is a lightweight macOS productivity hub (NOT a resident server, daemon runner, or cron gateway).
-                Follow these mandatory rules when creating or inspecting Lumakey plugins:
+                Follow these mandatory rules when creating plugins or customizing the Launcher Home Page:
                 1. Before authoring any plugin, read `lumakey://specs/plugin-v3` and call `lumakey_list_plugins` (to check BUILTIN native plugins like SmoothScroll/LumaLink/SystemPulse so you do not duplicate them) and `lumakey_app_permissions` (to audit app-wide permission usage).
                 2. Every plugin MUST explicitly declare its required permissions via `capabilities` (Host Bridge) AND `resourceScopes` (`network`, `filesystem`, `subprocess`, or `[]` if none) in `plugin.json` at registration time. Pass `[]` for both when authoring a pure sandboxed plugin.
                 3. Reuse host TCC permissions through declared `capabilities` and the ephemeral per-run UDS Host Bridge (`LUMAKEY_BRIDGE_SOCK` / `LUMAKEY_BRIDGE_TOKEN`). Never write `launchd` plists, resident HTTP servers, or infinite `while true` loops.
                 4. Prefer `mode: "view"` outputting `PluginViewPayload` JSON for native Liquid Glass cards.
                 5. Always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after scaffolding or editing a plugin.
                 6. When sharing a plugin or building a custom plugin store (`lumakey-registry.json`), read `lumakey://specs/plugin-store-v1` and call `lumakey_package_plugin_for_store`.
+                7. When customizing the user's Launcher Home Page (Bento tiles, Omni Dock, bookmark shelves, or multi-scene profiles), read `lumakey://specs/home-layout-v1` and call `lumakey_get_home_layout` first, then apply changes via `lumakey_update_home_layout`, `lumakey_upsert_home_item`, or `lumakey_remove_home_item`.
                 """
             ])
         case "ping":
@@ -57,6 +60,12 @@ final class MCPServer {
                         "name": "Lumakey Plugin & Store Distribution Spec v1",
                         "description": "Smart URL auto-detection rules, lumakey-registry.json custom store format, SHA-256 verification, and packaging workflow.",
                         "mimeType": "text/markdown"
+                    ],
+                    [
+                        "uri": "lumakey://specs/home-layout-v1",
+                        "name": "Lumakey Home Layout & Multi-Profile Spec v1",
+                        "description": "Modular Bento tiles, hybrid Omni Dock, bookmark shelves, multi-scene profiles, and safe HomeLaunchItem targets.",
+                        "mimeType": "text/markdown"
                     ]
                 ]
             ])
@@ -65,6 +74,7 @@ final class MCPServer {
             let specText: String? = switch uri {
             case "lumakey://specs/plugin-v3": PluginSystem.specV3Markdown
             case "lumakey://specs/plugin-store-v1": PluginSystem.specStoreV1Markdown
+            case "lumakey://specs/home-layout-v1": HomeLayoutConfig.specV1Markdown
             default: nil
             }
             guard let specText else {

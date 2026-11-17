@@ -250,8 +250,8 @@ private func verifyMCPServerV3Subprocess() throws {
         return inner
     }
 
-    check(lines[0].contains("0.3.0") && lines[0].contains("instructions") && lines[0].contains("lumakey://specs/plugin-v3"),
-          "initialize returns version 0.3.0 + instructions")
+    check(lines[0].contains("0.3.2") && lines[0].contains("instructions") && lines[0].contains("lumakey://specs/plugin-v3"),
+          "initialize returns version 0.3.2 + instructions")
     check(lines[1].contains("Host Bridge") && lines[1].contains("capabilities"), "plugin-v3 spec returned")
     check(lines[2].contains(#""isError":true"#), "scaffold without capabilities fails")
     check(lines[3].contains("v3-demo") && lines[3].contains("displayInfo"), "scaffold with capabilities succeeds")

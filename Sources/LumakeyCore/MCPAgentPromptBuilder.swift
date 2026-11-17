@@ -82,7 +82,7 @@ public enum MCPAgentPromptBuilder {
                 "",
                 "### 3. 接入后验证与协作规范",
                 "1. 写入配置后，若当前客户端需要重启或刷新会话才能加载新 MCP 工具，请明确提示我；若已即时生效，请直接调用 `lumakey_list_plugins` 与 `lumakey_app_permissions` 验证连通性。",
-                "2. 开发、修改或排查任何 Lumakey 插件前，请先通过 MCP `resources/read` 读取 `lumakey://specs/plugin-v3`（打包或发布自定义插件商店时读取 `lumakey://specs/plugin-store-v1`）。",
+                "2. 开发、修改或排查任何 Lumakey 插件前，请先通过 MCP `resources/read` 读取 `lumakey://specs/plugin-v3`（打包或发布自定义插件商店时读取 `lumakey://specs/plugin-store-v1`；定制启动页磁贴、混合坞、书签架或多场景 Profile 前读取 `lumakey://specs/home-layout-v1` 并调用 `lumakey_get_home_layout`）。",
                 "3. 严格遵守 Lumakey 插件边界：禁止编写后台常驻守护进程或死循环；`plugin.json` 必须显式声明 `capabilities` 与 `resourceScopes`（纯沙盒均填 `[]`）；优先使用 `mode: \"view\"` 输出结构化卡片；每次修改后必须调用 `lumakey_validate_plugin` 与 `lumakey_run_plugin_test` 完成校验。"
             ]
             if !trimmedTask.isEmpty {
@@ -115,7 +115,7 @@ public enum MCPAgentPromptBuilder {
                 "",
                 "### 3. Post-Connection Verification & Plugin Rules",
                 "1. After configuring, let me know if your client requires a session reload/restart to load new MCP tools; otherwise immediately call `lumakey_list_plugins` and `lumakey_app_permissions` to confirm connectivity.",
-                "2. Before creating or editing any Lumakey plugin, read `lumakey://specs/plugin-v3` via MCP `resources/read` (and `lumakey://specs/plugin-store-v1` when packaging or building a plugin registry).",
+                "2. Before creating or editing any Lumakey plugin, read `lumakey://specs/plugin-v3` via MCP `resources/read` (`lumakey://specs/plugin-store-v1` for store packaging; `lumakey://specs/home-layout-v1` + `lumakey_get_home_layout` when customizing Launcher Home tiles, dock, bookmarks, or profiles).",
                 "3. Follow Lumakey's architecture strictly: never create resident daemons or infinite loops; explicitly declare `capabilities` and `resourceScopes` in `plugin.json` (`[]` for pure sandbox); prefer `mode: \"view\"` structured cards; always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after changes."
             ]
             if !trimmedTask.isEmpty {
