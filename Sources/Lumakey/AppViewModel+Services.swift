@@ -163,13 +163,27 @@ extension AppViewModel {
 
     func requestMosAccessibilityPermission() {
         _ = MosEngine.shared.requestAccessibilityPermission()
-        refreshMosStatus()
-        reloadPlugins()
+        handleAccessibilityTrustOrMosChanged()
     }
 
     func refreshMosStatus() {
+        MosEngine.shared.refreshTapStateIfNeeded()
         mosAccessibilityTrusted = MosEngine.shared.isAccessibilityTrusted
         mosTapActive = MosEngine.shared.isTapActive
+    }
+
+    func handleAccessibilityTrustOrMosChanged() {
+        let prevTrusted = mosAccessibilityTrusted
+        let prevActive = mosTapActive
+        refreshMosStatus()
+        SelectionQuickBarController.shared.syncMonitoring(
+            enabled: generalPreferences.enableSelectionQuickBar,
+            plugins: plugins,
+            viewModel: self
+        )
+        if prevTrusted != mosAccessibilityTrusted || prevActive != mosTapActive {
+            reloadPlugins()
+        }
     }
 
     func applyLumaLinkConfig(_ next: LumaLinkConfig) {

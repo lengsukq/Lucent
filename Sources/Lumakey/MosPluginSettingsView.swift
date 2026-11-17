@@ -39,7 +39,10 @@ struct MosPluginSettingsView: View {
             .padding(.trailing, 4)
         }
         .onAppear {
-            viewModel.refreshMosStatus()
+            viewModel.handleAccessibilityTrustOrMosChanged()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            viewModel.handleAccessibilityTrustOrMosChanged()
         }
     }
 
@@ -58,6 +61,7 @@ struct MosPluginSettingsView: View {
                 .buttonStyle(GlassPillButtonStyle(prominent: true))
 
                 Button("打开系统设置") {
+                    MosEngine.shared.beginAccessibilityTrustWatch()
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
                         NSWorkspace.shared.open(url)
                     }

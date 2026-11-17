@@ -28,9 +28,16 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(handleGeneralPreferencesChanged), name: .lumakeyGeneralPreferencesDidChange, object: nil
         )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleApplicationDidBecomeActive), name: NSApplication.didBecomeActiveNotification, object: nil
+        )
     }
 
     @objc private func handleLanguageChanged() { refreshLocalizedChrome() }
+
+    @objc private func handleApplicationDidBecomeActive() {
+        viewModel.handleAccessibilityTrustOrMosChanged()
+    }
 
     @objc private func handleMenuBarConfigChanged() {
         viewModel.menuBarConfig = MenuBarConfig.load()

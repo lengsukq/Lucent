@@ -43,7 +43,7 @@ extension MCPServer {
         }
         let dir = pluginsDirectory.appendingPathComponent(id, isDirectory: true)
         let desc = PluginSystem.loadPlugin(at: dir, in: pluginsDirectory, includeSecrets: false)
-        return textResult(prettyJSON([
+        var report: [String: Any] = [
             "id": desc.id, "kind": "external", "valid": desc.isValid, "issues": desc.validationIssues,
             "minAppVersion": desc.manifest.minAppVersion ?? NSNull(),
             "timeoutSeconds": desc.manifest.effectiveTimeoutSeconds,
@@ -53,22 +53,23 @@ extension MCPServer {
             "categoryBadge": desc.displayCategoryBadge,
             "includeInGlobalSearch": desc.includeInGlobalSearch,
             "searchIndexInGlobalSearch": desc.searchIndexInGlobalSearch,
-            "declaredCommands": desc.declaredCommands.map(\.id),
-            "declaredCapabilities": desc.declaredCapabilities.map(\.rawValue),
-            "declaredResourceScopes": desc.declaredResourceScopes.map(\.rawValue),
-            "grantedResourceScopes": desc.grantedResourceScopes.map(\.rawValue).sorted(),
-            "revokedResourceScopes": desc.revokedResourceScopes.map(\.rawValue).sorted(),
-            "declaredContextKinds": desc.declaredContextKinds.map(\.rawValue),
-            "acceptExtensions": desc.manifest.acceptExtensions ?? [],
-            "acceptURLHosts": desc.manifest.acceptURLHosts ?? [],
-            "effectiveKeywords": desc.effectiveKeywords,
-            "commandHotKeys": desc.overrides.commandHotKeys,
-            "quickButtonCommandIDs": desc.overrides.quickButtonCommandIDs,
-            "menuBarCommandIDs": desc.overrides.menuBarCommandIDs,
-            "grantedCapabilities": desc.grantedCapabilities.map(\.rawValue).sorted(),
-            "declaredPermissions": desc.declaredPermissions.map(\.rawValue),
             "isPureSandbox": desc.isPureSandbox
-        ]))
+        ]
+        report["declaredCommands"] = desc.declaredCommands.map(\.id)
+        report["declaredCapabilities"] = desc.declaredCapabilities.map(\.rawValue)
+        report["declaredResourceScopes"] = desc.declaredResourceScopes.map(\.rawValue)
+        report["grantedResourceScopes"] = desc.grantedResourceScopes.map(\.rawValue).sorted()
+        report["revokedResourceScopes"] = desc.revokedResourceScopes.map(\.rawValue).sorted()
+        report["declaredContextKinds"] = desc.declaredContextKinds.map(\.rawValue)
+        report["acceptExtensions"] = desc.manifest.acceptExtensions ?? []
+        report["acceptURLHosts"] = desc.manifest.acceptURLHosts ?? []
+        report["effectiveKeywords"] = desc.effectiveKeywords
+        report["commandHotKeys"] = desc.overrides.commandHotKeys
+        report["quickButtonCommandIDs"] = desc.overrides.quickButtonCommandIDs
+        report["menuBarCommandIDs"] = desc.overrides.menuBarCommandIDs
+        report["grantedCapabilities"] = desc.grantedCapabilities.map(\.rawValue).sorted()
+        report["declaredPermissions"] = desc.declaredPermissions.map(\.rawValue)
+        return textResult(prettyJSON(report))
     }
 
     func handleUpdatePluginOverrides(arguments: [String: Any]) -> [String: Any] {
@@ -103,22 +104,23 @@ extension MCPServer {
             }
             let updated = PluginSystem.pluginOverrides(id: id, in: pluginsDirectory)
             let revokedNow = PluginSystem.revokedResourceScopes(id: id, in: pluginsDirectory).map(\.rawValue).sorted()
-            return textResult(prettyJSON([
+            var response: [String: Any] = [
                 "id": id,
                 "customKeywords": updated.customKeywords ?? NSNull(),
                 "customHotKey": updated.customHotKey ?? NSNull(),
                 "commandHotKeys": updated.commandHotKeys,
                 "pinnedInOverlay": updated.pinnedInOverlay,
-                "showInMenuBar": updated.showInMenuBar,
-                "quickButtonCommandIDs": updated.quickButtonCommandIDs,
-                "menuBarCommandIDs": updated.menuBarCommandIDs,
-                "commandSearchOverrides": updated.commandSearchOverrides,
-                "revokedResourceScopes": revokedNow,
-                "includeInGlobalSearch": updated.includeInGlobalSearch,
-                "searchIndexGlobalOverride": updated.searchIndexGlobalOverride ?? NSNull(),
-                "showInSettingsSidebar": updated.showInSettingsSidebar,
-                "priorityBoost": updated.priorityBoost
-            ]))
+                "showInMenuBar": updated.showInMenuBar
+            ]
+            response["quickButtonCommandIDs"] = updated.quickButtonCommandIDs
+            response["menuBarCommandIDs"] = updated.menuBarCommandIDs
+            response["commandSearchOverrides"] = updated.commandSearchOverrides
+            response["revokedResourceScopes"] = revokedNow
+            response["includeInGlobalSearch"] = updated.includeInGlobalSearch
+            response["searchIndexGlobalOverride"] = updated.searchIndexGlobalOverride ?? NSNull()
+            response["showInSettingsSidebar"] = updated.showInSettingsSidebar
+            response["priorityBoost"] = updated.priorityBoost
+            return textResult(prettyJSON(response))
         } catch {
             return textResult("Error: \(error.localizedDescription)", isError: true)
         }

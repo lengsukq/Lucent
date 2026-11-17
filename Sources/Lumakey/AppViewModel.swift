@@ -167,6 +167,11 @@ final class AppViewModel: ObservableObject {
         performStartupOrphanCleanup(); refreshCachedVolumes(); installVolumeObservers()
         configureLifecycleIntegrations(); reloadAppsAndPlugins()
         primeEverythingIndexOnStartup(scope: everythingScope)
+        MosEngine.shared.onStatusChanged = { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.handleAccessibilityTrustOrMosChanged()
+            }
+        }
         MosEngine.shared.apply(config: mosConfig, persist: false); refreshMosStatus()
         LumaLinkServer.shared.onStatusChanged = { [weak self] in self?.refreshLumaLinkStatus(refreshPermissions: false) }
         LumaLinkRdpSidecarService.shared.onStatusChanged = { [weak self] in self?.refreshLumaLinkStatus(refreshPermissions: false) }

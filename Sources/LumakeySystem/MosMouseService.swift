@@ -4,60 +4,6 @@ import ApplicationServices
 import CoreGraphics
 import Foundation
 
-public struct MosConfig: Codable, Sendable, Hashable {
-    public var enabled: Bool = false
-    public var reverseWheelDirection: Bool = true
-    public var smoothScroll: Bool = true
-    public var stepPixels: Double = 36.0
-    public var smoothness: Double = 0.24
-    public var shiftHorizontal: Bool = true
-    public var optionBoost: Bool = true
-    public var excludedBundleIDs: [String] = []
-
-    public init(
-        enabled: Bool = false,
-        reverseWheelDirection: Bool = true,
-        smoothScroll: Bool = true,
-        stepPixels: Double = 36.0,
-        smoothness: Double = 0.24,
-        shiftHorizontal: Bool = true,
-        optionBoost: Bool = true,
-        excludedBundleIDs: [String] = []
-    ) {
-        self.enabled = enabled
-        self.reverseWheelDirection = reverseWheelDirection
-        self.smoothScroll = smoothScroll
-        self.stepPixels = stepPixels
-        self.smoothness = smoothness
-        self.shiftHorizontal = shiftHorizontal
-        self.optionBoost = optionBoost
-        self.excludedBundleIDs = excludedBundleIDs
-    }
-
-    public static func defaultConfigURL() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
-        return base.appendingPathComponent("Lumakey", isDirectory: true).appendingPathComponent("mos-config.json")
-    }
-
-    public static func load(from url: URL = defaultConfigURL()) -> MosConfig {
-        guard let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode(MosConfig.self, from: data)
-        else { return MosConfig() }
-        return decoded
-    }
-
-    public func save(to url: URL = defaultConfigURL()) {
-        let dir = url.deletingLastPathComponent()
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let enc = JSONEncoder()
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? enc.encode(self) {
-            try? data.write(to: url, options: .atomic)
-        }
-    }
-}
-
 public final class MosEngine: @unchecked Sendable {
     public static let shared = MosEngine()
     public static let syntheticEventTag: Int64 = 0x4C4D_4D4F
@@ -79,22 +25,88 @@ public final class MosEngine: @unchecked Sendable {
     public var config: MosConfig { lock.withLock { _config } }
     public var isTapActive: Bool { lock.withLock { _isTapActive } }
     public var isAccessibilityTrusted: Bool { AXIsProcessTrusted() }
+    public var onStatusChanged: (@Sendable () -> Void)?
+
+    private var observersInstalled = false
+    private var trustPollTask: Task<Void, Never>?
 
     @discardableResult
     public func requestAccessibilityPermission() -> Bool {
+        ensureSystemObserversInstalled()
         let key = "AXTrustedCheckOptionPrompt" as CFString
         let opts = [key: kCFBooleanTrue as Any] as CFDictionary
-        return AXIsProcessTrustedWithOptions(opts)
+        let trusted = AXIsProcessTrustedWithOptions(opts)
+        if trusted {
+            refreshTapStateIfNeeded()
+        } else {
+            beginAccessibilityTrustWatch()
+        }
+        return trusted
     }
 
     public func apply(config newConfig: MosConfig, persist: Bool = true) {
         if persist { newConfig.save() }
         lock.withLock { _config = newConfig }
-        let needsTap = newConfig.enabled && (newConfig.reverseWheelDirection || newConfig.smoothScroll)
+        ensureSystemObserversInstalled()
+        runOnMainSyncIfPossible { self.refreshTapStateSync() }
+    }
+
+    /// Re-verifies Accessibility trust and CGEventTap health, starting or repairing the tap if enabled.
+    public func refreshTapStateIfNeeded() {
+        ensureSystemObserversInstalled()
+        runOnMainSyncIfPossible { self.refreshTapStateSync() }
+    }
+
+    private func runOnMainSyncIfPossible(_ work: @escaping @Sendable () -> Void) {
+        if Thread.isMainThread { work() }
+        else { DispatchQueue.main.async(execute: work) }
+    }
+
+    private func refreshTapStateSync() {
+        let cfg = config
+        let needsTap = cfg.enabled && (cfg.reverseWheelDirection || cfg.smoothScroll)
+        let prevActive = isTapActive
         if needsTap {
-            DispatchQueue.main.async { self.startTapIfNeeded() }
+            startTapIfNeeded()
         } else {
-            DispatchQueue.main.async { self.stopTapAndReleaseAll() }
+            stopTapAndReleaseAll()
+        }
+        if prevActive != isTapActive { onStatusChanged?() }
+    }
+
+    private func ensureSystemObserversInstalled() {
+        guard !observersInstalled else { return }
+        observersInstalled = true
+        let scheduleRefresh: @Sendable () -> Void = { [weak self] in
+            for delay in [0.15, 0.75] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    self?.refreshTapStateSync()
+                    self?.onStatusChanged?()
+                }
+            }
+        }
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("com.apple.accessibility.api"),
+            object: nil, queue: .main
+        ) { _ in scheduleRefresh() }
+        let wsCenter = NSWorkspace.shared.notificationCenter
+        wsCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in scheduleRefresh() }
+        wsCenter.addObserver(forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil, queue: .main) { _ in scheduleRefresh() }
+    }
+
+    public func beginAccessibilityTrustWatch() {
+        ensureSystemObserversInstalled()
+        trustPollTask?.cancel()
+        trustPollTask = Task { @MainActor [weak self] in
+            for _ in 0..<75 {
+                try? await Task.sleep(for: .milliseconds(600))
+                guard !Task.isCancelled, let self else { return }
+                if AXIsProcessTrusted() {
+                    self.refreshTapStateSync()
+                    self.onStatusChanged?()
+                    return
+                }
+            }
         }
     }
 
@@ -116,10 +128,20 @@ public final class MosEngine: @unchecked Sendable {
     }
 
     private func startTapIfNeeded() {
-        guard tapPort == nil else { return }
         guard AXIsProcessTrusted() else {
+            if tapPort != nil { stopTapAndReleaseAll() }
             lock.withLock { _isTapActive = false }
             return
+        }
+        if let existing = tapPort {
+            if CFMachPortIsValid(existing) {
+                CGEvent.tapEnable(tap: existing, enable: true)
+                if CGEvent.tapIsEnabled(tap: existing) {
+                    lock.withLock { _isTapActive = true }
+                    return
+                }
+            }
+            stopTapAndReleaseAll()
         }
         frontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
         appObserver = NSWorkspace.shared.notificationCenter.addObserver(
