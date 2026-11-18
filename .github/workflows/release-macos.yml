@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_prefix:
-        description: "Base version prefix (defaults to variable LUMAKEY_VERSION_PREFIX or 0.8.1)"
+        description: "Base version prefix (defaults to variable LUCENT_VERSION_PREFIX or 0.8.1)"
         required: false
         default: ""
         type: string
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   package-arm64:
-    name: Build & Package Lumakey (arm64)
+    name: Build & Package Lucent (arm64)
     runs-on: macos-15
     env:
       CI_KEYCHAIN_NAME: build-signing.keychain-db
@@ -37,12 +37,12 @@ jobs:
         run: |
           BASE_VER="${{ inputs.version_prefix }}"
           if [[ -z "$BASE_VER" ]]; then
-            BASE_VER="${{ vars.LUMAKEY_VERSION_PREFIX }}"
+            BASE_VER="${{ vars.LUCENT_VERSION_PREFIX }}"
           fi
           if [[ -z "$BASE_VER" ]]; then
             BASE_VER="0.8.1"
           fi
-          TZ_VAL="${{ vars.LUMAKEY_TZ }}"
+          TZ_VAL="${{ vars.LUCENT_TZ }}"
           if [[ -z "$TZ_VAL" ]]; then
             TZ_VAL="Asia/Shanghai"
           fi
@@ -50,7 +50,7 @@ jobs:
           TS_NUM="$(TZ="$TZ_VAL" date '+%Y%m%d%H%M')"
           SHORT_VERSION="${BASE_VER}-${TS_DASH}"
           RELEASE_TAG="v${SHORT_VERSION}"
-          DMG_NAME="Lumakey-${RELEASE_TAG}-arm64.dmg"
+          DMG_NAME="Lucent-${RELEASE_TAG}-arm64.dmg"
           echo "base_version=$BASE_VER" >> "$GITHUB_OUTPUT"
           echo "short_version=$SHORT_VERSION" >> "$GITHUB_OUTPUT"
           echo "bundle_version=$TS_NUM" >> "$GITHUB_OUTPUT"
@@ -60,9 +60,9 @@ jobs:
 
       - name: Import code signing identity
         env:
-          P12_BASE64: ${{ secrets.LUMAKEY_SIGN_P12_BASE64 }}
-          P12_PASS: ${{ secrets.LUMAKEY_SIGN_P12_PASSWORD }}
-          SIGN_IDENTITY_VAR: ${{ vars.LUMAKEY_SIGN_IDENTITY }}
+          P12_BASE64: ${{ secrets.LUCENT_SIGN_P12_BASE64 }}
+          P12_PASS: ${{ secrets.LUCENT_SIGN_P12_PASSWORD }}
+          SIGN_IDENTITY_VAR: ${{ vars.LUCENT_SIGN_IDENTITY }}
         run: |
           if [[ -z "$P12_BASE64" || -z "$P12_PASS" ]]; then
             echo "No signing certificate secrets configured; falling back to ad-hoc signing."
@@ -84,7 +84,7 @@ jobs:
           security find-identity -v -p codesigning "$KC_PATH"
 
           if [[ -n "$SIGN_IDENTITY_VAR" ]]; then
-            echo "LUMAKEY_SIGN_IDENTITY=$SIGN_IDENTITY_VAR" >> "$GITHUB_ENV"
+            echo "LUCENT_SIGN_IDENTITY=$SIGN_IDENTITY_VAR" >> "$GITHUB_ENV"
           fi
 
       - name: Run verify-macos.sh
@@ -93,8 +93,8 @@ jobs:
 
       - name: Build release app & package DMG
         env:
-          LUMAKEY_BUNDLE_SHORT_VERSION: ${{ steps.meta.outputs.short_version }}
-          LUMAKEY_BUNDLE_VERSION: ${{ steps.meta.outputs.bundle_version }}
+          LUCENT_BUNDLE_SHORT_VERSION: ${{ steps.meta.outputs.short_version }}
+          LUCENT_BUNDLE_VERSION: ${{ steps.meta.outputs.bundle_version }}
         run: |
           bash scripts/build-macos.sh
           bash scripts/package-dmg.sh "dist/${{ steps.meta.outputs.dmg_name }}"
@@ -102,7 +102,7 @@ jobs:
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Lumakey-${{ steps.meta.outputs.release_tag }}-arm64
+          name: Lucent-${{ steps.meta.outputs.release_tag }}-arm64
           path: |
             dist/*.dmg
             dist/*.sha256
@@ -115,20 +115,20 @@ jobs:
           DMG_FILE="dist/${{ steps.meta.outputs.dmg_name }}"
           SHA_TEXT="$(cat "${DMG_FILE}.sha256")"
           NOTES=$(cat <<EOF
-          Lumakey macOS arm64 release \`${{ steps.meta.outputs.release_tag }}\`
+          Lucent macOS arm64 release \`${{ steps.meta.outputs.release_tag }}\`
 
           - **CFBundleShortVersionString**: \`${{ steps.meta.outputs.short_version }}\`
           - **CFBundleVersion**: \`${{ steps.meta.outputs.bundle_version }}\`
-          - **Signing Identity**: \`${LUMAKEY_SIGN_IDENTITY:-ad-hoc}\`
+          - **Signing Identity**: \`${LUCENT_SIGN_IDENTITY:-ad-hoc}\`
           - **SHA-256**: \`${SHA_TEXT}\`
 
-          > 首次从浏览器下载未公证自签名 DMG 时，如系统提示无法验证开发者，请在「系统设置 → 隐私与安全性」点击「仍要打开」或执行 \`xattr -dr com.apple.quarantine /Applications/Lumakey.app\`。
+          > 首次从浏览器下载未公证自签名 DMG 时，如系统提示无法验证开发者，请在「系统设置 → 隐私与安全性」点击「仍要打开」或执行 \`xattr -dr com.apple.quarantine /Applications/Lucent.app\`。
           EOF
           )
           gh release create "${{ steps.meta.outputs.release_tag }}" \
             "$DMG_FILE" \
             "${DMG_FILE}.sha256" \
-            --title "Lumakey ${{ steps.meta.outputs.release_tag }}" \
+            --title "Lucent ${{ steps.meta.outputs.release_tag }}" \
             --notes "$NOTES"
 
       - name: Cleanup temporary keychain

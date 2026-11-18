@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CERT_NAME="Lumakey Local Signer"
+CERT_NAME="Lucent Local Signer"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
 CREATED_CERT=0
@@ -27,8 +27,8 @@ x509_extensions    = v3_codesign
 prompt             = no
 
 [ dn ]
-CN = Lumakey Local Signer
-O  = Lumakey Local Build
+CN = Lucent Local Signer
+O  = Lucent Local Build
 
 [ v3_codesign ]
 basicConstraints = critical,CA:FALSE
@@ -40,35 +40,35 @@ EOF
 
   echo "==> 生成 10 年有效期自签名代码签名证书..."
   "$OPENSSL_BIN" req -x509 -newkey rsa:2048 -nodes \
-    -keyout "$TMP_DIR/lumakey.key" \
-    -out "$TMP_DIR/lumakey.crt" \
+    -keyout "$TMP_DIR/lucent.key" \
+    -out "$TMP_DIR/lucent.crt" \
     -days 3650 \
     -config "$TMP_DIR/cert.cnf"
 
-  P12_PASS="lumakey-local-$(date +%s)"
+  P12_PASS="lucent-local-$(date +%s)"
   "$OPENSSL_BIN" pkcs12 -export \
-    -inkey "$TMP_DIR/lumakey.key" \
-    -in "$TMP_DIR/lumakey.crt" \
-    -out "$TMP_DIR/lumakey.p12" \
+    -inkey "$TMP_DIR/lucent.key" \
+    -in "$TMP_DIR/lucent.crt" \
+    -out "$TMP_DIR/lucent.p12" \
     -name "$CERT_NAME" \
     -passout "pass:$P12_PASS"
 
   echo "==> 导入证书与私钥到登录钥匙串（随后系统将弹窗请您授权一次信任代码签名）..."
-  security import "$TMP_DIR/lumakey.p12" -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign -T /usr/bin/security
-  security add-trusted-cert -d -r trustRoot -p codeSign -k "$KEYCHAIN" "$TMP_DIR/lumakey.crt"
+  security import "$TMP_DIR/lucent.p12" -k "$KEYCHAIN" -P "$P12_PASS" -T /usr/bin/codesign -T /usr/bin/security
+  security add-trusted-cert -d -r trustRoot -p codeSign -k "$KEYCHAIN" "$TMP_DIR/lucent.crt"
   CREATED_CERT=1
 fi
 
 if [[ "$CREATED_CERT" == "1" ]]; then
   echo "==> 重置旧临时 Ad-hoc 残留的 TCC 记录（首次授权新证书后将尽量延续）..."
-  tccutil reset Accessibility app.lumakey.macos || true
-  tccutil reset ScreenCapture app.lumakey.macos || true
+  tccutil reset Accessibility app.lucent.macos || true
+  tccutil reset ScreenCapture app.lucent.macos || true
 fi
 
-echo "==> 重新打包并签名安装 Lumakey.app..."
+echo "==> 重新打包并签名安装 Lucent.app..."
 bash "$ROOT_DIR/scripts/install-macos.sh"
 
 echo ""
 echo "✓ 稳定签名配置完成！"
-echo "  请运行: open /Applications/Lumakey.app"
+echo "  请运行: open /Applications/Lucent.app"
 echo "  之后最后一次授权「辅助功能 / 屏幕录制」，未来任意重装或升级均不再重复弹窗。"

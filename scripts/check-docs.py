@@ -45,7 +45,7 @@ def main() -> int:
         for lineno, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
             for match in LINK_RE.finditer(line):
                 target, anchor = match.group(1), match.group(2)
-                if target.startswith(("http://", "https://", "mailto:", "lumakey://")):
+                if target.startswith(("http://", "https://", "mailto:", "lucent://")):
                     continue
                 resolved = (md.parent / target).resolve()
                 if not resolved.exists():

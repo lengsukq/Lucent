@@ -31,7 +31,7 @@ jobs:
       - name: Check documentation links & index coverage
         run: python3 -B scripts/check-docs.py
 
-      - name: Run verify-macos.sh (Module DAG + Clean Code + LumakeyTests + LumakeyCheck)
+      - name: Run verify-macos.sh (Module DAG + Clean Code + LucentTests + LucentCheck)
         run: bash scripts/verify-macos.sh
 
       - name: Verify Release .app bundle packaging & codesign
