@@ -7,7 +7,7 @@
   "mode": "view",
   "keywords": ["tr", "fy", "trans", "translate", "dict", "翻译", "划词", "词典", "生词本"],
   "entry": "bin/translate-hub",
-  "author": "Lumakey Official",
+  "author": "Lucent Official",
   "icon": "icon.svg",
   "accentColor": "purple",
   "categoryTag": "翻译词典",

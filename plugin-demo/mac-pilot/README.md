@@ -1,6 +1,6 @@
 # 桌面中控台 · 系统控制、设置直达与访达助手 (`mac-pilot`)
 
-Lumakey 官方桌面快捷控制插件（Schema v3）：
+Lucent 官方桌面快捷控制插件（Plugin v3.7 · 原生 Swift 6 `arm64` 可执行程序 `bin/mac-pilot`，零 Python 运行时依赖）：
 
 - **系统音频与防休眠面板**：经 Host Bridge `systemControl` 一键切换系统静音、调节音量档位（或在搜索框直接输入 `0–100` 精准设音量）及开关防休眠常亮（Caffeine）。
 - **16 项 macOS 系统设置免前缀秒达**：自动向 `search-index.json` 注入蓝牙、显示器、声音、网络、电池、辅助功能、屏幕录制等高频设置分栏，在 `⌥Space` 搜中文、拼音或英文秒开。

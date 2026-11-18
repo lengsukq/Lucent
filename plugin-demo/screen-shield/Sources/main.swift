@@ -86,10 +86,10 @@ if let preset = targetPreset {
                 ViewItem(
                     id: "open-shield-settings",
                     title: isEn ? "Open Screen Shield Settings →" : "打开状态屏插件设置并授权 systemControl →",
-                    subtitle: "lumakey://settings/plugin/screen-shield",
+                    subtitle: "lucent://settings/plugin/screen-shield",
                     icon: "lock.shield.fill",
                     badge: "SETTINGS",
-                    openURL: "lumakey://settings/plugin/screen-shield"
+                    openURL: "lucent://settings/plugin/screen-shield"
                 )
             ]
         ))
@@ -125,7 +125,7 @@ if !st.ok {
         subtitle: isEn ? "Required to display fullscreen status overlay & intercept touches" : "开启后即可一键盖住所有屏幕并拦截键盘误触",
         icon: "lock.open.display",
         badge: "SETUP",
-        openURL: "lumakey://settings/plugin/screen-shield"
+        openURL: "lucent://settings/plugin/screen-shield"
     ))
 }
 

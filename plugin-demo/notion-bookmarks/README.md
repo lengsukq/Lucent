@@ -1,14 +1,14 @@
 # Notion 书签收藏 (`notion-bookmarks`)
 
-参考 [`lengsukq/nav-notion-lime`](https://github.com/lengsukq/nav-notion-lime) 的 Notion 数据库模型与增删改查逻辑，基于 **原生 Swift 6 (`PluginKit` + `Foundation`)** 为 **Lumakey Plugin v3** 打造的官方外置书签收藏插件。
+参考 [`lengsukq/nav-notion-lime`](https://github.com/lengsukq/nav-notion-lime) 的 Notion 数据库模型与增删改查逻辑，基于 **原生 Swift 6 (`PluginKit` + `Foundation`)** 为 **Lucent Plugin v3** 打造的官方外置书签收藏插件。
 
 ## 核心特性
 
 - **完全互通 `nav-notion-lime` 数据库结构**：自动读取数据库 Schema，兼容中英文列名，无论 `url` 列是 Notion `url` 类型还是 `rich_text` 链接类型均可正常读写。
-- **主搜索栏免前缀直搜**：同步或增删改书签时自动导出 `search-index.json`，无需输入 `bm` 前缀即可在 Lumakey `⌥Space` 搜索栏直接通过书签名称、拼音首字母、域名或 `#标签` 秒搜书签并回车直达（`⌘Return` 可进入插件管理卡片）。
+- **主搜索栏免前缀直搜**：同步或增删改书签时自动导出 `search-index.json`，无需输入 `bm` 前缀即可在 Lucent `⌥Space` 搜索栏直接通过书签名称、拼音首字母、域名或 `#标签` 秒搜书签并回车直达（`⌘Return` 可进入插件管理卡片）。
 - **原生 Swift 二进制、零常驻、零外部依赖**：预编译为 `arm64` 原生可执行文件 `bin/notion-bookmarks`，无需本机安装 Python 运行时；本地缓存（默认 `120s`）保证日常搜索毫秒级响应。
 - **一键收藏与自动抓取元信息**：支持从剪贴板识别链接一键入库，并自动抓取目标网页 `og:title` / `<title>` 与 `description`。
-- **卡片内闭环管理**：在 Lumakey 卡片内直接完成刷新同步、表单编辑、置顶/取消置顶、提高优先级与归档删除。
+- **卡片内闭环管理**：在 Lucent 卡片内直接完成刷新同步、表单编辑、置顶/取消置顶、提高优先级与归档删除。
 
 ## 一、获取 Notion Token 与授权数据库
 
@@ -39,9 +39,9 @@
 | **置顶** | `pinned` / `pin` / `is_top` / `置顶` | Checkbox / Select（含「置顶」） | 置顶条目固定排在最前 |
 | **图标** | `icon` / `图标` | Phone / URL / Rich Text | 可选展示图标字段 |
 
-## 三、Lumakey 初始化配置
+## 三、Lucent 初始化配置
 
-1. **开启插件与权限**：在 Lumakey 插件管理中确认 **Notion 书签收藏** 已启用，并开启以下权限：
+1. **开启插件与权限**：在 Lucent 插件管理中确认 **Notion 书签收藏** 已启用，并开启以下权限：
    - **网络 (`network`)**：访问 Notion API 与抓取网页标题/简介。
    - **文件系统 (`filesystem`)**：写入本地缓存与 `search-index.json` 免前缀索引。
    - **剪贴板 (`clipboard`)**：用于一键收藏剪贴板中的网页链接。

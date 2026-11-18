@@ -1,6 +1,6 @@
 # 流光译站 · 划词/截图多源翻译与生词本 (`translate-hub`)
 
-Lumakey 官方旗舰翻译与词典插件（Schema v3）：
+Lucent 官方旗舰翻译与词典插件（Plugin v3.7 · 原生 Swift 6 `arm64` 可执行程序 `bin/translate-hub`，零 Python 运行时依赖）：
 
 ## 3 种日常使用方式
 

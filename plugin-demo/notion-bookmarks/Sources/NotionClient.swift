@@ -1,167 +1,6 @@
 import Foundation
 import PluginKit
 
-let notionVersion = "2022-06-28"
-let fieldCandidates: [String: [String]] = [
-    "title": ["name", "title", "名称", "标题"],
-    "url": ["url", "link", "链接", "地址"],
-    "description": ["description", "desc", "描述", "说明"],
-    "tags": ["tag", "tags", "标签"],
-    "category": ["category", "group", "分类", "分组"],
-    "icon": ["icon", "图标"],
-    "priority": ["priority", "sort", "优先级"],
-    "pinned": ["pinned", "pin", "is_top", "置顶"]
-]
-
-struct NotionAPIError: Error {
-    let status: Int
-    let code: String
-    let message: String
-}
-
-struct BookmarkItem: Codable {
-    var id: String
-    var notionUrl: String
-    var title: String
-    var url: String
-    var description: String
-    var tags: [String]
-    var category: String
-    var icon: String
-    var priority: Int
-    var pinned: Bool
-    var createdTime: String
-    var lastEditedTime: String
-}
-
-struct NotionCacheEnvelope: Codable {
-    var fetchedAt: Double
-    var dbTitle: String
-    var schema: [String: [String]]
-    var items: [BookmarkItem]
-}
-
-func normalizeDatabaseID(_ raw: String) -> String {
-    let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !cleaned.isEmpty else { return "" }
-    let uuidRe = try! NSRegularExpression(pattern: #"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"#)
-    let r1 = NSRange(cleaned.startIndex..<cleaned.endIndex, in: cleaned)
-    if let m = uuidRe.firstMatch(in: cleaned, range: r1), let r = Range(m.range(at: 1), in: cleaned) {
-        return cleaned[r].lowercased()
-    }
-    let beforeQuery = cleaned.split(separator: "?").first.map(String.init) ?? cleaned
-    let compact = beforeQuery.replacingOccurrences(of: "-", with: "")
-    let hexRe = try! NSRegularExpression(pattern: #"([0-9a-fA-F]{32})"#)
-    let r2 = NSRange(compact.startIndex..<compact.endIndex, in: compact)
-    if let m = hexRe.firstMatch(in: compact, range: r2), let r = Range(m.range(at: 1), in: compact) {
-        let h = Array(compact[r].lowercased())
-        let p1 = String(h[0..<8]), p2 = String(h[8..<12]), p3 = String(h[12..<16]), p4 = String(h[16..<20]), p5 = String(h[20..<32])
-        return "\(p1)-\(p2)-\(p3)-\(p4)-\(p5)"
-    }
-    return cleaned
-}
-
-func extractFirstURL(_ text: String) -> String {
-    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else { return "" }
-    let urlRe = try! NSRegularExpression(pattern: #"(https?://[^\s<>\"'\]\)]+)"#, options: [.caseInsensitive])
-    let range = NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)
-    guard let m = urlRe.firstMatch(in: trimmed, range: range), let r = Range(m.range(at: 1), in: trimmed) else {
-        return ""
-    }
-    let punct = CharacterSet(charactersIn: ".,;!?，。；！？")
-    return String(trimmed[r]).trimmingCharacters(in: punct)
-}
-
-func normalizeTargetURL(_ raw: String) -> String {
-    let first = extractFirstURL(raw)
-    var candidate = first.isEmpty ? raw.trimmingCharacters(in: .whitespacesAndNewlines) : first
-    guard !candidate.isEmpty else { return "" }
-    if !candidate.lowercased().hasPrefix("http://") && !candidate.lowercased().hasPrefix("https://") {
-        candidate = "https://" + candidate
-    }
-    return candidate
-}
-
-func isTruthy(_ raw: String) -> Bool {
-    ["1", "true", "yes", "y", "on", "是"].contains(raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
-}
-
-func parseTagsCSV(_ raw: String) -> [String] {
-    let parts = raw.components(separatedBy: CharacterSet(charactersIn: ",，、"))
-        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .filter { !$0.isEmpty }
-    var seen = Set<String>()
-    return parts.filter { seen.insert($0).inserted }
-}
-
-func decodeHTMLEntities(_ text: String) -> String {
-    var out = text
-    let map = [
-        "&amp;": "&", "&lt;": "<", "&gt;": ">",
-        "&quot;": "\"", "&#39;": "'", "&apos;": "'", "&nbsp;": " "
-    ]
-    for (k, v) in map { out = out.replacingOccurrences(of: k, with: v) }
-    return out
-}
-
-private func extractMetaContent(body: String, attr: String, value: String) -> String {
-    let valEsc = NSRegularExpression.escapedPattern(for: value)
-    let p1 = "<meta[^>]+\\b\(attr)\\s*=\\s*[\"']\(valEsc)[\"'][^>]+content\\s*=\\s*[\"']([^\"']*)[\"']"
-    let p2 = "<meta[^>]+content\\s*=\\s*[\"']([^\"']*)[\"'][^>]+\\b\(attr)\\s*=\\s*[\"']\(valEsc)[\"']"
-    let range = NSRange(body.startIndex..<body.endIndex, in: body)
-    for pat in [p1, p2] {
-        if let re = try? NSRegularExpression(pattern: pat, options: [.caseInsensitive]),
-           let m = re.firstMatch(in: body, range: range),
-           let r = Range(m.range(at: 1), in: body) {
-            let unescaped = decodeHTMLEntities(String(body[r]))
-            return unescaped.replacingOccurrences(of: "\r", with: " ")
-                .replacingOccurrences(of: "\n", with: " ")
-                .replacingOccurrences(of: "\t", with: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-    }
-    return ""
-}
-
-func fetchURLMetadata(_ targetURL: String, timeout: Double = 2.5) -> (title: String, description: String) {
-    let hostname = (URL(string: targetURL)?.host ?? targetURL).replacingOccurrences(of: "^www\\.", with: "", options: .regularExpression)
-    guard let url = URL(string: targetURL) else { return (hostname, "") }
-
-    let resp = SyncHTTPClient.request(
-        url: url,
-        headers: [
-            "User-Agent": "LumakeyNotionBookmarks/1.0",
-            "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
-        ],
-        timeoutSeconds: timeout
-    )
-    guard resp.isSuccess else { return (hostname, "") }
-    let body = String(decoding: resp.data.prefix(262_144), as: UTF8.self)
-
-    var title = extractMetaContent(body: body, attr: "property", value: "og:title")
-    if title.isEmpty,
-       let titleRe = try? NSRegularExpression(pattern: "<title[^>]*>(.*?)</title>", options: [.caseInsensitive, .dotMatchesLineSeparators]) {
-        let range = NSRange(body.startIndex..<body.endIndex, in: body)
-        if let m = titleRe.firstMatch(in: body, range: range), let r = Range(m.range(at: 1), in: body) {
-            title = decodeHTMLEntities(String(body[r]))
-                .replacingOccurrences(of: "\r", with: " ")
-                .replacingOccurrences(of: "\n", with: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-    }
-    if !title.isEmpty,
-       let suffixRe = try? NSRegularExpression(pattern: #"\s*[-_|—–·]\s*(?:哔哩哔哩|bilibili|知乎|GitHub|百度百科|官方网站|Official Site|主页).*$"#, options: [.caseInsensitive]) {
-        let range = NSRange(title.startIndex..<title.endIndex, in: title)
-        let stripped = suffixRe.stringByReplacingMatches(in: title, range: range, withTemplate: "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if !stripped.isEmpty { title = stripped }
-    }
-    let ogDesc = extractMetaContent(body: body, attr: "property", value: "og:description")
-    let desc = ogDesc.isEmpty ? extractMetaContent(body: body, attr: "name", value: "description") : ogDesc
-    return (title.isEmpty ? hostname : title, desc)
-}
-
 func resolveSchemaMap(_ dbProps: [String: Any]) -> [String: (name: String, type: String)] {
     var lowered: [String: (String, String)] = [:]
     for (k, v) in dbProps {
@@ -172,17 +11,13 @@ func resolveSchemaMap(_ dbProps: [String: Any]) -> [String: (name: String, type:
     var resolved: [String: (String, String)] = [:]
     for (logical, cands) in fieldCandidates {
         for cand in cands {
-            if let hit = lowered[cand.lowercased()] {
-                resolved[logical] = hit
-                break
-            }
+            if let hit = lowered[cand.lowercased()] { resolved[logical] = hit; break }
         }
     }
     if resolved["title"] == nil {
         for (propName, propMeta) in dbProps {
             if let dict = propMeta as? [String: Any], (dict["type"] as? String) == "title" {
-                resolved["title"] = (propName, "title")
-                break
+                resolved["title"] = (propName, "title"); break
             }
         }
     }
@@ -191,9 +26,7 @@ func resolveSchemaMap(_ dbProps: [String: Any]) -> [String: (name: String, type:
 
 private func findProp(_ props: [String: Any], logical: String) -> [String: Any]? {
     var lowered: [String: [String: Any]] = [:]
-    for (k, v) in props {
-        if let d = v as? [String: Any] { lowered[k.lowercased()] = d }
-    }
+    for (k, v) in props { if let d = v as? [String: Any] { lowered[k.lowercased()] = d } }
     for cand in fieldCandidates[logical] ?? [] {
         if let hit = lowered[cand.lowercased()] { return hit }
     }
@@ -207,9 +40,7 @@ private func findProp(_ props: [String: Any], logical: String) -> [String: Any]?
 
 func transformPage(_ page: [String: Any]) -> BookmarkItem {
     let props = (page["properties"] as? [String: Any]) ?? [:]
-
-    let titleProp = findProp(props, logical: "title")
-    let titleArr = (titleProp?["title"] as? [[String: Any]]) ?? []
+    let titleArr = (findProp(props, logical: "title")?["title"] as? [[String: Any]]) ?? []
     let rawTitle = titleArr.compactMap { $0["plain_text"] as? String }.joined().trimmingCharacters(in: .whitespacesAndNewlines)
     let title = rawTitle.isEmpty ? "Untitled" : rawTitle
 
@@ -229,8 +60,7 @@ func transformPage(_ page: [String: Any]) -> BookmarkItem {
         }
     }
 
-    let descProp = findProp(props, logical: "description")
-    let desc = ((descProp?["rich_text"] as? [[String: Any]]) ?? [])
+    let desc = ((findProp(props, logical: "description")?["rich_text"] as? [[String: Any]]) ?? [])
         .compactMap { $0["plain_text"] as? String }.joined().trimmingCharacters(in: .whitespacesAndNewlines)
 
     var tags: [String] = []
@@ -269,15 +99,12 @@ func transformPage(_ page: [String: Any]) -> BookmarkItem {
         }
     }
 
-    let prioProp = findProp(props, logical: "priority")
-    let priority = (prioProp?["number"] as? NSNumber)?.intValue ?? 0
-
+    let priority = (findProp(props, logical: "priority")?["number"] as? NSNumber)?.intValue ?? 0
     var pinnedFlag = false
     if let pinProp = findProp(props, logical: "pinned") {
         let ptype = (pinProp["type"] as? String) ?? ""
-        if ptype == "checkbox" {
-            pinnedFlag = (pinProp["checkbox"] as? Bool) ?? false
-        } else if ptype == "select", let sel = pinProp["select"] as? [String: Any], let n = sel["name"] as? String {
+        if ptype == "checkbox" { pinnedFlag = (pinProp["checkbox"] as? Bool) ?? false }
+        else if ptype == "select", let sel = pinProp["select"] as? [String: Any], let n = sel["name"] as? String {
             pinnedFlag = ["置顶", "Yes", "true", "True"].contains(n)
         }
     }
@@ -285,14 +112,9 @@ func transformPage(_ page: [String: Any]) -> BookmarkItem {
     return BookmarkItem(
         id: (page["id"] as? String) ?? "",
         notionUrl: (page["url"] as? String) ?? "",
-        title: title,
-        url: urlVal,
-        description: desc,
-        tags: mergedTags,
-        category: primaryCategory,
-        icon: icon,
-        priority: priority,
-        pinned: pinnedFlag || priority > 0,
+        title: title, url: urlVal, description: desc,
+        tags: mergedTags, category: primaryCategory, icon: icon,
+        priority: priority, pinned: pinnedFlag || priority > 0,
         createdTime: (page["created_time"] as? String) ?? "",
         lastEditedTime: (page["last_edited_time"] as? String) ?? ""
     )
@@ -306,11 +128,7 @@ func sortBookmarks(_ items: [BookmarkItem]) -> [BookmarkItem] {
     }
 }
 
-func buildNotionProperties(
-    payload: [String: Any],
-    schemaMap: [String: (name: String, type: String)],
-    isUpdate: Bool
-) -> [String: Any] {
+func buildNotionProperties(payload: [String: Any], schemaMap: [String: (name: String, type: String)]) -> [String: Any] {
     var props: [String: Any] = [:]
     let (titleName, _) = schemaMap["title"] ?? ("name", "title")
     let (urlName, urlType) = schemaMap["url"] ?? ("url", "rich_text")
@@ -324,9 +142,7 @@ func buildNotionProperties(
             let urlObj: Any = clean.isEmpty ? NSNull() : clean
             props[urlName] = ["url": urlObj]
         } else {
-            props[urlName] = [
-                "rich_text": clean.isEmpty ? [] : [["type": "text", "text": ["content": clean, "link": ["url": clean]]]]
-            ]
+            props[urlName] = ["rich_text": clean.isEmpty ? [] : [["type": "text", "text": ["content": clean, "link": ["url": clean]]]]]
         }
     }
     if let desc = payload["description"] as? String, (schemaMap.isEmpty || schemaMap["description"] != nil) {
@@ -358,7 +174,6 @@ func buildNotionProperties(
             props[pinName] = ["select": pinObj]
         }
     }
-    _ = isUpdate
     return props
 }
 
@@ -371,7 +186,7 @@ final class NotionClient {
         self.token = token.trimmingCharacters(in: .whitespacesAndNewlines)
         self.databaseID = normalizeDatabaseID(databaseID)
         let defaultBase = ["https", "://", "api.", "notion.com", "/v1"].joined()
-        let rawBase = apiBase ?? ProcessInfo.processInfo.environment["LUMAKEY_NOTION_API_BASE"] ?? defaultBase
+        let rawBase = apiBase ?? ProcessInfo.processInfo.environment["LUCENT_NOTION_API_BASE"] ?? defaultBase
         self.apiBase = rawBase.hasSuffix("/") ? String(rawBase.dropLast()) : rawBase
     }
 
@@ -380,17 +195,10 @@ final class NotionClient {
             throw NotionAPIError(status: 0, code: "invalid_url", message: "无效的 Notion API 地址")
         }
         let bodyData = try body.map { try JSONSerialization.data(withJSONObject: $0) }
-        let authHeader = ["Bearer", token].joined(separator: " ")
         let resp = SyncHTTPClient.request(
-            url: url,
-            method: method,
-            headers: [
-                "Authorization": authHeader,
-                "Notion-Version": notionVersion,
-                "Content-Type": "application/json"
-            ],
-            body: bodyData,
-            timeoutSeconds: timeout
+            url: url, method: method,
+            headers: ["Authorization": ["Bearer", token].joined(separator: " "), "Notion-Version": notionVersion, "Content-Type": "application/json"],
+            body: bodyData, timeoutSeconds: timeout
         )
         if let netErr = resp.errorDescription, resp.statusCode == 0 {
             throw NotionAPIError(status: 0, code: "network_error", message: "网络请求失败：\(netErr)")
@@ -408,45 +216,32 @@ final class NotionClient {
         let db = try request(method: "GET", path: "/databases/\(databaseID)")
         let titleArr = (db["title"] as? [[String: Any]]) ?? []
         let rawTitle = titleArr.compactMap { $0["plain_text"] as? String }.joined().trimmingCharacters(in: .whitespacesAndNewlines)
-        let dbTitle = rawTitle.isEmpty ? "Notion 书签库" : rawTitle
-        let props = (db["properties"] as? [String: Any]) ?? [:]
-        return (dbTitle, resolveSchemaMap(props))
+        return (rawTitle.isEmpty ? "Notion 书签库" : rawTitle, resolveSchemaMap((db["properties"] as? [String: Any]) ?? [:]))
     }
 
     func queryAllBookmarks(maxPages: Int = 3) throws -> [BookmarkItem] {
-        var items: [BookmarkItem] = []
-        var cursor: String? = nil
+        var items: [BookmarkItem] = [], cursor: String? = nil
         for _ in 0..<maxPages {
             var payload: [String: Any] = ["page_size": 100]
             if let cursor { payload["start_cursor"] = cursor }
             let res = try request(method: "POST", path: "/databases/\(databaseID)/query", body: payload)
-            let pages = (res["results"] as? [[String: Any]]) ?? []
-            for page in pages where (page["archived"] as? Bool) != true {
+            for page in (res["results"] as? [[String: Any]]) ?? [] where (page["archived"] as? Bool) != true {
                 items.append(transformPage(page))
             }
-            guard (res["has_more"] as? Bool) == true,
-                  let next = res["next_cursor"] as? String, !next.isEmpty else {
-                break
-            }
+            guard (res["has_more"] as? Bool) == true, let next = res["next_cursor"] as? String, !next.isEmpty else { break }
             cursor = next
         }
         return sortBookmarks(items)
     }
 
     func createBookmark(payload: [String: Any], schemaMap: [String: (name: String, type: String)]) throws -> BookmarkItem {
-        let props = buildNotionProperties(payload: payload, schemaMap: schemaMap, isUpdate: false)
-        let page = try request(
-            method: "POST",
-            path: "/pages",
-            body: ["parent": ["database_id": databaseID], "properties": props]
-        )
-        return transformPage(page)
+        let props = buildNotionProperties(payload: payload, schemaMap: schemaMap)
+        return transformPage(try request(method: "POST", path: "/pages", body: ["parent": ["database_id": databaseID], "properties": props]))
     }
 
     func updateBookmark(pageID: String, payload: [String: Any], schemaMap: [String: (name: String, type: String)]) throws -> BookmarkItem {
-        let props = buildNotionProperties(payload: payload, schemaMap: schemaMap, isUpdate: true)
-        let page = try request(method: "PATCH", path: "/pages/\(pageID)", body: ["properties": props])
-        return transformPage(page)
+        let props = buildNotionProperties(payload: payload, schemaMap: schemaMap)
+        return transformPage(try request(method: "PATCH", path: "/pages/\(pageID)", body: ["properties": props]))
     }
 
     func archiveBookmark(pageID: String) throws {

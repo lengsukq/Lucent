@@ -7,7 +7,7 @@
   "mode": "view",
   "keywords": ["bh", "browser", "history", "edge", "chrome", "safari", "书签", "历史记录", "浏览器"],
   "entry": "bin/browser-hub",
-  "author": "Lumakey Official",
+  "author": "Lucent Official",
   "icon": "icon.svg",
   "accentColor": "indigo",
   "categoryTag": "浏览器中枢",
@@ -79,7 +79,7 @@
       "defaultValue": "Edge, Chrome, Safari",
       "placeholder": "Edge, Chrome, Safari",
       "section": "数据源与隐私范围",
-      "helpText": "支持自由保留常用的浏览器（如仅填 Edge, Chrome）；Safari 读取需在系统设置授予 Lumakey 完全磁盘访问权限"
+      "helpText": "支持自由保留常用的浏览器（如仅填 Edge, Chrome）；Safari 读取需在系统设置授予 Lucent 完全磁盘访问权限"
     },
     {
       "key": "historyDays",
@@ -155,7 +155,7 @@
         "enabledBrowsers": {
           "label": "Enabled Browser Sources",
           "section": "Sources & Scope",
-          "helpText": "Include any of Edge, Chrome, Safari. Reading ~/Library/Safari requires Full Disk Access for Lumakey."
+          "helpText": "Include any of Edge, Chrome, Safari. Reading ~/Library/Safari requires Full Disk Access for Lucent."
         },
         "historyDays": {
           "label": "History Lookback Window (Days)",

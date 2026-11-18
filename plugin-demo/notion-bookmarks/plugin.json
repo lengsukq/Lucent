@@ -7,7 +7,7 @@
   "mode": "view",
   "keywords": ["bm", "bookmark", "notion", "nav"],
   "entry": "bin/notion-bookmarks",
-  "author": "Lumakey Official",
+  "author": "Lucent Official",
   "icon": "icon.svg",
   "accentColor": "teal",
   "categoryTag": "书签",

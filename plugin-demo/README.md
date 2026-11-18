@@ -1,6 +1,6 @@
-# Lumakey 官方插件商店与扩展示例 (`plugin-demo`)
+# Lucent 官方插件商店与扩展示例 (`plugin-demo`)
 
-本目录既是仓库自带的**完整自定义插件商店示例（含 `lumakey-registry.json`、`dist/*.zip` 校验归档包与 `starters/*.zip` 内置起始模板包）**，也是面向 **Lumakey Plugin v3.7** 架构的 **100% 原生 Swift 6（零外部依赖、零 Python 运行时依赖）** 独立 SwiftPM 工程：
+本目录既是仓库自带的**完整自定义插件商店示例（含 `lucent-registry.json`、`dist/*.zip` 校验归档包与 `starters/*.zip` 内置起始模板包）**，也是面向 **Lucent Plugin v3.7** 架构的 **100% 原生 Swift 6（零外部依赖、零 Python 运行时依赖）** 独立 SwiftPM 工程：
 
 - **统一原生底座 (`Package.swift` + `Shared/PluginKit/`)**：封装 `stdin` JSON 与配置解析、结构化 `ViewPayload` 编码、`PluginData` 免前缀索引 (`search-index.json`) 与运行摘要 (`status.json`) 原子写盘、原生 Unix Domain Socket (`Darwin.socket`) Host Bridge 客户端以及带超时强杀的子进程与同步 HTTP 工具；全部插件均预编译为签名裁剪后的 `arm64` Mach-O 可执行文件（`bin/<id>`），在新装 macOS 上无需安装 Python 3 或 Xcode Command Line Tools 即可毫秒级启动。
 - [`browser-hub/`](browser-hub/README.md)：**三端浏览器书签与历史中枢**（原生 `SQLite3` WAL 无锁快照与 `PropertyListSerialization` 直连 Microsoft Edge、Google Chrome 多 Profile 与 Apple Safari 书签、阅读列表及历史记录，自动同步 `⌥Space` 免前缀索引并支持按来源浏览器打开）。
@@ -16,9 +16,9 @@
 
 ### 方式一：作为插件商店一键入驻（推荐）
 
-1. 打开 **Lumakey → 设置 → 插件中心 → 精选市场**。
-2. 在顶部「**智能入驻 / 直装地址**」输入框粘贴本目录的本地路径（如 `/path/to/Lumakey/plugin-demo`）或远端仓库的 `/tree/main/plugin-demo` 子目录地址，点击 **「识别」**。
-3. 自动入驻 **「Lumakey 官方示例商店 (plugin-demo)」** 后，即可在商店列表中带 `SHA-256` 校验一键安装任意官方插件。
+1. 打开 **Lucent → 设置 → 插件中心 → 精选市场**。
+2. 在顶部「**智能入驻 / 直装地址**」输入框粘贴本目录的本地路径（如 `/path/to/Lucent/plugin-demo`）或远端仓库的 `/tree/main/plugin-demo` 子目录地址，点击 **「识别」**。
+3. 自动入驻 **「Lucent 官方示例商店 (plugin-demo)」** 后，即可在商店列表中带 `SHA-256` 校验一键安装任意官方插件。
 
 ### 方式二：命令行编译并安装到本地插件目录
 
@@ -30,9 +30,9 @@ bash plugin-demo/install.sh
 bash plugin-demo/install.sh translate-hub
 ```
 
-### 方式三：重新编译签名并打包商店归档与 `lumakey-registry.json`
+### 方式三：重新编译签名并打包商店归档与 `lucent-registry.json`
 
-修改 `Shared/PluginKit/`、各插件 `Sources/` 或 `Starters/` 源码后，执行以下命令即可统一编译 `arm64` Release 二进制、执行 `strip -x` 与代码签名、打包 `starters/*.zip`，并调用 `lumakey-mcp` 完成 v3 校验、生成 `dist/*.zip` 及更新 `lumakey-registry.json` 中的 64 位 `SHA-256`：
+修改 `Shared/PluginKit/`、各插件 `Sources/` 或 `Starters/` 源码后，执行以下命令即可统一编译 `arm64` Release 二进制、执行 `strip -x` 与代码签名、打包 `starters/*.zip`，并调用 `lucent-mcp` 完成 v3 校验、生成 `dist/*.zip` 及更新 `lucent-registry.json` 中的 64 位 `SHA-256`：
 
 ```bash
 bash plugin-demo/package-store.sh

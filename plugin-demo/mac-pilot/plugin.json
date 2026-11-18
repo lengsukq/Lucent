@@ -7,7 +7,7 @@
   "mode": "view",
   "keywords": ["mac", "pilot", "sys", "vol", "eject", "finder", "系统控制", "音量", "推出磁盘", "访达"],
   "entry": "bin/mac-pilot",
-  "author": "Lumakey Official",
+  "author": "Lucent Official",
   "icon": "icon.svg",
   "accentColor": "blue",
   "categoryTag": "系统控制",

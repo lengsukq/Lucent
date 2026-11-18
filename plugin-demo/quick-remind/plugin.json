@@ -7,7 +7,7 @@
   "mode": "view",
   "keywords": ["rem", "remind", "timer", "alarm", "提醒", "倒计时", "闹钟", "待办"],
   "entry": "bin/quick-remind",
-  "author": "Lumakey Official",
+  "author": "Lucent Official",
   "icon": "icon.svg",
   "accentColor": "orange",
   "categoryTag": "提醒事项",

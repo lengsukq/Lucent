@@ -26,7 +26,7 @@ private func extractTags(from text: String, includeHash: Bool) -> [String] {
 private func parseNotes(at url: URL) -> (header: [String], notes: [NoteEntry]) {
     guard FileManager.default.fileExists(atPath: url.path),
           let raw = try? String(contentsOf: url, encoding: .utf8) else {
-        return (["# Lumakey Quick Capture Inbox", ""], [])
+        return (["# Lucent Quick Capture Inbox", ""], [])
     }
     var header: [String] = []
     var notes: [NoteEntry] = []
@@ -56,7 +56,7 @@ private func parseNotes(at url: URL) -> (header: [String], notes: [NoteEntry]) {
         header.removeLast()
     }
     if header.isEmpty {
-        header = ["# Lumakey Quick Capture Inbox", ""]
+        header = ["# Lucent Quick Capture Inbox", ""]
     }
     return (header, notes)
 }
@@ -65,7 +65,7 @@ private func encodeReaderLink(for fileURL: URL) -> String {
     var allowed = CharacterSet.urlQueryAllowed
     allowed.remove(charactersIn: "&+=?#")
     let encoded = fileURL.path.addingPercentEncoding(withAllowedCharacters: allowed) ?? fileURL.path
-    return "lumakey://reader?path=\(encoded)"
+    return "lucent://reader?path=\(encoded)"
 }
 
 private func saveNotes(at mdURL: URL, header: [String], notes: [NoteEntry], dataDir: String) {
@@ -109,7 +109,7 @@ var query = input.query.trimmingCharacters(in: .whitespacesAndNewlines)
 let ctxText = (input.context?.url ?? input.context?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 let dataDir = input.dataDir
 
-let expandedPath = input.cfgExpandedPath("notesPath", default: "~/Documents/Lumakey-Notes.md")
+let expandedPath = input.cfgExpandedPath("notesPath", default: "~/Documents/Lucent-Notes.md")
 let mdURL = URL(fileURLWithPath: expandedPath).standardizedFileURL
 
 var defTag = input.cfgString("defaultTag", default: "#idea")

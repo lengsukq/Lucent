@@ -7,7 +7,7 @@
   "mode": "view",
   "keywords": ["lumalink", "remote", "rdp", "流光随行", "远控"],
   "entry": "bin/lumalink-companion",
-  "author": "Lumakey Official",
+  "author": "Lucent Official",
   "icon": "icon.svg",
   "accentColor": "cyan",
   "categoryTag": "远控伴侣",

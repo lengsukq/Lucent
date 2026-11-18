@@ -53,7 +53,7 @@ for id in starterPlugins {
 }
 
 let package = Package(
-    name: "LumakeyDemoPlugins",
+    name: "LucentDemoPlugins",
     platforms: [.macOS(.v14)],
     products: (demoPlugins + starterPlugins).map { .executable(name: $0, targets: [$0]) },
     targets: targets

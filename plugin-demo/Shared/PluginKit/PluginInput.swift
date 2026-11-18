@@ -95,10 +95,10 @@ public struct PluginInput: @unchecked Sendable {
         let query = (top["query"] as? String) ?? ""
         let mode = (top["mode"] as? String) ?? "view"
         let locale = (top["locale"] as? String)
-            ?? environment["LUMAKEY_LOCALE"]
+            ?? environment["LUCENT_LOCALE"]
             ?? "zh-Hans"
         let theme = (top["theme"] as? String)
-            ?? environment["LUMAKEY_THEME"]
+            ?? environment["LUCENT_THEME"]
             ?? "liquidGlass"
 
         var cfg: [String: String] = [:]
@@ -114,7 +114,7 @@ public struct PluginInput: @unchecked Sendable {
 
         let clipboard = (top["clipboard"] as? String) ?? ""
         let dataDir = (top["dataDir"] as? String)
-            ?? environment["LUMAKEY_DATA_DIR"]
+            ?? environment["LUCENT_DATA_DIR"]
             ?? ""
 
         var ctxInfo: PluginContextInfo? = nil
@@ -131,10 +131,10 @@ public struct PluginInput: @unchecked Sendable {
 
         let rawBridge = top["bridge"] as? [String: Any]
         let sock = (rawBridge?["socket"] as? String)
-            ?? environment["LUMAKEY_BRIDGE_SOCK"]
+            ?? environment["LUCENT_BRIDGE_SOCK"]
             ?? ""
         let tok = (rawBridge?["token"] as? String)
-            ?? environment["LUMAKEY_BRIDGE_TOKEN"]
+            ?? environment["LUCENT_BRIDGE_TOKEN"]
             ?? ""
         let caps = Set((rawBridge?["grantedCapabilities"] as? [String]) ?? [])
 

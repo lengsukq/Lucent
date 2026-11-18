@@ -1,9 +1,9 @@
 {
-  "maintainer" : "Lumakey Official",
+  "maintainer" : "Lucent Official",
   "plugins" : [
     {
       "accentColor" : "indigo",
-      "author" : "Lumakey Official",
+      "author" : "Lucent Official",
       "capabilities" : [
 
       ],
@@ -57,7 +57,7 @@
               "section" : "Open Behavior & Cache"
             },
             "enabledBrowsers" : {
-              "helpText" : "Include any of Edge, Chrome, Safari. Reading ~/Library/Safari requires Full Disk Access for Lumakey.",
+              "helpText" : "Include any of Edge, Chrome, Safari. Reading ~/Library/Safari requires Full Disk Access for Lucent.",
               "label" : "Enabled Browser Sources",
               "section" : "Sources & Scope"
             },
@@ -85,13 +85,13 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "8d43d34369dea0bcd1c778481a570b9e063af01e6e432c460955f7c8cc9bec17",
-      "sizeBytes" : 174760,
+      "sha256" : "495bfbfca40d2d157c1fd94bd8fcc0ec12626b264000cb49b1ff4f6dedb214ec",
+      "sizeBytes" : 180534,
       "version" : "1.0.0"
     },
     {
       "accentColor" : "cyan",
-      "author" : "Lumakey Official",
+      "author" : "Lucent Official",
       "capabilities" : [
         "lumaLinkStatus"
       ],
@@ -166,8 +166,8 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "e28379ee71c14b20d391f218f9b2d0a94a138347cb7c251b0f610a3f63ce2079",
-      "sizeBytes" : 137765,
+      "sha256" : "a7607c28a46c5de79f3001fb3a43298d53cdc70956e8322a844ce5c9987faa9f",
+      "sizeBytes" : 140645,
       "version" : "2.2.0"
     },
     {
@@ -176,7 +176,7 @@
         "file",
         "directory"
       ],
-      "author" : "Lumakey Official",
+      "author" : "Lucent Official",
       "capabilities" : [
         "systemControl",
         "clipboard"
@@ -254,8 +254,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "d570076fc21919856505a53e691839134ed176093e9208f8109671f002203be8",
-      "sizeBytes" : 151474,
+      "sha256" : "750faac3826e84a96ac087a92ee874d7913f3aa0dd43a109cb949bb0c9317784",
+      "sizeBytes" : 155764,
       "version" : "1.0.0"
     },
     {
@@ -264,7 +264,7 @@
         "url",
         "text"
       ],
-      "author" : "Lumakey Official",
+      "author" : "Lucent Official",
       "capabilities" : [
         "clipboard"
       ],
@@ -335,8 +335,8 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "9896513203800d26c51a44d23824914f92216637065ab88021b4e5b7aeeb10a6",
-      "sizeBytes" : 197229,
+      "sha256" : "82f2110876d3193e64118d7f43085213e37198ee5bf71e398f5961d367d82296",
+      "sizeBytes" : 201894,
       "version" : "1.4.0"
     },
     {
@@ -344,7 +344,7 @@
       "accepts" : [
         "text"
       ],
-      "author" : "Lumakey Official",
+      "author" : "Lucent Official",
       "capabilities" : [
         "audio"
       ],
@@ -408,13 +408,13 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "f565afab54df2f6ddd2d1ceafc8cb012bb97606f6c865d95fd3b10464d683310",
-      "sizeBytes" : 140641,
+      "sha256" : "594aedc3662bd3ba7891f86007909dc612042a9455fd827be4b818506d81a4a3",
+      "sizeBytes" : 143716,
       "version" : "1.0.0"
     },
     {
       "accentColor" : "teal",
-      "author" : "Lumakey Official",
+      "author" : "Lucent Official",
       "capabilities" : [
         "systemControl"
       ],
@@ -497,8 +497,8 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "99d50bb9050414d4f2acbe7198196e07c428adc6b9840740c86d4e3c7cd19b7b",
-      "sizeBytes" : 112927,
+      "sha256" : "c2db078ca9f7ca94098e3d238946da65ad0d7cf4b9483199aa893b8a38187f06",
+      "sizeBytes" : 114997,
       "version" : "1.0.0"
     },
     {
@@ -507,7 +507,7 @@
         "text",
         "image"
       ],
-      "author" : "Lumakey Official",
+      "author" : "Lucent Official",
       "capabilities" : [
         "selection",
         "clipboard",
@@ -598,13 +598,13 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "3310ab4f278966cd9bde5fd55d43a997b8336eb65f7a504ae71162f031d76613",
-      "sizeBytes" : 155444,
+      "sha256" : "b45d817779ac2756efa7c964c203f320d438055dfa4eee0367a7cf73789cda78",
+      "sizeBytes" : 158899,
       "version" : "1.0.0"
     }
   ],
   "schemaVersion" : 1,
-  "storeId" : "lumakey-demo-store",
-  "storeName" : "Lumakey 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-18T00:57:06Z"
+  "storeId" : "lucent-demo-store",
+  "storeName" : "Lucent 官方示例商店 (plugin-demo)",
+  "updatedAt" : "2026-11-18T05:19:48Z"
 }

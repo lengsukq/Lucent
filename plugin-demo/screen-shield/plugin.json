@@ -7,7 +7,7 @@
   "mode": "view",
   "keywords": ["shield", "clean", "brb", "busy", "状态屏", "清洁屏幕", "擦键盘", "勿碰", "马上回来"],
   "entry": "bin/screen-shield",
-  "author": "Lumakey Official",
+  "author": "Lucent Official",
   "icon": "icon.svg",
   "accentColor": "teal",
   "categoryTag": "状态屏",

@@ -3,8 +3,8 @@ set -euo pipefail
 
 DEMO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ID="${1:-all}"
-DEST_ROOT="$HOME/Library/Application Support/Lumakey/Plugins"
-DATA_ROOT="$HOME/Library/Application Support/Lumakey/PluginData"
+DEST_ROOT="$HOME/Library/Application Support/Lucent/Plugins"
+DATA_ROOT="$HOME/Library/Application Support/Lucent/PluginData"
 
 ALL_PLUGINS=(
   "browser-hub"
@@ -28,7 +28,7 @@ ensure_binary() {
     cp "$built_dir/$id" "$bin_path"
     chmod 755 "$bin_path"
     /usr/bin/strip -x "$bin_path"
-    codesign --force --sign "${LUMAKEY_SIGN_IDENTITY:--}" --identifier "app.lumakey.plugin.$id" "$bin_path"
+    codesign --force --sign "${LUCENT_SIGN_IDENTITY:--}" --identifier "app.lucent.plugin.$id" "$bin_path"
   fi
 }
 
@@ -56,4 +56,4 @@ else
   install_one "$PLUGIN_ID"
 fi
 
-echo "若 Lumakey 正在运行，插件中心将在 350ms 内自动热重载。"
+echo "若 Lucent 正在运行，插件中心将在 350ms 内自动热重载。"

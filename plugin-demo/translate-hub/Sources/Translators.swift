@@ -90,7 +90,7 @@ func fetchWordDictionary(_ word: String) -> WordDictionaryResult? {
     let q = clean.addingPercentEncoding(withAllowedCharacters: allowed) ?? clean
     let ydHost = "dict." + "youdao.com"
     if let ydURL = URL(string: "\(httpsScheme)\(ydHost)/suggest?num=3&ver=3.0&doctype=json&cache=false&le=en&q=\(q)") {
-        let resp = SyncHTTPClient.request(url: ydURL, headers: ["User-Agent": "LumakeyTranslateHub/1.0"], timeoutSeconds: 2.8)
+        let resp = SyncHTTPClient.request(url: ydURL, headers: ["User-Agent": "LucentTranslateHub/1.0"], timeoutSeconds: 2.8)
         if resp.isSuccess,
            let root = resp.jsonObject(),
            let dataObj = root["data"] as? [String: Any],
@@ -112,7 +112,7 @@ func fetchWordDictionary(_ word: String) -> WordDictionaryResult? {
     if enRe.firstMatch(in: clean, range: nsRange) != nil {
         let dictHost = "api." + "dictionaryapi.dev"
         if let dictURL = URL(string: "\(httpsScheme)\(dictHost)/api/v2/entries/en/\(q)") {
-            let resp = SyncHTTPClient.request(url: dictURL, headers: ["User-Agent": "LumakeyTranslateHub/1.0"], timeoutSeconds: 2.8)
+            let resp = SyncHTTPClient.request(url: dictURL, headers: ["User-Agent": "LucentTranslateHub/1.0"], timeoutSeconds: 2.8)
             if resp.isSuccess,
                let arr = (try? JSONSerialization.jsonObject(with: resp.data)) as? [[String: Any]],
                let item = arr.first {
@@ -142,14 +142,14 @@ func translateZeroConfig(text: String, src: String, target: String) -> EngineTra
     let sCode = src == "zh-Hans" ? "zh-CN" : src
     let tCode = target == "zh-Hans" ? "zh-CN" : target
     let mmHost = "api.mymemory." + "translated.net"
-    let baseStr = ProcessInfo.processInfo.environment["LUMAKEY_TRANSLATE_FREE_URL"] ?? "\(httpsScheme)\(mmHost)/get"
+    let baseStr = ProcessInfo.processInfo.environment["LUCENT_TRANSLATE_FREE_URL"] ?? "\(httpsScheme)\(mmHost)/get"
     guard var comps = URLComponents(string: baseStr) else { return nil }
     comps.queryItems = [
         URLQueryItem(name: "q", value: String(text.prefix(490))),
         URLQueryItem(name: "langpair", value: "\(sCode)|\(tCode)")
     ]
     guard let url = comps.url else { return nil }
-    let resp = SyncHTTPClient.request(url: url, headers: ["User-Agent": "LumakeyTranslateHub/1.0"], timeoutSeconds: 3.5)
+    let resp = SyncHTTPClient.request(url: url, headers: ["User-Agent": "LucentTranslateHub/1.0"], timeoutSeconds: 3.5)
     guard resp.isSuccess,
           let json = resp.jsonObject(),
           let respData = json["responseData"] as? [String: Any],
@@ -164,7 +164,7 @@ func translateOllamaLocal(text: String, target: String, model: String) -> Engine
     let langEn = langLabels[target]?.en ?? target
     let cleanModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
     let resolvedModel = cleanModel.isEmpty ? "qwen2.5:7b" : cleanModel
-    let endpoint = ProcessInfo.processInfo.environment["LUMAKEY_OLLAMA_BASE_URL"] ?? localOllamaBase
+    let endpoint = ProcessInfo.processInfo.environment["LUCENT_OLLAMA_BASE_URL"] ?? localOllamaBase
     guard let url = URL(string: "\(endpoint)/v1/chat/completions") else { return nil }
     let payload: [String: Any] = [
         "model": resolvedModel,
