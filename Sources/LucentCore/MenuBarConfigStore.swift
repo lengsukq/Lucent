@@ -90,6 +90,7 @@ public struct MenuBarConfig: Codable, Sendable, Hashable, Equatable {
     public func resolvedLayout(context: MenuBarRuntimeContext = MenuBarRuntimeContext()) -> MenuBarResolvedLayout {
         let hasPendingUpdates = context.availableAppUpdateVersion != nil || context.availablePluginUpdateCount > 0
         let active = orderedItems.filter { item in
+            if item == .lumaLinkConsole && !context.isLumaLinkAvailableOrEnabled { return false }
             if item == .checkForUpdates && hasPendingUpdates { return true }
             guard isItemEnabled(item) else { return false }
             if hideContextualItemsWhenIdle {
@@ -97,7 +98,6 @@ public struct MenuBarConfig: Codable, Sendable, Hashable, Equatable {
                 case .closeAllPins: if context.activePinCount == 0 { return false }
                 case .closeAllPluginWindows: if context.activePluginWindowCount == 0 { return false }
                 case .systemPulseSnapEdge: if !context.isSystemPulseFloatingVisible { return false }
-                case .lumaLinkConsole: if !context.isLumaLinkAvailableOrEnabled { return false }
                 default: break
                 }
             }

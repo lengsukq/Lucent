@@ -13,8 +13,14 @@ struct MenuBarCustomizationCardView: View {
 
     private var config: MenuBarConfig { viewModel.menuBarConfig }
 
+    private var hasLumaLinkPlugin: Bool {
+        viewModel.plugins.contains { $0.id == LumaLinkServer.companionPluginID }
+    }
+
     private var editableItems: [MenuBarBuiltinItemID] {
-        config.orderedItems.filter { !$0.isLockedVisible }
+        config.orderedItems.filter { item in
+            !item.isLockedVisible && (item != .lumaLinkConsole || hasLumaLinkPlugin)
+        }
     }
 
     private var pinnedPluginItems: [PluginQuickButtonItem] {

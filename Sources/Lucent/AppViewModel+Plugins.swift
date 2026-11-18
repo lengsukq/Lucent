@@ -104,7 +104,12 @@ extension AppViewModel {
     func openBuiltinPluginSettings(_ plugin: PluginDescriptor) {
         switch plugin.builtinMetadata?.settingsTarget {
         case "mos": openRoute(.settings(.mos))
-        case "lumaLink": openRoute(.settings(.lumaLink))
+        case "lumaLink":
+            if plugins.contains(where: { $0.id == LumaLinkServer.companionPluginID }) {
+                openPluginSettings(id: LumaLinkServer.companionPluginID)
+            } else {
+                openRoute(.settings(.plugins))
+            }
         case "monitor": openRoute(.settings(.monitor))
         default: openRoute(.settings(.plugins))
         }

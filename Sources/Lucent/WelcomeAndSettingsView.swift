@@ -65,9 +65,6 @@ struct SettingsCenterView: View {
                 ForEach(SettingsSection.builtinPluginSections) { section in
                     sectionButton(section, dotActive: isBuiltinActive(section))
                 }
-                if !allExternalPlugins.contains(where: { $0.id == LumaLinkServer.companionPluginID }) {
-                    sectionButton(.lumaLink, dotActive: viewModel.lumaLinkConfig.enabled)
-                }
                 ForEach(visibleExternalPlugins) { plugin in externalPluginSidebarButton(plugin) }
                 if !hiddenExternalPlugins.isEmpty {
                     Button {
@@ -109,7 +106,6 @@ struct SettingsCenterView: View {
     private func isBuiltinActive(_ section: SettingsSection) -> Bool {
         switch section {
         case .mos: viewModel.mosConfig.enabled
-        case .lumaLink: viewModel.lumaLinkConfig.enabled
         case .monitor: SystemPulseWindowController.shared.state.config.floatingEnabled || SystemPulseWindowController.shared.state.config.showInMenuBar
         default: false
         }
@@ -177,7 +173,6 @@ struct SettingsCenterView: View {
                 case .monitor: TelemetrySettingsView(viewModel: viewModel)
                 case .cache: ScrollView { AppCacheSettingsView(viewModel: viewModel).padding(.trailing, 4) }
                 case .mos: MosPluginSettingsView(viewModel: viewModel)
-                case .lumaLink: LumaLinkSettingsView(viewModel: viewModel)
                 case .scripts: ScriptsSettingsView(viewModel: viewModel)
                 case .snippets: SnippetsSettingsView(viewModel: viewModel)
                 case .pluginDetail: PluginDedicatedSettingsView(viewModel: viewModel)

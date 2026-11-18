@@ -158,7 +158,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
 
     func openLumaLinkConsole() {
         let hasPlugin = viewModel.plugins.contains { $0.id == LumaLinkServer.companionPluginID }
-        open(route: hasPlugin ? .pluginSettings(LumaLinkServer.companionPluginID) : .settings(.lumaLink))
+        open(route: hasPlugin ? .pluginSettings(LumaLinkServer.companionPluginID) : .settings(.plugins))
     }
 
     func open(route: WindowRoute) {

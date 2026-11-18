@@ -37,7 +37,12 @@ extension AppViewModel {
             case .settingsSection(let target):
                 switch target {
                 case "mos": openRoute(.settings(.mos))
-                case "lumaLink": openRoute(.settings(.lumaLink))
+                case "lumaLink":
+                    if plugins.contains(where: { $0.id == LumaLinkServer.companionPluginID }) {
+                        openPluginSettings(id: LumaLinkServer.companionPluginID)
+                    } else {
+                        openRoute(.settings(.plugins))
+                    }
                 case "monitor": openRoute(.settings(.monitor))
                 case "network": openRoute(.networkMonitor)
                 case "cache": openRoute(.settings(.cache))

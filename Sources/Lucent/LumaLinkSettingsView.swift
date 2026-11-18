@@ -81,22 +81,6 @@ struct LumaLinkDedicatedConsoleView<CustomCard: View>: View {
     }
 }
 
-struct LumaLinkSettingsView: View {
-    @ObservedObject var viewModel: AppViewModel
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                LumaLinkServiceControlCard(viewModel: viewModel, companionPlugin: nil, ctrl: nil)
-                LumaLinkNetworkAndPairingCard(viewModel: viewModel)
-                LumaLinkSafetyAndDevicesCard(viewModel: viewModel)
-            }
-            .padding(.trailing, 4)
-        }
-        .onAppear { viewModel.refreshLumaLinkStatus() }
-    }
-}
-
 struct LumaLinkSafetyAndDevicesCard: View {
     @ObservedObject var viewModel: AppViewModel
 

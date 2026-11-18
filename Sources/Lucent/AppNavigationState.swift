@@ -39,6 +39,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .search: .general
         case .clipboard: .cache
+        case .lumaLink: .plugins
         default: self
         }
     }

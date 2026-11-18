@@ -127,8 +127,9 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
 
     private func currentRuntimeContext() -> MenuBarRuntimeContext {
         let pulseCfg = SystemPulseWindowController.shared.state.config
-        let hasLumaLink = viewModel.lumaLinkConfig.enabled
-            || viewModel.plugins.contains { $0.id == LumaLinkServer.companionPluginID && $0.isEnabled && $0.isValid }
+        let hasLumaLink = viewModel.plugins.contains {
+            $0.id == LumaLinkServer.companionPluginID && $0.isEnabled && $0.isValid
+        }
         let updater = AppUpdateCoordinator.shared
         return MenuBarRuntimeContext(
             activePinCount: PinWindowController.shared.activePinCount,

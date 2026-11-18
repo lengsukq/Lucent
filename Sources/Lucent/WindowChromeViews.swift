@@ -161,7 +161,11 @@ struct GlassInputField: View {
                 Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(LiquidColors.textSecondary)
                     .frame(width: 22, height: 22).background(LiquidColors.pillSurface, in: Circle())
             }
-            TextField(resolvedPlaceholder, text: $text).textFieldStyle(.plain).font(.caption.weight(.medium)).foregroundStyle(LiquidColors.textPrimary)
+            TextField(resolvedPlaceholder, text: $text)
+                .textFieldStyle(.plain)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(LiquidColors.textPrimary)
+                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(LiquidColors.textTertiary)

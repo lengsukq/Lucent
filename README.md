@@ -172,3 +172,7 @@ bash scripts/release-macos.sh
 ## 开源许可
 
 本项目采用 [MIT License](LICENSE) 开源发布。
+
+## 友情链接
+
+- [LINUX DO](https://linux.do/) — 新的理想型社区（https://linux.do/）

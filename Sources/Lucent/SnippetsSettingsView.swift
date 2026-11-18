@@ -111,7 +111,7 @@ struct SnippetsSettingsView: View {
         self.viewModel = viewModel
     }
 
-    private let placeholders = ["{{date}}", "{{datetime}}", "{{uuid}}", "{{clipboard}}"]
+    private let placeholders = ["{{date}}", "{{datetime}}", "{{uuid}}", "{{clipboard}}", "{{base64_encode}}", "{{base64_decode}}"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -120,7 +120,7 @@ struct SnippetsSettingsView: View {
                 topColor: .cyan,
                 bottomColor: .indigo,
                 title: "快捷短语词库 (Snippets)",
-                subtitle: "输入触发前缀（如 ;date / ;sh）毫秒展开常用语、脚本模板与动态剪贴板占位符。"
+                subtitle: "输入触发前缀（如 ;date / ;b64 / ;b64d）毫秒展开常用语、Base64 编解码与动态剪贴板占位符。"
             ) {
                 HStack(spacing: 8) {
                     Button("新建短语") { ctrl.startNew() }

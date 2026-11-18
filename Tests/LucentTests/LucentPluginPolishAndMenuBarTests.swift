@@ -162,6 +162,11 @@ struct LucentPluginPolishAndMenuBarTests {
         #expect(activePinsLayout.topLevelItems.contains(.closeAllPins))
         #expect(activePinsLayout.topLevelItems.contains(.closeAllPluginWindows))
 
+        let fullNoLuma = MenuBarConfig.preset(.full).resolvedLayout(context: MenuBarRuntimeContext(isLumaLinkAvailableOrEnabled: false))
+        #expect(!fullNoLuma.topLevelItems.contains(.lumaLinkConsole))
+        let fullWithLuma = MenuBarConfig.preset(.full).resolvedLayout(context: MenuBarRuntimeContext(isLumaLinkAvailableOrEnabled: true))
+        #expect(fullWithLuma.topLevelItems.contains(.lumaLinkConsole))
+
         var balanced = MenuBarConfig.preset(.balanced)
         let balancedLayout = balanced.resolvedLayout(context: MenuBarRuntimeContext())
         #expect(!balancedLayout.maintenanceSubmenuItems.isEmpty)

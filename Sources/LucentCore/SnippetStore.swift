@@ -57,7 +57,9 @@ public final class SnippetStore: @unchecked Sendable {
             SnippetItem(title: "当前日期时间", keyword: ";time", content: "{{datetime}}", category: "时间", updatedAt: ref),
             SnippetItem(title: "Bash 严格脚本头", keyword: ";sh", content: "#!/usr/bin/env bash\nset -euo pipefail\n\n", category: "开发", updatedAt: ref),
             SnippetItem(title: "动态随机 UUID", keyword: ";uuid", content: "{{uuid}}", category: "开发", updatedAt: ref),
-            SnippetItem(title: "引用剪贴板代码块", keyword: ";clip", content: "```\n{{clipboard}}\n```", category: "文档", updatedAt: ref)
+            SnippetItem(title: "引用剪贴板代码块", keyword: ";clip", content: "```\n{{clipboard}}\n```", category: "文档", updatedAt: ref),
+            SnippetItem(title: "Base64 编码", keyword: ";b64", content: "{{base64_encode}}", category: "编码", updatedAt: ref),
+            SnippetItem(title: "Base64 解码", keyword: ";b64d", content: "{{base64_decode}}", category: "编码", updatedAt: ref)
         ]
     }
 
@@ -126,7 +128,8 @@ public final class SnippetStore: @unchecked Sendable {
         clipboardText: String? = nil,
         now: Date = Date()
     ) -> [SnippetMatch] {
-        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let rawQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let needle = rawQuery.lowercased()
         guard !needle.isEmpty else { return [] }
         let items = allSnippets()
         var matches: [SnippetMatch] = []
@@ -135,9 +138,14 @@ public final class SnippetStore: @unchecked Sendable {
             let kw = item.keyword.lowercased()
             let titleLo = item.title.lowercased()
             var score = 0
+            var effectiveInput = clipboardText
             if !kw.isEmpty && kw == needle {
                 score = 9_850
-            } else if !kw.isEmpty && (kw.hasPrefix(needle) || needle.hasPrefix(kw)) {
+            } else if !kw.isEmpty && needle.hasPrefix(kw + " ") {
+                let inlineArg = String(rawQuery.dropFirst(item.keyword.count)).trimmingCharacters(in: .whitespaces)
+                if !inlineArg.isEmpty { effectiveInput = inlineArg }
+                score = 9_750
+            } else if !kw.isEmpty && kw.hasPrefix(needle) {
                 score = 9_600
             } else if titleLo.hasPrefix(needle) {
                 score = 8_400
@@ -145,7 +153,7 @@ public final class SnippetStore: @unchecked Sendable {
                 score = 7_600
             }
             if score > 0 {
-                let expanded = Self.expand(item.content, clipboardText: clipboardText, now: now)
+                let expanded = Self.expand(item.content, clipboardText: effectiveInput, now: now)
                 matches.append(SnippetMatch(snippet: item, expandedText: expanded, score: score))
             }
         }
@@ -170,16 +178,40 @@ public final class SnippetStore: @unchecked Sendable {
 
         let dateStr = dateDF.string(from: now)
         let timeStr = timeDF.string(from: now)
+        let rawInput = clipboardText ?? ""
         var out = template
             .replacingOccurrences(of: "{{date}}", with: dateStr)
             .replacingOccurrences(of: "{{time}}", with: timeStr)
             .replacingOccurrences(of: "{{datetime}}", with: "\(dateStr) \(timeStr)")
-            .replacingOccurrences(of: "{{clipboard}}", with: clipboardText ?? "")
+            .replacingOccurrences(of: "{{clipboard}}", with: rawInput)
+
+        if out.contains("{{base64_encode}}") || out.contains("{{b64}}") {
+            let encoded = Data(rawInput.utf8).base64EncodedString()
+            out = out
+                .replacingOccurrences(of: "{{base64_encode}}", with: encoded)
+                .replacingOccurrences(of: "{{b64}}", with: encoded)
+        }
+        if out.contains("{{base64_decode}}") || out.contains("{{b64d}}") {
+            let decoded = decodeBase64SnippetText(rawInput)
+            out = out
+                .replacingOccurrences(of: "{{base64_decode}}", with: decoded)
+                .replacingOccurrences(of: "{{b64d}}", with: decoded)
+        }
 
         while let range = out.range(of: "{{uuid}}") {
             out.replaceSubrange(range, with: UUID().uuidString.lowercased())
         }
         return out
+    }
+
+    private static func decodeBase64SnippetText(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        guard let data = DevToolkitHelpers.decodeBase64Flexible(trimmed),
+              let text = String(data: data, encoding: .utf8) else {
+            return L10n.pick("(Base64 无效)", "(Invalid Base64)")
+        }
+        return text
     }
 
     private func loadFromDiskUnlocked() -> [SnippetItem] {

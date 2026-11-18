@@ -269,6 +269,12 @@ private func verifyDevToolkitAndSnippets() throws {
     let reloadedStore = SnippetStore(fileURL: snippetsURL)
     let matched = reloadedStore.match(query: ";de", clipboardText: "v070", now: fixedDate)
     check(matched.first?.snippet.id == custom.id && matched.first?.expandedText.hasSuffix("-v070") == true, "snippet prefix match & live expansion")
+    let b64ClipMatch = store.match(query: ";b64", clipboardText: "Lucent", now: fixedDate)
+    check(b64ClipMatch.first?.expandedText == "THVjZW50", "snippet ;b64 encodes clipboard")
+    let b64InlineMatch = store.match(query: ";b64 Lucent", clipboardText: "OTHER", now: fixedDate)
+    check(b64InlineMatch.first?.expandedText == "THVjZW50", "snippet ;b64 inline arg overrides clipboard")
+    let b64DecMatch = store.match(query: ";b64d THVjZW50", clipboardText: nil, now: fixedDate)
+    check(b64DecMatch.first?.expandedText == "Lucent", "snippet ;b64d decodes inline arg")
     try reloadedStore.delete(id: custom.id)
     check(!reloadedStore.allSnippets().contains(where: { $0.id == custom.id }), "snippet deleted cleanly")
 }
