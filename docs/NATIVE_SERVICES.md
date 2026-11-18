@@ -1,6 +1,6 @@
 # macOS 原生服务复用清单
 
-`Lumakey` 坚持 **Native Services First** 原则：凡 macOS 14+ 原生框架与系统工具能够稳定提供的能力，一律直接复用，避免引入重型运行时或脆弱轮子。
+`Lucent` 坚持 **Native Services First** 原则：凡 macOS 14+ 原生框架与系统工具能够稳定提供的能力，一律直接复用，避免引入重型运行时或脆弱轮子。
 
 | 能力领域 | 复用的 macOS 原生服务 / API | 说明与边界 |
 | --- | --- | --- |
@@ -17,7 +17,7 @@
 | 原生选区截图、标注与钉图置顶 | `ScreenCaptureKit` (`SCShareableContent` + `SCScreenshotManager`) + `NSScreen` + `CGContext` | 免 CLI 毫秒级逐屏原生 DPI 冻屏分片、跨屏窗口识别吸附、像素取色、实时标注合成及 1:1 Retina 原位悬浮钉图 (`level = .screenSaver` / `.floating`) |
 | 原生区域 GIF 动图流式录制 | `ScreenCaptureKit` (`SCStream` + `SCStreamOutput` + `SCScreenshotManager`) + `VideoToolbox` + `ImageIO` (`CGImageDestination` `com.compuserve.gif`) | 零 `ffmpeg` 依赖实现单屏/单窗口 `SCStream` 硬件流采集、跨屏区域分片裁剪合成、`sharingType = .none` 穿透边界提示、640p/960p/HD 分辨率缩放、静止帧差值合并与双格式剪贴板输出 |
 | 离线文字/条码识别与抠图 | `Vision` (`VNRecognizeTextRequest`, `VNDetectBarcodesRequest`, `VNGenerateForegroundInstanceMaskRequest`) + `CoreML.MLComputeDevice.cpu` | 绑定 CPU 计算阶段避开部分系统环境下 Neural Engine ~36s 卡顿，实现亚秒级中英 OCR、条码识别与透明通道主体抠图 |
-| 本地完整性备份与 WebDAV 云同步 | `CryptoKit` (`AES.GCM`, `SHA256`) + `Compression` (LZFSE) + `Foundation.URLSession` (RFC 4918) | 生成 LZFSE 压缩与 `SHA-256` 校验的 `.lumakeybackup` v2 归档，`LocalSecretVault` (`LMKYVLT2`) 安全存密并原生直连坚果云/Nextcloud/Synology NAS/Alist WebDAV |
+| 本地完整性备份与 WebDAV 云同步 | `CryptoKit` (`AES.GCM`, `SHA256`) + `Compression` (LZFSE) + `Foundation.URLSession` (RFC 4918) | 生成 LZFSE 压缩与 `SHA-256` 校验的 `.lucentbackup` v2 归档，`LocalSecretVault` (`LCNTVLT2`) 安全存密并原生直连坚果云/Nextcloud/Synology NAS/Alist WebDAV |
 | 剪贴板监听与隐私排除 | `AppKit.NSPasteboard.general` (`changeCount` + `concealedTypes`) | 自动跳过密码管理器标记数据并在条目淘汰时删除对应缓存图片 |
 | 端口、文件事件、卷与多格式媒体预览 | `/usr/sbin/lsof` / `CoreServices.FSEventStream` / `Darwin.statfs` / `ImageIO` / `AVKit.AVPlayerView` / `PDFKit` | 文件索引与插件目录实时增量监听、硬件加速解码与无损看图 |
 

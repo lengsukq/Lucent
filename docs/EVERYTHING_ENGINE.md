@@ -1,10 +1,10 @@
 # Everything 检索引擎设计
 
-为在 macOS 上获得类似 Windows Everything 的即时筛选手感，`Lumakey` 采用**多根目录内存紧凑父指针树 (`EverythingIndex`) + 查询 DSL 解析器 (`EverythingQuery`)**。
+为在 macOS 上获得类似 Windows Everything 的即时筛选手感，`Lucent` 采用**多根目录内存紧凑父指针树 (`EverythingIndex`) + 查询 DSL 解析器 (`EverythingQuery`)**。
 
 ## 内存结构设计
 
-传统文件树为每个节点保存完整绝对路径会成倍放大堆内存与字符串分配开销。`LumakeyCore` 采用平坦数组存储，并通过 `rootIndex` 默认同时索引本机主目录与全部已挂载外置磁盘（`EverythingScope.allVolumes`，亦可一键切换至常用目录或单一卷）：
+传统文件树为每个节点保存完整绝对路径会成倍放大堆内存与字符串分配开销。`LucentCore` 采用平坦数组存储，并通过 `rootIndex` 默认同时索引本机主目录与全部已挂载外置磁盘（`EverythingScope.allVolumes`，亦可一键切换至常用目录或单一卷）：
 
 ```swift
 public struct IndexedNode: Sendable, Hashable {
@@ -36,7 +36,7 @@ public struct IndexedNode: Sendable, Hashable {
 
 ## 持久化二进制快照与 FSEvents 增量同步
 
-- **紧凑二进制快照、SHA-256 校验与 O(1) 头部启动 (`EverythingSnapshotStore`)**：将 `IndexedNode` 父指针树以 `LMKYIDX3` 紧凑格式落盘至 `~/Library/Caches/com.queensu.lumakey/everything-index/idx-<sha256>.lmkyidx`（每节点仅 `9 B + UTF-8`，尾部追加 32 字节 `SHA-256` 完整性摘要）。冷启动仅通过 `readHeaderMetadata(...)` 读取前 4 KB 校验根目录与获取节点总数（实现启动期零内存索引驻留）；切入文件模式或输入搜索词时通过 `Data(contentsOf:options: .mappedIfSafe)` 恢复内存检索，先校验尾部 `SHA-256` 摘要与 BFS 父节点拓扑无环边界，遇到断电截断或位翻转损坏自动返回 `nil` 触发安全重扫，闲置 `90s` 自动卸载。
+- **紧凑二进制快照、SHA-256 校验与 O(1) 头部启动 (`EverythingSnapshotStore`)**：将 `IndexedNode` 父指针树以 `LCNTIDX3` 紧凑格式落盘至 `~/Library/Caches/app.lucent.macos/everything-index/idx-<sha256>.lcntidx`（每节点仅 `9 B + UTF-8`，尾部追加 32 字节 `SHA-256` 完整性摘要）。冷启动仅通过 `readHeaderMetadata(...)` 读取前 4 KB 校验根目录与获取节点总数（实现启动期零内存索引驻留）；切入文件模式或输入搜索词时通过 `Data(contentsOf:options: .mappedIfSafe)` 恢复内存检索，先校验尾部 `SHA-256` 摘要与 BFS 父节点拓扑无环边界，遇到断电截断或位翻转损坏自动返回 `nil` 触发安全重扫，闲置 `90s` 自动卸载。
 - **macOS `FSEvents` 实时增量更新 (`EverythingFSEventWatcher` + `applyingFSEventDirectories`)**：针对本机与快速外置卷监听 `FSEventStreamCreate` 目录事件（`0.9s` 防抖），跳过易阻塞的慢速/FUSE/SMB 卷；增量重建时仅对变更目录及其新增子目录执行 POSIX `readdir`，其余未变分支零系统调用复用原节点并延迟写回快照。
 
 ## 在快捷台与独立模式中的集成
