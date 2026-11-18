@@ -1,12 +1,12 @@
 /* ==========================================================================
-   Lumakey Showcase — Interactive Launch Panel Customizer, Deep Customization
-   Workbench, 880×544 Hub Simulator, Plugin v3.7 + 16 MCP Tools & Bilingual UI
+   Lucent Showcase — Interactive Launch Panel Customizer, Deep Customization
+   Workbench, 880×544 Hub Simulator, Plugin v3.7 + 20 MCP Tools & Bilingual UI
    ========================================================================== */
 (() => {
   'use strict';
 
-  const REPO_BASE = 'https://github.com/lengsukq/Lumakey';
-  const SCHEME_PREFIX = ['lumakey', '://'].join('');
+  const REPO_BASE = 'https://github.com/lengsukq/Lucent';
+  const SCHEME_PREFIX = ['lucent', '://'].join('');
 
   function safeGet(key, fallback = null) {
     try {
@@ -24,7 +24,7 @@
 
   let savedPluginIds = ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot', 'screen-shield'];
   try {
-    const rawSaved = safeGet('lumakey-enabled-plugins-v1');
+    const rawSaved = safeGet('lucent-enabled-plugins-v1');
     if (rawSaved) {
       const parsed = JSON.parse(rawSaved);
       if (Array.isArray(parsed)) savedPluginIds = parsed;
@@ -32,8 +32,8 @@
   } catch (_) {}
 
   const state = {
-    theme: safeGet('lumakey-showcase-theme-v2', 'pure-frost'),
-    lang: safeGet('lumakey-showcase-lang-v2', 'zh'),
+    theme: safeGet('lucent-showcase-theme-v2', 'pure-frost'),
+    lang: safeGet('lucent-showcase-lang-v2', 'zh'),
     preset: 'bento',
     homeProfile: 'balanced',
     scope: 'all',
@@ -53,7 +53,7 @@
   };
 
   function saveEnabledPlugins() {
-    safeSet('lumakey-enabled-plugins-v1', JSON.stringify([...state.enabledPlugins]));
+    safeSet('lucent-enabled-plugins-v1', JSON.stringify([...state.enabledPlugins]));
   }
 
   let toastTimer = null;
@@ -106,12 +106,12 @@
       nav_download: '下载 DMG',
       theme_frost: '凝霜留白',
       theme_prism: '霓彩流光',
-      hero_badge_1: '全新启动面板自定义 · Plugin v3.7 · 16 项 MCP 工具',
+      hero_badge_1: '全新启动面板自定义 · 快捷脚本库 · 20 项 MCP 工具',
       hero_badge_3: '秒呼即走 · 不占后台',
       hero_title_1: '轻巧顺手的 Mac 效率底座，',
       hero_title_2: '从启动面板到插件全随你定。',
-      hero_subtitle: '按一下 ⌥Space，找软件、搜电脑与移动硬盘文件、翻剪贴板、截屏识字、算账换算一框搞定；用完切走自动释放内存。更把选择权彻底交还给你：启动面板怎么排、顶部菜单留哪几项、快捷键怎么顺手全可自由编排，还能对 AI 说一句话十秒造出你独有的新工具。',
-      cta_builder: '亲手定制你的专属 Lumakey',
+      hero_subtitle: '按一下 ⌥Space，找软件、搜电脑与移动硬盘文件、翻剪贴板、截屏识字、算账换算一框搞定；用完切走自动释放内存。更把选择权彻底交还给你：启动面板怎么排、顶部菜单留哪几项、快捷键怎么顺手全可自由编排，还能对 AI 说一句话十秒造出你独有的快捷脚本或新插件。',
+      cta_builder: '亲手定制你的专属 Lucent',
       cta_3d_exp: '返回 3D 沉浸式主页',
       cta_download: '下载 macOS 安装包 (.dmg)',
       jump_3d_plugins: '返回 3D 主页 · 插件生态 →',
@@ -136,7 +136,7 @@
       hint_focus: '聚焦体验框',
       scroll_hint: '向下滚动，体验全维度自由定制与 AI 一句话共创',
       builder_eyebrow: 'DEEP CUSTOMIZATION WORKBENCH · 全维度高度自定义拼装台',
-      builder_title: '一千个人手里，|有一千种长相的 Lumakey',
+      builder_title: '一千个人手里，|有一千种长相的 Lucent',
       builder_desc: '讨厌装完多出一堆关不掉的按钮和后台进程？这里所有扩展默认零打扰：不开启即零内存、零后台轮询；开启后可按需钉入启动面板或顶部状态栏菜单、自由修改唤醒词、录制不抢焦点的静默快捷键，甚至弹出无边框透明桌面挂件。点按下方开关亲手试拼：',
       prof_minimal: '◐ 纯粹微内核底座 (0 插件)',
       prof_daily: '✦ 日常省心高频套装',
@@ -147,30 +147,30 @@
       zone_quick_title: '按需挂载至启动面板胶囊架 & 状态栏菜单（默认关闭不挤占）',
       zone_accepts_title: '跨模块右键联动（自动接入离线识字 / 剪贴板 / 双栏文件台）',
       theatre_eyebrow: 'AI CO-CREATION & PLUGIN V3.7 · 不会写代码也能深度定制',
-      theatre_title: '不仅能装现成插件，|还能一句话让 AI 造工具、排主页',
-      s1_title: '内置 16 项 MCP 工具：一句话十秒造插件，也能一句话排好启动面板',
-      s1_desc: '安装包自带零依赖 lumakey-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出你想要的小工具或主页布局，AI 自动生成代码、过沙箱实测并热刷新生效。',
+      theatre_title: '不仅能装现成插件，|还能一句话让 AI 造脚本、造插件、排主页',
+      s1_title: '内置 20 项 MCP 工具：一句话写脚本绘图标、造插件、排启动面板',
+      s1_desc: '安装包自带零依赖 lucent-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出你想要的快捷脚本（自动绘制 64×64 SVG 图标）、多视图插件或主页布局，AI 过沙箱实测并热刷新生效。',
       s2_title: '零前端自动生成设置页，亦支持无边框透明玻璃桌面悬浮挂件',
       s2_desc: '一份 plugin.json 自动渲染滑块、加密密钥框与子功能静默热键；进阶玩家还可开启 window / floatingWindow 自由画布，打造 120Hz 顺滑拖拽、点击穿透的置顶悬浮小窗（关窗即释放内存）。',
       s3_title: '单输入框四级智能嗅探：粘贴任意 GitHub 链接即可安心订阅',
       s3_desc: '不用分清是插件压缩包、仓库子目录还是商店 JSON，粘贴进去自动识别并强制核对 64 位 SHA-256 与权限边界；后续更新插件完整保留你改过的唤醒词、快捷键与密钥。',
       s4_title: '内核级 Seatbelt 沙箱 · 本机加密保险箱 · 整机备份跨机漫游',
-      s4_desc: '外部插件默认无权联网或碰隐私目录，填入的 API Key 经 256-bit AES-GCM 加密存放；通过 .lumakeybackup (LZFSE + WebDAV) 可把启动面板、菜单配置、自制插件与密钥一键带去新 Mac。',
+      s4_desc: '外部插件与快捷脚本默认无权联网或碰隐私目录，填入的 API Key 经 256-bit AES-GCM 加密存放；通过 .lucentbackup (LZFSE + WebDAV) 可把启动面板、快捷脚本库、自制插件与密钥一键带去新 Mac。',
       sc0_prompt: '“帮我做一个查待审 PR 的插件（Token 存加密箱），顺便在我的启动面板新建一个『日常开发』主页，把双栏文件台、这个新插件和 GitHub 书签架排上去。”',
-      sc0_st1: '读取内置插件与启动面板双规范及可用能力池',
-      sc0_st2: '自动生成插件并在 Seatbelt 沙箱内完成实跑验证',
+      sc0_st1: '读取内置脚本库、插件与启动面板规范及可用能力池',
+      sc0_st2: '自动生成插件或脚本并在 Seatbelt 沙箱内完成实跑验证',
       sc0_st3: '创建新主页 Profile、挂载磁贴与书签架并实时热刷新',
       sc0_live_t: '✦ 已热刷新至 ⌥Space：新插件与「日常开发」启动面板同步就绪',
-      sc0_live_d: '全程无需重启 Lumakey，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。',
+      sc0_live_d: '全程无需重启 Lucent，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。',
       sc0_f1: '12 项插件全生命周期工具',
-      sc0_f2: '4 项启动面板实时编排工具',
-      sc0_f3: '内置 3 套一键脚手架模板',
+      sc0_f2: '4 项快捷脚本与 SVG 图标工具',
+      sc0_f3: '4 项启动面板实时编排工具',
       sc1_slider_t: '免写界面的原生设置页（拖动下方滑块实时体验）',
       sc1_slider_d: '自动渲染输入框、AES-GCM 密钥框、连续滑块、下拉单选、路径选择器与标签组，改动瞬间自动保存。',
       sc1_hk_t: '子命令静默热键 & 权重覆盖',
       sc1_hk_d: '每条细分动作都能独立绑快捷键后台静默秒跑；不改插件源码就能自定义唤醒词、菜单栏挂载与搜索排序权重。',
       sc1_dl_t: '自由画布透明桌面挂件',
-      sc1_dl_d: '支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透，自动注入 window.lumakey 双向桥并在关窗瞬间销毁回收。',
+      sc1_dl_d: '支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透，自动注入 window.lucent 双向桥并在关窗瞬间销毁回收。',
       sc1_f1: '宿主统一代申系统 TCC 权限',
       sc1_f2: '中英双语与深浅主题实时热同步',
       sc1_f3: '三层全局热键防冲突检测',
@@ -181,12 +181,12 @@
       sc2_verify_d: '安装前强制核对 64 位 SHA-256 指纹，并比对包内真实权限与商店声明，任何悄悄越权夹带都会被当场拦截。',
       sc2_upg_t: '无损平滑检查更新',
       sc2_upg_d: '只读插件代码与个人数据目录严格分离，跨商店批量更新时完整保留你的自定义唤醒词、热键与加密凭据。',
-      sc2_f1: 'lumakey_package_plugin_for_store 一键发版',
+      sc2_f1: 'lucent_package_plugin_for_store 一键发版',
       sc2_f2: '插件更新免重复勾选系统权限',
       sc3_r1: '未声明联网或子进程即由系统内核硬阻断，无条件隔离钥匙串与敏感目录',
       sc3_r2: '11 项受控宿主桥接（OCR / 划词 / 截屏 / 通知等），一次性令牌随进程结束即焚',
       sc3_r3: '双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留',
-      sc3_r4: 'LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游',
+      sc3_r4: 'LZFSE 压缩打包启动面板、快捷脚本库、自制插件与密钥，云盘与 NAS 一键漫游',
       sc3_f1: '21 项全景权限审计面板',
       sc3_f2: '子进程超时自动回收兜底',
       sc3_f3: 'HKDF + AES-GCM 备份口令保护',
@@ -200,9 +200,9 @@
       hk_net: '软件网速与清缓存',
       hk_ws: '双栏整理 & 鼠标丝滑滚轮',
       fc1_title: '可定制启动面板 · 全盘秒搜 · 15 步可撤回剪贴板',
-      fc1_desc: '未打字时展示你自定义的 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜中文双音字/拼音应用、本机与移动硬盘文件、富媒体剪贴板历史（自动跳过密码）、10 类日常单位算式换算、;短语扩展与离线开发小工具。',
+      fc1_desc: '未打字时展示你自定义的 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜中文双音字/拼音应用、本机与移动硬盘文件、富媒体剪贴板历史（自动跳过密码）、!单文件快捷脚本库、10 类日常单位算式换算、;短语扩展与离线开发小工具。',
       fc1_c1: '4 区 × 多场景 Profile',
-      fc1_c2: 'LMKYIDX3 mmap 零拷贝秒搜',
+      fc1_c2: 'LCNTIDX3 mmap 零拷贝秒搜',
       fc1_c3: '880×544 防跳行不抢焦点',
       fc2_title: '多屏超清截图标注 · 轻巧区域 GIF · 一秒离线识字贴图',
       fc2_desc: '多块不同分辨率屏幕拼接也能原画质框选与一键抠出独立圆角窗口；自带箭头、荧光笔、实时马赛克、序号、放大镜按 C 取色及半透明悬浮钉图（按 T 穿透对照），还能直接录轻巧 GIF 动图或离线提取图中文字与二维码。',
@@ -219,13 +219,13 @@
       phil_title: '底座极度克制，|定制自由无限生长',
       phil_desc: '好的工具开箱就足够好懂顺手，深入使用又能把每一寸面板、每一枚热键和每一个私人工作流都调教成你最舒服的模样。',
       p1_title: '全维度高度可定制，却绝不强迫折腾',
-      p1_desc: '开箱自带精心打磨的默认体验；想折腾时，启动面板四大分区与多套场景 Profile、顶部状态栏菜单顺序、全局与子功能静默热键、唤醒词与排序权重，乃至一句话 AI 定制插件全部向你敞开。',
+      p1_desc: '开箱自带精心打磨的默认体验；想折腾时，启动面板四大分区与多套场景 Profile、单文件快捷脚本库、顶部状态栏菜单顺序、全局与子功能静默热键、唤醒词与排序权重，乃至一句话 AI 定制插件全部向你敞开。',
       p2_title: '约 10 MB 纯正 Mac 原生，拒绝网页套壳',
       p2_desc: '不用笨重的浏览器内核套桌面壳子，全仓零第三方外部依赖，100% 纯 Swift 6 直接调用 Apple Silicon 硬件加速框架，启动秒开、发热极低。',
       p3_title: '不乱跳的窗口，稳稳当当的肌肉记忆',
       p3_desc: '主窗口固定锁定 880 × 544，切分类不位移、打中文拼音不误触回车、后台刷新索引绝不抢走你正选中的那一行，配合克制跟手的原生弹簧动效，盲操行云流水。',
       p4_title: '用完即走省内存，本机沙箱守隐私',
-      p4_desc: '主面板收起 30 秒自动销毁界面缓存，文件索引空闲 90 秒自动卸载；外部插件关进 macOS Seatbelt 内核沙箱，API 密钥经 256-bit AES-GCM 加密存放本机。',
+      p4_desc: '主面板收起 30 秒自动销毁界面缓存，文件索引空闲 90 秒自动卸载；外部插件与快捷脚本关进 macOS Seatbelt 内核沙箱，API 密钥经 256-bit AES-GCM 加密存放本机。',
       duality_eyebrow: 'PURE FROST & PRISM PULSE · 双生液态玻璃主题',
       duality_title: '「凝霜留白」的温润瓷感，|或「霓彩流光」的深邃光谱',
       duality_desc: '喜欢干净清爽的白昼质感，还是深邃通透的暗夜毛玻璃？点击右侧即可实时切换两套原生外观，软件内切换时还会自动同步给所有已开启的插件与悬浮窗。',
@@ -233,37 +233,37 @@
       btn_prism: '✦ 霓彩流光 Prism Pulse',
       bound_title: '清晰克制的产品边界：|把自由留给定制，让底座永远轻快',
       bound_sub: '知道「什么该做到极致」与「什么绝不往底座硬塞」，才能让你的 Mac 长久保持清爽不卡顿。',
-      yes_1: '<strong>你的界面你做主：</strong>启动面板四分区、顶部状态栏菜单、全局快捷键、唤醒词与插件挂件全部支持按需开启与自由排布。',
-      yes_2: '<strong>普通人也能玩的 AI 扩展：</strong>内置 16 项 lumakey-mcp 工具与单框智能商店嗅探，一句话就能定制新插件或新主页。',
+      yes_1: '<strong>你的界面你做主：</strong>启动面板四分区、快捷脚本库、顶部状态栏菜单、全局快捷键、唤醒词与插件挂件全部支持按需开启与自由排布。',
+      yes_2: '<strong>普通人也能玩的 AI 扩展：</strong>内置 20 项 lucent-mcp 工具与单框智能商店嗅探，一句话就能定制快捷脚本、新插件或新主页。',
       yes_3: '<strong>100% 专为 M 系列芯片打造：</strong>纯 arm64 原生编译与 macOS 14+ 系统框架直连，没有跨平台兼容包袱。',
       no_1: '<strong>绝不做关不掉的臃肿全家桶：</strong>刚装好时零悬浮球、零菜单栏强塞读数、零后台守护进程，一切按需点亮。',
       no_2: '<strong>绝不拿几百 MB 网页内核套主界面：</strong>内置文档阅读与主面板坚持纯 Swift 原生渲染；插件自由浮窗关窗即刻销毁。',
       no_3: '<strong>绝不裸奔跑脚本或冒险强写脏硬盘：</strong>外部脚本强制进内核沙箱、密钥加密存放，遇到带脏标记的 NTFS 盘严格只读护航。',
       arch_eyebrow: 'UNDER THE HOOD FOR GEEKS · 给极客看的硬核工程纪律',
       arch_title: '九大单向无环模块 · |单文件硬性严控 ≤ 300 行',
-      arch_desc: '代码库与产品一样干净克制：每次构建均由自动化脚本强制核验模块单向 DAG 依赖、单 .swift 文件行数上限、文档死链与真实 lumakey-mcp JSON-RPC 往返联调。',
-      m_1: '内置 lumakey-mcp 造插件与排主页工具',
+      arch_desc: '代码库与产品一样干净克制：每次构建均由自动化脚本强制核验模块单向 DAG 依赖、单 .swift 文件行数上限、文档死链与真实 lucent-mcp JSON-RPC 往返联调。',
+      m_1: '内置 lucent-mcp 造脚本、插件与排主页工具',
       m_2: '第三方 SwiftPM / CocoaPods 外部依赖',
       m_3: '单 .swift 源码文件硬性行数上限',
       m_4: '浮窗销毁 / 索引自动归还内存窗口',
-      dag_app: 'SwiftUI + AppKit 双主题前端 · 启动面板/菜单栏定制 · 自由画布窗口',
-      dag_mcp: '内置 16 项 JSON-RPC 2.0 工具：AI 插件脚手架、沙箱测试与启动面板实时编排',
-      dag_core: 'HomeLayout 多场景启动面板 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · 智能商店嗅探 · WebDAV 备份',
-      dag_search: 'LMKYIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检',
+      dag_app: 'SwiftUI + AppKit 双主题前端 · 启动面板/脚本库/菜单栏定制 · 自由画布窗口',
+      dag_mcp: '内置 20 项 JSON-RPC 2.0 工具：快捷脚本与 SVG 图标绘制、插件脚手架与主页实时编排',
+      dag_core: 'HomeLayout 多场景启动面板 · Quick Scripts 快捷脚本库 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · WebDAV 备份',
+      dag_search: 'LCNTIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检',
       dag_media: '逐屏冻屏标注合成 · Vision 离线 OCR · hev1 4K 硬解 · 纯原生 Markdown',
       dag_sys: 'Mach/IOKit 功耗遥测 · 进程网速去向 · 120Hz 鼠标平滑滚轮 · 三层热键防冲突',
-      dag_found: '凝霜/流光双主题模型 · 中英双语免重启 · LMKYVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor',
-      dl_eyebrow: 'START BUILDING YOUR LUMAKEY · 立即免费使用',
+      dag_found: '凝霜/流光双主题模型 · 中英双语免重启 · LCNTVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor',
+      dl_eyebrow: 'START BUILDING YOUR LUCENT · 立即免费使用',
       dl_title: '下载 10 MB 轻巧底座，\n搭出最懂你的效率流',
-      dl_desc: 'MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。拖入应用程序即可使用，后续支持应用内一键下载 DMG 自动更新并保留本机权限（缺 Python 3 时亦有一键安装向导）；右侧附上 AI 接入与源码命令：',
+      dl_desc: 'MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。拖入应用程序即可开箱使用，7 款官方插件全原生 Swift 二进制（零 Python 依赖），并支持应用内一键更新保留本机权限；右侧附上 AI 接入与安装命令：',
       dl_btn_dmg: '下载最新 DMG 安装包',
       dl_btn_store: '浏览 7 款官方插件库',
       dl_btn_star: 'GitHub 点亮 Star ★',
-      term_tab_mcp: '接入 AI 造插件/排主页',
+      term_tab_mcp: '接入 AI 造脚本/插件/主页',
       term_tab_plugins: '安装 7 款官方插件',
       term_tab_install: '免重复授权 & 源码构建',
       term_copy: '复制代码',
-      foot_brand: 'Lumakey 流光',
+      foot_brand: 'Lucent 流光',
       foot_plugin_doc: '插件与 MCP 规范',
       foot_docs: '工程文档',
       foot_contrib: '参与共建',
@@ -281,12 +281,12 @@
       nav_download: 'Get DMG',
       theme_frost: 'Pure Frost',
       theme_prism: 'Prism Pulse',
-      hero_badge_1: 'New Launch Panel Customizer · Plugin v3.7 · 16 MCP Tools',
+      hero_badge_1: 'Launch Panel Customizer · Quick Scripts · 20 MCP Tools',
       hero_badge_3: 'Instant Wake · Zero Bloat',
       hero_title_1: 'Effortless Everyday Mac Hub. ',
       hero_title_2: 'Customizable from Launch Panel to Plugins.',
-      hero_subtitle: 'Press ⌥Space to launch apps, search internal & external drives, pull up clipboard history, capture & OCR your screen, or convert units in one bar — then release memory automatically when done. Want it tailored? Customize every Launch Panel zone, trim the menu bar, bind silent hotkeys, or ask AI to build a custom plugin in 10 seconds.',
-      cta_builder: 'Customize Your Own Lumakey',
+      hero_subtitle: 'Press ⌥Space to launch apps, search internal & external drives, pull up clipboard history, capture & OCR your screen, or convert units in one bar — then release memory automatically when done. Want it tailored? Customize every Launch Panel zone, trim the menu bar, bind silent hotkeys, or ask AI to build a Quick Script or custom plugin in 10 seconds.',
+      cta_builder: 'Customize Your Own Lucent',
       cta_3d_exp: 'Back to 3D Main Stage',
       cta_download: 'Download for macOS (.dmg)',
       jump_3d_plugins: 'View in 3D Main Stage →',
@@ -311,7 +311,7 @@
       hint_focus: 'Focus Input',
       scroll_hint: 'Scroll down to explore deep customization & 1-sentence AI co-creation',
       builder_eyebrow: 'DEEP CUSTOMIZATION WORKBENCH',
-      builder_title: 'A Thousand Workflows, |A Thousand Custom Lumakeys',
+      builder_title: 'A Thousand Workflows, |A Thousand Custom Lucents',
       builder_desc: 'Tired of apps cluttering your Mac with unremovable icons and daemons? Every extension here is opt-in: zero RAM and zero polling when off; when enabled, pin it to your Launch Panel or menu bar, rename keywords, record silent hotkeys, or open frameless glass desktop widgets. Toggle modules below:',
       prof_minimal: '◐ Pure Micro-Core (0 Plugins)',
       prof_daily: '✦ Everyday Productivity Pack',
@@ -322,30 +322,30 @@
       zone_quick_title: 'Mounted to Launch Panel Shelf & Menu Bar (Off by Default)',
       zone_accepts_title: 'Cross-Module Context Menu Hooks (OCR / Clipboard / Workspace)',
       theatre_eyebrow: 'AI CO-CREATION & PLUGIN V3.7',
-      theatre_title: 'Install Curated Plugins — |Or Ask AI to Build Tools & Arrange Home',
-      s1_title: '16 Built-in MCP Tools: Build a Plugin or Arrange Your Launch Panel in One Sentence',
-      s1_desc: 'Ships with an embedded zero-dependency lumakey-mcp binary. Connect Claude Code, Cursor, Codex, or Gemini CLI and describe your tool or home layout in plain words — AI scaffolds, tests in Seatbelt, and hot-reloads live.',
+      theatre_title: 'Install Curated Plugins — |Or Ask AI to Build Scripts, Tools & Home',
+      s1_title: '20 Built-in MCP Tools: Craft Quick Scripts + SVG Icons, Plugins & Layouts in One Sentence',
+      s1_desc: 'Ships with an embedded zero-dependency lucent-mcp binary. Connect Claude Code, Cursor, Codex, or Gemini CLI and describe your Quick Script (with custom 64×64 SVG icon), plugin, or home layout in plain words — AI tests in Seatbelt and hot-reloads live.',
       s2_title: 'Zero-Frontend Native Settings Forms + Frameless Glass Desktop HUDs',
       s2_desc: 'A single plugin.json auto-renders sliders, AES-GCM secret inputs, and per-subcommand silent hotkeys; power users can also declare window / floatingWindow for 120Hz draggable, click-through glass widgets destroyed on close.',
       s3_title: 'Single-Box 4-Tier URL Sniffer: Paste Any GitHub Link to Subscribe',
-      s3_desc: 'Paste a zip archive, repo subdirectory, or store JSON — Lumakey auto-resolves it, verifies 64-bit SHA-256 digests and capability boundaries, and preserves your custom keywords, hotkeys, and secrets across upgrades.',
+      s3_desc: 'Paste a zip archive, repo subdirectory, or store JSON — Lucent auto-resolves it, verifies 64-bit SHA-256 digests and capability boundaries, and preserves your custom keywords, hotkeys, and secrets across upgrades.',
       s4_title: 'Kernel Seatbelt Sandbox · 256-Bit Vault · Cross-Mac Backup Sync',
-      s4_desc: 'Plugins cannot touch the network or private folders unless declared, API keys stay inside a 256-bit AES-GCM vault, and .lumakeybackup (LZFSE + WebDAV) carries your Launch Panel, menu bar, plugins, and secrets to any Mac.',
+      s4_desc: 'Plugins and Quick Scripts cannot touch the network or private folders unless declared, API keys stay inside a 256-bit AES-GCM vault, and .lucentbackup (LZFSE + WebDAV) carries your Launch Panel, scripts, plugins, and secrets to any Mac.',
       sc0_prompt: '"Build me a PR review plugin (token in encrypted vault), and create a Daily Dev Launch Panel profile with Dual Workspace, this new plugin, and a GitHub bookmark shelf."',
-      sc0_st1: 'Reads built-in plugin-v3 + home-layout-v1 specs & capability audit',
-      sc0_st2: 'Scaffolds plugin & executes live test inside Seatbelt sandbox',
+      sc0_st1: 'Reads built-in scripts-v1, plugin-v3 & home-layout-v1 specs + capability audit',
+      sc0_st2: 'Scaffolds plugin or script & executes live test inside Seatbelt sandbox',
       sc0_st3: 'Creates new Home Profile, mounts tiles/shelves & hot-reloads UI',
       sc0_live_t: '✦ Live in ⌥Space: New Plugin & "Daily Dev" Launch Panel Ready',
       sc0_live_d: 'Zero app restart needed — revert any layout tweak anytime via 1-click Undo in Settings or MCP.',
       sc0_f1: '12 Plugin Lifecycle MCP Tools',
-      sc0_f2: '4 Live Home Layout Tools',
-      sc0_f3: '3 Built-In Scaffold Templates',
+      sc0_f2: '4 Quick Script & SVG Icon Tools',
+      sc0_f3: '4 Live Home Layout Tools',
       sc1_slider_t: 'Auto-Generated Native Settings UI (Drag Slider Below)',
       sc1_slider_d: 'Renders text, AES-GCM secrets, continuous sliders, dropdowns, path pickers & tags — saved immediately as you tweak.',
       sc1_hk_t: 'Silent Subcommand Hotkeys & Overrides',
       sc1_hk_d: 'Bind global hotkeys to any subcommand for silent background execution; override keywords, menu bar pins & ranking weights without touching plugin code.',
       sc1_dl_t: 'Freeform Transparent Desktop Widgets',
-      sc1_dl_d: 'Supports frameless blurred HUDs, always-on-top pins & click-through with window.lumakey bridge and instant teardown on close.',
+      sc1_dl_d: 'Supports frameless blurred HUDs, always-on-top pins & click-through with window.lucent bridge and instant teardown on close.',
       sc1_f1: 'Host-Brokered macOS TCC Auth',
       sc1_f2: 'Live Bilingual & Theme Sync',
       sc1_f3: '3-Tier Hotkey Conflict Guard',
@@ -356,12 +356,12 @@
       sc2_verify_d: 'Verifies 64-bit SHA-256 fingerprint and cross-checks packaged plugin.json permissions against store declarations before install.',
       sc2_upg_t: 'Lossless One-Click Upgrades',
       sc2_upg_d: 'Read-only plugin code stays separate from personal PluginData, preserving custom keywords, hotkeys, and encrypted tokens.',
-      sc2_f1: '1-Command lumakey_package_plugin_for_store',
+      sc2_f1: '1-Command lucent_package_plugin_for_store',
       sc2_f2: 'Preserves TCC Permissions Across Updates',
       sc3_r1: 'Undeclared network or subprocess calls blocked at kernel level; Keychain & private dirs isolated',
       sc3_r2: '11 scoped Host Bridges (OCR, selection, capture, notify) via one-time 0700 UDS token',
       sc3_r3: 'Dual-track 256-bit random master key AES-GCM vault with zero plaintext on disk',
-      sc3_r4: 'LZFSE archive syncs Launch Panel profiles, menu bar, custom plugins & secrets via WebDAV / NAS',
+      sc3_r4: 'LZFSE archive syncs Launch Panel profiles, Quick Scripts, custom plugins & secrets via WebDAV / NAS',
       sc3_f1: '21-Item Permission Audit Matrix',
       sc3_f2: 'Auto Timeout Subprocess Reaping',
       sc3_f3: 'HKDF + AES-GCM Backup Passphrase',
@@ -375,9 +375,9 @@
       hk_net: 'App Bandwidth & Cache',
       hk_ws: 'Dual Pane & Smooth Wheel',
       fc1_title: 'Custom Launch Panel · Full-Disk Search · 15-Step Undo Clipboard',
-      fc1_desc: 'Shows your custom Bento tiles, hybrid Omni Dock, and bookmark shelves before typing; type immediately to search localized apps, internal & external drives, rich clipboard history (auto-skipping passwords), 10-category unit math, ;snippets, and offline dev tools.',
+      fc1_desc: 'Shows your custom Bento tiles, hybrid Omni Dock, and bookmark shelves before typing; type immediately to search localized apps, internal & external drives, rich clipboard history (auto-skipping passwords), !Quick Scripts, 10-category unit math, ;snippets, and offline dev tools.',
       fc1_c1: '4 Zones × Multi-Scene Profiles',
-      fc1_c2: 'LMKYIDX3 mmap 0-Copy Search',
+      fc1_c2: 'LCNTIDX3 mmap 0-Copy Search',
       fc1_c3: 'Zero-Jitter 880×544 Frame',
       fc2_title: 'Multi-Display HD Capture · Lightweight GIF · 1s Offline OCR Pins',
       fc2_desc: 'Crisp per-display freeze capture and 1-click rounded window cutouts across mixed-DPI monitors; includes arrows, highlighter, live mosaic, step badges, C-key color loupe, translucent desktop pins (T for click-through), streaming GIF89a recording, and offline Vision OCR.',
@@ -394,13 +394,13 @@
       phil_title: 'Restrained Native Core, |Boundless Personal Freedom',
       phil_desc: 'Simple enough to feel effortless on minute one, deep enough to shape every panel zone, hotkey, and private workflow around your habits.',
       p1_title: 'Deeply Customizable Without Forced Tinkering',
-      p1_desc: 'Thoughtful defaults work right away; whenever you want, customize 4 Launch Panel zones & multi-scene Profiles, status bar menu order, global & silent subcommand hotkeys, keywords, ranking weights, or AI-built plugins.',
+      p1_desc: 'Thoughtful defaults work right away; whenever you want, customize 4 Launch Panel zones & multi-scene Profiles, Quick Scripts, status bar menu order, global & silent subcommand hotkeys, keywords, ranking weights, or AI-built plugins.',
       p2_title: '~10 MB Pure Native Swift 6 — Zero Web Wrapper',
       p2_desc: 'No bulky browser shell pretending to be a desktop app: zero external packages, 100% Swift 6 talking straight to Apple Silicon frameworks.',
       p3_title: 'Zero-Jitter Geometry for Reliable Muscle Memory',
       p3_desc: 'Locked 880 × 544 frame that never jumps across scopes, guards CJK IME Return keys, and anchors selection during async updates with crisp native spring motion.',
       p4_title: 'Self-Cleaning Memory & Local Sandbox Privacy',
-      p4_desc: 'Tears down UI caches 30s after hide, unmaps disk index pages after 90s idle, isolates plugins inside macOS Seatbelt, and encrypts secrets via 256-bit AES-GCM.',
+      p4_desc: 'Tears down UI caches 30s after hide, unmaps disk index pages after 90s idle, isolates plugins & scripts inside macOS Seatbelt, and encrypts secrets via 256-bit AES-GCM.',
       duality_eyebrow: 'PURE FROST & PRISM PULSE · DUAL LIQUID GLASS THEMES',
       duality_title: 'Porcelain Clarity in Pure Frost, |or Deep Aurora in Prism Pulse',
       duality_desc: 'Prefer crisp daylight porcelain or deep obsidian glass? Switch live on the right — inside the app, your theme syncs automatically across every open plugin and floating HUD.',
@@ -408,37 +408,37 @@
       btn_prism: '✦ Prism Pulse (Dark)',
       bound_title: 'Clear Product Boundaries: |Leave Freedom to Customization, Keep the Core Light',
       bound_sub: 'Knowing what to polish natively and what never to force into the base keeps your Mac fast.',
-      yes_1: '<strong>Your Interface, Your Rules:</strong> Launch Panel zones, status bar menu items, global hotkeys, keywords & widgets are all opt-in and reorderable.',
-      yes_2: '<strong>AI Customization Anyone Can Use:</strong> 16 built-in lumakey-mcp tools and single-box store sniffing turn plain words into plugins or layouts.',
+      yes_1: '<strong>Your Interface, Your Rules:</strong> Launch Panel zones, Quick Scripts, status bar menu items, global hotkeys, keywords & widgets are all opt-in and reorderable.',
+      yes_2: '<strong>AI Customization Anyone Can Use:</strong> 20 built-in lucent-mcp tools and single-box store sniffing turn plain words into Quick Scripts, plugins, or layouts.',
       yes_3: '<strong>100% Built for Apple Silicon:</strong> Pure arm64 binaries wired directly to modern macOS 14+ frameworks.',
       no_1: '<strong>No Unremovable All-in-One Bloatware:</strong> Zero forced floating balls, menu-bar tickers, or background daemons out of the box.',
       no_2: '<strong>No Multi-Hundred-MB Web Shell for Main UI:</strong> Native Swift renders the hub & readers; optional plugin web windows destroy immediately on close.',
       no_3: '<strong>No Unsandboxed Scripts or Unsafe Dirty-NTFS Writes:</strong> Enforces kernel Seatbelt, encrypted vaults, and read-only protection on dirty NTFS drives.',
       arch_eyebrow: 'UNDER THE HOOD FOR GEEKS',
       arch_title: '9 Acyclic Swift 6 Targets · |Strictly ≤ 300 Lines per File',
-      arch_desc: 'Every build runs automated gates verifying acyclic module boundaries, per-file ≤ 300 LOC limits, doc links, and live lumakey-mcp JSON-RPC roundtrips.',
-      m_1: 'Built-in lumakey-mcp Plugin & Home Tools',
+      arch_desc: 'Every build runs automated gates verifying acyclic module boundaries, per-file ≤ 300 LOC limits, doc links, and live lucent-mcp JSON-RPC roundtrips.',
+      m_1: 'Built-in lucent-mcp Script, Plugin & Home Tools',
       m_2: 'External SwiftPM / CocoaPods Dependencies',
       m_3: 'Hard Max Lines per .swift Source File',
       m_4: 'UI Cache Teardown / Index Unmap Window',
-      dag_app: 'SwiftUI + AppKit Dual-Theme UI · Launch Panel/Menu Customizer · Freeform Windows',
-      dag_mcp: 'Embedded 16 JSON-RPC 2.0 Tools: Plugin Scaffold, Sandbox Test & Live Home Layout',
-      dag_core: 'HomeLayout Multi-Profile · Plugin v3.7 Host & TCC Broker · Seatbelt · Store Sniffer · Backup',
-      dag_search: 'LMKYIDX3 mmap Snapshot · Live FSEvents · Batch Rename Preflight',
+      dag_app: 'SwiftUI + AppKit Dual-Theme UI · Launch Panel/Script/Menu Customizer · Freeform Windows',
+      dag_mcp: 'Embedded 20 JSON-RPC 2.0 Tools: Quick Scripts & SVG Icons, Plugin Scaffold & Home Layout',
+      dag_core: 'HomeLayout Multi-Profile · Quick Scripts Library · Plugin v3.7 Host & TCC Broker · Seatbelt · Backup',
+      dag_search: 'LCNTIDX3 mmap Snapshot · Live FSEvents · Batch Rename Preflight',
       dag_media: 'Per-Display Freeze Capture · Offline Vision OCR · hev1 4K · Native Markdown',
       dag_sys: 'Mach/IOKit Wattage · Socket Bandwidth · 120Hz Smooth Wheel · 3-Tier Hotkey Guard',
-      dag_found: 'Pure Frost / Prism Pulse · Instant Bilingual · LMKYVLT2 256-bit Vault · ProcessSupervisor',
-      dl_eyebrow: 'START BUILDING YOUR LUMAKEY',
+      dag_found: 'Pure Frost / Prism Pulse · Instant Bilingual · LCNTVLT2 256-bit Vault · ProcessSupervisor',
+      dl_eyebrow: 'START BUILDING YOUR LUCENT',
       dl_title: 'Grab the ~10 MB Native Hub,\nShape Your Personal Flow',
-      dl_desc: 'Free & open source (MIT) for macOS 14.0+ on M1 / M2 / M3 / M4 Macs. Drag to Applications to start, with in-app DMG auto-updates that preserve local TCC permissions and 1-click Python 3 setup; copy MCP, plugin, or build commands on the right:',
+      dl_desc: 'Free & open source (MIT) for macOS 14.0+ on M1 / M2 / M3 / M4 Macs. Drag to Applications to start — all 7 official plugins run as native Swift binaries (zero Python needed), with in-app DMG updates preserving local TCC permissions:',
       dl_btn_dmg: 'Download Latest DMG',
       dl_btn_store: 'Browse 7 Official Plugins',
       dl_btn_star: 'Star on GitHub ★',
-      term_tab_mcp: 'Connect AI (Plugin + Home)',
+      term_tab_mcp: 'Connect AI (Scripts + Plugins)',
       term_tab_plugins: 'Install 7 Official Plugins',
       term_tab_install: 'Keep Permissions & Build',
       term_copy: 'Copy',
-      foot_brand: 'Lumakey',
+      foot_brand: 'Lucent',
       foot_plugin_doc: 'Plugin & MCP Spec',
       foot_docs: 'Docs Index',
       foot_contrib: 'Contributing',
@@ -508,7 +508,7 @@
       nameEn: 'Quick Remind',
       shortZh: '一句话自然语言倒计时（10m 喝水）直通 macOS 原生提醒事项',
       shortEn: 'Natural phrase timers ("10m water") synced to native macOS Reminders',
-      detailZh: '支持「10m 喝水」「18:30 拿快递」「明天 9:00 交周报」，写入系统原生提醒事项并持久准点响铃——即使退出 Lumakey 也绝不漏提醒，内置 25 分钟番茄钟。',
+      detailZh: '支持「10m 喝水」「18:30 拿快递」「明天 9:00 交周报」，写入系统原生提醒事项并持久准点响铃——即使退出 Lucent 也绝不漏提醒，内置 25 分钟番茄钟。',
       detailEn: 'Parses natural phrases into native macOS Reminders so alerts fire reliably with zero background daemon, plus a 25m Pomodoro focus timer.',
       quickZh: '🍅 25m 番茄钟',
       quickEn: '🍅 25m Focus',
@@ -604,7 +604,7 @@
       nameEn: 'Notion Bookmarks Vault',
       shortZh: '双轨 AES-GCM 加密存储凭据，一键剪贴板链接入库与离线秒搜',
       shortEn: 'AES-GCM encrypted Notion token, one-key clipboard URL save & 0ms search',
-      detailZh: '集成凭据经 LMKYVLT2 256-bit 随机主密钥加密存储，支持为「保存当前剪贴板链接」绑定全局静默快捷键，并将云端书签同步至本地 0ms 索引。',
+      detailZh: '集成凭据经 LCNTVLT2 256-bit 随机主密钥加密存储，支持为「保存当前剪贴板链接」绑定全局静默快捷键，并将云端书签同步至本地 0ms 索引。',
       detailEn: 'Stores your Notion token inside the 256-bit AES-GCM vault, saves clipboard URLs silently via hotkey, and syncs pages to 0ms local search.',
       quickZh: '📑 速存 Notion',
       quickEn: '📑 Save URL',
@@ -626,10 +626,10 @@
       tagEn: 'MCP Custom',
       nameZh: 'PR 审查雷达 (AI 一句话生成示例)',
       nameEn: 'PR Review Radar (MCP AI-Generated)',
-      shortZh: '通过 lumakey-mcp 对 AI 说一句话生成的个人专属工作流插件',
-      shortEn: 'Custom personal workflow plugin generated in 10s via lumakey-mcp',
+      shortZh: '通过 lucent-mcp 对 AI 说一句话生成的个人专属工作流插件',
+      shortEn: 'Custom personal workflow plugin generated in 10s via lucent-mcp',
       detailZh: '演示「不会写代码也能定制」：只需在 Claude Code 或 Cursor 中描述你的私有业务需求（内部工单、合并请求、服务器探针、主页排布），AI 自动完成脚手架、沙箱实测与热重载挂载。',
-      detailEn: 'Demonstrates 1-sentence customization: describe any private workflow (tickets, MRs, homelab, or home layout) and lumakey-mcp scaffolds & tests it automatically.',
+      detailEn: 'Demonstrates 1-sentence customization: describe any private workflow (tickets, MRs, homelab, or home layout) and lucent-mcp scaffolds & tests it automatically.',
       quickZh: '🤖 待审 PR (3)',
       quickEn: '🤖 Open PRs (3)',
       acceptsZh: ['代码仓库链接快速预审 (url)'],
@@ -652,7 +652,7 @@
   };
 
   /* ------------------------------------------------------------------------
-     3. Render Interactive "Build Your Own Lumakey" Workbench (#builder)
+     3. Render Interactive "Build Your Own Lucent" Workbench (#builder)
      ------------------------------------------------------------------------ */
   const toggleListEl = document.getElementById('pluginToggleList');
   const enabledCountBadge = document.getElementById('enabledCountBadge');
@@ -927,21 +927,21 @@
     {
       id: 'file-1',
       scopes: ['all', 'files'],
-      match: ['swift', 'lmky', 'file', 'plugin', 'home', '文件'],
+      match: ['swift', 'lcnt', 'file', 'plugin', 'home', '文件'],
       badgeBg: 'linear-gradient(135deg,#ea580c,#db2777)',
       badgeText: 'S',
       titleZh: 'HomeCustomizationSettingsView.swift',
       titleEn: 'HomeCustomizationSettingsView.swift',
-      subZh: 'Sources/Lumakey · LMKYIDX3 mmap 零拷贝全盘与外置硬盘秒搜命中',
-      subEn: 'Sources/Lumakey · Instant LMKYIDX3 mmap internal & external drive hit',
+      subZh: 'Sources/Lucent · LCNTIDX3 mmap 零拷贝全盘与外置硬盘秒搜命中',
+      subEn: 'Sources/Lucent · Instant LCNTIDX3 mmap internal & external drive hit',
       shortcut: '⌘2',
       lens: {
-        tag: 'LMKYIDX3 · Zero-WebKit Reader',
+        tag: 'LCNTIDX3 · Zero-WebKit Reader',
         big: '≤ 300 Lines',
         descZh: '按 ↵ 在纯原生代码阅读窗秒开（0 MB 网页内核开销），按 ⌘↵ 在访达定位，或右键将常用目录钉上启动面板。',
         descEn: 'Press ↵ for pure-Swift reader (0 MB WebKit), ⌘↵ to reveal in Finder, or right-click to pin folder to Home.',
         kvs: [
-          ['Index Format', 'LMKYIDX3 mmap + FSEvents'],
+          ['Index Format', 'LCNTIDX3 mmap + FSEvents'],
           ['External Drives', 'Supported + NTFS Guard'],
           ['Idle Unload', '90s Auto Heap Return']
         ]
@@ -953,8 +953,8 @@
       match: ['clip', 'paste', 'mcp', '剪贴板'],
       badgeBg: 'linear-gradient(135deg,#059669,#0d9488)',
       badgeText: '📋',
-      titleZh: 'claude mcp add lumakey /Applications/Lumakey.app/Contents/MacOS/lumakey-mcp',
-      titleEn: 'claude mcp add lumakey /Applications/Lumakey.app/Contents/MacOS/lumakey-mcp',
+      titleZh: 'claude mcp add lucent /Applications/Lucent.app/Contents/MacOS/lucent-mcp',
+      titleEn: 'claude mcp add lucent /Applications/Lucent.app/Contents/MacOS/lucent-mcp',
       subZh: '剪贴板历史 · 支持 15 步误删撤回 · 自动跳过密码管理器敏感条目',
       subEn: 'Clipboard History · 15-step delete undo · Auto-skips password manager secrets',
       shortcut: '⌘3',
@@ -966,7 +966,7 @@
         kvs: [
           ['Media Support', 'Text · #HEX · Image · File · GIF'],
           ['Privacy Filter', 'Concealed / Transient Skipped'],
-          ['Sync', '.lumakeybackup + WebDAV']
+          ['Sync', '.lucentbackup + WebDAV']
         ]
       }
     }
@@ -1080,12 +1080,12 @@
       lensTag = 'HomeLayoutPreset · developer';
       lensBig = zh ? '开发者工作台主页' : 'Developer Hub';
       lensDesc = zh
-        ? '专为写代码与联调配置的主页 Profile：置顶双栏整理台、功耗与网速监控，并挂载支持 cursor:// / vscode:// 协议与指定浏览器打开的开发书签架；也可让 lumakey-mcp 一句话自动生成！'
+        ? '专为写代码与联调配置的主页 Profile：置顶双栏整理台、功耗与网速监控，并挂载支持 cursor:// / vscode:// 协议与指定浏览器打开的开发书签架；也可让 lucent-mcp 一句话自动生成！'
         : 'Tailored for coding & debugging: pins Dual Workspace, Wattage & Socket monitors alongside URL shelves supporting cursor://, vscode://, and per-bookmark browser overrides.';
       lensKvs = [
         [zh ? '书签协议白名单' : 'Safe URL Schemes', 'https · cursor · vscode · obsidian'],
         [zh ? '分组胶囊架' : 'Pill Shelves', zh ? '最多 6 组自定义命名架' : 'Up to 6 Named Shelves'],
-        [zh ? 'AI 自动编排' : 'MCP Orchestration', 'lumakey_update_home_layout']
+        [zh ? 'AI 自动编排' : 'MCP Orchestration', 'lucent_update_home_layout']
       ];
     } else if (prof === 'creatorBookmarks') {
       // Preset 4: 4-Column Compact Bento (8 tiles) + Curated Bookmarks & Custom Apps Shelves
@@ -1141,7 +1141,7 @@
       // Default Preset 1: Balanced Home (3×2 Bento + Mounted Plugin Quick Shelf + Smart Hybrid Dock)
       statusLabel = `Home: Balanced · ${enabledList.length} Active Plugin(s)`;
       const tiles = [
-        { bg: 'linear-gradient(135deg,#0066dc,#2563eb)', icon: '🔍', t: zh ? '全盘秒搜' : 'Disk Search', s: 'LMKYIDX3 mmap', scope: 'files' },
+        { bg: 'linear-gradient(135deg,#0066dc,#2563eb)', icon: '🔍', t: zh ? '全盘秒搜' : 'Disk Search', s: 'LCNTIDX3 mmap', scope: 'files' },
         { bg: 'linear-gradient(135deg,#4338ca,#6366f1)', icon: '🧭', t: zh ? '三端书签' : 'Browser Hub', s: '0ms SQLite Index', fillQ: 'bh' },
         { bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', icon: '🌐', t: zh ? '流光译站' : 'Translate Hub', s: 'Plugin · OCR/划词', preset: 'translate' },
         { bg: 'linear-gradient(135deg,#db2777,#e11d48)', icon: '✂️', t: zh ? '截图与 GIF' : 'Capture & GIF', s: '⌥A / ⌥G / ⌥O', jump: '#capabilities' },
@@ -1197,7 +1197,7 @@
       lensKvs = [
         [zh ? '多场景主页方案' : 'Home Profiles', zh ? '最多 8 套独立方案秒切' : 'Up to 8 Switchable Profiles'],
         [zh ? '视窗恒定尺寸' : 'Constant Frame', '880 × 544 (Zero-Jitter)'],
-        [zh ? 'AI 定制工具数' : 'Embedded MCP', 'lumakey-mcp (16 Tools)']
+        [zh ? 'AI 定制工具数' : 'Embedded MCP', 'lucent-mcp (20 Tools)']
       ];
 
       setTimeout(() => {
@@ -1321,14 +1321,14 @@
           badgeText: '✦',
           titleZh: `并发检索全盘、剪贴板与已启用插件：“${state.query}”`,
           titleEn: `Unified Core + Plugin Match: "${state.query}"`,
-          subZh: '同时扫描本地应用 · LMKYIDX3 移动硬盘与全盘 · 剪贴板 · 0ms 插件索引',
-          subEn: 'Scans Apps · LMKYIDX3 Drives · Clipboard · 0ms Plugin Index',
+          subZh: '同时扫描本地应用 · LCNTIDX3 移动硬盘与全盘 · 剪贴板 · 0ms 插件索引',
+          subEn: 'Scans Apps · LCNTIDX3 Drives · Clipboard · 0ms Plugin Index',
           shortcut: '⌘1',
           lens: {
             tag: 'LauncherEngine · 0.3ms',
             big: state.query.slice(0, 14),
             descZh: '搜到的任意结果点右键即可直接钉上你的自定义启动面板；若想新增专属指令，对 Claude / Cursor 说一句话就能十秒造出插件！',
-            descEn: 'Right-click any hit to pin straight onto your Launch Panel, or ask Claude / Cursor via lumakey-mcp to build a custom command in 10s.',
+            descEn: 'Right-click any hit to pin straight onto your Launch Panel, or ask Claude / Cursor via lucent-mcp to build a custom command in 10s.',
             kvs: [
               ['Scope', state.scope.toUpperCase()],
               ['Frame Lock', '880 × 544 Constant'],
@@ -1585,7 +1585,7 @@
     const valEl = document.getElementById('demoVaultVal');
     if (valEl) {
       valEl.textContent = state.secretRevealed
-        ? '🔓 sk-lumakey-demo-8a4c9f2a (Decrypted)'
+        ? '🔓 sk-lucent-demo-8a4c9f2a (Decrypted)'
         : '🔒 sk-••••9f2a (AES-GCM)';
     }
     flashAutoSaved();
@@ -1639,11 +1639,11 @@
       url: `${REPO_BASE}/tree/main/plugin-demo`,
       kind: 'Store Registry (7 Plugins)',
       sha: 'SHA-256: 8f4c…d91a ✓',
-      descZh: '自动识别开源仓库子目录并定位 lumakey-registry.json，一键订阅全部 7 款官方原生 Swift 插件并强制核对 SHA-256。',
-      descEn: 'Auto-resolves repository subdirectory to lumakey-registry.json, subscribing all 7 native Swift plugins with SHA-256 verification.'
+      descZh: '自动识别开源仓库子目录并定位 lucent-registry.json，一键订阅全部 7 款官方原生 Swift 插件并强制核对 SHA-256。',
+      descEn: 'Auto-resolves repository subdirectory to lucent-registry.json, subscribing all 7 native Swift plugins with SHA-256 verification.'
     },
     registry: {
-      url: `${REPO_BASE}/blob/main/plugin-demo/lumakey-registry.json`,
+      url: `${REPO_BASE}/blob/main/plugin-demo/lucent-registry.json`,
       kind: 'JSON Store Manifest',
       sha: 'SHA-256: 3a9e…44b2 ✓',
       descZh: '直接解析商店索引清单 JSON，支持增量检查版本更新与防伪装沙箱权限比对，任何悄悄越权都会被拦截。',
@@ -1706,7 +1706,7 @@
   const MS_TICKERS = {
     bento: 'HomeCustomization.swift',
     home_min: 'OmniDock · 16 Hybrid Slots',
-    home_dev: 'cursor://lumakey-repo',
+    home_dev: 'cursor://lucent-repo',
     home_shelf: '4-Col Bento + Bookmarks'
   };
   document.querySelectorAll('#microSearchPills .ms-pill').forEach((pill) => {
@@ -1745,7 +1745,7 @@
     const commit = () => {
       state.theme = themeId;
       document.documentElement.setAttribute('data-theme', themeId);
-      safeSet('lumakey-showcase-theme-v2', themeId);
+      safeSet('lucent-showcase-theme-v2', themeId);
 
       const label = document.getElementById('themeToggleLabel');
       const dict = I18N[state.lang];
@@ -1791,7 +1791,7 @@
   function applyLanguage(lang) {
     state.lang = lang;
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-    safeSet('lumakey-showcase-lang-v2', lang);
+    safeSet('lucent-showcase-lang-v2', lang);
 
     const dict = I18N[lang];
     document.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -1825,8 +1825,8 @@
     }
 
     document.title = lang === 'zh'
-      ? '流光 Lumakey — 2D 图文详解与启动面板定制实验台'
-      : 'Lumakey — 2D Overview & Interactive Launch Panel Workbench';
+      ? '流光 Lucent — 2D 图文详解与启动面板定制实验台'
+      : 'Lucent — 2D Overview & Interactive Launch Panel Workbench';
 
     const navCap = document.querySelector('.nav-capsule');
     if (navCap) navCap.setAttribute('aria-label', lang === 'zh' ? '主导航' : 'Primary navigation');
@@ -1895,31 +1895,31 @@
     });
   });
 
-  const MCP_BIN_PATH = '/Applications/Lumakey.app/Contents/MacOS/lumakey-mcp';
-  const RESIGN_URL = 'https://raw.githubusercontent.com/lengsukq/Lumakey/main/scripts/resign-local-app.sh';
+  const MCP_BIN_PATH = '/Applications/Lucent.app/Contents/MacOS/lucent-mcp';
+  const RESIGN_URL = 'https://raw.githubusercontent.com/lengsukq/Lucent/main/scripts/resign-local-app.sh';
   const TERMINAL_SNIPPETS = {
     mcp: {
-      raw: `claude mcp add lumakey ${MCP_BIN_PATH}`,
-      htmlZh: `<span class="cmd-comment"># 1. 一行命令接入 Claude Code（内置 16 项造插件与排主页工具）：</span>
-<span class="cmd-prompt">$ </span>claude mcp add lumakey ${MCP_BIN_PATH}
+      raw: `claude mcp add lucent ${MCP_BIN_PATH}`,
+      htmlZh: `<span class="cmd-comment"># 1. 一行命令接入 Claude Code（内置 20 项造脚本、造插件与排主页工具）：</span>
+<span class="cmd-prompt">$ </span>claude mcp add lucent ${MCP_BIN_PATH}
 
 <span class="cmd-comment">// 或写入 Cursor / Codex / Gemini CLI 的 MCP 配置文件：</span>
 {
   <span class="cmd-key">"mcpServers"</span>: {
-    <span class="cmd-key">"lumakey"</span>: { <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span> }
+    <span class="cmd-key">"lucent"</span>: { <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span> }
   }
 }
-<span class="cmd-comment"># 2. 直接用大白话对 AI 说：“帮我配一套极简开发启动面板，再做个查端口插件”</span>`,
-      htmlEn: `<span class="cmd-comment"># 1. Register built-in 16-tool MCP server with Claude Code:</span>
-<span class="cmd-prompt">$ </span>claude mcp add lumakey ${MCP_BIN_PATH}
+<span class="cmd-comment"># 2. 直接用大白话对 AI 说：“帮我写个压缩图片的快捷脚本画上 SVG 图标，再配一套极简开发主页”</span>`,
+      htmlEn: `<span class="cmd-comment"># 1. Register built-in 20-tool MCP server with Claude Code:</span>
+<span class="cmd-prompt">$ </span>claude mcp add lucent ${MCP_BIN_PATH}
 
 <span class="cmd-comment">// Or add to Cursor / Codex / Gemini CLI MCP config:</span>
 {
   <span class="cmd-key">"mcpServers"</span>: {
-    <span class="cmd-key">"lumakey"</span>: { <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span> }
+    <span class="cmd-key">"lucent"</span>: { <span class="cmd-key">"command"</span>: <span class="cmd-str">"${MCP_BIN_PATH}"</span> }
   }
 }
-<span class="cmd-comment"># 2. Ask AI: "Set up a Minimal Dev launch panel & build me a port inspector plugin"</span>`
+<span class="cmd-comment"># 2. Ask AI: "Write an image-compress Quick Script with a custom SVG icon & set up a Dev launch panel"</span>`
     },
     plugins: {
       raw: `${REPO_BASE}/tree/main/plugin-demo`,
@@ -1939,14 +1939,14 @@
       htmlZh: `<span class="cmd-comment"># 升级小技巧：绑定本机自签名证书，今后替换新版 .app 免重复勾选系统权限</span>
 <span class="cmd-prompt">$ </span>curl -fsSL ${RESIGN_URL} | bash
 
-<span class="cmd-comment"># 极客从源码构建安装至 /Applications/Lumakey.app 并跑全量门禁校验</span>
-<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git && cd Lumakey
+<span class="cmd-comment"># 极客从源码构建安装至 /Applications/Lucent.app 并跑全量门禁校验</span>
+<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git && cd Lucent
 <span class="cmd-prompt">$ </span>bash scripts/install-macos.sh && bash scripts/verify-macos.sh`,
       htmlEn: `<span class="cmd-comment"># Upgrade Tip: Bind a local machine cert so future DMG updates keep macOS TCC grants</span>
 <span class="cmd-prompt">$ </span>curl -fsSL ${RESIGN_URL} | bash
 
 <span class="cmd-comment"># Build native arm64 bundle from source & run full DAG + 300-LOC + MCP gates</span>
-<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git && cd Lumakey
+<span class="cmd-prompt">$ </span>git clone ${REPO_BASE}.git && cd Lucent
 <span class="cmd-prompt">$ </span>bash scripts/install-macos.sh && bash scripts/verify-macos.sh`
     }
   };

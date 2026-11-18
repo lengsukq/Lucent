@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>流光 Lumakey — 2D 图文详解与启动面板定制实验台</title>
-  <meta name="description" content="普通人秒上手、极客可深度折腾的 Apple Silicon Mac 原生快捷中枢：支持启动面板四分区自由定制、顶部菜单栏编排、全盘秒搜、多屏截图标注与离线识字、Plugin v3.7 透明悬浮挂件及内置 16 项 lumakey-mcp AI 工具。" />
-  <meta property="og:title" content="流光 Lumakey — 轻巧顺手、从启动面板到插件皆可定制的 Mac 效率中枢" />
-  <meta property="og:description" content="启动面板四分区自由编排 · 7 款官方原生 Swift 扩展 + Plugin v3.7 透明桌面挂件 · 内置 lumakey-mcp 一句话造插件排主页 · 纯 Swift 6 零依赖。" />
+  <title>流光 Lucent — 2D 图文详解与启动面板定制实验台</title>
+  <meta name="description" content="普通人秒上手、极客可深度折腾的 Apple Silicon Mac 原生快捷中枢：支持启动面板四分区自由定制、单文件快捷脚本库、顶部菜单栏编排、全盘秒搜、多屏截图标注与离线识字、Plugin v3.7 透明悬浮挂件及内置 20 项 lucent-mcp AI 工具。" />
+  <meta property="og:title" content="流光 Lucent — 轻巧顺手、从启动面板到插件皆可定制的 Mac 效率中枢" />
+  <meta property="og:description" content="启动面板四分区自由编排 · 单文件快捷脚本库 · 7 款官方原生 Swift 扩展 + Plugin v3.7 透明桌面挂件 · 内置 20 项 lucent-mcp AI 工具 · 纯 Swift 6 零依赖。" />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="./assets/icon.svg" />
   <link rel="stylesheet" href="./styles.css" />
@@ -27,9 +27,9 @@
   <header class="site-header">
     <nav class="nav-capsule" aria-label="主导航">
       <a href="#hero" class="brand-link">
-        <img src="./assets/icon.svg" alt="Lumakey Icon" class="brand-icon" width="28" height="28" />
-        <span>Lumakey <span data-i18n="brand_cn">流光</span></span>
-        <span class="brand-tag mono">Plugin v3.7 · 16 MCP</span>
+        <img src="./assets/icon.svg" alt="Lucent Icon" class="brand-icon" width="28" height="28" />
+        <span>Lucent <span data-i18n="brand_cn">流光</span></span>
+        <span class="brand-tag mono">Plugin v3.7 · 20 MCP</span>
       </a>
 
       <div class="nav-links" id="navLinks">
@@ -69,7 +69,7 @@
           <div class="hero-badges hero-stagger" style="--stagger: 0ms">
             <a href="#builder" class="hero-badge">
               <i class="pulse-dot"></i>
-              <span data-i18n="hero_badge_1">全新启动面板自定义 · Plugin v3.7 · 16 项 MCP 工具</span>
+              <span data-i18n="hero_badge_1">全新启动面板自定义 · 快捷脚本库 · 20 项 MCP 工具</span>
             </a>
             <a href="#architecture" class="hero-badge">
               <span>Swift 6</span>
@@ -92,7 +92,7 @@
           <div class="hero-cta-row hero-stagger" style="--stagger: 230ms">
             <a href="#builder" class="btn-hero-primary magnetic-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
-              <span data-i18n="cta_builder">亲手定制你的专属 Lumakey</span>
+              <span data-i18n="cta_builder">亲手定制你的专属 Lucent</span>
             </a>
             <a href="./index.html" class="btn-hero-3d magnetic-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -135,7 +135,7 @@
                 placeholder="直接打字搜软件、移动硬盘文件、算式，或试输：tr 翻译 / bh 书签 / rem 10m 喝水..."
                 autocomplete="off"
                 spellcheck="false"
-                aria-label="Lumakey 交互演示搜索框"
+                aria-label="Lucent 交互演示搜索框"
               />
               <div class="scope-capsules" id="scopeCapsules">
                 <span class="scope-glider" id="scopeGlider" aria-hidden="true"></span>
@@ -176,7 +176,7 @@
         <div class="builder-header-row reveal-up">
           <div>
             <span class="section-eyebrow" data-i18n="builder_eyebrow">DEEP CUSTOMIZATION WORKBENCH · 全维度高度自定义拼装台</span>
-            <h2 class="section-title" data-i18n="builder_title"><span class="title-clause">一千个人手里，</span><span class="title-clause">有一千种长相的 Lumakey</span></h2>
+            <h2 class="section-title" data-i18n="builder_title"><span class="title-clause">一千个人手里，</span><span class="title-clause">有一千种长相的 Lucent</span></h2>
             <p class="section-desc" data-i18n="builder_desc">
               讨厌装完多出一堆关不掉的按钮和后台进程？这里所有扩展默认零打扰：不开启即零内存、零后台轮询；开启后可按需钉入启动面板或顶部状态栏菜单、自由修改唤醒词、录制不抢焦点的静默快捷键，甚至弹出无边框透明桌面挂件。点按下方开关亲手试拼：
             </p>
@@ -258,12 +258,12 @@
 
               <article class="step-card active" data-step="0">
                 <div class="step-header">
-                  <span class="step-index mono">01 / LUMAKEY-MCP AI CO-CREATION</span>
-                  <span class="accent-pill mono">16 Tools</span>
+                  <span class="step-index mono">01 / LUCENT-MCP AI CO-CREATION</span>
+                  <span class="accent-pill mono">20 Tools</span>
                 </div>
-                <h3 class="step-title" data-i18n="s1_title">内置 16 项 MCP 工具：一句话十秒造插件，也能一句话排好启动面板</h3>
+                <h3 class="step-title" data-i18n="s1_title">内置 20 项 MCP 工具：一句话写脚本绘图标、造插件、排启动面板</h3>
                 <p class="step-desc" data-i18n="s1_desc">
-                  安装包自带零依赖 lumakey-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出你想要的小工具或主页布局，AI 自动生成代码、过沙箱实测并热刷新生效。
+                  安装包自带零依赖 lucent-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出你想要的快捷脚本（自动绘制 64×64 SVG 图标）、多视图插件或主页布局，AI 过沙箱实测并热刷新生效。
                 </p>
               </article>
 
@@ -296,14 +296,14 @@
                 </div>
                 <h3 class="step-title" data-i18n="s4_title">内核级 Seatbelt 沙箱 · 本机加密保险箱 · 整机备份跨机漫游</h3>
                 <p class="step-desc" data-i18n="s4_desc">
-                  外部插件默认无权联网或碰隐私目录，填入的 API Key 经 256-bit AES-GCM 加密存放；通过 .lumakeybackup (LZFSE + WebDAV) 可把启动面板、菜单配置、自制插件与密钥一键带去新 Mac。
+                  外部插件与快捷脚本默认无权联网或碰隐私目录，填入的 API Key 经 256-bit AES-GCM 加密存放；通过 .lucentbackup (LZFSE + WebDAV) 可把启动面板、快捷脚本库、自制插件与密钥一键带去新 Mac。
                 </p>
               </article>
             </div>
 
             <div class="theatre-stage-box spotlight-surface" aria-live="polite">
               <div class="theatre-mobile-tabs" role="tablist" aria-label="插件共创场景切换">
-                <button type="button" class="theatre-mobile-tab active" data-scene-tab="0">01 MCP (16)</button>
+                <button type="button" class="theatre-mobile-tab active" data-scene-tab="0">01 MCP (20)</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="1">02 Spec v3.7</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="2">03 Store</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="3">04 Sandbox</button>
@@ -314,7 +314,7 @@
                 <div class="stage-scene active" data-scene="0" id="mcpSceneStage">
                   <div class="scene-top-bar">
                     <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                    <span class="scene-tech-label mono">lumakey-mcp · 16 Tools (Plugin + Home Layout)</span>
+                    <span class="scene-tech-label mono">lucent-mcp · 20 Tools (Scripts + Plugin + Home)</span>
                     <button type="button" class="ok-pill mono mcp-replay-btn" id="mcpReplayBtn" title="重播 AI 自动编排流水线动画">↻ Live Reload</button>
                   </div>
 
@@ -325,15 +325,15 @@
 
                     <div class="mcp-pipeline-steps" id="mcpPipelineSteps">
                       <div class="mcp-step-row mcp-seq-item" style="--seq: 0">
-                        <span><strong class="mono">1. specs/plugin-v3 + home-layout-v1</strong> · <span data-i18n="sc0_st1">读取内置插件与启动面板双规范及可用能力池</span></span>
+                        <span><strong class="mono">1. specs/scripts-v1 + plugin-v3 + home-layout-v1</strong> · <span data-i18n="sc0_st1">读取内置脚本库、插件与启动面板规范及可用能力池</span></span>
                         <span class="ok-pill mono">0.8ms</span>
                       </div>
                       <div class="mcp-step-row mcp-seq-item" style="--seq: 1">
-                        <span><strong class="mono">2. scaffold + validate + run_test</strong> · <span data-i18n="sc0_st2">自动生成插件并在 Seatbelt 沙箱内完成实跑验证</span></span>
+                        <span><strong class="mono">2. scaffold + validate + run_test</strong> · <span data-i18n="sc0_st2">自动生成插件或脚本并在 Seatbelt 沙箱内完成实跑验证</span></span>
                         <span class="ok-pill mono">Passed ✓</span>
                       </div>
                       <div class="mcp-step-row mcp-seq-item" style="--seq: 2">
-                        <span><strong class="mono">3. lumakey_update_home_layout</strong> · <span data-i18n="sc0_st3">创建新主页 Profile、挂载磁贴与书签架并实时热刷新</span></span>
+                        <span><strong class="mono">3. lucent_update_home_layout</strong> · <span data-i18n="sc0_st3">创建新主页 Profile、挂载磁贴与书签架并实时热刷新</span></span>
                         <span class="ok-pill mono">Synced ✓</span>
                       </div>
                     </div>
@@ -344,15 +344,15 @@
                         <span class="accent-pill mono" data-i18n="sc0_try_btn">点击在上方体验 ↗</span>
                       </div>
                       <div class="mock-card-sub" data-i18n="sc0_live_d">
-                        全程无需重启 Lumakey，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。
+                        全程无需重启 Lucent，不满意还能随时在设置页或通过 undoLastChange 一键撤回上次面板改动。
                       </div>
                     </div>
                   </div>
 
                   <div class="scene-footer-metrics">
                     <span class="subtle-chip" data-i18n="sc0_f1">12 项插件全生命周期工具</span>
-                    <span class="subtle-chip" data-i18n="sc0_f2">4 项启动面板实时编排工具</span>
-                    <span class="subtle-chip" data-i18n="sc0_f3">内置 3 套一键脚手架模板</span>
+                    <span class="subtle-chip" data-i18n="sc0_f2">4 项快捷脚本与 SVG 图标工具</span>
+                    <span class="subtle-chip" data-i18n="sc0_f3">4 项启动面板实时编排工具</span>
                   </div>
                 </div>
 
@@ -444,7 +444,7 @@
 
                     <div class="sniffer-input-mock interactive-mock-card" id="snifferInputMock" role="button" tabindex="0" title="点击重新触发四级嗅探与指纹校验">
                       <span class="sniffer-scan-beam" aria-hidden="true"></span>
-                      <span class="mono" id="snifferUrlText">lengsukq/Lumakey/tree/main/plugin-demo</span>
+                      <span class="mono" id="snifferUrlText">lengsukq/Lucent/tree/main/plugin-demo</span>
                       <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (7 Plugins)</span>
                     </div>
 
@@ -472,7 +472,7 @@
                   </div>
 
                   <div class="scene-footer-metrics">
-                    <span class="subtle-chip" data-i18n="sc2_f1">lumakey_package_plugin_for_store 一键发版</span>
+                    <span class="subtle-chip" data-i18n="sc2_f1">lucent_package_plugin_for_store 一键发版</span>
                     <span class="subtle-chip" data-i18n="sc2_f2">插件更新免重复勾选系统权限</span>
                   </div>
                 </div>
@@ -481,7 +481,7 @@
                 <div class="stage-scene" data-scene="3">
                   <div class="scene-top-bar">
                     <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                    <span class="scene-tech-label mono">PluginSandboxProfileBuilder · LMKYVLT2 · Backup v2</span>
+                    <span class="scene-tech-label mono">PluginSandboxProfileBuilder · LCNTVLT2 · Backup v2</span>
                     <span class="ok-pill mono" id="sandboxActiveTag">Defense in Depth</span>
                   </div>
 
@@ -496,11 +496,11 @@
                         <span class="accent-pill mono">Scoped</span>
                       </div>
                       <div class="mcp-step-row sec-row" data-sec-idx="2">
-                        <span><strong>LMKYVLT2 Secret Vault</strong> · <span data-i18n="sc3_r3">双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留</span></span>
+                        <span><strong>LCNTVLT2 Secret Vault</strong> · <span data-i18n="sc3_r3">双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留</span></span>
                         <span class="ok-pill mono">256-bit</span>
                       </div>
                       <div class="mcp-step-row sec-row" data-sec-idx="3">
-                        <span><strong>.lumakeybackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游</span></span>
+                        <span><strong>.lucentbackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游</span></span>
                         <span class="accent-pill mono">LZFSE</span>
                       </div>
                     </div>
@@ -574,12 +574,12 @@
               </div>
               <h3 data-i18n="fc1_title">可定制启动面板 · 全盘秒搜 · 15 步可撤回剪贴板</h3>
               <p data-i18n="fc1_desc">
-                未打字时展示你自定义的 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜中文双音字/拼音应用、本机与移动硬盘文件、富媒体剪贴板历史（自动跳过密码）、10 类日常单位算式换算、;短语扩展与离线开发小工具。
+                未打字时展示你自定义的 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜中文双音字/拼音应用、本机与移动硬盘文件、富媒体剪贴板历史（自动跳过密码）、!单文件快捷脚本库、10 类日常单位算式换算、;短语扩展与离线开发小工具。
               </p>
             </div>
             <div class="f-card-chips">
               <span class="subtle-chip" data-i18n="fc1_c1">4 区 × 多场景 Profile</span>
-              <span class="subtle-chip" data-i18n="fc1_c2">LMKYIDX3 mmap 零拷贝秒搜</span>
+              <span class="subtle-chip" data-i18n="fc1_c2">LCNTIDX3 mmap 零拷贝秒搜</span>
               <span class="subtle-chip" data-i18n="fc1_c3">880×544 防跳行不抢焦点</span>
             </div>
           </article>
@@ -769,7 +769,7 @@
               </li>
               <li>
                 <span class="badge-yes">✓</span>
-                <span data-i18n="yes_2"><strong>普通人也能玩的 AI 扩展：</strong>内置 16 项 lumakey-mcp 工具与单框智能商店嗅探，一句话就能定制新插件或新主页。</span>
+                <span data-i18n="yes_2"><strong>普通人也能玩的 AI 扩展：</strong>内置 20 项 lucent-mcp 工具与单框智能商店嗅探，一句话就能定制快捷脚本、新插件或新主页。</span>
               </li>
               <li>
                 <span class="badge-yes">✓</span>
@@ -804,7 +804,7 @@
             <span class="section-eyebrow" data-i18n="arch_eyebrow">UNDER THE HOOD FOR GEEKS · 给极客看的硬核工程纪律</span>
             <h2 class="section-title" data-i18n="arch_title"><span class="title-clause">九大单向无环模块 · </span><span class="title-clause">单文件硬性严控 ≤ 300 行</span></h2>
             <p class="section-desc" data-i18n="arch_desc">
-              代码库与产品一样干净克制：每次构建均由自动化脚本强制核验模块单向 DAG 依赖、单 .swift 文件行数上限、文档死链与真实 lumakey-mcp JSON-RPC 往返联调。
+              代码库与产品一样干净克制：每次构建均由自动化脚本强制核验模块单向 DAG 依赖、单 .swift 文件行数上限、文档死链与真实 lucent-mcp JSON-RPC 往返联调。
             </p>
           </div>
           <a href="./index.html?scene=dag" class="section-3d-jump magnetic-btn">
@@ -815,8 +815,8 @@
 
         <div class="metrics-strip" id="metricsStrip" data-spotlight-group>
           <div class="metric-box spotlight-surface reveal-up" style="--delay: 0ms">
-            <div class="metric-number gradient-text mono" data-count-to="16">16</div>
-            <div class="metric-caption" data-i18n="m_1">内置 lumakey-mcp 造插件与排主页工具</div>
+            <div class="metric-number gradient-text mono" data-count-to="20">20</div>
+            <div class="metric-caption" data-i18n="m_1">内置 lucent-mcp 造脚本、插件与排主页工具</div>
           </div>
           <div class="metric-box spotlight-surface reveal-up" style="--delay: 70ms">
             <div class="metric-number gradient-text mono" data-count-to="0">0</div>
@@ -835,13 +835,13 @@
         <div class="dag-board spotlight-surface reveal-up">
           <div class="dag-tiers">
             <div class="dag-tier">
-              <div class="dag-node" data-dag-mod="Lumakey.app">
-                <div class="dag-node-name mono"><i class="node-orb cyan"></i>Lumakey.app</div>
-                <div class="dag-node-desc" data-i18n="dag_app">SwiftUI + AppKit 双主题前端 · 启动面板/菜单栏定制 · 自由画布窗口</div>
+              <div class="dag-node" data-dag-mod="Lucent.app">
+                <div class="dag-node-name mono"><i class="node-orb cyan"></i>Lucent.app</div>
+                <div class="dag-node-desc" data-i18n="dag_app">SwiftUI + AppKit 双主题前端 · 启动面板/脚本库/菜单栏定制 · 自由画布窗口</div>
               </div>
-              <div class="dag-node" data-dag-mod="lumakey-mcp">
-                <div class="dag-node-name mono"><i class="node-orb violet"></i>lumakey-mcp</div>
-                <div class="dag-node-desc" data-i18n="dag_mcp">内置 16 项 JSON-RPC 2.0 工具：AI 插件脚手架、沙箱测试与启动面板实时编排</div>
+              <div class="dag-node" data-dag-mod="lucent-mcp">
+                <div class="dag-node-name mono"><i class="node-orb violet"></i>lucent-mcp</div>
+                <div class="dag-node-desc" data-i18n="dag_mcp">内置 20 项 JSON-RPC 2.0 工具：快捷脚本与 SVG 图标绘制、插件脚手架与主页实时编排</div>
               </div>
             </div>
 
@@ -855,9 +855,9 @@
             </div>
 
             <div class="dag-tier">
-              <div class="dag-node dag-node-wide" data-dag-mod="LumakeyCore">
-                <div class="dag-node-name mono"><i class="node-orb indigo"></i>LumakeyCore</div>
-                <div class="dag-node-desc" data-i18n="dag_core">HomeLayout 多场景启动面板 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · 智能商店嗅探 · WebDAV 备份</div>
+              <div class="dag-node dag-node-wide" data-dag-mod="LucentCore">
+                <div class="dag-node-name mono"><i class="node-orb indigo"></i>LucentCore</div>
+                <div class="dag-node-desc" data-i18n="dag_core">HomeLayout 多场景启动面板 · Quick Scripts 快捷脚本库 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · WebDAV 备份</div>
               </div>
             </div>
 
@@ -871,16 +871,16 @@
             </div>
 
             <div class="dag-tier">
-              <div class="dag-node" data-dag-mod="LumakeySearch">
-                <div class="dag-node-name mono"><i class="node-orb sky"></i>LumakeySearch</div>
-                <div class="dag-node-desc" data-i18n="dag_search">LMKYIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检</div>
+              <div class="dag-node" data-dag-mod="LucentSearch">
+                <div class="dag-node-name mono"><i class="node-orb sky"></i>LucentSearch</div>
+                <div class="dag-node-desc" data-i18n="dag_search">LCNTIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检</div>
               </div>
-              <div class="dag-node" data-dag-mod="LumakeyMedia">
-                <div class="dag-node-name mono"><i class="node-orb rose"></i>LumakeyMedia</div>
+              <div class="dag-node" data-dag-mod="LucentMedia">
+                <div class="dag-node-name mono"><i class="node-orb rose"></i>LucentMedia</div>
                 <div class="dag-node-desc" data-i18n="dag_media">逐屏冻屏标注合成 · Vision 离线 OCR · hev1 4K 硬解 · 纯原生 Markdown</div>
               </div>
-              <div class="dag-node" data-dag-mod="LumakeySystem">
-                <div class="dag-node-name mono"><i class="node-orb emerald"></i>LumakeySystem</div>
+              <div class="dag-node" data-dag-mod="LucentSystem">
+                <div class="dag-node-name mono"><i class="node-orb emerald"></i>LucentSystem</div>
                 <div class="dag-node-desc" data-i18n="dag_sys">Mach/IOKit 功耗遥测 · 进程网速去向 · 120Hz 鼠标平滑滚轮 · 三层热键防冲突</div>
               </div>
             </div>
@@ -895,9 +895,9 @@
             </div>
 
             <div class="dag-tier">
-              <div class="dag-node dag-node-wide" data-dag-mod="LumakeyFoundation">
-                <div class="dag-node-name mono"><i class="node-orb amber"></i>LumakeyFoundation</div>
-                <div class="dag-node-desc" data-i18n="dag_found">凝霜/流光双主题模型 · 中英双语免重启 · LMKYVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor</div>
+              <div class="dag-node dag-node-wide" data-dag-mod="LucentFoundation">
+                <div class="dag-node-name mono"><i class="node-orb amber"></i>LucentFoundation</div>
+                <div class="dag-node-desc" data-i18n="dag_found">凝霜/流光双主题模型 · 中英双语免重启 · LCNTVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor</div>
               </div>
             </div>
           </div>
@@ -910,7 +910,7 @@
       <div class="container">
         <div class="download-card spotlight-surface reveal-up">
           <div>
-            <span class="section-eyebrow" data-i18n="dl_eyebrow">START BUILDING YOUR LUMAKEY · 立即免费使用</span>
+            <span class="section-eyebrow" data-i18n="dl_eyebrow">START BUILDING YOUR LUCENT · 立即免费使用</span>
             <h2 class="section-title download-title" data-i18n="dl_title">
               下载 10 MB 轻巧底座，<br/>搭出最懂你的效率流
             </h2>
@@ -953,7 +953,7 @@
     <div class="container footer-inner">
       <div class="footer-brand">
         <img src="./assets/icon.svg" alt="" width="22" height="22" />
-        <span><strong data-i18n="foot_brand">Lumakey 流光</strong> · Native Swift 6 Customizable Hub &amp; Open Plugin v3.7 · MIT License</span>
+        <span><strong data-i18n="foot_brand">Lucent 流光</strong> · Native Swift 6 Customizable Hub &amp; Open Plugin v3.7 · MIT License</span>
       </div>
       <div class="footer-links">
         <a href="./index.html" data-i18n="foot_3d_exp">返回 3D 主页</a>
