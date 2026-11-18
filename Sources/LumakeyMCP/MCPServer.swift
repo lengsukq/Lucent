@@ -31,17 +31,16 @@ final class MCPServer {
             return ok(id: id, result: [
                 "protocolVersion": "2024-11-05",
                 "capabilities": ["resources": [:], "tools": [:]],
-                "serverInfo": ["name": "lumakey-mcp", "version": "0.3.2"],
+                "serverInfo": ["name": "lumakey-mcp", "version": "0.3.3"],
                 "instructions": """
                 Lumakey is a lightweight macOS productivity hub (NOT a resident server, daemon runner, or cron gateway).
-                Follow these mandatory rules when creating plugins or customizing the Launcher Home Page:
-                1. Before authoring any plugin, read `lumakey://specs/plugin-v3` and call `lumakey_list_plugins` (to check BUILTIN native plugins like SmoothScroll/LumaLink/SystemPulse so you do not duplicate them) and `lumakey_app_permissions` (to audit app-wide permission usage).
-                2. Every plugin MUST explicitly declare its required permissions via `capabilities` (Host Bridge) AND `resourceScopes` (`network`, `filesystem`, `subprocess`, or `[]` if none) in `plugin.json` at registration time. Pass `[]` for both when authoring a pure sandboxed plugin.
-                3. Reuse host TCC permissions through declared `capabilities` and the ephemeral per-run UDS Host Bridge (`LUMAKEY_BRIDGE_SOCK` / `LUMAKEY_BRIDGE_TOKEN`). Never write `launchd` plists, resident HTTP servers, or infinite `while true` loops.
-                4. Prefer `mode: "view"` outputting `PluginViewPayload` JSON for native Liquid Glass cards.
-                5. Always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after scaffolding or editing a plugin.
-                6. When sharing a plugin or building a custom plugin store (`lumakey-registry.json`), read `lumakey://specs/plugin-store-v1` and call `lumakey_package_plugin_for_store`.
-                7. When customizing the user's Launcher Home Page (Bento tiles, Omni Dock, bookmark shelves, or multi-scene profiles), read `lumakey://specs/home-layout-v1` and call `lumakey_get_home_layout` first, then apply changes via `lumakey_update_home_layout`, `lumakey_upsert_home_item`, or `lumakey_remove_home_item`.
+                Follow these mandatory rules when creating Quick Scripts, plugins, or customizing the Launcher Home Page:
+                1. For lightweight single-file quick actions, text/clipboard utilities, AppleScript automations, or custom Shebang scripts (Zsh, Bash, Python 3, AppleScript, Swift, Node, Deno, Ruby), read `lumakey://specs/scripts-v1` and use `lumakey_upsert_script`. Always give scripts clear bilingual names (`title` / `englishTitle`), draw a bespoke 64x64 vector `<svg>` icon via `iconSvg` (or pair an SF Symbol with `accentColor`), and verify execution with `lumakey_run_script_test`.
+                2. Before authoring any multi-view plugin, read `lumakey://specs/plugin-v3` and call `lumakey_list_plugins` (to check BUILTIN native plugins like SmoothScroll/LumaLink/SystemPulse so you do not duplicate them) and `lumakey_app_permissions`.
+                3. Every plugin MUST explicitly declare its required permissions via `capabilities` (Host Bridge) AND `resourceScopes` (`network`, `filesystem`, `subprocess`, or `[]` if none) in `plugin.json` at registration time. Never write `launchd` plists, resident HTTP servers, or infinite `while true` loops.
+                4. Prefer `mode: "view"` outputting `PluginViewPayload` JSON for native Liquid Glass cards, and always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after scaffolding or editing a plugin.
+                5. When sharing a plugin or building a custom plugin store (`lumakey-registry.json`), read `lumakey://specs/plugin-store-v1` and call `lumakey_package_plugin_for_store`.
+                6. When customizing the user's Launcher Home Page (Bento tiles, Omni Dock, bookmark shelves, multi-scene profiles, or pinning Quick Scripts via `kind: "script"`), read `lumakey://specs/home-layout-v1` and call `lumakey_get_home_layout` first, then apply changes via `lumakey_update_home_layout`, `lumakey_upsert_home_item`, or `lumakey_remove_home_item`.
                 """
             ])
         case "ping":
@@ -66,6 +65,12 @@ final class MCPServer {
                         "name": "Lumakey Home Layout & Multi-Profile Spec v1",
                         "description": "Modular Bento tiles, hybrid Omni Dock, bookmark shelves, multi-scene profiles, and safe HomeLaunchItem targets.",
                         "mimeType": "text/markdown"
+                    ],
+                    [
+                        "uri": "lumakey://specs/scripts-v1",
+                        "name": "Lumakey Quick Scripts Library Spec v1",
+                        "description": "Standalone Script Library, custom 64x64 SVG icon crafting, bilingual naming, multi-runtime & custom Shebang execution, and quick action mounts.",
+                        "mimeType": "text/markdown"
                     ]
                 ]
             ])
@@ -75,6 +80,7 @@ final class MCPServer {
             case "lumakey://specs/plugin-v3": PluginSystem.specV3Markdown
             case "lumakey://specs/plugin-store-v1": PluginSystem.specStoreV1Markdown
             case "lumakey://specs/home-layout-v1": HomeLayoutConfig.specV1Markdown
+            case "lumakey://specs/scripts-v1": ScriptLibraryStore.specV1Markdown
             default: nil
             }
             guard let specText else {

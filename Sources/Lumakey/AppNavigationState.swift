@@ -14,7 +14,7 @@ extension OmniFilter {
 
     var placeholder: String {
         let raw = switch self {
-        case .all: "搜应用(拼音)、文件名、算式、ts/uuid/qr/;短语、gif、备份..."
+        case .all: "搜应用(拼音)、文件名、!脚本、算式、ts/uuid/qr/;短语、备份..."
         case .files: "仅搜索磁盘文件：ext:swift  pic:  video:  folder:  !tmp ..."
         case .clipboard: "仅搜索剪贴板历史（文本 / #色值 / 图片 / 文件）..."
         case .plugins: "筛选插件或按 Tab 进入单插件专属列表（⌘, 直达该插件设置）..."
@@ -24,32 +24,16 @@ extension OmniFilter {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
-    case general
-    case homeLayout
-    case capture
-    case monitor
-    case network
-    case cache
-    case search
-    case mos
-    case lumaLink
-    case clipboard
-    case snippets
-    case plugins
-    case pluginDetail
-    case shortcuts
-    case backup
-    case about
+    case general, homeLayout, capture, monitor, network, cache, search
+    case mos, lumaLink, clipboard, scripts, snippets, plugins, pluginDetail, shortcuts, backup, about
 
     var id: String { rawValue }
 
     static let coreSidebarSections: [SettingsSection] = [
-        .general, .homeLayout, .capture, .snippets, .shortcuts, .plugins, .cache, .backup, .about
+        .general, .homeLayout, .capture, .scripts, .snippets, .shortcuts, .plugins, .cache, .backup, .about
     ]
 
-    static let builtinPluginSections: [SettingsSection] = [
-        .mos, .monitor
-    ]
+    static let builtinPluginSections: [SettingsSection] = [.mos, .monitor]
 
     var canonicalSection: SettingsSection {
         switch self {
@@ -71,6 +55,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .mos: "鼠标滚轮"
         case .lumaLink: "流光随行"
         case .clipboard: "剪贴板隐私"
+        case .scripts: L10n.pick("脚本快捷库", "Quick Scripts")
         case .snippets: "快捷短语"
         case .plugins: "插件与 MCP"
         case .pluginDetail: "插件独立设置"
@@ -93,6 +78,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .mos: "computermouse.fill"
         case .lumaLink: "ipad.and.iphone"
         case .clipboard: "doc.on.clipboard.fill"
+        case .scripts: "terminal.fill"
         case .snippets: "text.quote"
         case .plugins: "puzzlepiece.extension.fill"
         case .pluginDetail: "wand.and.stars"
@@ -114,6 +100,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .mos: (.cyan, .indigo)
         case .lumaLink: (.cyan, .blue)
         case .clipboard: (.orange, .pink)
+        case .scripts: (.teal, .indigo)
         case .snippets: (.cyan, .indigo)
         case .plugins: (.purple, .indigo)
         case .pluginDetail: (.purple, .cyan)
@@ -231,15 +218,11 @@ struct PaneState {
     var history: [URL] = []
     var diagnostic: UserFacingDiagnostic?
 
-    var activeTabIndex: Int {
-        tabs.firstIndex(where: { $0.id == activeTabID }) ?? 0
-    }
-
+    var activeTabIndex: Int { tabs.firstIndex(where: { $0.id == activeTabID }) ?? 0 }
     var currentDirectory: URL {
         get { tabs[activeTabIndex].directoryURL }
         set { tabs[activeTabIndex].directoryURL = newValue }
     }
-
     var filterText: String {
         get { tabs[activeTabIndex].filterText }
         set { tabs[activeTabIndex].filterText = newValue }
@@ -255,16 +238,13 @@ struct PaneState {
         }
     }
 
-    func categoryCount(for filter: WorkspaceMediaFilter) -> Int {
-        categoryCounts[filter, default: 0]
-    }
+    func categoryCount(for filter: WorkspaceMediaFilter) -> Int { categoryCounts[filter, default: 0] }
 
     private mutating func rebuildCategoryCounts() {
         var counts: [WorkspaceMediaFilter: Int] = [.all: entries.count]
         for entry in entries {
             if entry.isDirectory && !entry.isPackage {
-                counts[.folder, default: 0] += 1
-                continue
+                counts[.folder, default: 0] += 1; continue
             }
             switch entry.mediaKind {
             case .image: counts[.image, default: 0] += 1

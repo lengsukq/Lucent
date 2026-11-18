@@ -68,6 +68,7 @@ extension BackupArchiveService {
                 throw BackupArchiveError.corruptedArchive("外部文件 \(ext.homeRelativePath) Base64 无效")
             }
         }
+        try validateScriptFiles(payload.scriptFiles, scriptsDirectory: appSupportDirectory.appendingPathComponent("Scripts", isDirectory: true))
     }
 
     private static func validateBundleFiles(

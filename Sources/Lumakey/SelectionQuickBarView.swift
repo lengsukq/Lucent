@@ -123,14 +123,6 @@ struct SelectionQuickBarView: View {
         .padding(12)
         .frame(width: 260)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-        .background {
-            RoundedShapeOuterShadow(
-                shape: RoundedRectangle(cornerRadius: LiquidRadii.card, style: .continuous),
-                color: .black.opacity(0.20),
-                radius: 9,
-                yOffset: 4
-            )
-        }
     }
 
     private func resultCard(title: String, subtitle: String, detail: String, saveArgs: [String]?) -> some View {
@@ -224,14 +216,6 @@ struct SelectionQuickBarView: View {
         .padding(12)
         .frame(width: 368)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-        .background {
-            RoundedShapeOuterShadow(
-                shape: RoundedRectangle(cornerRadius: LiquidRadii.card, style: .continuous),
-                color: .black.opacity(0.20),
-                radius: 9,
-                yOffset: 4
-            )
-        }
     }
 
     private func errorCard(_ msg: String) -> some View {
@@ -246,13 +230,5 @@ struct SelectionQuickBarView: View {
         }
         .padding(12).frame(width: 280)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
-        .background {
-            RoundedShapeOuterShadow(
-                shape: RoundedRectangle(cornerRadius: LiquidRadii.card, style: .continuous),
-                color: .black.opacity(0.20),
-                radius: 9,
-                yOffset: 4
-            )
-        }
     }
 }

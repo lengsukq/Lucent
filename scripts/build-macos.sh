@@ -90,6 +90,9 @@ if [[ -f "$ROOT_DIR/plugin-demo/lumakey-registry.json" && -d "$ROOT_DIR/plugin-d
   mkdir -p "$RESOURCES_DIR/plugin-demo"
   cp "$ROOT_DIR/plugin-demo/lumakey-registry.json" "$RESOURCES_DIR/plugin-demo/lumakey-registry.json"
   cp -R "$ROOT_DIR/plugin-demo/dist" "$RESOURCES_DIR/plugin-demo/dist"
+  if [[ -d "$ROOT_DIR/plugin-demo/starters" ]]; then
+    cp -R "$ROOT_DIR/plugin-demo/starters" "$RESOURCES_DIR/plugin-demo/starters"
+  fi
 fi
 if [[ -n "${LUMAKEY_BUNDLE_SHORT_VERSION:-}" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $LUMAKEY_BUNDLE_SHORT_VERSION" "$CONTENTS_DIR/Info.plist"

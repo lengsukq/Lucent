@@ -6,17 +6,18 @@ public enum HomeLaunchTarget: Codable, Sendable, Hashable, Equatable {
     case nativeApp(path: String, bundleID: String? = nil)
     case plugin(pluginID: String, behavior: HomePluginLaunchBehavior = .auto)
     case pluginCommand(pluginID: String, commandID: String, arguments: [String]? = nil)
+    case script(scriptID: String)
     case bookmark(url: String, browserAppPath: String? = nil, sourcePluginID: String? = nil)
     case localPath(path: String)
     case queryChip(query: String, filter: String? = nil)
 
     private enum KindKey: String, Codable {
-        case builtin, nativeApp, plugin, pluginCommand, bookmark, localPath, queryChip
+        case builtin, nativeApp, plugin, pluginCommand, script, bookmark, localPath, queryChip
     }
 
     private enum CodingKeys: String, CodingKey {
         case kind, builtinID, path, bundleID, pluginID, behavior
-        case commandID, arguments, url, browserAppPath, sourcePluginID, query, filter
+        case commandID, arguments, scriptID, url, browserAppPath, sourcePluginID, query, filter
     }
 
     public var kindName: String {
@@ -25,6 +26,7 @@ public enum HomeLaunchTarget: Codable, Sendable, Hashable, Equatable {
         case .nativeApp: "nativeApp"
         case .plugin: "plugin"
         case .pluginCommand: "pluginCommand"
+        case .script: "script"
         case .bookmark: "bookmark"
         case .localPath: "localPath"
         case .queryChip: "queryChip"
@@ -52,6 +54,8 @@ public enum HomeLaunchTarget: Codable, Sendable, Hashable, Equatable {
                 commandID: try c.decode(String.self, forKey: .commandID),
                 arguments: try c.decodeIfPresent([String].self, forKey: .arguments)
             )
+        case .script:
+            self = .script(scriptID: try c.decode(String.self, forKey: .scriptID))
         case .bookmark:
             self = .bookmark(
                 url: try c.decode(String.self, forKey: .url),
@@ -82,6 +86,8 @@ public enum HomeLaunchTarget: Codable, Sendable, Hashable, Equatable {
         case .pluginCommand(let pluginID, let commandID, let arguments):
             try c.encode(KindKey.pluginCommand, forKey: .kind); try c.encode(pluginID, forKey: .pluginID)
             try c.encode(commandID, forKey: .commandID); try c.encodeIfPresent(arguments, forKey: .arguments)
+        case .script(let scriptID):
+            try c.encode(KindKey.script, forKey: .kind); try c.encode(scriptID, forKey: .scriptID)
         case .bookmark(let url, let browserAppPath, let sourcePluginID):
             try c.encode(KindKey.bookmark, forKey: .kind); try c.encode(url, forKey: .url)
             try c.encodeIfPresent(browserAppPath, forKey: .browserAppPath)
@@ -176,6 +182,11 @@ public enum HomeLaunchSecurity {
             }
             if let args, args.count > 12 || args.contains(where: { $0.count > 256 || $0.contains("\0") }) {
                 return "pluginCommand arguments exceed safety bounds."
+            }
+            return nil
+        case .script(let scriptID):
+            guard ScriptHeaderParser.isSafeScriptID(scriptID) else {
+                return "Invalid scriptID '\(scriptID)'."
             }
             return nil
         case .bookmark(let rawURL, let browserPath, _):

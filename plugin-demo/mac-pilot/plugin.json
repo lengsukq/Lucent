@@ -6,7 +6,7 @@
   "description": "一站式补齐音量与静音调节、防休眠常亮、16 项系统设置分栏免前缀秒达、外置磁盘一键安全推出、访达当前目录新建文件与运行应用退出管理",
   "mode": "view",
   "keywords": ["mac", "pilot", "sys", "vol", "eject", "finder", "系统控制", "音量", "推出磁盘", "访达"],
-  "entry": "run.sh",
+  "entry": "bin/mac-pilot",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "blue",

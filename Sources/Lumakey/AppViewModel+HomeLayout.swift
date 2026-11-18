@@ -129,6 +129,21 @@ extension AppViewModel {
                 hotkeyHint: item.hotkeyHint ?? reg?.effectiveHotKey,
                 badgeText: reg?.pluginName
             )
+        case .script(let scriptID):
+            let script = scripts.first { $0.id == scriptID }
+            let sTitle = script?.displayTitle ?? scriptID
+            let sSub = script?.displaySubtitle ?? L10n.pick("未找到的快捷脚本", "Missing script")
+            let iconURL = item.customIcon == nil ? script?.customIconURL(in: ScriptLibraryStore.shared.scriptsDirectory) : nil
+            return HomeResolvedVisual(
+                title: item.customTitle ?? sTitle,
+                subtitle: item.customSubtitle ?? sSub,
+                symbolName: item.customIcon ?? script?.symbolIconName ?? "terminal.fill",
+                customIconURL: iconURL,
+                nativeAppURL: nil, localFileURL: nil, isDirectory: false,
+                accentColor: item.accentColor ?? script?.accentColor ?? "teal",
+                hotkeyHint: item.hotkeyHint ?? script?.hotKey,
+                badgeText: script?.runtime.badgeLabel ?? L10n.pick("脚本", "Script")
+            )
         case .bookmark(let rawURL, _, _):
             let parsed = URL(string: rawURL)
             let host = parsed?.host ?? parsed?.scheme ?? rawURL
@@ -220,6 +235,15 @@ extension AppViewModel {
                 combined.append(HomeLaunchItem(
                     id: "legacy-\(qb.id)", target: target,
                     customTitle: qb.title, customSubtitle: qb.subtitle, accentColor: qb.accentColor
+                ))
+            }
+        }
+        for sc in scripts where sc.isEnabled && sc.pinnedInQuickBar {
+            let exists = combined.contains { if case .script(let sid) = $0.target { return sid == sc.id } else { return false } }
+            if !exists {
+                combined.append(HomeLaunchItem(
+                    id: "legacy-script-\(sc.id)", target: .script(scriptID: sc.id),
+                    customTitle: sc.displayTitle, customSubtitle: sc.displaySubtitle, accentColor: sc.accentColor
                 ))
             }
         }

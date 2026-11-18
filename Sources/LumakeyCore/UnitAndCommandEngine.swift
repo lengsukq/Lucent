@@ -29,6 +29,7 @@ public enum SystemCommandKind: Sendable, Hashable {
     case openBackupSettings
     case quickBackup
     case openSnippetsSettings
+    case openScriptsSettings
     case openPluginsSettings
     case switchTheme(AppThemeID)
     case cycleTheme
@@ -195,6 +196,7 @@ public enum UnitAndCommandEngine {
             (["备份", "backup", "webdav", "导出", "云同步", "beifen"], "backup-settings", L10n.pick("打开导出、备份与 WebDAV 云同步", "Open Export, Backup & WebDAV Sync"), L10n.pick("导出 .lumakeybackup 归档或同步至 WebDAV 云盘与私有 NAS", "Export .lumakeybackup archive or sync via WebDAV"), L10n.pick("备份", "Backup"), "externaldrive.badge.icloud", .openBackupSettings),
             (["快速备份", "立即备份", "quick backup"], "quick-backup", L10n.pick("立即执行快速备份快照", "Run Quick Backup Now"), L10n.pick("已配置 WebDAV 时后台上传云快照，否则导出本地归档", "Uploads WebDAV snapshot if configured, else exports local archive"), L10n.pick("备份", "Backup"), "icloud.and.arrow.up.fill", .quickBackup),
             (["短语", "snippets", "snippet", "快捷短语", "duanyu"], "snippets-settings", L10n.pick("管理快捷短语词库 (Snippets)", "Manage Text Snippets"), L10n.pick("配置 ;date / ;sh / ;uuid / ;clip 等动态展开模板", "Configure ;date / ;sh / ;uuid / ;clip dynamic templates"), L10n.pick("短语", "Snippets"), "text.quote", .openSnippetsSettings),
+            (["脚本", "脚本库", "快捷脚本", "scripts", "script", "jiaoben"], "scripts-settings", L10n.pick("管理脚本快捷库 (Quick Scripts)", "Manage Quick Scripts Library"), L10n.pick("编写或同步 Shell / Python / AppleScript / Swift / Node 快捷动作", "Author or sync Shell / Python / AppleScript / Swift / Shebang scripts"), L10n.pick("脚本", "Scripts"), "terminal.fill", .openScriptsSettings),
             (["插件", "plugins", "plugin", "mcp"], "plugins-settings", L10n.pick("打开插件市场与 MCP 扩展中心", "Open Plugin Center & MCP"), L10n.pick("安装精选原生插件、参数配置与 FSEvents 热重载", "Install starter plugins, configure secrets & FSEvents reload"), L10n.pick("插件", "Plugins"), "puzzlepiece.extension.fill", .openPluginsSettings),
             (["mos", "mouse", "鼠标", "滚轮", "平滑", "shubiao", "gunlun"], "mos-toggle", L10n.pick("切换鼠标平滑与滚轮方向", "Toggle Mouse Smooth Scroll & Wheel"), L10n.pick("开启/关闭物理鼠标独立滚轮优化", "Enable or disable physical mouse wheel optimization"), L10n.pick("鼠标", "Mouse"), "computermouse.fill", .toggleMosEnabled),
             (["mos reverse", "反转滚轮", "鼠标反转"], "mos-rev", L10n.pick("切换物理鼠标滚轮反转", "Toggle Physical Mouse Wheel Reversal"), L10n.pick("仅作用于外接鼠标，保留触控板自然滚动", "Reverses external mouse wheels only, keeping trackpad natural"), L10n.pick("鼠标", "Mouse"), "arrow.up.arrow.down", .toggleMosReverse),

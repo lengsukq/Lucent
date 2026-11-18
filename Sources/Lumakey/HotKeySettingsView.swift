@@ -118,14 +118,17 @@ struct HotKeySettingsView: View {
     @StateObject private var state: HotKeySettingsViewState
     private let pluginHotKeys: [ExternalPluginHotKey]
     private let plugins: [PluginDescriptor]
+    private let scripts: [ScriptRecord]
     private let onOpenPluginSettings: ((String) -> Void)?
 
     init(
         hotKeyManager: GlobalHotKeyManager? = nil, pluginHotKeys: [ExternalPluginHotKey] = [],
-        plugins: [PluginDescriptor] = [], onOpenPluginSettings: ((String) -> Void)? = nil,
+        plugins: [PluginDescriptor] = [], scripts: [ScriptRecord] = [],
+        onOpenPluginSettings: ((String) -> Void)? = nil,
         onConfigChanged: ((HotKeyBindingConfig) -> Void)? = nil
     ) {
-        self.pluginHotKeys = pluginHotKeys; self.plugins = plugins; self.onOpenPluginSettings = onOpenPluginSettings
+        self.pluginHotKeys = pluginHotKeys; self.plugins = plugins
+        self.scripts = scripts; self.onOpenPluginSettings = onOpenPluginSettings
         _state = StateObject(wrappedValue: HotKeySettingsViewState(hotKeyManager: hotKeyManager, pluginHotKeys: pluginHotKeys, onConfigChanged: onConfigChanged))
     }
 
@@ -133,6 +136,10 @@ struct HotKeySettingsView: View {
         plugins.filter { plugin in
             !plugin.isBuiltin || pluginHotKeys.contains(where: { $0.pluginID == plugin.id })
         }
+    }
+
+    private var boundScripts: [ScriptRecord] {
+        scripts.filter { $0.isEnabled && ($0.hotKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
     }
 
     var body: some View {
@@ -162,41 +169,19 @@ struct HotKeySettingsView: View {
                     .padding(.horizontal, 12).padding(.vertical, 8).liquidGlassCard(cornerRadius: LiquidRadii.row)
                 }
                 VStack(spacing: 9) { ForEach(HotKeyActionID.allCases) { hotKeyRow($0) } }
-                if !displayedPlugins.isEmpty { pluginHotKeySection }
+                if !displayedPlugins.isEmpty || !boundScripts.isEmpty {
+                    HotKeyExternalBindingsSection(
+                        displayedPlugins: displayedPlugins,
+                        boundScripts: boundScripts,
+                        pluginHotKeys: pluginHotKeys,
+                        onOpenPluginSettings: onOpenPluginSettings
+                    )
+                }
             }.padding(.trailing, 4)
         }
         .onAppear { state.onViewAppear(latestPluginHotKeys: pluginHotKeys) }
         .onChange(of: pluginHotKeys) { _, next in state.syncPluginHotKeys(next) }
         .onDisappear { state.stopRecording() }
-    }
-
-    private var pluginHotKeySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("插件与子功能全局热键（点击右侧直接跳转对应插件独立设置页重录）")
-                .font(.caption.weight(.bold)).foregroundStyle(LiquidColors.textSecondary).padding(.top, 4)
-            ForEach(displayedPlugins) { plugin in
-                let cmdBindings = pluginHotKeys.filter { $0.pluginID == plugin.id && $0.commandID != nil }
-                HStack(spacing: 10) {
-                    PluginIconBadge(plugin: plugin, size: 30)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(plugin.displayName).font(.caption.weight(.semibold)).lineLimit(1)
-                        Text(cmdBindings.isEmpty
-                             ? "触发词: \(plugin.effectiveKeywords.joined(separator: ", "))"
-                             : "子功能热键: \(cmdBindings.map { $0.chord.displayString }.joined(separator: ", "))")
-                            .font(.caption2).foregroundStyle(LiquidColors.textSecondary).lineLimit(1)
-                    }
-                    Spacer()
-                    Text(plugin.effectiveHotKey ?? (cmdBindings.first?.chord.displayString ?? "未绑定"))
-                        .font(.system(size: 11.5, weight: .bold, design: .monospaced))
-                        .foregroundStyle((plugin.effectiveHotKey != nil || !cmdBindings.isEmpty) ? .cyan : LiquidColors.textSecondary)
-                        .padding(.horizontal, 10).padding(.vertical, 4).background(LiquidColors.pillSurface, in: Capsule())
-                    if let onOpenPluginSettings {
-                        Button("前往设置 →") { onOpenPluginSettings(plugin.id) }.buttonStyle(GlassPillButtonStyle(compact: true))
-                    }
-                }
-                .padding(.horizontal, 12).padding(.vertical, 9).liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
-            }
-        }
     }
 
     private var healthBanner: some View {

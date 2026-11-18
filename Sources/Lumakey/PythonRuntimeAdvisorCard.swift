@@ -9,15 +9,42 @@ private final class PythonAdvisorUIState: ObservableObject {
 
 struct PythonRuntimeAdvisorCard: View {
     @ObservedObject var viewModel: AppViewModel
+    var targetPlugin: PluginDescriptor? = nil
     @StateObject private var ui = PythonAdvisorUIState()
 
+    static func pluginRequiresPython(_ plugin: PluginDescriptor) -> Bool {
+        guard !plugin.isBuiltin else { return false }
+        let entryLower = plugin.manifest.entry.lowercased()
+        if entryLower.hasSuffix(".py") { return true }
+        let entryURL = plugin.directoryURL.appendingPathComponent(plugin.manifest.entry)
+        guard let handle = try? FileHandle(forReadingFrom: entryURL),
+              let head = try? handle.read(upToCount: 4096) else { return false }
+        try? handle.close()
+        if head.count >= 4 {
+            let magic = [head[0], head[1], head[2], head[3]]
+            if magic == [0xCF, 0xFA, 0xED, 0xFE] || magic == [0xCA, 0xFE, 0xBA, 0xBE] {
+                return false
+            }
+        }
+        guard let text = String(data: head, encoding: .utf8)?.lowercased() else { return false }
+        return text.contains("python3") || text.contains("env python")
+    }
+
+    private var shouldShowCard: Bool {
+        guard !viewModel.toolingStatus.hasPython3 else { return false }
+        if let targetPlugin {
+            return Self.pluginRequiresPython(targetPlugin)
+        }
+        return viewModel.plugins.contains(where: Self.pluginRequiresPython)
+    }
+
     var body: some View {
-        if !viewModel.toolingStatus.hasPython3 {
+        if shouldShowCard {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Image(systemName: "terminal.fill")
                         .foregroundStyle(.orange)
-                    Text(L10n.pick("未检测到 Python 3 运行环境", "Python 3 Runtime Not Detected"))
+                    Text(L10n.pick("检测到 Python 脚本插件缺少运行环境", "Python 3 Runtime Needed for Script Plugin"))
                         .font(.callout.weight(.semibold))
                     Spacer()
                     Button(L10n.pick("重新检测", "Re-check")) {
@@ -30,8 +57,8 @@ struct PythonRuntimeAdvisorCard: View {
                 }
 
                 Text(L10n.pick(
-                    "当前大部分示例插件脚本基于 Python 3 运行（macOS 默认自带的 /usr/bin/python3 只是占位入口，未安装开发者命令行工具前无法执行）。点击下方即可一键触发安装。",
-                    "Script plugins run on Python 3 (/usr/bin/python3 on a fresh Mac is an Apple stub until Command Line Tools or Python 3 is installed)."
+                    "官方精选与示例插件均为原生 Swift 可执行程序，无需 Python；当前已安装的自定义脚本插件依赖 Python 3，点击下方即可一键安装。",
+                    "Official plugins are native Swift binaries and need no Python. A custom Python script plugin is installed—install Command Line Tools or Python 3 below."
                 ))
                 .font(.caption2)
                 .foregroundStyle(LiquidColors.textSecondary)

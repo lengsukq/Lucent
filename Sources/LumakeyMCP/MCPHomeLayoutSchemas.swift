@@ -9,12 +9,12 @@ extension MCPServer {
         let behaviors = HomePluginLaunchBehavior.allCases.map(\.rawValue)
         let dockModes = HomeDockFillMode.allCases.map(\.rawValue)
         let destSections = ["bento", "dock", "shelf", "utilityChips", "utilityRight"]
-        let itemKinds = ["builtin", "nativeApp", "plugin", "pluginCommand", "bookmark", "localPath", "queryChip"]
+        let itemKinds = ["builtin", "nativeApp", "plugin", "pluginCommand", "script", "bookmark", "localPath", "queryChip"]
 
         var getProps: [String: Any] = [:]
         getProps["includeCandidates"] = [
             "type": "boolean",
-            "description": "Include available builtin actions, installed plugins/commands, indexed bookmarks, and top native apps (default true)."
+            "description": "Include available builtin actions, installed plugins/commands, scripts, indexed bookmarks, and top native apps (default true)."
         ]
         getProps["includeNativeApps"] = [
             "type": "boolean",
@@ -77,6 +77,7 @@ extension MCPServer {
         upsertProps["behavior"] = ["type": "string", "enum": behaviors]
         upsertProps["commandID"] = ["type": "string"]
         upsertProps["arguments"] = ["type": "array", "items": ["type": "string"]]
+        upsertProps["scriptID"] = ["type": "string", "description": "Quick Script ID when `kind == 'script'`."]
         upsertProps["url"] = ["type": "string", "description": "Bookmark/deep-link URL (safe scheme whitelist enforced)."]
         upsertProps["browserAppPath"] = ["type": "string", "description": "Optional specific browser `.app` path for `bookmark`."]
         upsertProps["sourcePluginID"] = ["type": "string"]
@@ -100,7 +101,7 @@ extension MCPServer {
         return [
             schema(
                 "lumakey_get_home_layout",
-                "Read Lumakey's customizable Launcher Home Page configuration (`home-layout.json`), including all scene profiles, active profile sections/items, and available builtin actions, installed plugins, and indexed bookmarks.",
+                "Read Lumakey's customizable Launcher Home Page configuration (`home-layout.json`), including all scene profiles, active profile sections/items, and available builtin actions, installed plugins, scripts, and indexed bookmarks.",
                 getProps, []
             ),
             schema(
@@ -110,7 +111,7 @@ extension MCPServer {
             ),
             schema(
                 "lumakey_upsert_home_item",
-                "Add, update, or reorder a Launcher Home item (`builtin`, `nativeApp`, `plugin`, `pluginCommand`, `bookmark`, `localPath`, or `queryChip`) inside Bento Tiles, Omni Dock, a named Bookmark/Pill Shelf, or Utility Strip.",
+                "Add, update, or reorder a Launcher Home item (`builtin`, `nativeApp`, `plugin`, `pluginCommand`, `script`, `bookmark`, `localPath`, or `queryChip`) inside Bento Tiles, Omni Dock, a named Bookmark/Pill Shelf, or Utility Strip.",
                 upsertProps, ["section"]
             ),
             schema(

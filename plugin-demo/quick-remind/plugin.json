@@ -6,7 +6,7 @@
   "description": "输入「10m 喝水」「18:30 拿快递」「明天 9:00 交周报」秒建提醒，零常驻桥接 macOS 原生提醒事项准点弹窗，支持推迟 10 分钟、周期重复与语音播报",
   "mode": "view",
   "keywords": ["rem", "remind", "timer", "alarm", "提醒", "倒计时", "闹钟", "待办"],
-  "entry": "run.sh",
+  "entry": "bin/quick-remind",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "orange",

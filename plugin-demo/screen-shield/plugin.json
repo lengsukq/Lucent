@@ -6,7 +6,7 @@
   "description": "一键盖住全部显示器展示「清洁屏幕」「任务运行中 · 请勿触碰」「马上回来」或自定义告示，同时临时拦截键盘与滚轮防误触，按住 Esc 2 秒安全退出",
   "mode": "view",
   "keywords": ["shield", "clean", "brb", "busy", "状态屏", "清洁屏幕", "擦键盘", "勿碰", "马上回来"],
-  "entry": "run.sh",
+  "entry": "bin/screen-shield",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "teal",

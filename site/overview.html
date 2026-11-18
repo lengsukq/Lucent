@@ -6,7 +6,7 @@
   <title>流光 Lumakey — 2D 图文详解与启动面板定制实验台</title>
   <meta name="description" content="普通人秒上手、极客可深度折腾的 Apple Silicon Mac 原生快捷中枢：支持启动面板四分区自由定制、顶部菜单栏编排、全盘秒搜、多屏截图标注与离线识字、Plugin v3.7 透明悬浮挂件及内置 16 项 lumakey-mcp AI 工具。" />
   <meta property="og:title" content="流光 Lumakey — 轻巧顺手、从启动面板到插件皆可定制的 Mac 效率中枢" />
-  <meta property="og:description" content="启动面板四分区自由编排 · 8 款官方扩展 + Plugin v3.7 透明桌面挂件 · 内置 16 项 MCP 工具一句话造插件排主页 · 纯 Swift 6 零依赖。" />
+  <meta property="og:description" content="启动面板四分区自由编排 · 7 款官方原生 Swift 扩展 + Plugin v3.7 透明桌面挂件 · 内置 lumakey-mcp 一句话造插件排主页 · 纯 Swift 6 零依赖。" />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="./assets/icon.svg" />
   <link rel="stylesheet" href="./styles.css" />
@@ -132,7 +132,7 @@
                 type="text"
                 id="launcherInput"
                 class="launcher-input"
-                placeholder="直接打字搜软件、移动硬盘文件、算式，或试输：tr 翻译 / aiq 额度 / rem 10m 喝水..."
+                placeholder="直接打字搜软件、移动硬盘文件、算式，或试输：tr 翻译 / bh 书签 / rem 10m 喝水..."
                 autocomplete="off"
                 spellcheck="false"
                 aria-label="Lumakey 交互演示搜索框"
@@ -191,13 +191,13 @@
           <button type="button" class="builder-profile-btn" data-profile="minimal" data-i18n="prof_minimal">◐ 纯粹微内核底座 (0 插件)</button>
           <button type="button" class="builder-profile-btn active" data-profile="daily" data-i18n="prof_daily">✦ 日常省心高频套装</button>
           <button type="button" class="builder-profile-btn" data-profile="dev" data-i18n="prof_dev">⌘ 极客 AI 与远控开发流</button>
-          <button type="button" class="builder-profile-btn" data-profile="full" data-i18n="prof_full">⚡ 8 款官方旗舰 + AI 自制满配</button>
+          <button type="button" class="builder-profile-btn" data-profile="full" data-i18n="prof_full">⚡ 7 款官方旗舰 + AI 自制满配</button>
         </div>
 
         <div class="builder-layout reveal-up" data-spotlight-group>
           <div class="builder-catalog-card spotlight-surface">
             <div class="builder-catalog-head">
-              <span class="builder-catalog-title" data-i18n="cat_head_title">8 款官方旗舰扩展 + AI 自制示例（点击查看能力 / 开关挂载）</span>
+              <span class="builder-catalog-title" data-i18n="cat_head_title">7 款官方旗舰扩展 + AI 自制示例（点击查看能力 / 开关挂载）</span>
               <span class="accent-pill mono" id="enabledCountBadge">5 / 9 Active</span>
             </div>
             <div class="plugin-toggle-list" id="pluginToggleList"></div>
@@ -412,9 +412,9 @@
                           支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透；点击下方挂件切换「完整 / 紧凑穿透」态：
                         </div>
                         <div class="mini-hud-preview mono" id="demoMiniHud">
-                          <span><i></i> Claude 5h 78%</span>
-                          <span>Codex 91%</span>
-                          <span>DeepSeek ¥42.8</span>
+                          <span><i></i> Focus 18:42</span>
+                          <span>Remind +10m</span>
+                          <span>3 Active</span>
                         </div>
                       </div>
                     </div>
@@ -445,7 +445,7 @@
                     <div class="sniffer-input-mock interactive-mock-card" id="snifferInputMock" role="button" tabindex="0" title="点击重新触发四级嗅探与指纹校验">
                       <span class="sniffer-scan-beam" aria-hidden="true"></span>
                       <span class="mono" id="snifferUrlText">lengsukq/Lumakey/tree/main/plugin-demo</span>
-                      <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (8 Plugins)</span>
+                      <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (7 Plugins)</span>
                     </div>
 
                     <div class="mock-row-grid">
@@ -915,7 +915,7 @@
               下载 10 MB 轻巧底座，<br/>搭出最懂你的效率流
             </h2>
             <p class="section-desc download-desc" data-i18n="dl_desc">
-              MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。普通用户拖入应用程序即可开箱使用；右侧附上 AI 接入、8 款官方插件安装及升级免重复授权命令：
+              MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。普通用户拖入应用程序即可开箱使用；右侧附上 AI 接入、7 款官方原生 Swift 插件安装及升级免重复授权命令：
             </p>
 
             <div class="download-actions">
@@ -923,7 +923,7 @@
                 <span data-i18n="dl_btn_dmg">下载最新 DMG 安装包</span>
               </a>
               <a href="#download" data-gh-path="/blob/main/plugin-demo/README.md" class="btn-hero-secondary magnetic-btn">
-                <span data-i18n="dl_btn_store">浏览 8 款官方插件库</span>
+                <span data-i18n="dl_btn_store">浏览 7 款官方插件库</span>
               </a>
               <a href="#download" data-gh-path="" class="btn-hero-secondary magnetic-btn">
                 <span data-i18n="dl_btn_star">GitHub 点亮 Star ★</span>
@@ -937,7 +937,7 @@
               <div class="studio-tabs" id="studioTabs">
                 <span class="studio-tab-glider" id="studioTabGlider" aria-hidden="true"></span>
                 <button type="button" class="term-tab active" data-term="mcp" data-i18n="term_tab_mcp">接入 AI 造插件/排主页</button>
-                <button type="button" class="term-tab" data-term="plugins" data-i18n="term_tab_plugins">安装 8 款官方插件</button>
+                <button type="button" class="term-tab" data-term="plugins" data-i18n="term_tab_plugins">安装 7 款官方插件</button>
                 <button type="button" class="term-tab" data-term="install" data-i18n="term_tab_install">免重复授权 &amp; 源码构建</button>
               </div>
               <button type="button" class="copy-cmd-btn" id="copyCmdBtn" data-i18n="term_copy">复制代码</button>

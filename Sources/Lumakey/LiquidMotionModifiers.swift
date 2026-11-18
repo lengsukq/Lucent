@@ -60,14 +60,7 @@ struct LiquidHoverLiftModifier: ViewModifier {
             .overlay {
                 if tracker.isHovered && !reduceTrans {
                     shape
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.45), LiquidColors.accentPrimary.opacity(0.32)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.05
-                        )
+                        .strokeBorder(LiquidColors.hoverCardRimGradient, lineWidth: 0.9)
                         .allowsHitTesting(false)
                 }
             }

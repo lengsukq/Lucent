@@ -4,9 +4,9 @@ set -euo pipefail
 DEMO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ID="${1:-all}"
 DEST_ROOT="$HOME/Library/Application Support/Lumakey/Plugins"
+DATA_ROOT="$HOME/Library/Application Support/Lumakey/PluginData"
 
 ALL_PLUGINS=(
-  "ai-quota"
   "browser-hub"
   "lumalink-companion"
   "notion-bookmarks"
@@ -16,6 +16,22 @@ ALL_PLUGINS=(
   "screen-shield"
 )
 
+ensure_binary() {
+  local id="$1"
+  local bin_path="$DEMO_ROOT/$id/bin/$id"
+  if [[ ! -x "$bin_path" ]]; then
+    echo "==> Compiling native Swift binary for '$id'..."
+    swift build -c release --arch arm64 -Xswiftc -O -Xlinker -dead_strip --package-path "$DEMO_ROOT" --product "$id"
+    local built_dir
+    built_dir="$(swift build -c release --arch arm64 --package-path "$DEMO_ROOT" --show-bin-path)"
+    mkdir -p "$DEMO_ROOT/$id/bin"
+    cp "$built_dir/$id" "$bin_path"
+    chmod 755 "$bin_path"
+    /usr/bin/strip -x "$bin_path"
+    codesign --force --sign "${LUMAKEY_SIGN_IDENTITY:--}" --identifier "app.lumakey.plugin.$id" "$bin_path"
+  fi
+}
+
 install_one() {
   local id="$1"
   local src_dir="$DEMO_ROOT/$id"
@@ -24,11 +40,12 @@ install_one() {
     echo "ERROR: 未找到插件示例：$src_dir/plugin.json" >&2
     exit 1
   fi
+  ensure_binary "$id"
   mkdir -p "$DEST_ROOT"
   rm -rf "$dest_dir"
   cp -R "$src_dir" "$dest_dir"
-  chmod +x "$dest_dir/run.sh"
-  echo "已安装插件 '$id' 到：$dest_dir"
+  chmod 755 "$dest_dir/bin/$id"
+  echo "已安装原生 Swift 插件 '$id' 到：$dest_dir"
 }
 
 if [[ "$PLUGIN_ID" == "all" ]]; then

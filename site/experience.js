@@ -49,7 +49,7 @@ const UMD_CANDIDATES = [
 const CDN_RACE_TIMEOUT_MS = 950;
 
 const PLUGINS = [
-  { id: 'ai-quota', zh: 'AI 额度雷达', en: 'AI Quota HUD', color: 0xec4899 },
+  { id: 'gh-pr-radar', zh: 'PR 审查雷达', en: 'PR Review Radar', color: 0xec4899 },
   { id: 'translate-hub', zh: '流光译站', en: 'Translate Hub', color: 0xa855f7 },
   { id: 'browser-hub', zh: '三端书签', en: 'Browser Hub', color: 0x6366f1 },
   { id: 'quick-remind', zh: '闪电提醒', en: 'Quick Remind', color: 0xf59e0b },
@@ -110,7 +110,7 @@ const FORGE_PRESETS = {
 };
 
 const savedPluginsRaw = safeGetStorage('lumakey-enabled-plugins-v1');
-let initialPlugins = ['ai-quota', 'translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'];
+let initialPlugins = ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot', 'screen-shield'];
 if (savedPluginsRaw) {
   try {
     const parsed = JSON.parse(savedPluginsRaw);
@@ -172,8 +172,8 @@ const I18N = {
     s1_link: '前往交互实验台在线切换启动面板布局与实时搜索',
     s2_eyebrow: '02 / 05  ·  DEEP CUSTOMIZATION & PLUGIN V3.7',
     s2_title: '从菜单栏到桌面挂件，\n装上即原生一等公民。',
-    s2_desc: '不用的功能零内存、零后台打扰；常用的能力支持精简排序顶部菜单栏、改唤醒词、录不抢焦点的静默快捷键，还能开启 Plugin v3.7 无边框透明桌面悬浮窗（如支持紧凑折叠态的 AI 额度雷达）、跨应用划词即弹工具栏与双语朗读，内置一键安装 Python 3 向导，粘贴任意仓库链接经 SHA-256 核验订阅 8 款官方扩展：',
-    s2_link: '进入模块化自由拼装台体验 8 款官方扩展详情',
+    s2_desc: '不用的功能零内存、零后台打扰；常用的能力支持精简排序顶部菜单栏、改唤醒词、录不抢焦点的静默快捷键，还能开启 Plugin v3.7 无边框透明桌面悬浮窗、跨应用划词即弹工具栏与双语朗读，粘贴任意仓库链接经 SHA-256 核验订阅 7 款官方原生 Swift 扩展与 AI 自制插件：',
+    s2_link: '进入模块化自由拼装台体验 7 款官方扩展详情',
     s3_eyebrow: '03 / 05  ·  BUILT-IN LUMAKEY-MCP (16 TOOLS)',
     s3_title: '不会写代码也能定制，\n一句话造插件排主页。',
     s3_desc: '安装包直接内置 lumakey-mcp 服务（16 项标准工具），免配环境一键接入 Claude Code、Cursor、Codex 与 Gemini CLI。无论是用大白话让 AI 替你写一个专属小工具，还是让它按你的习惯自动排好整套启动面板与书签架，几秒钟即可经 Seatbelt 沙箱实测并热重载生效：',
@@ -223,8 +223,8 @@ const I18N = {
     s1_link: 'Switch Launch Panel Presets & Search Live in 2D',
     s2_eyebrow: '02 / 05  ·  DEEP CUSTOMIZATION & PLUGIN V3.7',
     s2_title: 'From Menu Bar to Glass HUD.\nFirst-Class Native Extensions.',
-    s2_desc: 'Unused features take zero RAM or background polling. Trim and reorder the menu bar, customize keywords and silent global hotkeys, launch compact Plugin v3.7 glass HUDs (like AI Quota HUD), use the Selection Quick Bar & dual TTS, or install Python 3 in 1 click. Paste any repo URL for SHA-256 verified installs — toggle 8 official plugins below:',
-    s2_link: 'Explore All 8 Official Extensions in the Workbench',
+    s2_desc: 'Unused features take zero RAM or background polling. Trim and reorder the menu bar, customize keywords and silent global hotkeys, launch compact Plugin v3.7 glass HUDs, or use the Selection Quick Bar & dual TTS. Paste any repo URL for SHA-256 verified installs — toggle 7 official Swift plugins & custom MCP tools below:',
+    s2_link: 'Explore All 7 Official Extensions in the Workbench',
     s3_eyebrow: '03 / 05  ·  BUILT-IN LUMAKEY-MCP (16 TOOLS)',
     s3_title: 'No Coding Required.\nOne Sentence Builds Tools & Layouts.',
     s3_desc: 'Ships with an embedded lumakey-mcp server (16 JSON-RPC 2.0 tools) ready for Claude Code, Cursor, Codex, and Gemini CLI. Describe a custom tool or ask AI to arrange your entire Launch Panel and bookmark shelves — validated inside Seatbelt and hot-reloaded in milliseconds:',

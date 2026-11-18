@@ -9,22 +9,15 @@ struct DoubleSpecularBorder: View {
     @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
-        let isPrism = themeManager.current == .prismPulse
-        let outer = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        let innerRadius = max(0, cornerRadius - 1.1)
-        let inner = RoundedRectangle(cornerRadius: innerRadius, style: .continuous)
-        ZStack {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        Group {
             if highContrast {
-                outer.strokeBorder(LiquidColors.subtleRim, lineWidth: isShell ? 1.5 : 1.35)
-            } else if isPrism {
-                outer.strokeBorder(
-                    isShell ? LiquidColors.specularRimGradient : LiquidColors.softCardRimGradient,
-                    lineWidth: isShell ? 1.15 : 0.95
-                )
-                inner.strokeBorder(LiquidColors.innerSpecularGradient, lineWidth: 0.7)
-                    .padding(1.0)
+                shape.strokeBorder(LiquidColors.subtleRim, lineWidth: isShell ? 1.5 : 1.35)
             } else {
-                outer.strokeBorder(LiquidColors.pillBorder, lineWidth: isShell ? 0.95 : 0.75)
+                shape.strokeBorder(
+                    isShell ? LiquidColors.specularRimGradient : LiquidColors.softCardRimGradient,
+                    lineWidth: isShell ? 1.0 : 0.85
+                )
             }
         }
         .allowsHitTesting(false)
@@ -52,7 +45,7 @@ struct SquircleBadge: View {
             )
             shape.fill(
                 LinearGradient(
-                    colors: [.white.opacity(isPrism ? 0.44 : 0.16), .white.opacity(0.0)],
+                    colors: [.white.opacity(isPrism ? 0.40 : 0.16), .white.opacity(0.0)],
                     startPoint: .top,
                     endPoint: .center
                 )
@@ -66,14 +59,14 @@ struct SquircleBadge: View {
         .overlay {
             shape.strokeBorder(
                 LinearGradient(
-                    colors: [.white.opacity(isPrism ? 0.64 : 0.32), .white.opacity(0.10)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    colors: [.white.opacity(isPrism ? 0.42 : 0.28), .white.opacity(0.15)],
+                    startPoint: .top,
+                    endPoint: .bottom
                 ),
-                lineWidth: isPrism ? 0.95 : 0.7
+                lineWidth: 0.8
             )
         }
-        .shadow(color: bottomColor.opacity(isPrism ? 0.28 : 0.10), radius: isPrism ? 6 : 3, y: isPrism ? 3 : 1)
+        .shadow(color: bottomColor.opacity(isPrism ? 0.26 : 0.10), radius: isPrism ? 6 : 3, y: isPrism ? 3 : 1)
     }
 }
 
@@ -111,9 +104,9 @@ struct GlassPillButtonStyle: ButtonStyle {
                 Capsule(style: .continuous)
                     .strokeBorder(
                         prominent
-                            ? LinearGradient(colors: [.white.opacity(0.48), .white.opacity(0.14)], startPoint: .top, endPoint: .bottom)
+                            ? LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.16)], startPoint: .top, endPoint: .bottom)
                             : LinearGradient(
-                                colors: [highContrast ? LiquidColors.subtleRim : LiquidColors.pillBorder, LiquidColors.pillBorder.opacity(0.65)],
+                                colors: [highContrast ? LiquidColors.subtleRim : LiquidColors.pillBorder, LiquidColors.pillBorder.opacity(0.75)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             ),
@@ -193,7 +186,7 @@ struct LiquidKeyHintBadge: View {
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(highlighted ? Color.white.opacity(0.45) : LiquidColors.pillBorder.opacity(0.75), lineWidth: 0.7)
+                    .strokeBorder(highlighted ? Color.white.opacity(0.42) : LiquidColors.pillBorder.opacity(0.75), lineWidth: 0.7)
             }
     }
 }

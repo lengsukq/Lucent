@@ -172,7 +172,7 @@ enum LiquidColors {
 
     static var inputFieldBorder: Color {
         isPrism
-            ? Color(nsColor: dynamicColor(name: "LumaPrismInputBorder", light: NSColor.systemIndigo.withAlphaComponent(0.18), dark: NSColor.white.withAlphaComponent(0.26)))
+            ? Color(nsColor: dynamicColor(name: "LumaPrismInputBorder", light: NSColor.systemIndigo.withAlphaComponent(0.18), dark: NSColor.white.withAlphaComponent(0.24)))
             : Color(nsColor: dynamicColor(name: "LumaFrostInputBorder", light: NSColor.black.withAlphaComponent(0.09), dark: NSColor.white.withAlphaComponent(0.15)))
     }
 
@@ -184,12 +184,12 @@ enum LiquidColors {
 
     static var pillBorder: Color {
         isPrism
-            ? Color(nsColor: dynamicColor(name: "LumaPrismPillBorder", light: NSColor.systemPurple.withAlphaComponent(0.16), dark: NSColor.white.withAlphaComponent(0.23)))
+            ? Color(nsColor: dynamicColor(name: "LumaPrismPillBorder", light: NSColor.systemPurple.withAlphaComponent(0.16), dark: NSColor.white.withAlphaComponent(0.22)))
             : Color(nsColor: dynamicColor(name: "LumaFrostPillBorder", light: NSColor.black.withAlphaComponent(0.085), dark: NSColor.white.withAlphaComponent(0.14)))
     }
 
     static var subtleRim: Color {
-        Color(nsColor: dynamicColor(name: "LumaSubtleRim", light: NSColor.black.withAlphaComponent(0.10), dark: NSColor.white.withAlphaComponent(0.18)))
+        Color(nsColor: dynamicColor(name: "LumaSubtleRim", light: NSColor.black.withAlphaComponent(0.12), dark: NSColor.white.withAlphaComponent(0.20)))
     }
 
     static var highlightGlow: Color {
@@ -213,39 +213,37 @@ enum LiquidColors {
     }
 
     static var specularRimGradient: LinearGradient {
-        isPrism
-            ? LinearGradient(
-                stops: [.init(color: .white.opacity(0.78), location: 0.0), .init(color: .cyan.opacity(0.26), location: 0.46), .init(color: .pink.opacity(0.36), location: 1.0)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-            : LinearGradient(
-                stops: [.init(color: .white.opacity(0.55), location: 0.0), .init(color: .black.opacity(0.06), location: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
-    }
-
-    static var innerSpecularGradient: LinearGradient {
-        isPrism
-            ? LinearGradient(colors: [.white.opacity(0.38), .cyan.opacity(0.20), .purple.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            : LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .bottom)
+        let top = Color(nsColor: isPrism
+            ? dynamicColor(name: "LumaPrismShellRimTop", light: NSColor.systemIndigo.withAlphaComponent(0.20), dark: NSColor.white.withAlphaComponent(0.32))
+            : dynamicColor(name: "LumaFrostShellRimTop", light: NSColor.black.withAlphaComponent(0.10), dark: NSColor.white.withAlphaComponent(0.20)))
+        let bottom = Color(nsColor: isPrism
+            ? dynamicColor(name: "LumaPrismShellRimBot", light: NSColor.systemPurple.withAlphaComponent(0.23), dark: NSColor(srgbRed: 0.68, green: 0.66, blue: 1.0, alpha: 0.22))
+            : dynamicColor(name: "LumaFrostShellRimBot", light: NSColor.black.withAlphaComponent(0.13), dark: NSColor.white.withAlphaComponent(0.12)))
+        return LinearGradient(colors: [top, bottom], startPoint: .top, endPoint: .bottom)
     }
 
     static var softCardRimGradient: LinearGradient {
-        isPrism
-            ? LinearGradient(
-                stops: [.init(color: .white.opacity(0.58), location: 0.0), .init(color: .purple.opacity(0.14), location: 0.50), .init(color: .cyan.opacity(0.24), location: 1.0)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-            : LinearGradient(
-                stops: [.init(color: .black.opacity(0.07), location: 0.0), .init(color: .black.opacity(0.09), location: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
+        let top = Color(nsColor: isPrism
+            ? dynamicColor(name: "LumaPrismCardRimTop", light: NSColor.systemIndigo.withAlphaComponent(0.16), dark: NSColor.white.withAlphaComponent(0.24))
+            : dynamicColor(name: "LumaFrostCardRimTop", light: NSColor.black.withAlphaComponent(0.08), dark: NSColor.white.withAlphaComponent(0.15)))
+        let bottom = Color(nsColor: isPrism
+            ? dynamicColor(name: "LumaPrismCardRimBot", light: NSColor.systemPurple.withAlphaComponent(0.19), dark: NSColor(srgbRed: 0.58, green: 0.72, blue: 1.0, alpha: 0.18))
+            : dynamicColor(name: "LumaFrostCardRimBot", light: NSColor.black.withAlphaComponent(0.105), dark: NSColor.white.withAlphaComponent(0.11)))
+        return LinearGradient(colors: [top, bottom], startPoint: .top, endPoint: .bottom)
+    }
+
+    static var hoverCardRimGradient: LinearGradient {
+        let top = Color(nsColor: isPrism
+            ? dynamicColor(name: "LumaPrismHoverRimTop", light: NSColor.systemIndigo.withAlphaComponent(0.36), dark: NSColor.white.withAlphaComponent(0.38))
+            : dynamicColor(name: "LumaFrostHoverRimTop", light: NSColor.systemBlue.withAlphaComponent(0.34), dark: NSColor.white.withAlphaComponent(0.30)))
+        let bottom = accentPrimary.opacity(0.28)
+        return LinearGradient(colors: [top, bottom], startPoint: .top, endPoint: .bottom)
     }
 
     static var selectedRowRimGradient: LinearGradient {
         isPrism
-            ? LinearGradient(colors: [.cyan.opacity(0.65), .purple.opacity(0.55), .pink.opacity(0.48)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            : LinearGradient(colors: [accentPrimary.opacity(0.45), accentPrimary.opacity(0.25)], startPoint: .top, endPoint: .bottom)
+            ? LinearGradient(colors: [.cyan.opacity(0.54), .purple.opacity(0.44)], startPoint: .top, endPoint: .bottom)
+            : LinearGradient(colors: [accentPrimary.opacity(0.42), accentPrimary.opacity(0.26)], startPoint: .top, endPoint: .bottom)
     }
 
     static var accentGradient: LinearGradient {

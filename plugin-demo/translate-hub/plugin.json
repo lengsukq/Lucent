@@ -6,7 +6,7 @@
   "description": "支持跨应用划词即译、截图/图片离线 OCR 翻译、内置免密钥引擎与本地 Ollama 大模型并行、单词词典发音及可导出 Anki 的生词本",
   "mode": "view",
   "keywords": ["tr", "fy", "trans", "translate", "dict", "翻译", "划词", "词典", "生词本"],
-  "entry": "run.sh",
+  "entry": "bin/translate-hub",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "purple",

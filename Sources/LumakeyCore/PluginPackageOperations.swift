@@ -85,14 +85,16 @@ extension PluginSystem {
               echo "[\(id)] $BRIDGE_RESP"
               exit 0
             fi
-            /usr/bin/python3 -c '
-            import json, sys
-            resp = json.loads(sys.argv[1]) if sys.argv[1].strip().startswith("{") else {"ok": False, "message": sys.argv[1]}
-            if not resp.get("ok"):
-                print(json.dumps({"title": sys.argv[2], "subtitle": resp.get("message", "未授权"), "badge": "AUTH", "items": [{"title": "请在插件中心授权 \(firstCap.rawValue)", "subtitle": resp.get("error", "capability_not_granted"), "icon": "lock.shield"}]}))
-            else:
-                print(json.dumps({"title": sys.argv[2], "subtitle": "Host Bridge 调用成功 (\(firstCap.rawValue))", "badge": "V3", "markdown": json.dumps(resp.get("data", {}), ensure_ascii=False)}))
-            ' "$BRIDGE_RESP" "\(name)"
+            OK_FLAG="$(printf '%s' "$BRIDGE_RESP" | /usr/bin/plutil -extract ok raw -o - - 2>/dev/null || echo false)"
+            if [[ "$OK_FLAG" == "true" || "$OK_FLAG" == "1" ]]; then
+              printf '{"title":"%s","subtitle":"Host Bridge 调用成功 (\(firstCap.rawValue))","badge":"V3","items":[{"title":"Host Bridge 已就绪","subtitle":"\(firstCap.rawValue).\(defaultAction)","icon":"checkmark.shield.fill"}]}\\n' "\(name)"
+            else
+              MSG="$(printf '%s' "$BRIDGE_RESP" | /usr/bin/plutil -extract message raw -o - - 2>/dev/null || echo '未授权')"
+              ERR="$(printf '%s' "$BRIDGE_RESP" | /usr/bin/plutil -extract error raw -o - - 2>/dev/null || echo 'capability_not_granted')"
+              MSG_SAFE="${MSG//\\"/\\\\\\"}"
+              ERR_SAFE="${ERR//\\"/\\\\\\"}"
+              printf '{"title":"%s","subtitle":"%s","badge":"AUTH","items":[{"title":"请在插件中心授权 \(firstCap.rawValue)","subtitle":"%s","icon":"lock.shield"}]}\\n' "\(name)" "$MSG_SAFE" "$ERR_SAFE"
+            fi
             """
         }
         if mode == .script {

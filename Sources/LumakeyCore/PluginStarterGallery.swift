@@ -44,6 +44,41 @@ public enum PluginStarterGallery {
         FileManager.default.fileExists(atPath: rootDir.appendingPathComponent(templateID).appendingPathComponent("plugin.json").path)
     }
 
+    private static func bundledStarterArchiveURL(id: String, bundle: Bundle = .main) -> URL? {
+        if let bundled = bundle.resourceURL?.appendingPathComponent("plugin-demo/starters/\(id).zip"),
+           FileManager.default.fileExists(atPath: bundled.path) {
+            return bundled
+        }
+        let repoRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let devArchive = repoRoot.appendingPathComponent("plugin-demo/starters/\(id).zip")
+        if FileManager.default.fileExists(atPath: devArchive.path) {
+            return devArchive
+        }
+        return nil
+    }
+
+    private static func unpackStarterArchive(_ zipURL: URL, to pluginDir: URL, id: String) -> Bool {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        proc.arguments = ["-x", "-k", zipURL.path, pluginDir.path]
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = FileHandle.nullDevice
+        do {
+            try proc.run()
+            proc.waitUntilExit()
+            guard proc.terminationStatus == 0 else { return false }
+            let binURL = pluginDir.appendingPathComponent("bin/\(id)")
+            guard FileManager.default.fileExists(atPath: binURL.path) else { return false }
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: binURL.path)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     @discardableResult
     public static func install(
         templateID: String,
@@ -60,10 +95,16 @@ public enum PluginStarterGallery {
         }
         try FileManager.default.createDirectory(at: pluginDir, withIntermediateDirectories: true)
 
-        let entryName = "run.sh"
-        let scriptURL = pluginDir.appendingPathComponent(entryName)
-        try tpl.scriptBody.write(to: scriptURL, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+        let entryName: String
+        if let zipURL = bundledStarterArchiveURL(id: tpl.id),
+           unpackStarterArchive(zipURL, to: pluginDir, id: tpl.id) {
+            entryName = "bin/\(tpl.id)"
+        } else {
+            entryName = "run.sh"
+            let scriptURL = pluginDir.appendingPathComponent(entryName)
+            try tpl.scriptBody.write(to: scriptURL, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+        }
 
         let manifest = PluginManifest(
             schemaVersion: 3,

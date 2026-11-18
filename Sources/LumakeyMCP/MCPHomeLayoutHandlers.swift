@@ -58,6 +58,9 @@ extension MCPServer {
                         "commands": p.declaredCommands.map { ["id": $0.id, "title": p.manifest.localizedCommandTitle($0)] }
                     ]
                 },
+                "installedScripts": resolvedScriptStore.allScripts(includeDisabled: false).map { s -> [String: Any] in
+                    ["id": s.id, "title": s.displayTitle, "runtime": s.runtime.rawValue, "keywords": s.keywords]
+                },
                 "indexedBookmarksSample": bookmarks
             ]
             if includeNativeApps {

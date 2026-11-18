@@ -116,6 +116,11 @@ extension MCPServer {
                 throw HomeLayoutError.invalidItem("Both 'pluginID' and 'commandID' are required for pluginCommand.")
             }
             return .pluginCommand(pluginID: pid, commandID: cid, arguments: arguments["arguments"] as? [String])
+        case "script":
+            guard let sid = arguments["scriptID"] as? String, !sid.isEmpty else {
+                throw HomeLayoutError.invalidItem("Missing 'scriptID' for script.")
+            }
+            return .script(scriptID: sid)
         case "bookmark":
             guard let url = arguments["url"] as? String, !url.isEmpty else {
                 throw HomeLayoutError.invalidItem("Missing 'url' for bookmark.")

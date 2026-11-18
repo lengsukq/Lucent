@@ -131,11 +131,12 @@ public struct BackupPayload: Codable, Sendable, Equatable {
     public var plugins: [BackupPluginBundle]
     public var pluginData: [BackupPluginDataBundle]
     public var externalPluginFiles: [BackupExternalPathFile]
+    public var scriptFiles: [BackupPluginFileRecord]
     public var encryptedPluginSecrets: BackupEncryptedSecretsEnvelope?
 
     enum CodingKeys: String, CodingKey {
         case mosConfig, telemetryConfig, rawConfigFiles, pinnedClipboardItems, plugins
-        case pluginData, externalPluginFiles, encryptedPluginSecrets
+        case pluginData, externalPluginFiles, scriptFiles, encryptedPluginSecrets
     }
 
     public init(
@@ -146,12 +147,14 @@ public struct BackupPayload: Codable, Sendable, Equatable {
         plugins: [BackupPluginBundle],
         pluginData: [BackupPluginDataBundle] = [],
         externalPluginFiles: [BackupExternalPathFile] = [],
+        scriptFiles: [BackupPluginFileRecord] = [],
         encryptedPluginSecrets: BackupEncryptedSecretsEnvelope? = nil
     ) {
         self.mosConfig = mosConfig; self.telemetryConfig = telemetryConfig
         self.rawConfigFiles = rawConfigFiles; self.pinnedClipboardItems = pinnedClipboardItems
         self.plugins = plugins; self.pluginData = pluginData
         self.externalPluginFiles = externalPluginFiles
+        self.scriptFiles = scriptFiles
         self.encryptedPluginSecrets = encryptedPluginSecrets
     }
 
@@ -164,6 +167,7 @@ public struct BackupPayload: Codable, Sendable, Equatable {
         self.plugins = try c.decode([BackupPluginBundle].self, forKey: .plugins)
         self.pluginData = try c.decodeIfPresent([BackupPluginDataBundle].self, forKey: .pluginData) ?? []
         self.externalPluginFiles = try c.decodeIfPresent([BackupExternalPathFile].self, forKey: .externalPluginFiles) ?? []
+        self.scriptFiles = try c.decodeIfPresent([BackupPluginFileRecord].self, forKey: .scriptFiles) ?? []
         self.encryptedPluginSecrets = try c.decodeIfPresent(BackupEncryptedSecretsEnvelope.self, forKey: .encryptedPluginSecrets)
     }
 }

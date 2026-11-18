@@ -32,10 +32,11 @@ extension HomeLayoutConfig {
     Every item across Bento, Dock, Shelves, and Utility Strip shares one unified schema:
     - Optional visual overrides: `id`, `customTitle`, `customSubtitle`, `customIcon` (SF Symbol), `accentColor` (`cyan`, `blue`, `indigo`, `purple`, `mint`, `teal`, `green`, `orange`, `pink`, `red`, `slate`, or `#RRGGBB`), `hotkeyHint`.
     - `kind` (`HomeLaunchTarget`):
-      - `"builtin"`: requires `builtinID` in `["files", "clipboard", "screenshotPin", "gifRecord", "ocr", "networkMonitor", "fileWorkspace", "systemPulse", "toggleMos", "pluginsList", "snippets", "backupSync", "cacheCleanup", "reclaimMemory", "settingsCenter"]`.
+      - `"builtin"`: requires `builtinID` in `["files", "clipboard", "screenshotPin", "gifRecord", "ocr", "networkMonitor", "fileWorkspace", "systemPulse", "toggleMos", "pluginsList", "scripts", "snippets", "backupSync", "cacheCleanup", "reclaimMemory", "settingsCenter"]`.
       - `"nativeApp"`: requires absolute `.app` bundle `path` (e.g. `"/Applications/Visual Studio Code.app"`), optional `bundleID`.
       - `"plugin"`: requires `pluginID`, optional `behavior` (`"auto"` | `"scoped"` | `"runInline"` | `"openWindow"`).
       - `"pluginCommand"`: requires `pluginID` and `commandID`, optional `arguments` (`[String]`).
+      - `"script"`: requires `scriptID` referencing a Quick Script in `ScriptLibraryStore` (renders its custom SVG icon or SF Symbol automatically).
       - `"bookmark"`: requires `url` with an allowed safe scheme (`http`, `https`, `lumakey`, `mailto`, `vscode`, `vscode-insiders`, `cursor`, `zed`, `obsidian`, `notion`, `raycast`, `things`, `bear`, `x-apple.systempreferences`), optional `browserAppPath` (`.app` path) and `sourcePluginID`. Arbitrary shell strings or `javascript:`/`file:` URLs are strictly rejected.
       - `"localPath"`: requires local folder or file `path` (opens folders in Dual-Pane Workspace and Markdown/images/videos in native viewers).
       - `"queryChip"`: requires `query` (`1..160` chars), optional `filter` (`"all"` | `"files"` | `"clipboard"` | `"plugins"`).

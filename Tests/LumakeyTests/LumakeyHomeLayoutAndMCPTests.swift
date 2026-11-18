@@ -9,7 +9,7 @@ struct LumakeyHomeLayoutAndMCPTests {
         let validItems: [HomeLaunchItem] = [
             HomeLaunchItem(id: "b1", target: .builtin(.fileWorkspace)),
             HomeLaunchItem(id: "a1", target: .nativeApp(path: "/System/Applications/Calculator.app", bundleID: "com.apple.calculator")),
-            HomeLaunchItem(id: "p1", target: .plugin(pluginID: "ai-quota", behavior: .openWindow)),
+            HomeLaunchItem(id: "p1", target: .plugin(pluginID: "quick-remind", behavior: .openWindow)),
             HomeLaunchItem(id: "c1", target: .pluginCommand(pluginID: "notion-bookmarks", commandID: "add-clipboard", arguments: ["--sync"])),
             HomeLaunchItem(id: "u1", target: .bookmark(url: "https://github.com/lengsukq/Lumakey", browserAppPath: "/Applications/Safari.app", sourcePluginID: "browser-hub")),
             HomeLaunchItem(id: "u2", target: .bookmark(url: "vscode://file/Users/demo/project")),
@@ -69,17 +69,17 @@ struct LumakeyHomeLayoutAndMCPTests {
 
         // Upsert mixed items into Bento, Dock, and a new custom shelf
         let customPluginTile = HomeLaunchItem(
-            id: "tile-ai-quota",
-            target: .plugin(pluginID: "ai-quota", behavior: .openWindow),
-            customTitle: "AI 额度看板",
+            id: "tile-quick-remind",
+            target: .plugin(pluginID: "quick-remind", behavior: .openWindow),
+            customTitle: "闪电提醒看板",
             accentColor: "mint"
         )
         try cfg.upsertItem(customPluginTile, in: .bento, at: 0)
-        #expect(cfg.activeProfile.bentoItems.first?.id == "tile-ai-quota")
+        #expect(cfg.activeProfile.bentoItems.first?.id == "tile-quick-remind")
 
-        let moved = cfg.moveItem(id: "tile-ai-quota", in: .bento, offset: 1)
+        let moved = cfg.moveItem(id: "tile-quick-remind", in: .bento, offset: 1)
         #expect(moved == true)
-        #expect(cfg.activeProfile.bentoItems[1].id == "tile-ai-quota")
+        #expect(cfg.activeProfile.bentoItems[1].id == "tile-quick-remind")
 
         let docBookmark = HomeLaunchItem(
             id: "bm-docs",

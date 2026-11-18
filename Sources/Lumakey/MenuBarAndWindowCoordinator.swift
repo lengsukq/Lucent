@@ -147,7 +147,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             .networkMonitor: { [weak self] in self?.open(route: .networkMonitor) },
             .quickBackup: { [weak self] in if let vm = self?.viewModel { BackupCoordinator.triggerQuickBackup(viewModel: vm) } }
         ]
-        _ = hotKeyManager.applyConfig(HotKeyBindingConfig.load(), handlers: handlers, externalBindings: viewModel.externalPluginHotKeyBindings())
+        _ = hotKeyManager.applyConfig(HotKeyBindingConfig.load(), handlers: handlers, externalBindings: viewModel.allExternalHotKeyBindings())
     }
 
     private func installMemoryPressureMonitor() {

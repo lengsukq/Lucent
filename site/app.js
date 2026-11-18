@@ -22,7 +22,7 @@
     } catch (_) {}
   }
 
-  let savedPluginIds = ['ai-quota', 'translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'];
+  let savedPluginIds = ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot', 'screen-shield'];
   try {
     const rawSaved = safeGet('lumakey-enabled-plugins-v1');
     if (rawSaved) {
@@ -48,7 +48,7 @@
     hudCompact: false,
     secIdx: 0,
     builderProfile: 'daily',
-    focusedPluginId: 'ai-quota',
+    focusedPluginId: 'translate-hub',
     enabledPlugins: new Set(savedPluginIds)
   };
 
@@ -141,8 +141,8 @@
       prof_minimal: '◐ 纯粹微内核底座 (0 插件)',
       prof_daily: '✦ 日常省心高频套装',
       prof_dev: '⌘ 极客 AI 与远控开发流',
-      prof_full: '⚡ 8 款官方旗舰 + AI 自制满配',
-      cat_head_title: '8 款官方旗舰扩展 + AI 自制示例（点击查看能力 / 开关挂载）',
+      prof_full: '⚡ 7 款官方旗舰 + AI 自制满配',
+      cat_head_title: '7 款官方旗舰扩展 + AI 自制示例（点击查看能力 / 开关挂载）',
       prev_live_badge: '● 实时联动：上方启动面板与菜单栏形态',
       zone_quick_title: '按需挂载至启动面板胶囊架 & 状态栏菜单（默认关闭不挤占）',
       zone_accepts_title: '跨模块右键联动（自动接入离线识字 / 剪贴板 / 双栏文件台）',
@@ -257,17 +257,17 @@
       dl_title: '下载 10 MB 轻巧底座，\n搭出最懂你的效率流',
       dl_desc: 'MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。拖入应用程序即可使用，后续支持应用内一键下载 DMG 自动更新并保留本机权限（缺 Python 3 时亦有一键安装向导）；右侧附上 AI 接入与源码命令：',
       dl_btn_dmg: '下载最新 DMG 安装包',
-      dl_btn_store: '浏览 8 款官方插件库',
+      dl_btn_store: '浏览 7 款官方插件库',
       dl_btn_star: 'GitHub 点亮 Star ★',
       term_tab_mcp: '接入 AI 造插件/排主页',
-      term_tab_plugins: '安装 8 款官方插件',
+      term_tab_plugins: '安装 7 款官方插件',
       term_tab_install: '免重复授权 & 源码构建',
       term_copy: '复制代码',
       foot_brand: 'Lumakey 流光',
       foot_plugin_doc: '插件与 MCP 规范',
       foot_docs: '工程文档',
       foot_contrib: '参与共建',
-      placeholder_search: '直接打字搜软件、移动硬盘文件、算式，或试输：tr 翻译 / aiq 额度 / rem 10m 喝水...'
+      placeholder_search: '直接打字搜软件、移动硬盘文件、算式，或试输：tr 翻译 / bh 书签 / rem 10m 喝水...'
     },
     en: {
       brand_cn: '',
@@ -316,8 +316,8 @@
       prof_minimal: '◐ Pure Micro-Core (0 Plugins)',
       prof_daily: '✦ Everyday Productivity Pack',
       prof_dev: '⌘ Geek AI & Remote Flow',
-      prof_full: '⚡ All 8 Official + AI Custom',
-      cat_head_title: '8 Official Flagship Plugins + AI Custom Example (Click to Inspect / Toggle)',
+      prof_full: '⚡ All 7 Official + AI Custom',
+      cat_head_title: '7 Official Flagship Plugins + AI Custom Example (Click to Inspect / Toggle)',
       prev_live_badge: '● Live Sync: Updates Launch Panel & Menu Bar Above',
       zone_quick_title: 'Mounted to Launch Panel Shelf & Menu Bar (Off by Default)',
       zone_accepts_title: 'Cross-Module Context Menu Hooks (OCR / Clipboard / Workspace)',
@@ -432,48 +432,24 @@
       dl_title: 'Grab the ~10 MB Native Hub,\nShape Your Personal Flow',
       dl_desc: 'Free & open source (MIT) for macOS 14.0+ on M1 / M2 / M3 / M4 Macs. Drag to Applications to start, with in-app DMG auto-updates that preserve local TCC permissions and 1-click Python 3 setup; copy MCP, plugin, or build commands on the right:',
       dl_btn_dmg: 'Download Latest DMG',
-      dl_btn_store: 'Browse 8 Official Plugins',
+      dl_btn_store: 'Browse 7 Official Plugins',
       dl_btn_star: 'Star on GitHub ★',
       term_tab_mcp: 'Connect AI (Plugin + Home)',
-      term_tab_plugins: 'Install 8 Official Plugins',
+      term_tab_plugins: 'Install 7 Official Plugins',
       term_tab_install: 'Keep Permissions & Build',
       term_copy: 'Copy',
       foot_brand: 'Lumakey',
       foot_plugin_doc: 'Plugin & MCP Spec',
       foot_docs: 'Docs Index',
       foot_contrib: 'Contributing',
-      placeholder_search: 'Type to search apps, external drives, math, or try: tr hello / aiq quota / rem 10m water...'
+      placeholder_search: 'Type to search apps, external drives, math, or try: tr hello / bh safari / rem 10m water...'
     }
   };
 
   /* ------------------------------------------------------------------------
-     2. Complete 8 Official Store Plugins + 1 MCP Custom Plugin Dataset
+     2. Complete 7 Official Store Plugins + 1 MCP Custom Plugin Dataset
      ------------------------------------------------------------------------ */
   const PLUGINS = [
-    {
-      id: 'ai-quota',
-      icon: '📊',
-      grad: 'linear-gradient(135deg,#ec4899,#8b5cf6)',
-      tagZh: '透明悬浮 HUD',
-      tagEn: 'Floating HUD',
-      nameZh: 'AI 额度雷达 AI Quota Radar',
-      nameEn: 'AI Quota Radar',
-      shortZh: '无边框毛玻璃桌面悬浮窗（支持紧凑折叠态），实时盯盘 Claude / Codex / agy / dsh 与 DeepSeek 余额',
-      shortEn: 'Frameless glass HUD (with compact mode) tracking Claude / Codex / agy / dsh & DeepSeek balance',
-      detailZh: '基于 Plugin v3.7 floatingWindow 打造的无边框液态玻璃桌面挂件（支持紧凑折叠态、120Hz 顺滑拖拽、点击穿透与快捷热键引导），并发读取本机 AI CLI 窗口余量与 AES-GCM 加密托管的 DeepSeek 余额，关窗即零内存。',
-      detailEn: 'Built on Plugin v3.7 floatingWindow: a 120Hz draggable, click-through glass HUD with compact mode and live hotkey guide, concurrently reading local AI CLI quotas and AES-GCM vaulted DeepSeek balance.',
-      quickZh: '📊 AI 额度浮窗',
-      quickEn: '📊 AI Quota HUD',
-      acceptsZh: [],
-      acceptsEn: [],
-      sandbox: 'Seatbelt: scoped HTTPS · Window: floatingWindow (frameless HUD)',
-      cmds: [
-        ['aiq', '查看全部 AI 额度与余额', 'Inspect all AI CLI quotas & balance'],
-        ['quotahud', '开启透明紧凑桌面挂件', 'Open frameless compact glass HUD'],
-        ['quotafloat', '弹出置顶实时监控小窗', 'Pop out floating live monitor window'],
-        ['quotarefresh', '强制刷新并推送通知', 'Force refresh & push notification']
-      ]
-    },
     {
       id: 'translate-hub',
       icon: '🌐',
@@ -670,8 +646,8 @@
 
   const BUILDER_PROFILES = {
     minimal: [],
-    daily: ['ai-quota', 'translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot'],
-    dev: ['ai-quota', 'translate-hub', 'browser-hub', 'mac-pilot', 'lumalink-companion', 'gh-pr-radar'],
+    daily: ['translate-hub', 'browser-hub', 'quick-remind', 'mac-pilot', 'screen-shield'],
+    dev: ['translate-hub', 'browser-hub', 'mac-pilot', 'lumalink-companion', 'gh-pr-radar'],
     full: PLUGINS.map((p) => p.id)
   };
 
@@ -855,29 +831,6 @@
 
   const CATALOG = [
     {
-      id: 'item-ai-quota',
-      scopes: ['all', 'plugins'],
-      match: ['aiq', 'quota', 'claude', 'codex', 'deepseek', '额度', '雷达', '余额'],
-      badgeBg: 'linear-gradient(135deg,#ec4899,#8b5cf6)',
-      badgeText: '📊',
-      titleZh: 'AI 额度雷达：Claude 5h 剩余 78% · Codex 剩余 91% · DeepSeek ¥42.80',
-      titleEn: 'AI Quota Radar: Claude 5h 78% left · Codex 91% · DeepSeek ¥42.80',
-      subZh: 'AI Quota Radar · 回车唤起无边框透明玻璃桌面挂件 (floatingWindow)',
-      subEn: 'AI Quota Radar · Press Return to open frameless glass desktop HUD',
-      shortcut: '⌘1',
-      lens: {
-        tag: 'Plugin v3.7 · floatingWindow HUD',
-        big: '78% / ¥42.8',
-        descZh: '支持开启置顶透明毛玻璃悬浮小窗（120Hz 无边框拖拽 + 点击穿透），API Key 安全存于 256-bit AES-GCM 保险箱，关窗即释放 WebView 内存。',
-        descEn: 'Opens a 120Hz draggable, click-through frameless glass desktop widget; DeepSeek key stays in the 256-bit AES-GCM vault.',
-        kvs: [
-          ['Window Chrome', 'frameless · floatingWindow'],
-          ['Secret Storage', 'LMKYVLT2 256-bit AES-GCM'],
-          ['Close Behavior', '0 MB Immediate Teardown']
-        ]
-      }
-    },
-    {
       id: 'item-translate',
       scopes: ['all', 'plugins'],
       match: ['tr', 'fy', 'translate', 'ephemeral', '翻译', '译站', 'ocr'],
@@ -1047,7 +1000,7 @@
           { dot: 'linear-gradient(135deg,#ea580c,#ef4444)', label: 'Safari' }
         ],
         [
-          { dot: 'linear-gradient(135deg,#ec4899,#8b5cf6)', label: zh ? 'AI 额度' : 'AI Quota' },
+          { dot: 'linear-gradient(135deg,#7c3aed,#a855f7)', label: zh ? '流光译站' : 'Translate' },
           { dot: 'linear-gradient(135deg,#0d9488,#14b8a6)', label: '~/Code' },
           { dot: 'linear-gradient(135deg,#f59e0b,#ea580c)', label: 'GitHub' },
           { dot: 'linear-gradient(135deg,#4f46e5,#0ea5e9)', label: 'Obsidian' }
@@ -1114,7 +1067,7 @@
             <span class="quick-btn-pill">🌐 GitHub</span>
             <span class="quick-btn-pill">⚡ Localhost :3000</span>
             <span class="quick-btn-pill">📘 cursor://repo</span>
-            <span class="quick-btn-pill" data-jump-builder="ai-quota">📊 AI Quota</span>
+            <span class="quick-btn-pill" data-jump-builder="translate-hub">🌐 Translate</span>
           </div>
           <div class="quick-btn-bar-mock">
             <span class="quick-btn-label">${zh ? '试搜芯片：' : 'Query Chips:'}</span>
@@ -1142,15 +1095,15 @@
         { bg: 'linear-gradient(135deg,#db2777,#e11d48)', icon: '🎞️', t: zh ? '录制 GIF' : 'GIF Rec', s: '⌥G' },
         { bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', icon: '🔎', t: zh ? '离线识字' : 'OCR', s: '⌥O' },
         { bg: 'linear-gradient(135deg,#059669,#0d9488)', icon: '📋', t: zh ? '剪贴板' : 'Clips', s: '15 Undo' },
-        { bg: 'linear-gradient(135deg,#ec4899,#8b5cf6)', icon: '📊', t: zh ? 'AI 额度' : 'AI HUD', s: 'Plugin' },
+        { bg: 'linear-gradient(135deg,#0891b2,#2563eb)', icon: '📡', t: zh ? '流光随行' : 'LumaLink', s: 'Plugin' },
         { bg: 'linear-gradient(135deg,#4338ca,#6366f1)', icon: '🌐', t: zh ? '流光译站' : 'Translate', s: 'Plugin' },
         { bg: 'linear-gradient(135deg,#ea580c,#f59e0b)', icon: '⏰', t: zh ? '闪电提醒' : 'Remind', s: 'Plugin' },
-        { bg: 'linear-gradient(135deg,#0891b2,#2563eb)', icon: '🎛️', t: zh ? '中控台' : 'Mac Pilot', s: 'Plugin' }
+        { bg: 'linear-gradient(135deg,#0284c7,#0369a1)', icon: '🎛️', t: zh ? '中控台' : 'Mac Pilot', s: 'Plugin' }
       ];
       leftHtml = `
         <div class="bento-mini-grid cols-4">
           ${compactTiles.map((tile) => `
-            <div class="bento-tile" data-jump-builder="ai-quota">
+            <div class="bento-tile" data-jump-builder="translate-hub">
               <span class="squircle-badge" style="background:${tile.bg}">${tile.icon}</span>
               <div>
                 <div class="bento-tile-title">${tile.t}</div>
@@ -1189,7 +1142,7 @@
       statusLabel = `Home: Balanced · ${enabledList.length} Active Plugin(s)`;
       const tiles = [
         { bg: 'linear-gradient(135deg,#0066dc,#2563eb)', icon: '🔍', t: zh ? '全盘秒搜' : 'Disk Search', s: 'LMKYIDX3 mmap', scope: 'files' },
-        { bg: 'linear-gradient(135deg,#ec4899,#8b5cf6)', icon: '📊', t: zh ? 'AI 额度雷达' : 'AI Quota HUD', s: 'Floating Glass HUD', fillQ: 'aiq' },
+        { bg: 'linear-gradient(135deg,#4338ca,#6366f1)', icon: '🧭', t: zh ? '三端书签' : 'Browser Hub', s: '0ms SQLite Index', fillQ: 'bh' },
         { bg: 'linear-gradient(135deg,#7c3aed,#a855f7)', icon: '🌐', t: zh ? '流光译站' : 'Translate Hub', s: 'Plugin · OCR/划词', preset: 'translate' },
         { bg: 'linear-gradient(135deg,#db2777,#e11d48)', icon: '✂️', t: zh ? '截图与 GIF' : 'Capture & GIF', s: '⌥A / ⌥G / ⌥O', jump: '#capabilities' },
         { bg: 'linear-gradient(135deg,#ea580c,#f59e0b)', icon: '⏰', t: zh ? '闪电提醒' : 'Quick Remind', s: 'Plugin · 10m 喝水', preset: 'remind' },
@@ -1290,7 +1243,7 @@
 
     leftPane.querySelectorAll('[data-jump-builder]').forEach((pill) => {
       pill.addEventListener('click', () => {
-        state.focusedPluginId = pill.getAttribute('data-jump-builder') || 'ai-quota';
+        state.focusedPluginId = pill.getAttribute('data-jump-builder') || 'translate-hub';
         renderWorkbench();
         document.getElementById('builder')?.scrollIntoView({ behavior: 'smooth' });
       });
@@ -1684,10 +1637,10 @@
   const SNIFFER_MODES = {
     repo: {
       url: `${REPO_BASE}/tree/main/plugin-demo`,
-      kind: 'Store Registry (8 Plugins)',
+      kind: 'Store Registry (7 Plugins)',
       sha: 'SHA-256: 8f4c…d91a ✓',
-      descZh: '自动识别开源仓库子目录并定位 lumakey-registry.json，一键订阅全部 8 款官方插件（含 AI 额度雷达悬浮窗）并强制核对 SHA-256。',
-      descEn: 'Auto-resolves repository subdirectory to lumakey-registry.json, subscribing all 8 curated plugins (incl. AI Quota HUD) with SHA-256 verification.'
+      descZh: '自动识别开源仓库子目录并定位 lumakey-registry.json，一键订阅全部 7 款官方原生 Swift 插件并强制核对 SHA-256。',
+      descEn: 'Auto-resolves repository subdirectory to lumakey-registry.json, subscribing all 7 native Swift plugins with SHA-256 verification.'
     },
     registry: {
       url: `${REPO_BASE}/blob/main/plugin-demo/lumakey-registry.json`,
@@ -1697,7 +1650,7 @@
       descEn: 'Parses store manifest JSON directly with one-click version updates and anti-spoofing capability boundary checks.'
     },
     archive: {
-      url: 'plugin-demo/dist/ai-quota.zip',
+      url: 'plugin-demo/dist/translate-hub.zip',
       kind: 'Direct Plugin Package',
       sha: 'SHA-256: c710…e208 ✓',
       descZh: '无需搭建商店，直接嗅探独立插件压缩包并在清晰展示所需沙箱与窗口权限后安心安装。',
@@ -1973,12 +1926,12 @@
       htmlZh: `<span class="cmd-comment"># 方法 A（推荐普通用户）：打开「设置 → 插件中心」，粘贴下面链接一键订阅</span>
 <span class="cmd-str">${REPO_BASE}/tree/main/plugin-demo</span>
 
-<span class="cmd-comment"># 方法 B（极客终端）：克隆仓库后一键部署全部 8 款官方旗舰插件（含 AI 额度雷达）</span>
+<span class="cmd-comment"># 方法 B（极客终端）：克隆仓库后一键部署全部 7 款官方原生 Swift 旗舰插件</span>
 <span class="cmd-prompt">$ </span>bash plugin-demo/install.sh`,
       htmlEn: `<span class="cmd-comment"># Option A (Easiest): Paste repo URL into Settings → Plugins smart bar</span>
 <span class="cmd-str">${REPO_BASE}/tree/main/plugin-demo</span>
 
-<span class="cmd-comment"># Option B (CLI): Install all 8 official flagship plugins locally (hot-reloads live)</span>
+<span class="cmd-comment"># Option B (CLI): Install all 7 official native Swift plugins locally (hot-reloads live)</span>
 <span class="cmd-prompt">$ </span>bash plugin-demo/install.sh`
     },
     install: {

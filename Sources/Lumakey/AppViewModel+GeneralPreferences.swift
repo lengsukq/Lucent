@@ -156,4 +156,44 @@ extension AppViewModel {
             }
         }
     }
+
+    func setAppTheme(_ theme: AppThemeID) {
+        ThemeManager.shared.apply(theme, persist: true)
+        appTheme = theme
+        serviceMessage = L10n.pick("已切换至「\(theme.title)」(\(theme.englishBadge)) 主题", "Theme switched to \(theme.localizedTitle)")
+    }
+
+    func cycleAppTheme() {
+        let next = ThemeManager.shared.cycle()
+        appTheme = next
+        serviceMessage = L10n.pick("已切换至「\(next.title)」(\(next.englishBadge)) 主题", "Theme switched to \(next.localizedTitle)")
+    }
+
+    func reloadThemeFromDisk() {
+        ThemeManager.shared.reloadFromDisk()
+        appTheme = ThemeManager.shared.current
+    }
+
+    func setAppLanguage(_ language: AppLanguageID) {
+        LanguageManager.shared.apply(language, persist: true)
+        appLanguage = language
+        reloadPluginsAndHotKeys()
+        refreshDisplayedCandidates(resetSelection: false)
+        serviceMessage = language == .english ? "Interface language switched to English" : "已切换界面语言为：简体中文"
+    }
+
+    func cycleAppLanguage() {
+        let next = LanguageManager.shared.cycle()
+        appLanguage = next
+        reloadPluginsAndHotKeys()
+        refreshDisplayedCandidates(resetSelection: false)
+        serviceMessage = next == .english ? "Interface language switched to English" : "已切换界面语言为：简体中文"
+    }
+
+    func reloadLanguageFromDisk() {
+        LanguageManager.shared.reloadFromDisk()
+        appLanguage = LanguageManager.shared.current
+        reloadPluginsAndHotKeys()
+        refreshDisplayedCandidates(resetSelection: false)
+    }
 }

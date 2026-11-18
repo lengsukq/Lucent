@@ -155,11 +155,7 @@ struct SettingsCenterView: View {
                 Spacer(minLength: 2)
                 let needsPerm = !plugin.isBuiltin && PluginSetupReadiness.analyze(plugin: plugin).hasMissingPermissions
                 Circle()
-                    .fill(
-                        (!plugin.isEnabled || !plugin.isValid)
-                            ? LiquidColors.textSecondary.opacity(0.35)
-                            : (needsPerm ? Color.orange : LiquidColors.accentPrimary)
-                    )
+                    .fill((!plugin.isEnabled || !plugin.isValid) ? LiquidColors.textSecondary.opacity(0.35) : (needsPerm ? Color.orange : LiquidColors.accentPrimary))
                     .frame(width: 6, height: 6)
             }
             .padding(.horizontal, 8).padding(.vertical, 5)
@@ -182,13 +178,17 @@ struct SettingsCenterView: View {
                 case .cache: ScrollView { AppCacheSettingsView(viewModel: viewModel).padding(.trailing, 4) }
                 case .mos: MosPluginSettingsView(viewModel: viewModel)
                 case .lumaLink: LumaLinkSettingsView(viewModel: viewModel)
+                case .scripts: ScriptsSettingsView(viewModel: viewModel)
                 case .snippets: SnippetsSettingsView(viewModel: viewModel)
                 case .pluginDetail: PluginDedicatedSettingsView(viewModel: viewModel)
                 case .shortcuts:
                     HotKeySettingsView(
                         hotKeyManager: viewModel.hotKeyManager ?? GlobalHotKeyManager.activeInstance,
-                        pluginHotKeys: viewModel.externalPluginHotKeys, plugins: viewModel.plugins,
-                        onOpenPluginSettings: { id in viewModel.openPluginSettings(id: id) }
+                        pluginHotKeys: viewModel.allExternalHotKeys, plugins: viewModel.plugins, scripts: viewModel.scripts,
+                        onOpenPluginSettings: { id in
+                            if id.hasPrefix("script:") { viewModel.openScriptSettings(selecting: String(id.dropFirst(7))) }
+                            else { viewModel.openPluginSettings(id: id) }
+                        }
                     )
                 case .backup: BackupSettingsView(viewModel: viewModel)
                 default: SettingsDetailSectionsView(viewModel: viewModel, section: viewModel.activeSettingsSection.canonicalSection)
@@ -202,9 +202,7 @@ struct SettingsCenterView: View {
         .clipped().liquidGlassCard(cornerRadius: LiquidRadii.bento)
         .overlay(alignment: .top) {
             if let banner = viewModel.hotKeyBanner {
-                hotKeyBannerOverlay(banner)
-                    .padding(.horizontal, 18)
-                    .padding(.top, 12)
+                hotKeyBannerOverlay(banner).padding(.horizontal, 18).padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
@@ -213,49 +211,27 @@ struct SettingsCenterView: View {
 
     private func hotKeyBannerOverlay(_ banner: SettingsHotKeyBanner) -> some View {
         let accentColor: Color = switch banner.tone {
-        case .recording: .cyan
-        case .success: .mint
-        case .error: .orange
-        case .neutral: .secondary
+        case .recording: .cyan; case .success: .mint; case .error: .orange; case .neutral: .secondary
         }
         let iconName: String = switch banner.tone {
-        case .recording: "keyboard.badge.ellipsis"
-        case .success: "checkmark.circle.fill"
-        case .error: "exclamationmark.triangle.fill"
-        case .neutral: "xmark.circle.fill"
+        case .recording: "keyboard.badge.ellipsis"; case .success: "checkmark.circle.fill"
+        case .error: "exclamationmark.triangle.fill"; case .neutral: "xmark.circle.fill"
         }
         return HStack(spacing: 10) {
-            Image(systemName: iconName)
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(accentColor)
-            Text(banner.message)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(LiquidColors.textPrimary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+            Image(systemName: iconName).font(.callout.weight(.semibold)).foregroundStyle(accentColor)
+            Text(banner.message).font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
+                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
             if banner.tone == .recording, let cancelAction = viewModel.hotKeyBannerCancelAction {
-                Button(L10n.pick("取消录制", "Cancel")) {
-                    cancelAction()
-                }
-                .buttonStyle(GlassPillButtonStyle(compact: true))
+                Button(L10n.pick("取消录制", "Cancel")) { cancelAction() }.buttonStyle(GlassPillButtonStyle(compact: true))
             } else {
-                Button {
-                    viewModel.dismissHotKeyBanner()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                }
-                .buttonStyle(GlassPillButtonStyle(compact: true))
+                Button { viewModel.dismissHotKeyBanner() } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .bold)) }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14).padding(.vertical, 10)
         .liquidGlassCard(cornerRadius: LiquidRadii.control, solidReadable: true)
-        .overlay {
-            RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous)
-                .strokeBorder(accentColor.opacity(0.55), lineWidth: 1.0)
-        }
+        .overlay { RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous).strokeBorder(accentColor.opacity(0.55), lineWidth: 1.0) }
     }
 
     private var generalSection: some View {
@@ -264,24 +240,16 @@ struct SettingsCenterView: View {
                 SettingsSectionHeroHeader(
                     symbol: "slider.horizontal.3", topColor: .blue, bottomColor: .indigo,
                     title: L10n.pick("通用、快捷台与检索", "General, Launcher & Search"),
-                    subtitle: L10n.pick(
-                        "集中配置开机自启、状态栏菜单、快捷台交互、外观语言与全盘文件检索范围。",
-                        "Configure startup, status bar menu, launcher behavior, appearance, language, and file search scope."
-                    )
+                    subtitle: L10n.pick("集中配置开机自启、状态栏菜单、快捷台交互、外观语言与全盘文件检索范围。", "Configure startup, status bar menu, launcher behavior, appearance, language, and file search scope.")
                 ) {
                     if updater.hasAnyPendingUpdate {
                         Button(L10n.pick("有可用更新 →", "Update Available →")) {
-                            withAnimation(LiquidMotion.snappySpring) {
-                                viewModel.activePluginSettingsID = nil
-                                viewModel.activeSettingsSection = .about
-                            }
+                            withAnimation(LiquidMotion.snappySpring) { viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = .about }
                         }
                         .buttonStyle(GlassPillButtonStyle(prominent: true))
                     }
                 }
-                if !CodeSigningInspector.inspect().isStableForTCC {
-                    GeneralSigningStatusCardView(viewModel: viewModel)
-                }
+                if !CodeSigningInspector.inspect().isStableForTCC { GeneralSigningStatusCardView(viewModel: viewModel) }
                 StartupAndResidenceCardView(viewModel: viewModel)
                 LauncherBehaviorCardView(viewModel: viewModel)
                 MenuBarCustomizationCardView(viewModel: viewModel)

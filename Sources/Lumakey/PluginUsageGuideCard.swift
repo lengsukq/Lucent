@@ -27,7 +27,7 @@ struct PluginSetupReminderAndGuideSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !plugin.isBuiltin {
-                PythonRuntimeAdvisorCard(viewModel: viewModel)
+                PythonRuntimeAdvisorCard(viewModel: viewModel, targetPlugin: plugin)
             }
             if !plugin.isEnabled || readiness.hasBlockingIssues {
                 readinessBanner

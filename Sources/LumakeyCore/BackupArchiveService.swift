@@ -73,6 +73,7 @@ public enum BackupArchiveService {
         let pluginBundles = collectPluginBundles(in: resolvedPluginsDir)
         let pluginDataBundles = collectPluginDataBundles(in: resolvedPluginsDir, maxBytesPerPlugin: maxPluginDataBytesPerPlugin)
         let externalFiles = collectExternalPluginFiles(in: resolvedPluginsDir, homeDirectory: homeDirectory)
+        let scriptRecords = collectScriptFiles(in: appSupportDirectory.appendingPathComponent("Scripts", isDirectory: true))
         let encryptedSecrets: BackupEncryptedSecretsEnvelope? = if let pass = encryptionPassphrase, !pass.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             try sealPluginSecrets(in: resolvedPluginsDir, passphrase: pass)
         } else {
@@ -87,6 +88,7 @@ public enum BackupArchiveService {
             plugins: pluginBundles,
             pluginData: pluginDataBundles,
             externalPluginFiles: externalFiles,
+            scriptFiles: scriptRecords,
             encryptedPluginSecrets: encryptedSecrets
         )
         let canonicalEnc = JSONEncoder()
@@ -182,6 +184,11 @@ public enum BackupArchiveService {
                 try Data(cleanContent.utf8).write(to: target, options: .atomic)
                 restoredConfigs.append(name)
             }
+            try restoreScriptFiles(
+                payload.scriptFiles,
+                in: appSupportDirectory.appendingPathComponent("Scripts", isDirectory: true),
+                overwrite: options.overwriteExistingPlugins
+            )
         }
 
         var restoredClip: [ClipboardEntry] = []

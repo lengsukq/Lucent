@@ -15,7 +15,7 @@ public final class PluginDirectoryWatcher: @unchecked Sendable {
     private final class DebounceBox {
         let queue: DispatchQueue
         let debounceInterval: TimeInterval
-        let dataRootPath: String
+        let dataRootPath: String?
         let onChange: @Sendable (PluginWatchChangeSet) -> Void
         var pendingChanges: PluginWatchChangeSet = []
         var workItem: DispatchWorkItem?
@@ -23,7 +23,7 @@ public final class PluginDirectoryWatcher: @unchecked Sendable {
         init(
             queue: DispatchQueue,
             debounceInterval: TimeInterval,
-            dataRootPath: String,
+            dataRootPath: String?,
             onChange: @escaping @Sendable (PluginWatchChangeSet) -> Void
         ) {
             self.queue = queue
@@ -39,7 +39,7 @@ public final class PluginDirectoryWatcher: @unchecked Sendable {
                 if name == ".DS_Store" { continue }
                 if name == PluginSearchIndex.defaultIndexFileName {
                     batch.insert(.searchIndex)
-                } else if path.hasPrefix(dataRootPath + "/") {
+                } else if let dataRootPath, path.hasPrefix(dataRootPath + "/") {
                     continue
                 } else {
                     batch.insert(.bundle)
@@ -73,24 +73,31 @@ public final class PluginDirectoryWatcher: @unchecked Sendable {
     public convenience init?(
         directoryURL: URL = PluginSystem.defaultPluginsDirectory(),
         debounceInterval: TimeInterval = 0.35,
+        watchDataRoot: Bool = true,
         onChange: @escaping @Sendable () -> Void
     ) {
-        self.init(directoryURL: directoryURL, debounceInterval: debounceInterval) { _ in onChange() }
+        self.init(directoryURL: directoryURL, debounceInterval: debounceInterval, watchDataRoot: watchDataRoot) { _ in onChange() }
     }
 
     public init?(
         directoryURL: URL = PluginSystem.defaultPluginsDirectory(),
         debounceInterval: TimeInterval = 0.35,
+        watchDataRoot: Bool = true,
         onScopedChange: @escaping @Sendable (PluginWatchChangeSet) -> Void
     ) {
-        let dataRoot = PluginDataPaths.dataRoot(forPluginsRoot: directoryURL)
         try? FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-        try? FileManager.default.createDirectory(at: dataRoot, withIntermediateDirectories: true)
+        let resolvedPrimary = directoryURL.resolvingSymlinksInPath().standardizedFileURL.path
 
-        let resolvedPlugins = directoryURL.resolvingSymlinksInPath().standardizedFileURL.path
-        let resolvedData = dataRoot.resolvingSymlinksInPath().standardizedFileURL.path
+        var resolvedData: String? = nil
+        if watchDataRoot {
+            let dataRoot = PluginDataPaths.dataRoot(forPluginsRoot: directoryURL)
+            try? FileManager.default.createDirectory(at: dataRoot, withIntermediateDirectories: true)
+            let candidate = dataRoot.resolvingSymlinksInPath().standardizedFileURL.path
+            if candidate != resolvedPrimary { resolvedData = candidate }
+        }
+
         var isDir: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: resolvedPlugins, isDirectory: &isDir), isDir.boolValue else {
+        guard FileManager.default.fileExists(atPath: resolvedPrimary, isDirectory: &isDir), isDir.boolValue else {
             return nil
         }
 
@@ -121,7 +128,7 @@ public final class PluginDirectoryWatcher: @unchecked Sendable {
             }
             Unmanaged<DebounceBox>.fromOpaque(info).takeUnretainedValue().schedule(paths: collected)
         }
-        let watchPaths = resolvedPlugins == resolvedData ? [resolvedPlugins] : [resolvedPlugins, resolvedData]
+        let watchPaths = resolvedData.map { [resolvedPrimary, $0] } ?? [resolvedPrimary]
         guard let created = FSEventStreamCreate(
             kCFAllocatorDefault, callback, &context, watchPaths as CFArray,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.05, flags

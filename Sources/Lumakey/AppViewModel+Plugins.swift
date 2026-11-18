@@ -22,10 +22,11 @@ extension AppViewModel {
 
     func reloadPluginsAndHotKeys() {
         reloadPlugins()
-        (hotKeyManager ?? GlobalHotKeyManager.activeInstance)?.updateExternalPluginHotKeys(externalPluginHotKeyBindings())
+        (hotKeyManager ?? GlobalHotKeyManager.activeInstance)?.updateExternalPluginHotKeys(allExternalHotKeyBindings())
     }
 
     func reloadAppsAndPlugins() {
+        reloadScriptsAndHotKeys()
         reloadPluginsAndHotKeys()
         Task {
             let apps = await Task.detached(priority: .userInitiated) { LauncherEngine.discoverInstalledApps() }.value

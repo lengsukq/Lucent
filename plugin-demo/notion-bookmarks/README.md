@@ -1,12 +1,12 @@
 # Notion 书签收藏 (`notion-bookmarks`)
 
-参考 [`lengsukq/nav-notion-lime`](https://github.com/lengsukq/nav-notion-lime) 的 Notion 数据库模型与增删改查逻辑，为 **Lumakey Plugin v3** 打造的官方外置书签收藏插件。
+参考 [`lengsukq/nav-notion-lime`](https://github.com/lengsukq/nav-notion-lime) 的 Notion 数据库模型与增删改查逻辑，基于 **原生 Swift 6 (`PluginKit` + `Foundation`)** 为 **Lumakey Plugin v3** 打造的官方外置书签收藏插件。
 
 ## 核心特性
 
 - **完全互通 `nav-notion-lime` 数据库结构**：自动读取数据库 Schema，兼容中英文列名，无论 `url` 列是 Notion `url` 类型还是 `rich_text` 链接类型均可正常读写。
 - **主搜索栏免前缀直搜**：同步或增删改书签时自动导出 `search-index.json`，无需输入 `bm` 前缀即可在 Lumakey `⌥Space` 搜索栏直接通过书签名称、拼音首字母、域名或 `#标签` 秒搜书签并回车直达（`⌘Return` 可进入插件管理卡片）。
-- **零常驻、零依赖、纯沙盒**：仅使用 macOS 自带 `/usr/bin/python3` 标准库；本地缓存（默认 `120s`）保证日常搜索毫秒级响应。
+- **原生 Swift 二进制、零常驻、零外部依赖**：预编译为 `arm64` 原生可执行文件 `bin/notion-bookmarks`，无需本机安装 Python 运行时；本地缓存（默认 `120s`）保证日常搜索毫秒级响应。
 - **一键收藏与自动抓取元信息**：支持从剪贴板识别链接一键入库，并自动抓取目标网页 `og:title` / `<title>` 与 `description`。
 - **卡片内闭环管理**：在 Lumakey 卡片内直接完成刷新同步、表单编辑、置顶/取消置顶、提高优先级与归档删除。
 
@@ -71,13 +71,11 @@
 
 > **子命令快捷键**：在插件设置中可为 **「收藏剪贴板链接到 Notion」**（`--add-clipboard`）、**「同步刷新 Notion 书签索引」**（`--refresh`）和 **「浏览全部 Notion 书签」**（`--list`）单独绑定全局快捷键；其中前两项支持后台静默执行。
 
-## 五、常见报错排查
+## 五、常见报错排查与本地验证
 
 - **`401` 错误**：Notion Token 填写有误或已过期，请在插件设置更新。
 - **`404` 错误**：Database ID 有误，或尚未在 Notion 数据库页面右上角 `...` → **Connections** 中授权该 Integration。
-- **`Operation not permitted`（Xcode Python）**：若本机 `xcode-select` 指向 `/Applications/Xcode.app` 且使用了未放行 Xcode Python 的旧版本，请运行 `bash scripts/install-macos.sh` 重新安装最新版本。
-
-## 运行内置单元测试
 
 ```bash
-python3 -m unittest discover -s plugin-demo/notion-bookmarks -p "test_*.py" -v
+printf '{"query":""}' | ./plugin-demo/notion-bookmarks/bin/notion-bookmarks
+```

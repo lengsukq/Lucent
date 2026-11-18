@@ -134,6 +134,15 @@ struct OverlaySideLensView: View {
                 match: match, onExecute: { viewModel.executeCandidate(candidate) },
                 onOpenSettings: { viewModel.openRoute(.settings(.snippets)) }
             )
+        case .script(let match):
+            OverlayScriptLensCard(
+                match: match,
+                scriptsDirectory: ScriptLibraryStore.shared.scriptsDirectory,
+                onExecute: { viewModel.executeCandidate(candidate) },
+                onToggleQuickBar: { viewModel.toggleScriptQuickBarPin(match.script) },
+                onOpenSettings: { viewModel.openScriptSettings(selecting: match.script.id) },
+                onRevealInFinder: { NSWorkspace.shared.activateFileViewerSelecting([ScriptLibraryStore.shared.scriptURL(for: match.script)]) }
+            )
         case .plugin(let plugin): pluginDetailCard(plugin: plugin, candidate: candidate)
         case .pluginCommand(let regCmd):
             OverlayPluginCommandLensCard(
@@ -173,24 +182,21 @@ struct OverlaySideLensView: View {
     private func appDetailCard(app: InstalledAppItem, candidate: LauncherCandidate) -> some View {
         let pinned = usageTracker.isPinned(app)
         let summary = usageTracker.usageSummary(for: app)
-        return VStack(spacing: 11) {
+        return VStack(spacing: 10) {
             Spacer(minLength: 0)
             Image(nsImage: IconCache.shared.appIcon(for: app.url)).resizable()
                 .frame(width: 68, height: 68).shadow(color: .black.opacity(0.18), radius: 8, y: 4)
             Text(app.displayName).font(.headline).foregroundStyle(LiquidColors.textPrimary)
             LiquidStatusPill(title: summary, symbol: pinned ? "pin.fill" : "clock", tint: pinned ? .orange : .cyan)
-            Text(app.url.path).font(.caption2.monospaced()).foregroundStyle(LiquidColors.textSecondary)
-                .multilineTextAlignment(.center).lineLimit(2)
+            Text(app.url.path).font(.caption2.monospaced()).foregroundStyle(LiquidColors.textSecondary).multilineTextAlignment(.center).lineLimit(2)
             Spacer(minLength: 0)
-            VStack(spacing: 7) {
-                HStack(spacing: 7) {
-                    Button("启动应用 ↩") { viewModel.executeCandidate(candidate) }.buttonStyle(GlassPillButtonStyle(prominent: true))
-                    Button("访达 ⌘R") { NSWorkspace.shared.activateFileViewerSelecting([app.url]) }.buttonStyle(GlassPillButtonStyle())
-                }
-                Button { usageTracker.togglePin(app) } label: {
-                    Label(pinned ? "取消钉住" : "钉在常用栏", systemImage: pinned ? "pin.slash" : "pin.fill")
-                }.buttonStyle(GlassPillButtonStyle())
+            HStack(spacing: 7) {
+                Button("启动应用 ↩") { viewModel.executeCandidate(candidate) }.buttonStyle(GlassPillButtonStyle(prominent: true))
+                Button("访达 ⌘R") { NSWorkspace.shared.activateFileViewerSelecting([app.url]) }.buttonStyle(GlassPillButtonStyle())
             }
+            Button { usageTracker.togglePin(app) } label: {
+                Label(pinned ? "取消钉住" : "钉在常用栏", systemImage: pinned ? "pin.slash" : "pin.fill")
+            }.buttonStyle(GlassPillButtonStyle())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity).padding(14)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
@@ -199,8 +205,7 @@ struct OverlaySideLensView: View {
     private func pluginDetailCard(plugin: PluginDescriptor, candidate: LauncherCandidate) -> some View {
         let tint = PluginVisualPalette.tint(from: plugin.manifest.accentColor, fallback: plugin.isBuiltin ? .mint : .cyan)
         let missingCaps = plugin.isBuiltin ? [] : plugin.declaredCapabilities.filter { !plugin.grantedCapabilities.contains($0) }
-        let disabledScopes = plugin.isBuiltin ? [] : plugin.revokedResourceScopes
-        let missingPermLabels = missingCaps.map(\.title) + disabledScopes.map(\.title)
+        let missingPermLabels = missingCaps.map(\.title) + (plugin.isBuiltin ? [] : plugin.revokedResourceScopes.map(\.title))
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 PluginIconBadge(plugin: plugin, size: 38)
@@ -212,10 +217,8 @@ struct OverlaySideLensView: View {
             Text(plugin.effectiveStatusSummary).font(.caption).foregroundStyle(LiquidColors.textSecondary)
             if !missingPermLabels.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
-                    Label(
-                        L10n.pick("待授权能力：\(missingPermLabels.joined(separator: "、"))", "Needs permissions: \(missingPermLabels.joined(separator: ", "))"),
-                        systemImage: "lock.shield.fill"
-                    ).font(.caption2.weight(.semibold)).foregroundStyle(.orange)
+                    Label(L10n.pick("待授权能力：\(missingPermLabels.joined(separator: "、"))", "Needs permissions: \(missingPermLabels.joined(separator: ", "))"), systemImage: "lock.shield.fill")
+                        .font(.caption2.weight(.semibold)).foregroundStyle(.orange)
                     Button(L10n.pick("一键授权并运行", "Grant & Run")) { viewModel.grantMissingCapabilitiesAndRerun(plugin) }
                         .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
                 }
@@ -238,8 +241,7 @@ struct OverlaySideLensView: View {
                     if !plugin.isBuiltin && (plugin.manifest.mode == .view || plugin.manifest.window != nil) {
                         Button(plugin.manifest.window != nil ? L10n.pick("桌面悬浮窗", "Widget") : L10n.pick("悬浮窗", "Float")) {
                             viewModel.openPreferredFloatingWindow(for: plugin)
-                        }
-                        .buttonStyle(GlassPillButtonStyle())
+                        }.buttonStyle(GlassPillButtonStyle())
                     }
                     Button(L10n.pick("设置 ⌘,", "Settings ⌘,")) { viewModel.openPluginSettings(id: plugin.id) }.buttonStyle(GlassPillButtonStyle())
                     Button(plugin.pinnedInOverlay ? L10n.pick("移出快捷按钮", "Unpin") : L10n.pick("快捷按钮", "Quick Btn")) {
@@ -258,8 +260,7 @@ struct OverlaySideLensView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 if canDedicatedWindow {
-                    Button(hit.mediaKind == .video ? "影院播放" : "独立窗口") { viewModel.openMediaWindow(for: hit.url, kind: hit.mediaKind) }
-                        .buttonStyle(GlassPillButtonStyle(prominent: true))
+                    Button(hit.mediaKind == .video ? "影院播放" : "独立窗口") { viewModel.openMediaWindow(for: hit.url, kind: hit.mediaKind) }.buttonStyle(GlassPillButtonStyle(prominent: true))
                 } else {
                     Button("打开 ↩") { viewModel.executeEverythingHit(hit) }.buttonStyle(GlassPillButtonStyle(prominent: true))
                 }

@@ -58,6 +58,7 @@ final class AppViewModel: ObservableObject {
     @Published var appLanguage: AppLanguageID = LanguageManager.shared.current
     @Published var activeSettingsSection: SettingsSection = .general
     @Published var activePluginSettingsID: String? = nil
+    @Published var activeScriptSettingsID: String? = nil
     @Published var appLaunchCounts: [String: Int] = [:] { didSet { updateCachedDockApps() } }
     @Published var isCapturingScreen: Bool = false
 
@@ -97,6 +98,9 @@ final class AppViewModel: ObservableObject {
     @Published var enabledQuickButtons: [PluginQuickButtonItem] = []
     @Published var pluginSearchEntries: [PluginSearchEntry] = [] {
         didSet { if pluginSearchEntries != oldValue, isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) } }
+    }
+    @Published var scripts: [ScriptRecord] = [] {
+        didSet { if scripts != oldValue, isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) } }
     }
     @Published var pluginOutputText: String = ""
 
@@ -145,6 +149,9 @@ final class AppViewModel: ObservableObject {
     var backgroundPluginTasks: [String: Task<Void, Never>] = [:]
     var fsEventWatcher: EverythingFSEventWatcher?
     var pluginWatcher: PluginDirectoryWatcher?
+    var scriptsWatcher: PluginDirectoryWatcher?
+    var scriptsInProcessObserver: NSObjectProtocol?
+    var scriptsDistributedObserver: NSObjectProtocol?
     var homeLayoutObserver: NSObjectProtocol?
     var usageCancellable: AnyCancellable?
     weak var hotKeyManager: GlobalHotKeyManager?
@@ -184,9 +191,7 @@ final class AppViewModel: ObservableObject {
         configureLifecycleIntegrations(); reloadAppsAndPlugins()
         primeEverythingIndexOnStartup(scope: everythingScope)
         MosEngine.shared.onStatusChanged = { [weak self] in
-            Task { @MainActor [weak self] in
-                self?.handleAccessibilityTrustOrMosChanged()
-            }
+            Task { @MainActor [weak self] in self?.handleAccessibilityTrustOrMosChanged() }
         }
         MosEngine.shared.apply(config: mosConfig, persist: false); refreshMosStatus()
         LumaLinkServer.shared.onStatusChanged = { [weak self] in self?.refreshLumaLinkStatus(refreshPermissions: false) }

@@ -5,7 +5,7 @@
 **一触流光，用完即焚 —— 专为 Apple Silicon Mac 打造的轻巧、可深度定制的原生快捷效率中枢。**
 
 - **对日常用户来说**：按一下 `⌥Space`，找软件、搜电脑与移动硬盘里的文件、翻剪贴板历史、算账换算、多屏截图标注贴图、录 GIF 动图、一秒离线识字、让外接鼠标滚轮像触控板一样顺滑——**一个只有 10 MB 左右的小软件就能全部搞定**；用完切回工作后自动释放内存，绝不在后台偷偷拖慢电脑。
-- **对极客与进阶玩家来说**：从 **`⌥Space` 启动面板的四分区布局与多场景主页**、**顶部菜单栏条目**、**全链路静默热键与唤醒词权重**，到 **Plugin v3.7 自由画布透明桌面悬浮窗** 与 **内置 16 项工具的 `lumakey-mcp` AI 协议桥**，每一处都支持精细拆装与一句话 AI 定制；底层采用 **100% 纯原生 Swift 6、零第三方依赖、9 模块单向无环（DAG）架构与单文件 `≤ 300` 行门禁**。
+- **对极客与进阶玩家来说**：从 **`⌥Space` 启动面板的四分区布局与多场景主页**、**单文件双向同步的快捷脚本库（支持自定义 Shebang 与专属 SVG 图标）**、**顶部菜单栏条目**、**全链路静默热键与唤醒词权重**，到 **Plugin v3.7 自由画布透明桌面悬浮窗** 与 **内置 20 项工具的 `lumakey-mcp` AI 协议桥**，每一处都支持精细拆装与一句话 AI 定制；底层采用 **100% 纯原生 Swift 6、零第三方依赖、9 模块单向无环（DAG）架构与单文件 `≤ 300` 行门禁**。
 
 ---
 
@@ -61,8 +61,7 @@
 - **清爽读文档 / 无损看图 / 4K 播片**：纯原生窗口秒开 Markdown 笔记（带目录大纲）、大图与 4K HEVC 视频（支持 `520×300` 小窗置顶与同目录连播），关窗立刻归还全部内存；
 - **双栏文件整理台（`⌥E`）**：整理资料时按需呼出，支持框选、跨栏拖拽复制移动、批量重命名预检与安全移入废纸篓，遇到默认只读的 NTFS 移动硬盘自动护航防误写；
 - **芯片脉搏 & 软件网速透视（`⌥M` / `⌥N`）**：需要时查看芯片大小核负载、整机实时功耗（W）以及每个应用当前的上下行网速与联网去向，顺手安全清理应用缓存；
-- **8 款官方精选插件（[`plugin-demo/`](plugin-demo/README.md)）**：
-  - [`ai-quota`](plugin-demo/ai-quota/README.md)：AI 额度雷达（无边框透明悬浮挂件，实时查看 Claude / Codex / CLI 窗口余量与 DeepSeek 账户余额）
+- **7 款官方精选插件（[`plugin-demo/`](plugin-demo/README.md)）**：
   - [`translate-hub`](plugin-demo/translate-hub/README.md)：流光译站（跨应用划词 / OCR 截图翻译、本地 Ollama 对照、朗读与生词本导出 Anki）
   - [`browser-hub`](plugin-demo/browser-hub/README.md)：三端书签与历史中枢（无锁秒搜 Safari、Chrome 多配置档与 Edge 书签历史）
   - [`quick-remind`](plugin-demo/quick-remind/README.md)：闪电提醒（`10m 喝水` 自然语言倒计时与番茄钟，直通系统原生提醒事项零后台守护）
@@ -82,7 +81,7 @@
 | **模块化与 Clean Code** | 9 大单向无环（DAG）Target 分层，自动化门禁每次构建强校验模块依赖边界、文档死链与**单 `.swift` 源文件 `≤ 300` 行硬上限** |
 | **低延迟与自洁内存** | `LMKYIDX3` 零拷贝 `mmap` 快照 + `FSEvents` 实时增量索引；主面板收起 `30s` 自动销毁视图层级，文件索引空闲 `90s` 或内存压力下自动卸载堆页；默认开启的常驻桌面挂件数为 `0` |
 | **纵深安全与隐私** | 外部插件由 `/usr/bin/sandbox-exec` 动态生成 `Seatbelt` 内核沙箱隔离运行（默认阻断未声明网络与子进程，硬性拉黑系统钥匙串与宿主保险箱）；宿主桥接采用 `0700` 临时目录一次性 48-bit 令牌；敏感密钥由 `LMKYVLT2` 双轨 `256-bit AES-GCM` 加密落盘；系统 TCC 权限由 `PluginHostTCCBroker` 统一代申并纳入 21 项全景权限审计矩阵 |
-| **AI 协议桥 (`lumakey-mcp`)** | 应用内自带零依赖 Stdio JSON-RPC 2.0 服务（`/Applications/Lumakey.app/Contents/MacOS/lumakey-mcp`），内置 `plugin-v3`、`plugin-store-v1`、`home-layout-v1` 三份规范资源与 **16 项工具**（覆盖插件脚手架、静态契约校验、沙箱实跑、商店打包及启动面板实时编排） |
+| **AI 协议桥 (`lumakey-mcp`)** | 应用内自带零依赖 Stdio JSON-RPC 2.0 服务（`/Applications/Lumakey.app/Contents/MacOS/lumakey-mcp`），内置 `plugin-v3`、`plugin-store-v1`、`home-layout-v1`、`scripts-v1` 四份规范资源与 **20 项工具**（覆盖快捷脚本创建与 SVG 图标绘制、插件脚手架、静态契约校验、沙箱实跑、商店打包及启动面板实时编排） |
 
 ---
 

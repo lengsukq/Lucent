@@ -46,8 +46,8 @@ struct PluginMCPSetupView: View {
                             .background(LiquidColors.pillSurface, in: Capsule())
                     }
                     Text(L10n.pick(
-                        "支持 Claude Code、Cursor、Codex、Gemini CLI、Windsurf、Claude Desktop 等客户端；复制下方完整提示词发给 Agent 即可自动挂载并读取插件规范。",
-                        "Works with Claude Code, Cursor, Codex, Gemini CLI, Windsurf, Claude Desktop & more — paste the prompt to your Agent to auto-configure."
+                        "支持 Claude Code、Cursor、Codex、Gemini CLI、Windsurf 等客户端；发给 Agent 后即可帮你编写快捷脚本、自动中英命名、绘制专属 SVG 图标、开发插件与编排主页。",
+                        "Works with Claude Code, Cursor, Codex, Gemini CLI & Windsurf — let your Agent craft Quick Scripts, draw custom SVG icons, build plugins, and arrange Home tiles."
                     ))
                     .font(.caption2)
                     .foregroundStyle(LiquidColors.textSecondary)
@@ -101,8 +101,8 @@ struct PluginMCPSetupView: View {
             GlassInputField(
                 symbol: "sparkles",
                 placeholder: L10n.pick(
-                    "可选：附带接入后让 Agent 顺手完成的任务（如：帮我写一个查看端口占用的视图插件）",
-                    "Optional: append a follow-up task for the Agent (e.g. build a port inspector view plugin)"
+                    "可选：附带让 Agent 顺手完成的任务（如：帮我写个压缩图片体积的快捷脚本，起好名字并画一个专属 SVG 图标钉到主页）",
+                    "Optional: append a follow-up task (e.g. create an image-compress Quick Script with a custom SVG icon and pin it to Home)"
                 ),
                 text: $ctrl.mcpExtraTask
             )

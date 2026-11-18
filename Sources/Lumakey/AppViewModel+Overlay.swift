@@ -125,7 +125,7 @@ extension AppViewModel {
             case .plugins:
                 Array(LauncherEngine.rankCandidates(
                     query: "", filter: .plugins, apps: [], plugins: plugins,
-                    pluginCommands: pluginCommands, pluginSearchEntries: pluginSearchEntries
+                    pluginCommands: pluginCommands, pluginSearchEntries: pluginSearchEntries, scripts: scripts
                 ).prefix(50))
             case .files:
                 (everythingIndex?.search(queryText: "", limit: 40) ?? []).enumerated().map { idx, hit in
@@ -137,8 +137,8 @@ extension AppViewModel {
         }
 
         let appsSnapshot = installedApps, pluginsSnapshot = plugins, commandsSnapshot = pluginCommands
-        let entriesSnapshot = pluginSearchEntries, volumesSnapshot = cachedVolumes, indexSnapshot = everythingIndex
-        let countsSnapshot = appLaunchCounts
+        let entriesSnapshot = pluginSearchEntries, scriptsSnapshot = scripts
+        let volumesSnapshot = cachedVolumes, indexSnapshot = everythingIndex, countsSnapshot = appLaunchCounts
         let usageBoostsSnapshot = AppUsageTrackerController.shared.rankingBoosts(for: appsSnapshot)
         let clipTextSnapshot = clipboardItems.first(where: { $0.textValue != nil })?.textValue
             ?? NSPasteboard.general.string(forType: .string)
@@ -150,7 +150,7 @@ extension AppViewModel {
                 LauncherEngine.rankCandidates(
                     query: trimmed, filter: currentFilter, apps: appsSnapshot,
                     plugins: pluginsSnapshot, pluginCommands: commandsSnapshot,
-                    pluginSearchEntries: entriesSnapshot, clipboardItems: scopedClipboard,
+                    pluginSearchEntries: entriesSnapshot, scripts: scriptsSnapshot, clipboardItems: scopedClipboard,
                     volumes: volumesSnapshot, everythingIndex: indexSnapshot,
                     launchCounts: countsSnapshot, usageBoosts: usageBoostsSnapshot, clipboardText: clipTextSnapshot
                 )
@@ -209,6 +209,7 @@ extension AppViewModel {
             revealSelectedInFinder()
         case .openSettings:
             if let scopedID = scopedPluginID { openPluginSettings(id: scopedID) }
+            else if let selected = selectedCandidate, case .script(let m) = selected.kind { openScriptSettings(selecting: m.script.id) }
             else if let selected = selectedCandidate, case .plugin(let p) = selected.kind { openPluginSettings(id: p.id) }
             else if let selected = selectedCandidate, case .pluginCommand(let c) = selected.kind { openPluginSettings(id: c.pluginID) }
             else if let selected = selectedCandidate, case .pluginItem(let e) = selected.kind { openPluginSettings(id: e.pluginID) }

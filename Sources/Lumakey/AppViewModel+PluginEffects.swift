@@ -42,6 +42,7 @@ extension AppViewModel {
                 case "network": openRoute(.networkMonitor)
                 case "cache": openRoute(.settings(.cache))
                 case "plugins": openRoute(.settings(.plugins))
+                case "scripts": openRoute(.settings(.scripts))
                 case "home", "homeLayout": openRoute(.settings(.homeLayout))
                 case "capture": openRoute(.settings(.capture))
                 default:

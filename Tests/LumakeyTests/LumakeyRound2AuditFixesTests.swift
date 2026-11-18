@@ -54,7 +54,7 @@ struct LumakeyRound2AuditFixesTests {
         }
         let storeIDs = Set(demoStore.manifest.plugins.map(\.id))
         #expect(storeIDs == [
-            "ai-quota", "browser-hub", "lumalink-companion", "mac-pilot", "notion-bookmarks",
+            "browser-hub", "lumalink-companion", "mac-pilot", "notion-bookmarks",
             "quick-remind", "screen-shield", "translate-hub"
         ])
 
@@ -64,7 +64,7 @@ struct LumakeyRound2AuditFixesTests {
         #expect(installedBrowserHub.declaredCommands.count == 6)
         #expect(installedBrowserHub.customIconURL != nil)
 
-        for newID in ["ai-quota", "translate-hub", "mac-pilot", "quick-remind", "screen-shield"] {
+        for newID in ["translate-hub", "mac-pilot", "quick-remind", "screen-shield"] {
             let item = try #require(demoStore.manifest.plugins.first { $0.id == newID })
             let inst = try await PluginStoreService.installStoreItem(item, from: demoStore, in: dir)
             #expect(inst.isValid)
@@ -198,16 +198,16 @@ struct LumakeyRound2AuditFixesTests {
 
     @Test("PluginDeepLinkParser parses lumakey://panel live floating requests and PluginNotificationService records effects safely")
     func pluginFloatingPanelDeepLinkAndNotificationEffect() throws {
-        let panelURL = try #require(URL(string: "lumakey://panel/ai-quota?pin=1&interval=15&arg=--dashboard&query=codex"))
+        let panelURL = try #require(URL(string: "lumakey://panel/quick-remind?pin=1&interval=15&arg=--list&query=water"))
         guard case .pluginPanel(let req) = PluginDeepLinkParser.parse(panelURL) else {
-            Issue.record("Expected .pluginPanel target from lumakey://panel/ai-quota")
+            Issue.record("Expected .pluginPanel target from lumakey://panel/quick-remind")
             return
         }
-        #expect(req.pluginID == "ai-quota")
+        #expect(req.pluginID == "quick-remind")
         #expect(req.pinOnTop == true)
         #expect(req.refreshIntervalSeconds == 15)
-        #expect(req.arguments == ["--dashboard"])
-        #expect(req.query == "codex")
+        #expect(req.arguments == ["--list"])
+        #expect(req.query == "water")
 
         let manualURL = try #require(URL(string: "lumakey://panel/quick-remind?pin=0&interval=0"))
         guard case .pluginPanel(let manualReq) = PluginDeepLinkParser.parse(manualURL) else {
@@ -222,15 +222,15 @@ struct LumakeyRound2AuditFixesTests {
         let rawCardJSON = """
         {
           "schemaVersion": 2,
-          "title": "AI Quota Radar",
+          "title": "Quick Remind Board",
           "effect": {
             "openFloatingPanel": true,
             "floatingPanelPinOnTop": true,
             "floatingPanelIntervalSeconds": 45,
-            "floatingPanelArgs": ["--dashboard"],
+            "floatingPanelArgs": ["--list"],
             "notification": {
-              "title": "AI 额度雷达已刷新",
-              "body": "Codex: 5h 78% · DS: ¥128.50",
+              "title": "闪电提醒已创建",
+              "body": "10m 后提醒：喝水休息",
               "sound": false
             }
           },
@@ -242,19 +242,19 @@ struct LumakeyRound2AuditFixesTests {
         #expect(eff.openFloatingPanel == true)
         #expect(eff.floatingPanelPinOnTop == true)
         #expect(eff.floatingPanelIntervalSeconds == 45)
-        #expect(eff.floatingPanelArgs == ["--dashboard"])
+        #expect(eff.floatingPanelArgs == ["--list"])
 
         PluginNotificationService.shared.clearHistory()
         let noteSpec = try #require(eff.notification)
         let rec = try #require(PluginNotificationService.shared.post(
             noteSpec,
-            pluginID: "ai-quota",
-            pluginName: "AI 额度雷达"
+            pluginID: "quick-remind",
+            pluginName: "闪电提醒"
         ))
-        #expect(rec.pluginID == "ai-quota")
-        #expect(rec.payload.title == "AI 额度雷达已刷新")
-        #expect(rec.payload.subtitle == "AI 额度雷达")
-        #expect(rec.payload.body.contains("¥128.50"))
+        #expect(rec.pluginID == "quick-remind")
+        #expect(rec.payload.title == "闪电提醒已创建")
+        #expect(rec.payload.subtitle == "闪电提醒")
+        #expect(rec.payload.body.contains("喝水休息"))
         #expect(PluginNotificationService.shared.recentRecords(limit: 5).first?.id == rec.id)
     }
 }

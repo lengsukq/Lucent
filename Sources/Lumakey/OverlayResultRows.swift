@@ -73,6 +73,8 @@ struct OverlayUnifiedRowsView: View {
             if let hex = tool.colorHex { colorSwatchIcon(hex) }
             else { SquircleBadge(symbol: tool.symbol, topColor: .mint, bottomColor: .cyan, size: 32) }
         case .snippet: SquircleBadge(symbol: "text.quote", topColor: .cyan, bottomColor: .indigo, size: 32)
+        case .script(let m):
+            PluginIconBadge(symbol: m.script.symbolIconName, customIconURL: m.script.customIconURL(in: ScriptLibraryStore.shared.scriptsDirectory), accentColor: m.script.accentColor, size: 32)
         case .fileHit(let hit): frostedIconBox(IconCache.shared.fileIcon(isDirectory: hit.isDirectory, extensionLowercased: hit.url.pathExtension.lowercased()))
         case .clipboard(let entry): clipboardLeadingBadge(entry)
         case .plugin(let plugin):
@@ -128,6 +130,9 @@ struct OverlayUnifiedRowsView: View {
         case .devTool(let tool): rowLabels(title: L10n.translate(tool.title), subtitle: L10n.translate(tool.subtitle), boldTitle: true, monoSubtitle: true)
         case .snippet(let match):
             rowLabels(title: "\(match.snippet.title)  \(match.snippet.keyword)", subtitle: match.expandedText.replacingOccurrences(of: "\n", with: " ↵ "), boldTitle: true, monoSubtitle: true)
+        case .script(let m):
+            let sub = m.trailingQuery.isEmpty ? m.script.displaySubtitle : L10n.pick("参数: \(m.trailingQuery) · \(m.script.displaySubtitle)", "Arg: \(m.trailingQuery) · \(m.script.displaySubtitle)")
+            rowLabels(title: m.script.displayTitle, subtitle: sub, boldTitle: true)
         case .fileHit(let hit): rowLabels(title: hit.name, subtitle: hit.relativeParentPath, boldTitle: false, monoSubtitle: true)
         case .clipboard(let entry): rowLabels(title: entry.title, subtitle: L10n.translate(entry.subtitle), boldTitle: false)
         case .plugin(let plugin):
@@ -183,6 +188,7 @@ struct OverlayUnifiedRowsView: View {
         switch candidate.kind {
         case .app(let app): usageTracker.isPinned(app)
         case .clipboard(let entry): entry.isPinned
+        case .script(let m): m.script.pinnedInQuickBar
         case .plugin(let plugin): plugin.pinnedInOverlay
         case .pluginCommand(let cmd): cmd.isQuickButtonEnabled
         case .pluginItem(let entry): entry.pinned
@@ -194,6 +200,7 @@ struct OverlayUnifiedRowsView: View {
         switch candidate.kind {
         case .calculator, .clipboard, .snippet: "复制 ↩"
         case .devTool(let t): t.previewImageURL != nil ? "复制图片 ↩" : "复制 ↩"
+        case .script: "运行 ↩"
         case .plugin(let p): viewModel.scopedPluginID != p.id ? "⇥ 列表 · 执行 ↩" : "执行 ↩"
         case .pluginCommand, .command: "执行 ↩"
         case .pluginItem(let e): e.url != nil ? "打开 ↩" : "执行 ↩"
@@ -207,6 +214,7 @@ struct OverlayUnifiedRowsView: View {
         case .calculator(_, _, let b): b
         case .devTool(let t): t.badge
         case .snippet(let m): m.snippet.keyword.isEmpty ? "短语" : m.snippet.keyword
+        case .script(let m): m.script.hotKey ?? m.script.keywords.first ?? m.script.runtime.badgeLabel
         case .fileHit(let hit): hit.mediaKind.badgeTitle
         case .clipboard(let entry): entry.payloadKind.badgeTitle
         case .plugin(let p): p.effectiveHotKey ?? p.displayCategoryBadge

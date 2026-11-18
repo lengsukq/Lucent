@@ -4,7 +4,7 @@ import Foundation
 public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
     case files, clipboard, screenshotPin, gifRecord, ocr
     case networkMonitor, fileWorkspace, systemPulse, toggleMos, pluginsList
-    case snippets, backupSync, cacheCleanup, reclaimMemory, settingsCenter
+    case scripts, snippets, backupSync, cacheCleanup, reclaimMemory, settingsCenter
 
     public var id: String { rawValue }
 
@@ -20,6 +20,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .systemPulse: L10n.pick("系统脉搏", "System Pulse")
         case .toggleMos: L10n.pick("鼠标平滑", "Smooth Mouse")
         case .pluginsList: L10n.pick("插件列表", "Plugins")
+        case .scripts: L10n.pick("脚本快捷库", "Quick Scripts")
         case .snippets: L10n.pick("快捷短语", "Snippets")
         case .backupSync: L10n.pick("备份同步", "Backup & Sync")
         case .cacheCleanup: L10n.pick("缓存清理", "Cache Cleanup")
@@ -40,6 +41,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .systemPulse: L10n.pick("切换桌面脉搏悬浮窗", "Toggle desktop pulse HUD")
         case .toggleMos: L10n.pick("切换物理鼠标平滑滚轮", "Toggle smooth mouse wheel")
         case .pluginsList: L10n.pick("浏览已装与内置扩展", "Browse enabled plugins")
+        case .scripts: L10n.pick("自制脚本与快捷操作", "Custom scripts & quick actions")
         case .snippets: L10n.pick("管理动态短语模板", "Manage text snippets")
         case .backupSync: L10n.pick("加密备份与 WebDAV", "Encrypted backup & WebDAV")
         case .cacheCleanup: L10n.pick("查看与清理应用缓存", "Inspect & clean caches")
@@ -60,6 +62,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .systemPulse: "waveform.path.ecg"
         case .toggleMos: "computermouse.fill"
         case .pluginsList: "puzzlepiece.extension.fill"
+        case .scripts: "terminal.fill"
         case .snippets: "text.quote"
         case .backupSync: "externaldrive.badge.icloud"
         case .cacheCleanup: "internaldrive.fill"
@@ -76,7 +79,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .gifRecord: "pink"
         case .ocr, .pluginsList: "purple"
         case .networkMonitor, .backupSync: "blue"
-        case .fileWorkspace, .reclaimMemory: "teal"
+        case .fileWorkspace, .reclaimMemory, .scripts: "teal"
         case .toggleMos, .snippets: "indigo"
         case .settingsCenter: "slate"
         }

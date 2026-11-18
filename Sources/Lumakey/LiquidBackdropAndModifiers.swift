@@ -56,7 +56,7 @@ struct LiquidGlassShellModifier: ViewModifier {
                         RadialGradient(colors: [Color.cyan.opacity(0.15), .clear], center: .topLeading, startRadius: 8, endRadius: 380)
                         RadialGradient(colors: [Color.pink.opacity(0.12), .clear], center: .topTrailing, startRadius: 10, endRadius: 340)
                         RadialGradient(colors: [Color.purple.opacity(0.12), .clear], center: .bottomLeading, startRadius: 14, endRadius: 380)
-                        LinearGradient(colors: [.white.opacity(0.18), .clear], startPoint: .top, endPoint: .center)
+                        LinearGradient(colors: [.white.opacity(0.16), .clear], startPoint: .top, endPoint: .center)
                     }
                 }
             }
@@ -72,12 +72,18 @@ struct RoundedShapeOuterShadow<S: InsettableShape>: View {
     let yOffset: CGFloat
 
     var body: some View {
-        // Cast shadow from a pure SwiftUI shape rather than around Material/NSVisualEffectView
-        // so macOS never falls back to a rectangular backing-layer shadow, then punch out the interior.
+        // Inset the opaque shadow caster inside the silhouette so its curved edge never touches
+        // the outer rim, and expand the destinationOut cutout by 0.35pt to eliminate corner halos.
         shape
+            .inset(by: 1.5)
             .fill(Color.black)
             .shadow(color: color, radius: radius, y: yOffset)
-            .overlay { shape.blendMode(.destinationOut) }
+            .overlay {
+                shape
+                    .inset(by: -0.35)
+                    .fill(Color.black)
+                    .blendMode(.destinationOut)
+            }
             .compositingGroup()
             .allowsHitTesting(false)
     }
@@ -103,7 +109,7 @@ struct LiquidGlassCardModifier: ViewModifier {
                     }
                     shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : (solidReadable ? LiquidColors.elevatedSurface : LiquidColors.cardSurface))
                     if !prefs.reduceTransparency && isPrism {
-                        shape.fill(LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .topLeading, endPoint: .center))
+                        shape.fill(LinearGradient(colors: [.white.opacity(0.08), .clear], startPoint: .top, endPoint: .center))
                     }
                 }
             }

@@ -20,6 +20,10 @@ extension MCPServer {
         case "lumakey_update_home_layout": return handleUpdateHomeLayout(arguments: arguments)
         case "lumakey_upsert_home_item": return handleUpsertHomeItem(arguments: arguments)
         case "lumakey_remove_home_item": return handleRemoveHomeItem(arguments: arguments)
+        case "lumakey_list_scripts": return handleListScripts(arguments: arguments)
+        case "lumakey_upsert_script": return handleUpsertScript(arguments: arguments)
+        case "lumakey_run_script_test": return handleRunScriptTest(arguments: arguments)
+        case "lumakey_remove_script": return handleRemoveScript(arguments: arguments)
         default: return textResult("Unknown tool: \(name)", isError: true)
         }
     }
@@ -99,7 +103,7 @@ extension MCPServer {
             schema("lumakey_remove_plugin",
                    "Remove an external plugin directory. Builtin plugins (`builtin-*`) cannot be deleted.",
                    ["id": ["type": "string"]], ["id"])
-        ] + storeToolSchemas() + homeLayoutToolSchemas()
+        ] + storeToolSchemas() + homeLayoutToolSchemas() + scriptToolSchemas()
     }
 
     private func handleListPlugins(arguments: [String: Any]) -> [String: Any] {

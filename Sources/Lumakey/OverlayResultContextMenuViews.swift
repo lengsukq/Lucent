@@ -61,6 +61,19 @@ extension OverlayUnifiedRowsView {
             Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(entry.copyText ?? entry.url ?? entry.title, forType: .string) } label: {
                 Label("复制内容", systemImage: "doc.on.doc")
             }
+        case .script(let m):
+            Button { viewModel.executeCandidate(candidate) } label: { Label(L10n.pick("立即运行脚本 (↩)", "Run Script (↩)"), systemImage: "play.fill") }
+            pinToHomeSubmenu(for: candidate)
+            Button { viewModel.toggleScriptQuickBarPin(m.script) } label: {
+                Label(m.script.pinnedInQuickBar ? L10n.pick("从快捷按钮栏移除", "Remove from Quick Bar") : L10n.pick("添加到快捷按钮栏", "Add to Quick Bar"), systemImage: m.script.pinnedInQuickBar ? "bolt.slash.fill" : "bolt.circle.fill")
+            }
+            Button { viewModel.toggleScriptMenuBarPin(m.script) } label: {
+                Label(m.script.showInMenuBar ? L10n.pick("从状态栏菜单移除", "Remove from Menu Bar") : L10n.pick("挂载到状态栏菜单", "Pin to Menu Bar"), systemImage: "menubar.rectangle")
+            }
+            Button { viewModel.openScriptSettings(selecting: m.script.id) } label: { Label(L10n.pick("编辑快捷脚本 (⌘,)", "Edit Script (⌘,)"), systemImage: "slider.horizontal.3") }
+            Button { NSWorkspace.shared.activateFileViewerSelecting([ScriptLibraryStore.shared.scriptURL(for: m.script)]) } label: {
+                Label(L10n.pick("在访达中显示", "Reveal in Finder"), systemImage: "folder")
+            }
         case .snippet:
             Button { viewModel.executeCandidate(candidate) } label: { Label("复制短语", systemImage: "doc.on.doc") }
             pinToHomeSubmenu(for: candidate)

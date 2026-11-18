@@ -6,7 +6,7 @@
   "description": "直连 Microsoft Edge、Google Chrome（支持多配置档）与 Safari 的本地书签、阅读列表和历史记录，无锁拷贝秒搜并同步 ⌥Space 免前缀检索索引",
   "mode": "view",
   "keywords": ["bh", "browser", "history", "edge", "chrome", "safari", "书签", "历史记录", "浏览器"],
-  "entry": "run.sh",
+  "entry": "bin/browser-hub",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "indigo",

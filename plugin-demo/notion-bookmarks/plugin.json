@@ -6,7 +6,7 @@
   "description": "支持包内图标、中英双语、子功能独立快捷键、滑块缓存配置与免前缀检索",
   "mode": "view",
   "keywords": ["bm", "bookmark", "notion", "nav"],
-  "entry": "run.sh",
+  "entry": "bin/notion-bookmarks",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "teal",

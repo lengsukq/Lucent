@@ -22,6 +22,8 @@ extension AppViewModel {
         case .snippet(let match):
             copyPlainText(match.expandedText, message: "已展开并复制短语：\(match.snippet.title)")
             if !isOverlayPinned { onHideOverlayRequest?() }
+        case .script(let match):
+            runScript(match.script, query: match.trailingQuery)
         case .fileHit(let hit): executeEverythingHit(hit)
         case .clipboard(let entry): executeClipboardEntry(entry, autoPaste: true)
         case .plugin(let plugin):
@@ -54,6 +56,9 @@ extension AppViewModel {
                 copyPlainText(tool.copyText, message: "已复制 \(tool.badge)")
             }
         case .snippet(let match): copyPlainText(match.expandedText, message: "已复制展开短语：\(match.snippet.title)")
+        case .script(let match):
+            let p = ScriptLibraryStore.shared.scriptURL(for: match.script).path
+            copyPlainText(p, message: "已复制脚本路径：\(match.script.displayTitle)")
         case .clipboard(let entry):
             _ = ClipboardService.copyToPasteboard(entry); lastPasteboardChangeCount = NSPasteboard.general.changeCount
             serviceMessage = L10n.translate("已复制剪贴板项：\(entry.title)")
@@ -87,6 +92,7 @@ extension AppViewModel {
             if let url = tool.previewImageURL { openMediaWindow(for: url, kind: .image, pinOnTop: true) }
             else { copyPlainText(tool.copyText, message: "已复制 \(tool.badge)") }
         case .snippet: openRoute(.settings(.snippets))
+        case .script(let match): openScriptSettings(selecting: match.script.id)
         case .plugin(let plugin): openPluginSettings(id: plugin.id)
         case .pluginCommand(let regCmd): togglePluginCommandQuickButton(regCmd)
         case .pluginItem(let entry):
@@ -144,6 +150,8 @@ extension AppViewModel {
         switch selected.kind {
         case .fileHit(let hit): NSWorkspace.shared.activateFileViewerSelecting([hit.url])
         case .app(let app): NSWorkspace.shared.activateFileViewerSelecting([app.url])
+        case .script(let match):
+            NSWorkspace.shared.activateFileViewerSelecting([ScriptLibraryStore.shared.scriptURL(for: match.script)])
         case .clipboard(let clip): if !clip.fileURLs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(clip.fileURLs) }
         case .devTool(let tool): if let url = tool.previewImageURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         case .plugin(let plugin): NSWorkspace.shared.activateFileViewerSelecting([plugin.directoryURL])
@@ -190,6 +198,7 @@ extension AppViewModel {
         case .openBackupSettings: openRoute(.settings(.backup))
         case .quickBackup: BackupCoordinator.triggerQuickBackup(viewModel: self)
         case .openSnippetsSettings: openRoute(.settings(.snippets))
+        case .openScriptsSettings: openRoute(.settings(.scripts))
         case .openPluginsSettings: openRoute(.settings(.plugins))
         case .switchTheme(let theme): setAppTheme(theme)
         case .cycleTheme: cycleAppTheme()
@@ -252,45 +261,5 @@ extension AppViewModel {
 
     private func runAppleScript(_ source: String) {
         if let script = NSAppleScript(source: source) { var err: NSDictionary?; script.executeAndReturnError(&err) }
-    }
-
-    func setAppTheme(_ theme: AppThemeID) {
-        ThemeManager.shared.apply(theme, persist: true)
-        appTheme = theme
-        serviceMessage = L10n.pick("已切换至「\(theme.title)」(\(theme.englishBadge)) 主题", "Theme switched to \(theme.localizedTitle)")
-    }
-
-    func cycleAppTheme() {
-        let next = ThemeManager.shared.cycle()
-        appTheme = next
-        serviceMessage = L10n.pick("已切换至「\(next.title)」(\(next.englishBadge)) 主题", "Theme switched to \(next.localizedTitle)")
-    }
-
-    func reloadThemeFromDisk() {
-        ThemeManager.shared.reloadFromDisk()
-        appTheme = ThemeManager.shared.current
-    }
-
-    func setAppLanguage(_ language: AppLanguageID) {
-        LanguageManager.shared.apply(language, persist: true)
-        appLanguage = language
-        reloadPluginsAndHotKeys()
-        refreshDisplayedCandidates(resetSelection: false)
-        serviceMessage = language == .english ? "Interface language switched to English" : "已切换界面语言为：简体中文"
-    }
-
-    func cycleAppLanguage() {
-        let next = LanguageManager.shared.cycle()
-        appLanguage = next
-        reloadPluginsAndHotKeys()
-        refreshDisplayedCandidates(resetSelection: false)
-        serviceMessage = next == .english ? "Interface language switched to English" : "已切换界面语言为：简体中文"
-    }
-
-    func reloadLanguageFromDisk() {
-        LanguageManager.shared.reloadFromDisk()
-        appLanguage = LanguageManager.shared.current
-        reloadPluginsAndHotKeys()
-        refreshDisplayedCandidates(resetSelection: false)
     }
 }

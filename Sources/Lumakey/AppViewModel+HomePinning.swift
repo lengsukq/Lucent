@@ -44,6 +44,12 @@ extension AppViewModel {
             guard let plugin = plugins.first(where: { $0.id == pluginID }) else { return }
             let specArgs = plugin.declaredCommands.first(where: { $0.id == commandID })?.arguments ?? []
             runPlugin(plugin, query: "", arguments: argsOverride ?? specArgs, showInline: true)
+        case .script(let scriptID):
+            guard let script = scripts.first(where: { $0.id == scriptID }) else {
+                serviceMessage = L10n.pick("未找到快捷脚本：\(scriptID)", "Script not found: \(scriptID)")
+                return
+            }
+            runScript(script)
         case .bookmark(let rawURL, let browserPath, let sourcePluginID):
             if let sourcePluginID { PluginSystem.recordPluginUsage(id: sourcePluginID) }
             guard let url = URL(string: rawURL) else { return }
@@ -82,6 +88,7 @@ extension AppViewModel {
         case .systemPulse: SystemPulseWindowController.shared.toggleFloatingWidget()
         case .toggleMos: executeSystemCommand(.toggleMosEnabled)
         case .pluginsList: setOmniFilter(.plugins)
+        case .scripts: openRoute(.settings(.scripts))
         case .snippets: openRoute(.settings(.snippets))
         case .backupSync: openRoute(.settings(.backup))
         case .cacheCleanup: openRoute(.settings(.cache))
@@ -123,6 +130,8 @@ extension AppViewModel {
             return nil
         case .fileHit(let hit):
             return HomeLaunchItem(id: "path-\(suffix)", target: .localPath(path: hit.url.path))
+        case .script(let match):
+            return HomeLaunchItem(id: "script-\(match.script.id)", target: .script(scriptID: match.script.id))
         case .snippet(let match):
             let q = match.snippet.keyword.isEmpty ? match.snippet.title : match.snippet.keyword
             return HomeLaunchItem(
@@ -172,6 +181,8 @@ extension AppViewModel {
                 try? PluginSystem.updatePluginOverrides(id: pid) { $0.pinnedInOverlay = false }; reloadPlugins()
             case .pluginCommand(let pid, let cid, _):
                 try? PluginSystem.setPluginCommandQuickButton(pluginID: pid, commandID: cid, enabled: false); reloadPlugins()
+            case .script(let sid):
+                if let sc = scripts.first(where: { $0.id == sid }) { toggleScriptQuickBarPin(sc) }
             default: break
             }
         } else {

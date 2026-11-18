@@ -154,7 +154,7 @@ struct GlassInputField: View {
     var body: some View {
         let shape = Capsule(style: .continuous)
         let reduceTransparency = SystemDisplayPreferences.shared.reduceTransparency
-        let isPrism = themeManager.current == .prismPulse
+        let _ = themeManager.current
         let resolvedPlaceholder = L10n.translate(placeholder, for: languageManager.current)
         HStack(spacing: 8) {
             if let symbol {
@@ -177,9 +177,6 @@ struct GlassInputField: View {
                 shape.fill(reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.inputFieldSurface)
             }
         }
-        .overlay { shape.strokeBorder(LiquidColors.inputFieldBorder, lineWidth: 0.9) }
-        .overlay {
-            if isPrism { shape.strokeBorder(LiquidColors.innerSpecularGradient, lineWidth: 0.6).padding(1) }
-        }
+        .overlay { shape.strokeBorder(LiquidColors.inputFieldBorder, lineWidth: 0.85) }
     }
 }

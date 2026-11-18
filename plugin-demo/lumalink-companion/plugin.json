@@ -6,7 +6,7 @@
   "description": "免开设置窗的全功能手机远控台：支持物理局域网与内网穿透网卡一键切换、6 位配对码与手动连接参数复制、扫码二维码、HiDPI 分辨率切换、物理隐私黑屏与已配对手机管理",
   "mode": "view",
   "keywords": ["lumalink", "remote", "rdp", "流光随行", "远控"],
-  "entry": "run.sh",
+  "entry": "bin/lumalink-companion",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "cyan",

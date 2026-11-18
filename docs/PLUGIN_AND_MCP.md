@@ -1,6 +1,6 @@
 # 插件系统与 MCP 接口规范
 
-`Lumakey` 定位为 **macOS 轻量生产力中枢**（而非多运行时应用中心、常驻 Web 网关或 `launchd` 守护进程调度器）。其 **Plugin v3.7（沙盒化自由画布 `WKWebView` HUD、窗口几何记忆与环境热同步、精细上下文过滤、阶段进度桥接与跨源批量更新版）** 延续「零常驻开销、按需触发、即关即回收」原则，将**内置原生插件 (`BUILTIN`)** 与**外部扩展插件 (`EXT`)** 统一纳入设置中心「插件独立设置」导航列表（支持按需折叠隐藏）、包内自定义图标与品牌色、中英双语自适应、子功能 (`commands`) 全局搜索与独立快捷键、默认关闭的按需快捷按钮与状态栏菜单挂载、自由画布/实时悬浮面板/阅读钉屏深链与全 App 权限审计矩阵，并通过同包交付的 `lumakey-mcp` 服务向 AI 客户端暴露完整规范与接口。
+`Lumakey` 定位为 **macOS 轻量生产力中枢**（而非多运行时应用中心、常驻 Web 网关或 `launchd` 守护进程调度器）。其 **Plugin v3.7（沙盒化自由画布 `WKWebView` HUD、窗口几何记忆与环境热同步、精细上下文过滤、阶段进度桥接与跨源批量更新版）** 与 **独立脚本快捷库 (`Quick Scripts`)** 延续「零常驻开销、按需触发、即关即回收」原则，将**内置原生插件 (`BUILTIN`)** 与**外部扩展插件 (`EXT`)** 统一纳入设置中心「插件独立设置」导航列表（支持按需折叠隐藏）、包内自定义图标与品牌色、中英双语自适应、子功能 (`commands`) 全局搜索与独立快捷键、默认关闭的按需快捷按钮与状态栏菜单挂载、自由画布/实时悬浮面板/阅读钉屏深链与全 App 权限审计矩阵，并通过同包交付的 `lumakey-mcp` 服务向 AI 客户端暴露完整规范与接口。
 
 ## 一、统一注册模型、原生视觉、多语言清单与强制权限声明
 
@@ -46,7 +46,7 @@
   "description": "支持包内图标、中英双语、子功能独立快捷键、滑块配置与免前缀检索",
   "mode": "view",
   "keywords": ["bm", "bookmark"],
-  "entry": "run.sh",
+  "entry": "bin/notion-bookmarks",
   "author": "Lumakey Official",
   "icon": "icon.svg",
   "accentColor": "teal",
@@ -116,21 +116,22 @@
 | `systemControl` | `status`、`setVolume`、`setMute`、`setCaffeine`、`setStatusScreen`、`clearStatusScreen` | 查询与安全调节系统音量/静音/防休眠状态，以及多屏全屏状态屏告示遮罩（支持键鼠防误触拦截与长按 `Esc` 安全退出） |
 | `lumaLinkStatus` | `status`、`toggle`、`setEnabled`、`toggleRdp`、`regeneratePin`、`toggleCurtain`、`toggleCaffeine`、`setDisplayMode`、`restoreDisplays`、`revokeDevice` | 全闭环受控管理 LumaLink 监听、高清配对二维码生成、多屏 HiDPI 切换、物理防窥黑屏、防休眠及已配对设备解绑（绝不暴露设备 Token） |
 
-## 三、全 App 权限审计矩阵与开发者套件
+## 三、独立脚本快捷库 (`Quick Scripts`)、权限审计矩阵与开发者套件
 
+- **独立脚本快捷库 (`ScriptLibraryStore` & `ScriptRunner`)**：面向免 `plugin.json` 的单文件轻量快捷操作，支持设置中心可视化编写与 `~/Library/Application Support/Lumakey/Scripts/` 目录单文件双向热同步（解析首部 `@lumakey.*` 魔术注释）；原生支持 `Zsh`、`Bash`、`Python 3`、`AppleScript (osascript)`、`Swift` 及任意 `#!` 自定义 Shebang（如 `node`、`deno`、`ruby`），支持 `Scripts/icons/<id>.svg` 专属矢量图标与中英双语标题、5 种输出动作（轻提示、浮窗预览、复制结果、原窗口回填粘贴、阅读窗）、独立全局热键、启动页磁贴/高频坞及默认关闭的快捷按钮与状态栏菜单挂载，全程经 `PluginSandboxProfileBuilder` 强制执行 Seatbelt 隔离并纳入 `.lumakeybackup` 归档同步。
 - **权限全景清单 (`PluginPermissionAudit` & `PluginHostTCCBroker`)**：汇总系统 TCC（由宿主代申并在矩阵页提供实时状态与一键代申入口）、内核采样、容器/宿主桥接与 Seatbelt 资源作用域共 21 项细分权限，列出每项权限当前被哪些 `BUILTIN` / `EXT` 插件声明及授权状态，并在底部独立归集显式声明 `[]` 的纯沙盒插件。
 - **内置工具与短语**：`LumakeyCore` 同时内置零子进程 `DevToolkitEngine` 与 `SnippetStore`。
 
-## 四、原生 Stdio MCP 服务器 (`lumakey-mcp` v0.3.2)
+## 四、原生 Stdio MCP 服务器 (`lumakey-mcp` v0.3.3)
 
-`lumakey-mcp` 基于零依赖换行分隔 JSON-RPC 2.0（支持 `--plugins-dir <path>` 与 `--home-layout <path>`），暴露 `lumakey://specs/plugin-v3`、`lumakey://specs/plugin-store-v1` 与 `lumakey://specs/home-layout-v1` 三项规范资源及 16 项工具：
+`lumakey-mcp` 基于零依赖换行分隔 JSON-RPC 2.0（支持 `--plugins-dir <path>` 与 `--home-layout <path>`），暴露 `lumakey://specs/plugin-v3`、`lumakey://specs/plugin-store-v1`、`lumakey://specs/home-layout-v1` 与 `lumakey://specs/scripts-v1` 四项规范资源及 20 项工具：
 
 | 工具名 | 必选 / 关键参数 | 作用 |
 | --- | --- | --- |
 | `lumakey_list_plugins` | `includeBuiltin`（可选，默认 `true`） | 返回内置与外部插件的启用、包内图标/品牌色、多语言标题、已声明子功能 (`declaredCommands`)、子功能热键 (`commandHotKeys`)、已开启快捷按钮 (`quickButtonCommandIDs`)、运行态摘要 (`statusSummary`)、宿主能力与 Seatbelt 资源域 (`grantedResourceScopes`/`revokedResourceScopes`) 状态 |
 | `lumakey_app_permissions` | `onlyUsed`（可选） | 返回全 App 权限审计矩阵及纯沙盒 (`[]`) 插件列表 |
 | `lumakey_scaffold_plugin` | `id`, `name`, `keywords`, `capabilities`, `resourceScopes`（必选），`accepts`（可选） | 安全生成 `plugin.json` 与可执行 `run.sh` |
-| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `ai-quota`、`browser-hub`、`lumalink-companion`、`notion-bookmarks`、`translate-hub`、`mac-pilot`、`quick-remind` 与 `screen-shield` 八款旗舰插件） |
+| `lumakey_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方原生 Swift 实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `browser-hub`、`lumalink-companion`、`notion-bookmarks`、`translate-hub`、`mac-pilot`、`quick-remind` 与 `screen-shield` 七款预编译原生 `arm64` Swift 旗舰插件，零 Python 运行时依赖） |
 | `lumakey_validate_plugin` | `id` | 校验 `capabilities`、`resourceScopes`、包内图标安全边界、滑块数值范围、`commands`、`accepts` 与脚本权限 |
 | `lumakey_run_plugin_test` | `id`, `query`, `arguments`, `context`, `clipboardText`（可选） | 执行内置或外部插件测试（自动注入 `locale`/`theme`、模拟子功能 `arguments`、跨模块 `context` 与临时 Host Bridge） |
 | `lumakey_set_plugin_enabled` | `id`, `enabled` | 启停外部或 `BUILTIN` 插件 |
@@ -139,10 +140,14 @@
 | `lumakey_package_plugin_for_store` | `id`, `outputDir`（必选），`registryPath`, `storeId`, `storeName`, `downloadURL`（可选） | 校验外置插件并打包干净 `<id>.zip`（剔除隐藏文件与软链接）、计算 64 位 `sha256`，自动生成或更新 `lumakey-registry.json` |
 | `lumakey_list_plugin_stores` | 无 | 列出当前已订阅的全部自定义插件商店源及收录插件 |
 | `lumakey_resolve_or_install_url` | `url`（必选），`install`, `installPluginId`（可选） | 自动识别任意地址是插件商店还是单个插件，支持一键订阅入驻或按需安装插件 |
-| `lumakey_get_home_layout` | `includeCandidates`, `includeNativeApps`（可选） | 读取当前启动页多场景 Profile、各分区明细，以及可用内置动作、已装插件与已索引书签候选池 |
+| `lumakey_get_home_layout` | `includeCandidates`, `includeNativeApps`（可选） | 读取当前启动页多场景 Profile、各分区明细，以及可用内置动作、已装插件、快捷脚本与已索引书签候选池 |
 | `lumakey_update_home_layout` | `selectProfileID`, `createProfile`, `applyPreset`, `sectionOrder`, `hiddenSections`, `bentoColumns`, `dockRows`, `upsertShelf`, `undoLastChange` 等 | 创建/切换场景 Profile、套用 4 套官方预设、调整四大分区显隐与网格密度、管理分组书签架或撤回上次改动，并通知运行中宿主实时热刷新 |
-| `lumakey_upsert_home_item` | `section`（必选），`kind`, `id`, `shelfID`, `customTitle`, `customIcon`, `accentColor`, `index`, `moveOffset` 等 | 向 Bento 磁贴、混合高频坞或分组书签架新增、更新或移动启动项（内置动作、本机应用、自制插件/命令、白名单书签 URL、本地目录、查询词） |
+| `lumakey_upsert_home_item` | `section`（必选），`kind`, `id`, `shelfID`, `scriptID`, `customTitle`, `customIcon`, `accentColor`, `index`, `moveOffset` 等 | 向 Bento 磁贴、混合高频坞或分组书签架新增、更新或移动启动项（内置动作、本机应用、快捷脚本 `script`、自制插件/命令、白名单书签 URL、本地目录、查询词） |
 | `lumakey_remove_home_item` | `id`, `section` 或 `resetPreset` | 移除指定主页启动项，或将当前 Profile 一键重置为指定官方预设 |
+| `lumakey_list_scripts` | `includeDisabled`, `includeCode`（可选） | 列出脚本快捷库中的全部单文件快捷脚本、中英名称、专属 SVG 图标状态、触发词、全局热键与沙箱作用域 |
+| `lumakey_upsert_script` | `title`（必选），`id`, `englishTitle`, `keywords`, `runtime`, `fileExtension`, `code`, `outputMode`, `iconSvg`, `icon`, `accentColor`, `hotKey`, `allowedScopes` 等 | 新建或更新单文件快捷脚本，支持 AI 自动中英命名与直接传入 `64×64` `<svg>` 矢量图标（`iconSvg`）落盘渲染，通知宿主实时热重载 |
+| `lumakey_run_script_test` | `id`（必选），`query`, `clipboardText`, `selectedText`（可选） | 在 Seatbelt 沙箱中实测运行指定快捷脚本并返回 `exitCode`、`stdout`、`stderr` 与耗时 |
+| `lumakey_remove_script` | `id`（必选） | 删除指定快捷脚本及其专属 SVG 图标并通知宿主刷新 |
 
 ## 五、自定义商店入驻与单插件地址自动识别规范 (`PluginStoreSniffer` & `lumakey-registry.json`)
 

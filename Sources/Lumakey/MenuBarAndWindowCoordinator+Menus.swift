@@ -58,7 +58,7 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
         if !windows.isEmpty {
             for (_, win) in windows.sorted(by: { $0.key < $1.key }) {
                 let frontTitle = L10n.pick("前置：\(win.title)", "Bring to Front: \(win.title)")
-                let mItem = MenuBarCallbackItem(title: frontTitle) {
+                let mItem = makeCallbackMenuItem(title: frontTitle) {
                     if win.isMiniaturized { win.deminiaturize(nil) }
                     win.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
                 }
@@ -99,13 +99,7 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
         }
 
         if config.showPinnedPluginsSection {
-            let pinnedPlugins = PluginCommandRegistry.enabledMenuBarItems(for: viewModel.plugins)
-            if !pinnedPlugins.isEmpty {
-                if !menu.items.isEmpty { menu.addItem(.separator()) }
-                for pItem in pinnedPlugins {
-                    menu.addItem(makePinnedPluginMenuItem(pItem))
-                }
-            }
+            appendPinnedPluginsAndScripts(to: menu)
         }
 
         if !layout.maintenanceSubmenuItems.isEmpty {
@@ -168,7 +162,7 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
             id.localizedTitle
         }
 
-        let item = MenuBarCallbackItem(title: title) { [weak self] in
+        let item = makeCallbackMenuItem(title: title) { [weak self] in
             self?.performMenuAction(id)
         }
         item.image = NSImage(systemSymbolName: id.symbolName, accessibilityDescription: nil)
@@ -186,7 +180,7 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
 
         if let hkAction = id.associatedHotKeyAction,
            let chord = hotKeyManager.currentConfig.effectiveChord(for: hkAction) {
-            applyShortcut(chord: chord, to: item)
+            applyMenuShortcut(chord: chord, to: item)
         } else if id == .settingsCenter {
             item.keyEquivalent = ","
             item.keyEquivalentModifierMask = [.command]
@@ -197,33 +191,11 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
         return item
     }
 
-    private func makePinnedPluginMenuItem(_ pinned: PluginQuickButtonItem) -> NSMenuItem {
-        let label = switch pinned.target {
-        case .plugin: pinned.title
-        case .command: "\(pinned.pluginName) · \(pinned.title)"
-        }
-        let item = MenuBarCallbackItem(title: label) { [weak self] in
-            self?.viewModel.executeMenuBarPluginItem(pinned)
-        }
-        if let iconURL = pinned.customIconURL,
-           let img = IconCache.shared.pluginIcon(for: iconURL, pointSize: 15) {
-            item.image = img
-        } else {
-            item.image = NSImage(systemSymbolName: pinned.symbolName, accessibilityDescription: nil)
-        }
-        if let plug = viewModel.plugins.first(where: { $0.id == pinned.pluginID }) {
-            let rawHK: String? = switch pinned.target {
-            case .plugin: plug.effectiveHotKey
-            case .command(_, let cmdID): plug.effectiveCommandHotKey(for: cmdID)
-            }
-            if let rawHK, let chord = HotKeyChord.parse(rawHK) {
-                applyShortcut(chord: chord, to: item)
-            }
-        }
-        return item
+    func makeCallbackMenuItem(title: String, callback: @escaping () -> Void) -> NSMenuItem {
+        MenuBarCallbackItem(title: title, callback: callback)
     }
 
-    private func applyShortcut(chord: HotKeyChord, to item: NSMenuItem) {
+    func applyMenuShortcut(chord: HotKeyChord, to item: NSMenuItem) {
         if let keyEq = Self.menuKeyEquivalent(for: chord.keyCode) {
             item.keyEquivalent = keyEq
             item.keyEquivalentModifierMask = chord.modifierFlags

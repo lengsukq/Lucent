@@ -60,23 +60,17 @@ struct HomeCustomizationSettingsView: View {
                     .font(.callout.weight(.semibold))
                 Spacer()
                 if config.profiles.count > 1 {
-                    Button(role: .destructive) {
-                        viewModel.mutateHomeLayout { try? _ = $0.deleteProfile(id: profile.id) }
-                    } label: {
+                    Button(role: .destructive) { viewModel.mutateHomeLayout { try? _ = $0.deleteProfile(id: profile.id) } } label: {
                         Text(L10n.pick("删除当前场景", "Delete Profile")).font(.caption2)
-                    }
-                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                    }.buttonStyle(GlassPillButtonStyle(compact: true))
                 }
             }
 
             FlowWrapLayout(horizontalSpacing: 7, verticalSpacing: 7) {
                 ForEach(config.profiles) { p in
-                    Button {
-                        viewModel.mutateHomeLayout { _ = $0.selectProfile(id: p.id) }
-                    } label: {
+                    Button { viewModel.mutateHomeLayout { _ = $0.selectProfile(id: p.id) } } label: {
                         Label(p.name, systemImage: p.symbol)
-                    }
-                    .buttonStyle(GlassPillButtonStyle(prominent: p.id == config.activeProfileID, compact: true))
+                    }.buttonStyle(GlassPillButtonStyle(prominent: p.id == config.activeProfileID, compact: true))
                 }
             }
 
@@ -85,12 +79,9 @@ struct HomeCustomizationSettingsView: View {
                 Button(L10n.pick("新建并切换", "Create Profile")) {
                     let clean = ui.newProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !clean.isEmpty else { return }
-                    viewModel.mutateHomeLayout {
-                        _ = try? $0.createProfile(name: clean, symbol: "sparkles", preset: .balanced)
-                    }
+                    viewModel.mutateHomeLayout { _ = try? $0.createProfile(name: clean, symbol: "sparkles", preset: .balanced) }
                     ui.newProfileName = ""
-                }
-                .buttonStyle(GlassPillButtonStyle(compact: true))
+                }.buttonStyle(GlassPillButtonStyle(compact: true))
             }
 
             Divider().opacity(0.22)
@@ -98,17 +89,13 @@ struct HomeCustomizationSettingsView: View {
             HStack(spacing: 7) {
                 Text(L10n.pick("一键套用预设：", "Apply Preset:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                 ForEach(HomeLayoutPreset.allCases) { preset in
-                    Button(preset.title) {
-                        viewModel.mutateHomeLayout { $0.applyPreset(preset) }
-                    }
-                    .buttonStyle(GlassPillButtonStyle(compact: true))
-                    .help(preset.subtitle)
+                    Button(preset.title) { viewModel.mutateHomeLayout { $0.applyPreset(preset) } }
+                        .buttonStyle(GlassPillButtonStyle(compact: true)).help(preset.subtitle)
                 }
                 Spacer()
             }
         }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
+        .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
     }
 
     private var sectionsAndDensityCard: some View {
@@ -118,54 +105,36 @@ struct HomeCustomizationSettingsView: View {
 
             FlowWrapLayout(horizontalSpacing: 16, verticalSpacing: 8) {
                 HStack(spacing: 6) {
-                    Text(L10n.pick("Bento 列数：", "Bento Columns:"))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(LiquidColors.textSecondary)
+                    Text(L10n.pick("Bento 列数：", "Bento Columns:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                     ForEach(HomeBentoColumns.allCases) { col in
-                        Button(col.title) {
-                            viewModel.mutateHomeLayout { $0.activeProfile.bentoColumns = col }
-                        }
-                        .buttonStyle(GlassPillButtonStyle(prominent: profile.bentoColumns == col, compact: true))
+                        Button(col.title) { viewModel.mutateHomeLayout { $0.activeProfile.bentoColumns = col } }
+                            .buttonStyle(GlassPillButtonStyle(prominent: profile.bentoColumns == col, compact: true))
                     }
                 }
-
                 HStack(spacing: 6) {
-                    Text(L10n.pick("高频坞容量：", "Dock Rows:"))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(LiquidColors.textSecondary)
+                    Text(L10n.pick("高频坞容量：", "Dock Rows:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                     ForEach([1, 2], id: \.self) { rows in
                         let title = rows == 1 ? L10n.pick("1 排 (8 格)", "1 Row (8)") : L10n.pick("2 排 (16 格)", "2 Rows (16)")
-                        Button(title) {
-                            viewModel.mutateHomeLayout { $0.activeProfile.dockRows = rows }
-                        }
-                        .buttonStyle(GlassPillButtonStyle(prominent: profile.dockRows == rows, compact: true))
+                        Button(title) { viewModel.mutateHomeLayout { $0.activeProfile.dockRows = rows } }
+                            .buttonStyle(GlassPillButtonStyle(prominent: profile.dockRows == rows, compact: true))
                     }
                 }
             }
 
             FlowWrapLayout(horizontalSpacing: 16, verticalSpacing: 8) {
                 HStack(spacing: 6) {
-                    Text(L10n.pick("混合坞补位：", "Dock Fill:"))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(LiquidColors.textSecondary)
+                    Text(L10n.pick("混合坞补位：", "Dock Fill:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                     ForEach(HomeDockFillMode.allCases) { mode in
-                        Button(mode.title) {
-                            viewModel.mutateHomeLayout { $0.activeProfile.dockFillMode = mode }
-                        }
-                        .buttonStyle(GlassPillButtonStyle(prominent: profile.dockFillMode == mode, compact: true))
+                        Button(mode.title) { viewModel.mutateHomeLayout { $0.activeProfile.dockFillMode = mode } }
+                            .buttonStyle(GlassPillButtonStyle(prominent: profile.dockFillMode == mode, compact: true))
                     }
                 }
-
                 HStack(spacing: 7) {
-                    Text(L10n.pick("精简底部状态栏重复按钮", "Compact footer bar"))
-                        .font(.caption)
+                    Text(L10n.pick("精简底部状态栏重复按钮", "Compact footer bar")).font(.caption)
                     Toggle("", isOn: Binding(
                         get: { profile.compactFooterBar },
                         set: { val in viewModel.mutateHomeLayout { $0.activeProfile.compactFooterBar = val } }
-                    ))
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .labelsHidden()
+                    )).toggleStyle(.switch).controlSize(.mini).labelsHidden()
                 }
             }
 
@@ -188,16 +157,14 @@ struct HomeCustomizationSettingsView: View {
                         Toggle("", isOn: Binding(
                             get: { vis },
                             set: { on in viewModel.mutateHomeLayout { $0.activeProfile.setSectionVisible(sec, visible: on) } }
-                        ))
-                        .toggleStyle(.switch).controlSize(.mini).labelsHidden()
+                        )).toggleStyle(.switch).controlSize(.mini).labelsHidden()
                     }
                     .padding(.horizontal, 10).padding(.vertical, 6)
                     .background(LiquidColors.pillSurface.opacity(vis ? 0.6 : 0.28), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
             }
         }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
+        .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
     }
 
     private var shelvesAndItemsManagerCard: some View {
@@ -208,32 +175,20 @@ struct HomeCustomizationSettingsView: View {
                 Spacer()
                 Button(L10n.pick("+ 添加启动项", "+ Add Item")) {
                     ui.editorContext = HomeItemEditorContext(destination: ui.inspectingDestination)
-                }
-                .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                }.buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
             }
 
             FlowWrapLayout(horizontalSpacing: 6, verticalSpacing: 6) {
-                Button(L10n.pick("Bento 磁贴 (\(profile.bentoItems.count))", "Bento (\(profile.bentoItems.count))")) {
-                    ui.inspectingDestination = .bento
-                }
-                .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .bento, compact: true))
-
-                Button(L10n.pick("混合坞已钉项 (\(profile.dockItems.count))", "Pinned Dock (\(profile.dockItems.count))")) {
-                    ui.inspectingDestination = .dock
-                }
-                .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .dock, compact: true))
-
+                Button(L10n.pick("Bento 磁贴 (\(profile.bentoItems.count))", "Bento (\(profile.bentoItems.count))")) { ui.inspectingDestination = .bento }
+                    .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .bento, compact: true))
+                Button(L10n.pick("混合坞已钉项 (\(profile.dockItems.count))", "Pinned Dock (\(profile.dockItems.count))")) { ui.inspectingDestination = .dock }
+                    .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .dock, compact: true))
                 ForEach(profile.pillShelves) { shelf in
-                    Button("\(shelf.title) (\(shelf.items.count))") {
-                        ui.inspectingDestination = .shelf(shelf.id)
-                    }
-                    .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .shelf(shelf.id), compact: true))
+                    Button("\(shelf.title) (\(shelf.items.count))") { ui.inspectingDestination = .shelf(shelf.id) }
+                        .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .shelf(shelf.id), compact: true))
                 }
-
-                Button(L10n.pick("搜索词条 (\(profile.utilityChips.count))", "Chips (\(profile.utilityChips.count))")) {
-                    ui.inspectingDestination = .utilityChips
-                }
-                .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .utilityChips, compact: true))
+                Button(L10n.pick("搜索词条 (\(profile.utilityChips.count))", "Chips (\(profile.utilityChips.count))")) { ui.inspectingDestination = .utilityChips }
+                    .buttonStyle(GlassPillButtonStyle(prominent: ui.inspectingDestination == .utilityChips, compact: true))
             }
 
             HStack(spacing: 8) {
@@ -247,8 +202,7 @@ struct HomeCustomizationSettingsView: View {
                     }
                     ui.inspectingDestination = .shelf(id)
                     ui.newShelfTitle = ""
-                }
-                .buttonStyle(GlassPillButtonStyle(compact: true))
+                }.buttonStyle(GlassPillButtonStyle(compact: true))
             }
 
             let items = itemsForDestination(ui.inspectingDestination)
@@ -259,7 +213,12 @@ struct HomeCustomizationSettingsView: View {
                 ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
                     let vis = viewModel.resolvedHomeVisual(for: item)
                     HStack(spacing: 9) {
-                        Image(systemName: vis.symbolName).foregroundStyle(PluginVisualPalette.tint(from: vis.accentColor)).frame(width: 18)
+                        if let iconURL = vis.customIconURL, let nsImg = IconCache.shared.pluginIcon(for: iconURL, pointSize: 18) {
+                            Image(nsImage: nsImg).resizable().scaledToFit().frame(width: 17, height: 17)
+                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous)).frame(width: 18)
+                        } else {
+                            Image(systemName: vis.symbolName).foregroundStyle(PluginVisualPalette.tint(from: vis.accentColor)).frame(width: 18)
+                        }
                         Text(vis.title).font(.caption.weight(.semibold)).lineLimit(1)
                         Text(vis.subtitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                         Spacer()
@@ -272,9 +231,7 @@ struct HomeCustomizationSettingsView: View {
                         Button { ui.editorContext = HomeItemEditorContext(destination: ui.inspectingDestination, existingItem: item) } label: {
                             Image(systemName: "pencil").font(.caption)
                         }.buttonStyle(.plain)
-                        Button(role: .destructive) {
-                            viewModel.mutateHomeLayout { _ = $0.removeItem(id: item.id, from: ui.inspectingDestination) }
-                        } label: {
+                        Button(role: .destructive) { viewModel.mutateHomeLayout { _ = $0.removeItem(id: item.id, from: ui.inspectingDestination) } } label: {
                             Image(systemName: "trash").font(.caption).foregroundStyle(.orange)
                         }.buttonStyle(.plain)
                     }
@@ -283,8 +240,7 @@ struct HomeCustomizationSettingsView: View {
                 }
             }
         }
-        .padding(14)
-        .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
+        .padding(14).liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
     }
 
     private func itemsForDestination(_ dest: HomeItemDestination) -> [HomeLaunchItem] {

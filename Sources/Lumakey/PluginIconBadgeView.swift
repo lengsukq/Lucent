@@ -21,6 +21,10 @@ extension IconCache {
         return c
     }()
 
+    func invalidateCustomIcons() {
+        Self.pluginImageCache.removeAllObjects()
+    }
+
     private var customPluginCache: NSCache<NSString, NSImage> {
         Self.pluginImageCache
     }

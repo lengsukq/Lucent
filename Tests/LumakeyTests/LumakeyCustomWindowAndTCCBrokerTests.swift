@@ -52,19 +52,19 @@ struct LumakeyCustomWindowAndTCCBrokerTests {
         #expect(!hudSpec.isSatisfied(by: [.window]))
         #expect(hudSpec.isSatisfied(by: [.floatingWindow]))
 
-        let deepURL = try #require(URL(string: "lumakey://window/ai-quota/hud?html=ui/widget.html&chrome=frameless&transparent=1&pin=1&w=392&h=488&opacity=0.92"))
+        let deepURL = try #require(URL(string: "lumakey://window/demo-hud/hud?html=ui/widget.html&chrome=frameless&transparent=1&pin=1&w=392&h=488&opacity=0.92"))
         guard case .pluginCustomWindow(let parsed) = PluginDeepLinkParser.parse(deepURL) else {
             Issue.record("Expected .pluginCustomWindow deep link target")
             return
         }
-        #expect(parsed.pluginID == "ai-quota")
+        #expect(parsed.pluginID == "demo-hud")
         #expect(parsed.windowID == "hud")
         #expect(parsed.htmlPath == "ui/widget.html")
         #expect(parsed.chrome == .frameless && parsed.transparent && parsed.pinOnTop)
         #expect(parsed.width == 392 && parsed.height == 488)
         #expect(abs(parsed.opacity - 0.92) < 0.001)
 
-        let badTraversalURL = try #require(URL(string: "lumakey://window/ai-quota?html=../escape.html"))
+        let badTraversalURL = try #require(URL(string: "lumakey://window/demo-hud?html=../escape.html"))
         #expect(PluginDeepLinkParser.parse(badTraversalURL) == nil)
     }
 

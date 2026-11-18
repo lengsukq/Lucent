@@ -47,7 +47,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .clipboard: L10n.pick("读取最近复制的内容，或帮你把结果自动写回剪贴板", "Read clipboard content or copy plugin results back for you")
         case .selection: L10n.pick("在划词翻译或按下快捷键时读取当前选中的文字（需系统「辅助功能」权限）", "Read highlighted text on screen or paste results back (requires Accessibility)")
         case .window: L10n.pick("允许插件打开独立的自定义交互窗口", "Allow plugin to open custom interactive windows")
-        case .floatingWindow: L10n.pick("允许在桌面弹出置顶透明小挂件（如 AI 额度监控小窗）", "Allow pinned, translucent desktop widgets (e.g. AI Quota HUD)")
+        case .floatingWindow: L10n.pick("允许在桌面弹出置顶透明悬浮小挂件", "Allow pinned, translucent desktop widgets")
         case .screenCapture: L10n.pick("在触发截图指令时框选屏幕画面或取色（需系统「屏幕录制」权限）", "Capture screen regions or pick pixel colors when triggered (requires Screen Recording)")
         case .notifications: L10n.pick("在任务完成或倒计时结束时弹出 macOS 右上角横幅提醒", "Post macOS Notification Center banners when tasks finish or alerts fire")
         case .audio: L10n.pick("用于单词/译文语音朗读，或播放提示音效", "Speak words/translations aloud or play alert sounds")

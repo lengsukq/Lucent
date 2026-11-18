@@ -51,6 +51,7 @@ public enum MCPAgentPromptBuilder {
     public static func buildAgentPrompt(
         executablePath: String,
         pluginsDirectoryPath: String = PluginSystem.defaultPluginsDirectory().path,
+        scriptsDirectoryPath: String = ScriptLibraryStore.defaultScriptsDirectory().path,
         extraTask: String = "",
         language: AppLanguageID = .zhHans
     ) -> String {
@@ -69,6 +70,7 @@ public enum MCPAgentPromptBuilder {
                 "- 可执行文件绝对路径：`\(executablePath)`",
                 "- 启动参数 (`args`)：`[]`",
                 "- 插件热重载目录：`\(pluginsDirectoryPath)`（Lumakey 宿主 350ms 自动热重载）",
+                "- 快捷脚本库目录：`\(scriptsDirectoryPath)`（单文件脚本与自定义 SVG 图标实时双向同步）",
                 "",
                 "### 2. 请按你所在的客户端方式完成接入",
                 "- **方式 A（支持 CLI 注册的 Agent）**：直接执行对应命令注册",
@@ -80,10 +82,11 @@ public enum MCPAgentPromptBuilder {
                 configJSON,
                 "```",
                 "",
-                "### 3. 接入后验证与协作规范",
-                "1. 写入配置后，若当前客户端需要重启或刷新会话才能加载新 MCP 工具，请明确提示我；若已即时生效，请直接调用 `lumakey_list_plugins` 与 `lumakey_app_permissions` 验证连通性。",
-                "2. 开发、修改或排查任何 Lumakey 插件前，请先通过 MCP `resources/read` 读取 `lumakey://specs/plugin-v3`（打包或发布自定义插件商店时读取 `lumakey://specs/plugin-store-v1`；定制启动页磁贴、混合坞、书签架或多场景 Profile 前读取 `lumakey://specs/home-layout-v1` 并调用 `lumakey_get_home_layout`）。",
-                "3. 严格遵守 Lumakey 插件边界：禁止编写后台常驻守护进程或死循环；`plugin.json` 必须显式声明 `capabilities` 与 `resourceScopes`（纯沙盒均填 `[]`）；优先使用 `mode: \"view\"` 输出结构化卡片；每次修改后必须调用 `lumakey_validate_plugin` 与 `lumakey_run_plugin_test` 完成校验。"
+                "### 3. 接入后验证与协作规范（脚本库、图标绘制、插件与主页定制）",
+                "1. 写入配置后，若当前客户端需要重启或刷新会话才能加载新 MCP 工具，请明确提示我；若已即时生效，请直接调用 `lumakey_list_plugins`、`lumakey_list_scripts` 与 `lumakey_app_permissions` 验证连通性。",
+                "2. **创建或管理快捷脚本（Quick Scripts）**：单文件自动化或快捷操作优先读取 `lumakey://specs/scripts-v1` 并使用 `lumakey_upsert_script`（支持 Zsh / Bash / Python 3 / AppleScript / Swift 及 Node、Deno、Ruby 等自定义 Shebang）。每次创建脚本时，请主动为脚本设计**清晰的中英双语名称（`title` / `englishTitle`）与触发词（`keywords`）**，并通过 `iconSvg` **直接绘制精美的 `64×64` 专属矢量 `<svg>` 图标**（或搭配 SF Symbol 与 `accentColor`），保存后务必调用 `lumakey_run_script_test` 实测通过。",
+                "3. **开发完整扩展插件或定制启动页**：多视图交互插件请读取 `lumakey://specs/plugin-v3`（商店打包读取 `lumakey://specs/plugin-store-v1`）；定制启动页 Bento 磁贴、混合高频坞、胶囊架或固定快捷脚本（`kind: \"script\"`）前请读取 `lumakey://specs/home-layout-v1` 并调用 `lumakey_get_home_layout`。",
+                "4. **严守架构红线**：禁止编写后台常驻守护进程或死循环；插件 `plugin.json` 必须显式声明 `capabilities` 与 `resourceScopes`（脚本按需最小声明 `allowedScopes`）；修改插件后必须运行 `lumakey_validate_plugin` 与 `lumakey_run_plugin_test`。"
             ]
             if !trimmedTask.isEmpty {
                 lines.append("")
@@ -102,6 +105,7 @@ public enum MCPAgentPromptBuilder {
                 "- Executable Path: `\(executablePath)`",
                 "- Arguments (`args`): `[]`",
                 "- Live-Reload Plugins Directory: `\(pluginsDirectoryPath)` (auto hot-reloaded in 350ms)",
+                "- Quick Scripts Directory: `\(scriptsDirectoryPath)` (two-way synced scripts & custom SVG icons)",
                 "",
                 "### 2. Registration Instructions (Pick What Matches Your Client)",
                 "- **Option A (CLI-based Agents)**:",
@@ -113,10 +117,11 @@ public enum MCPAgentPromptBuilder {
                 configJSON,
                 "```",
                 "",
-                "### 3. Post-Connection Verification & Plugin Rules",
-                "1. After configuring, let me know if your client requires a session reload/restart to load new MCP tools; otherwise immediately call `lumakey_list_plugins` and `lumakey_app_permissions` to confirm connectivity.",
-                "2. Before creating or editing any Lumakey plugin, read `lumakey://specs/plugin-v3` via MCP `resources/read` (`lumakey://specs/plugin-store-v1` for store packaging; `lumakey://specs/home-layout-v1` + `lumakey_get_home_layout` when customizing Launcher Home tiles, dock, bookmarks, or profiles).",
-                "3. Follow Lumakey's architecture strictly: never create resident daemons or infinite loops; explicitly declare `capabilities` and `resourceScopes` in `plugin.json` (`[]` for pure sandbox); prefer `mode: \"view\"` structured cards; always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after changes."
+                "### 3. Post-Connection Verification, Quick Scripts & Plugin Rules",
+                "1. After configuring, let me know if your client requires a session reload/restart to load new MCP tools; otherwise immediately call `lumakey_list_plugins`, `lumakey_list_scripts`, and `lumakey_app_permissions` to confirm connectivity.",
+                "2. **Quick Scripts, Naming & Custom SVG Icon Drawing**: For lightweight quick actions or single-file automations, read `lumakey://specs/scripts-v1` and use `lumakey_upsert_script` (supports Zsh, Bash, Python 3, AppleScript, Swift, and custom `#!` shebangs like Node/Deno/Ruby). Always craft **clear bilingual names (`title` / `englishTitle`) and trigger `keywords`**, draw a **bespoke `64×64` vector `<svg>` icon via `iconSvg`** (or pair an SF Symbol with `accentColor`), and verify execution with `lumakey_run_script_test`.",
+                "3. **Full Plugins & Home Layout**: Read `lumakey://specs/plugin-v3` before building multi-view plugins (`lumakey://specs/plugin-store-v1` for store packaging); read `lumakey://specs/home-layout-v1` and call `lumakey_get_home_layout` before pinning scripts (`kind: \"script\"`), plugins, or bookmarks onto Launcher Home tiles and dock.",
+                "4. **Architecture Guardrails**: Never create resident daemons or infinite loops; explicitly declare `capabilities` and `resourceScopes` in `plugin.json` (and minimal `allowedScopes` for scripts); always run `lumakey_validate_plugin` and `lumakey_run_plugin_test` after plugin edits."
             ]
             if !trimmedTask.isEmpty {
                 lines.append("")
