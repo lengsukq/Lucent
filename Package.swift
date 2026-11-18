@@ -9,83 +9,83 @@ if FileManager.default.fileExists(atPath: "\(cltTestingPluginDir)/libTestingMacr
 }
 
 let package = Package(
-    name: "Lumakey",
+    name: "Lucent",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .library(name: "LumakeyFoundation", targets: ["LumakeyFoundation"]),
-        .library(name: "LumakeySearch", targets: ["LumakeySearch"]),
-        .library(name: "LumakeyMedia", targets: ["LumakeyMedia"]),
-        .library(name: "LumakeySystem", targets: ["LumakeySystem"]),
-        .library(name: "LumakeyCore", targets: ["LumakeyCore"]),
-        .executable(name: "Lumakey", targets: ["Lumakey"]),
-        .executable(name: "lumakey-mcp", targets: ["lumakey-mcp"]),
-        .executable(name: "lumakey-check", targets: ["lumakey-check"])
+        .library(name: "LucentFoundation", targets: ["LucentFoundation"]),
+        .library(name: "LucentSearch", targets: ["LucentSearch"]),
+        .library(name: "LucentMedia", targets: ["LucentMedia"]),
+        .library(name: "LucentSystem", targets: ["LucentSystem"]),
+        .library(name: "LucentCore", targets: ["LucentCore"]),
+        .executable(name: "Lucent", targets: ["Lucent"]),
+        .executable(name: "lucent-mcp", targets: ["lucent-mcp"]),
+        .executable(name: "lucent-check", targets: ["lucent-check"])
     ],
     targets: [
         .target(
-            name: "LumakeyFoundation",
-            path: "Sources/LumakeyFoundation",
+            name: "LucentFoundation",
+            path: "Sources/LucentFoundation",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .target(
-            name: "LumakeySearch",
-            dependencies: ["LumakeyFoundation"],
-            path: "Sources/LumakeySearch",
+            name: "LucentSearch",
+            dependencies: ["LucentFoundation"],
+            path: "Sources/LucentSearch",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .target(
-            name: "LumakeyMedia",
-            dependencies: ["LumakeyFoundation", "LumakeySearch"],
-            path: "Sources/LumakeyMedia",
+            name: "LucentMedia",
+            dependencies: ["LucentFoundation", "LucentSearch"],
+            path: "Sources/LucentMedia",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .target(
-            name: "LumakeySystem",
-            dependencies: ["LumakeyFoundation"],
-            path: "Sources/LumakeySystem",
+            name: "LucentSystem",
+            dependencies: ["LucentFoundation"],
+            path: "Sources/LucentSystem",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .target(
-            name: "LumakeyCore",
+            name: "LucentCore",
             dependencies: [
-                "LumakeyFoundation",
-                "LumakeySearch",
-                "LumakeyMedia",
-                "LumakeySystem"
+                "LucentFoundation",
+                "LucentSearch",
+                "LucentMedia",
+                "LucentSystem"
             ],
-            path: "Sources/LumakeyCore",
+            path: "Sources/LucentCore",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .executableTarget(
-            name: "Lumakey",
-            dependencies: ["LumakeyCore"],
-            path: "Sources/Lumakey",
+            name: "Lucent",
+            dependencies: ["LucentCore"],
+            path: "Sources/Lucent",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .executableTarget(
-            name: "lumakey-mcp",
-            dependencies: ["LumakeyCore"],
-            path: "Sources/LumakeyMCP",
+            name: "lucent-mcp",
+            dependencies: ["LucentCore"],
+            path: "Sources/LucentMCP",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .executableTarget(
-            name: "lumakey-check",
-            dependencies: ["LumakeyCore"],
-            path: "Tests/LumakeyCheck",
+            name: "lucent-check",
+            dependencies: ["LucentCore"],
+            path: "Tests/LucentCheck",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(
-            name: "LumakeyTests",
+            name: "LucentTests",
             dependencies: [
-                "LumakeyFoundation",
-                "LumakeySearch",
-                "LumakeyMedia",
-                "LumakeySystem",
-                "LumakeyCore"
+                "LucentFoundation",
+                "LucentSearch",
+                "LucentMedia",
+                "LucentSystem",
+                "LucentCore"
             ],
-            path: "Tests/LumakeyTests",
+            path: "Tests/LucentTests",
             swiftSettings: testSwiftSettings
         )
     ]
