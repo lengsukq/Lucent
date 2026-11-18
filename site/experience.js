@@ -152,6 +152,8 @@ document.querySelectorAll('[data-gh-path]').forEach((el) => {
 const I18N = {
   zh: {
     nav_overview: '2D 图文详解',
+    sound_on: '音效',
+    sound_off: '静音',
     btn_play: '自动放映',
     btn_playing: '放映中',
     btn_replay: '重新放映',
@@ -203,6 +205,8 @@ const I18N = {
   },
   en: {
     nav_overview: '2D Overview',
+    sound_on: 'Sound',
+    sound_off: 'Muted',
     btn_play: 'Play Tour',
     btn_playing: 'Playing',
     btn_replay: 'Replay Tour',
@@ -264,6 +268,8 @@ const timecodeFill = document.getElementById('timecodeFill');
 const stageMorphTag = document.getElementById('stageMorphTag');
 const filmPlayBtn = document.getElementById('filmPlayBtn');
 const filmPlayLabel = document.getElementById('filmPlayLabel');
+const soundToggleBtn = document.getElementById('soundToggleBtn');
+const soundToggleLabel = document.getElementById('soundToggleLabel');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const themeToggleLabel = document.getElementById('themeToggleLabel');
 const langToggleBtn = document.getElementById('langToggleBtn');
@@ -281,12 +287,29 @@ function dismissBootVeil() {
 }
 setTimeout(dismissBootVeil, 1150);
 
+const soundApi = window.LucentSound || null;
+
 let shaderBridge = {
   triggerPulse: () => {},
   triggerForgeCollapse: () => {},
   syncPluginMask: () => {},
   syncTheme: () => {}
 };
+
+function syncSoundButtonUi(status = soundApi?.getStatus?.()) {
+  if (!soundToggleBtn || !status) return;
+  const dict = I18N[state.lang] || I18N.zh;
+  soundToggleBtn.classList.toggle('sound-active', Boolean(status.active));
+  soundToggleBtn.classList.toggle('sound-muted', !status.enabled);
+  soundToggleBtn.setAttribute('aria-pressed', String(Boolean(status.enabled)));
+  if (soundToggleLabel) {
+    soundToggleLabel.textContent = status.enabled ? dict.sound_on : dict.sound_off;
+  }
+}
+
+soundApi?.onStateChange?.((status) => {
+  syncSoundButtonUi(status);
+});
 
 function syncStageMorphLabel() {
   if (!stageMorphTag) return;
@@ -330,12 +353,14 @@ function renderPluginWhispers() {
 }
 
 function togglePluginById(id) {
-  if (state.enabledPlugins.has(id)) state.enabledPlugins.delete(id);
-  else state.enabledPlugins.add(id);
+  const willEnable = !state.enabledPlugins.has(id);
+  if (willEnable) state.enabledPlugins.add(id);
+  else state.enabledPlugins.delete(id);
   persistPlugins();
   renderPluginWhispers();
   shaderBridge.syncPluginMask();
-  shaderBridge.triggerPulse(0.75);
+  shaderBridge.triggerPulse(0.75, false);
+  soundApi?.playPluginToggle?.(willEnable);
 }
 
 function applyTheme(themeId) {
@@ -387,6 +412,7 @@ function applyLanguage(lang) {
     themeToggleLabel.textContent = state.theme === 'pure-frost' ? dict.theme_light : dict.theme_dark;
   }
   syncPlayButtonUi();
+  syncSoundButtonUi();
   const tcTitles = STAGE_LABELS[lang] || STAGE_LABELS.zh;
   document.querySelectorAll('#timecodeDots .tc-dot').forEach((dot, idx) => {
     if (tcTitles[idx]) dot.setAttribute('title', tcTitles[idx]);
@@ -486,7 +512,7 @@ function startAutoPlayFromCurrent() {
   state.autoFinished = false;
   autoPhaseTime = 0;
   autoStageTriggered = false;
-  shaderBridge.triggerPulse(0.75);
+  shaderBridge.triggerPulse(0.75, false);
 
   if (matchedIdx >= 0 && matchedIdx < stops.length - 1) {
     window.scrollTo(0, stops[matchedIdx]);
@@ -576,19 +602,27 @@ function stepAutoPlay(dt) {
   }
 }
 
+soundToggleBtn?.addEventListener('click', () => {
+  soundApi?.toggleEnabled?.();
+});
+
 themeToggleBtn?.addEventListener('click', () => {
   applyTheme(state.theme === 'pure-frost' ? 'prism-pulse' : 'pure-frost');
+  soundApi?.playUiTick?.('theme');
 });
 
 langToggleBtn?.addEventListener('click', () => {
   applyLanguage(state.lang === 'zh' ? 'en' : 'zh');
+  soundApi?.playUiTick?.('lang');
 });
 
 filmPlayBtn?.addEventListener('click', () => {
   if (state.autoPlaying) {
     stopAutoPlay(false);
+    soundApi?.playUiTick?.('click');
   } else {
     startAutoPlayFromCurrent();
+    soundApi?.playUiTick?.('play');
   }
 });
 
@@ -611,6 +645,7 @@ document.querySelectorAll('[data-jump]').forEach((dot) => {
     stopAutoPlay(false);
     const idx = Number(dot.getAttribute('data-jump'));
     document.getElementById(`sec-${idx}`)?.scrollIntoView({ behavior: 'smooth' });
+    soundApi?.playUiTick?.('click');
   });
 });
 
@@ -1736,17 +1771,23 @@ function mountWebGLShaderFilm(container, THREE) {
 
   const raycaster = new THREE.Raycaster();
   let hovered3DNode = null;
+  let prevHovered3DNode = null;
 
   shaderBridge = {
-    triggerPulse: (power = 1.0) => {
+    triggerPulse: (power = 1.0, soundOpt = true) => {
       shockRadius = 0.22;
       shockStrength = power;
       corePulse = power;
+      if (soundOpt) {
+        const opts = typeof soundOpt === 'object' ? soundOpt : { scene: state.activeScene };
+        soundApi?.playPulse?.(power, opts);
+      }
     },
     triggerForgeCollapse: () => {
       isForging = true;
       forgePinchProgress = 0.001;
       corePulse = 1.2;
+      soundApi?.playForgeCollapse?.();
     },
     syncPluginMask: () => {
       updatePluginMaskUniform();
@@ -1816,17 +1857,21 @@ function mountWebGLShaderFilm(container, THREE) {
     const heldMs = performance.now() - downTimeMs;
     const movedPx = Math.hypot(e.clientX - downCoords.x, e.clientY - downCoords.y);
 
+    const nx = (e.clientX / Math.max(1, window.innerWidth)) * 2 - 1;
+    const ny = -(e.clientY / Math.max(1, window.innerHeight)) * 2 + 1;
+
     if (movedPx < 8 && hovered3DNode) {
       const ud = hovered3DNode.userData;
       if (ud.kind === 'plugin') {
         togglePluginById(ud.plugin.id);
       } else if (ud.kind === 'dag') {
-        shaderBridge.triggerPulse(1.15);
+        shaderBridge.triggerPulse(1.15, { nx, ny, scene: state.activeScene });
       }
     } else if (holdCharge > 0.25) {
-      shaderBridge.triggerPulse(1.35 + holdCharge * 0.9);
+      shaderBridge.triggerPulse(1.35 + holdCharge * 0.9, false);
+      soundApi?.playShockRelease?.(1.0 + holdCharge * 0.55, { nx, ny, scene: state.activeScene });
     } else if (movedPx < 10 && heldMs < 260) {
-      shaderBridge.triggerPulse(0.95);
+      shaderBridge.triggerPulse(0.95, { nx, ny, scene: state.activeScene });
     }
   });
 
@@ -1912,6 +1957,7 @@ function mountWebGLShaderFilm(container, THREE) {
         forgeShockFired = true;
         shockRadius = 0.24;
         shockStrength = 1.25;
+        soundApi?.playForgeConfirm?.();
       }
       if (forgePinchProgress >= 1.0) {
         isForging = false;
@@ -2036,6 +2082,11 @@ function mountWebGLShaderFilm(container, THREE) {
     } else {
       hovered3DNode = null;
     }
+    if (hovered3DNode && hovered3DNode !== prevHovered3DNode) {
+      const ud = hovered3DNode.userData;
+      soundApi?.playNodeHover?.(ud.kind, ud.index ?? 0, pointerNDC.x < 10 ? pointerNDC.x : 0);
+    }
+    prevHovered3DNode = hovered3DNode;
 
     if (cursorAura && pointerScreen.x > -50) {
       pointerScreen.smoothX += (pointerScreen.x - pointerScreen.smoothX) * 0.28;
@@ -2096,6 +2147,15 @@ function mountWebGLShaderFilm(container, THREE) {
     pUniforms.uForgePinch.value = pinchCurve;
     pUniforms.uVortexPhase.value = vortexPhase;
 
+    soundApi?.updateFrame?.({
+      scene: state.activeScene,
+      holdCharge,
+      layerSpread,
+      pointerSpeed: pointerVelVec.length(),
+      pluginRatio: state.enabledPlugins.size / PLUGINS.length,
+      lightMode: state.theme === 'pure-frost'
+    });
+
     renderer.render(scene, camera);
   }
 
@@ -2142,11 +2202,25 @@ function mountOfflineParticleFilm(container) {
     if (e.target?.closest?.('button, a')) return;
     shockRadius = 0.2;
     shockStrength = 1.1;
+    const nx = (e.clientX / Math.max(1, w)) * 2 - 1;
+    const ny = -(e.clientY / Math.max(1, h)) * 2 + 1;
+    soundApi?.playPulse?.(1.0, { nx, ny, scene: state.activeScene });
   });
 
   shaderBridge = {
-    triggerPulse: (p = 1.0) => { shockRadius = 0.2; shockStrength = p; },
-    triggerForgeCollapse: () => { shockRadius = 0.2; shockStrength = 1.35; },
+    triggerPulse: (p = 1.0, soundOpt = true) => {
+      shockRadius = 0.2;
+      shockStrength = p;
+      if (soundOpt) {
+        const opts = typeof soundOpt === 'object' ? soundOpt : { scene: state.activeScene };
+        soundApi?.playPulse?.(p, opts);
+      }
+    },
+    triggerForgeCollapse: () => {
+      shockRadius = 0.2;
+      shockStrength = 1.35;
+      soundApi?.playForgeCollapse?.();
+    },
     syncPluginMask: () => {},
     syncTheme: () => {}
   };
@@ -2160,6 +2234,11 @@ function mountOfflineParticleFilm(container) {
     lastT = now;
 
     stepAutoPlay(dt);
+    soundApi?.updateFrame?.({
+      scene: state.activeScene,
+      pluginRatio: state.enabledPlugins.size / PLUGINS.length,
+      lightMode: state.theme === 'pure-frost'
+    });
 
     morphCurrent += (getMorphStage(state.scrollNorm) - morphCurrent) * 0.08;
     offsetXCurrent += (getTargetSculptureOffsetX(state.scrollNorm) - offsetXCurrent) * 0.08;

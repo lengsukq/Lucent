@@ -37,6 +37,10 @@
     </div>
 
     <div class="header-right">
+      <button type="button" class="minimal-btn" id="soundToggleBtn" aria-pressed="true" title="Sound / 音效">
+        <span class="sound-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span id="soundToggleLabel" data-i18n="sound_on">音效</span>
+      </button>
       <button type="button" class="minimal-btn" id="filmPlayBtn">
         <span class="play-indicator" id="playIndicator"></span>
         <span id="filmPlayLabel" data-i18n="btn_play">自动放映</span>
@@ -239,6 +243,7 @@
 
   </main>
 
+  <script src="./sound.js"></script>
   <script src="./experience.js"></script>
 </body>
 </html>
