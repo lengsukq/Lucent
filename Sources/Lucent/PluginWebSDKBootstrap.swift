@@ -41,14 +41,28 @@ enum PluginWebSDKBootstrap {
               window.dispatchEvent(new CustomEvent("lucent:envChanged", { detail: Object.assign({}, env) }));
             } catch (_) {}
           };
+          window.__lucentDispatchWindowEvent = function(eventName, detail) {
+            if (typeof eventName !== "string" || !eventName) return;
+            try {
+              window.dispatchEvent(new CustomEvent(eventName, { detail: detail || {} }));
+            } catch (_) {}
+          };
+          function listenWindowEvent(eventName, listener) {
+            if (typeof listener !== "function") return () => {};
+            const h = (ev) => listener(ev.detail || {});
+            window.addEventListener(eventName, h);
+            return () => window.removeEventListener(eventName, h);
+          }
+          function mergeOptions(flagOrOpts, extraOpts, defaultAnimate) {
+            if (flagOrOpts && typeof flagOrOpts === "object") {
+              return Object.assign({ animate: defaultAnimate }, flagOrOpts);
+            }
+            const base = { animate: flagOrOpts === undefined ? defaultAnimate : Boolean(flagOrOpts) };
+            return extraOpts && typeof extraOpts === "object" ? Object.assign(base, extraOpts) : base;
+          }
           window.lucent = Object.freeze({
             env: env,
-            onEnvChanged: (listener) => {
-              if (typeof listener !== "function") return () => {};
-              const h = (ev) => listener(ev.detail || env);
-              window.addEventListener("lucent:envChanged", h);
-              return () => window.removeEventListener("lucent:envChanged", h);
-            },
+            onEnvChanged: (listener) => listenWindowEvent("lucent:envChanged", listener),
             run: (args = [], query = "") => send("run", { args: Array.isArray(args) ? args : [], query: String(query || "") }),
             bridge: (capability, action, params = {}) => send("bridge", { capability: String(capability), action: String(action), params: params || {} }),
             permissions: Object.freeze({
@@ -56,15 +70,25 @@ enum PluginWebSDKBootstrap {
               request: (capability) => send("permRequest", { capability: String(capability) })
             }),
             window: Object.freeze({
+              getFrame: () => send("win", { cmd: "getFrame" }),
               startDrag: () => send("win", { cmd: "startDrag" }),
-              resize: (width, height, animate = true) => send("win", { cmd: "resize", width, height, animate }),
-              moveTo: (x, y, animate = false) => send("win", { cmd: "moveTo", x, y, animate }),
+              resize: (width, height, animateOrOpts = true, options = {}) => send("win", Object.assign({ cmd: "resize", width, height }, mergeOptions(animateOrOpts, options, true))),
+              moveTo: (x, y, animateOrOpts = false, options = {}) => send("win", Object.assign({ cmd: "moveTo", x, y }, mergeOptions(animateOrOpts, options, false))),
+              animateFrame: (options = {}) => send("win", Object.assign({ cmd: "animateFrame" }, options && typeof options === "object" ? options : {})),
+              morph: (options = {}) => send("win", Object.assign({ cmd: "morph" }, options && typeof options === "object" ? options : {})),
+              snapToEdge: (edge = "nearest", options = {}) => send("win", Object.assign({ cmd: "snapToEdge", edge: String(edge || "nearest") }, options && typeof options === "object" ? options : {})),
+              setEdgeBehavior: (options = {}) => send("win", Object.assign({ cmd: "setEdgeBehavior" }, options && typeof options === "object" ? options : {})),
               setPinned: (pinned) => send("win", { cmd: "setPinned", pinned: Boolean(pinned) }),
               setClickThrough: (enabled) => send("win", { cmd: "setClickThrough", enabled: Boolean(enabled) }),
-              setOpacity: (opacity) => send("win", { cmd: "setOpacity", opacity: Number(opacity) }),
+              setOpacity: (opacity, options = {}) => send("win", Object.assign({ cmd: "setOpacity", opacity: Number(opacity) }, options && typeof options === "object" ? options : {})),
               resetFrame: () => send("win", { cmd: "resetFrame" }),
               minimize: () => send("win", { cmd: "minimize" }),
-              close: () => send("win", { cmd: "close" })
+              close: () => send("win", { cmd: "close" }),
+              onFrameChanged: (listener) => listenWindowEvent("lucent:frameChanged", listener),
+              onDragStart: (listener) => listenWindowEvent("lucent:dragStart", listener),
+              onDragMove: (listener) => listenWindowEvent("lucent:dragMove", listener),
+              onDragEnd: (listener) => listenWindowEvent("lucent:dragEnd", listener),
+              onEdgeProximity: (listener) => listenWindowEvent("lucent:edgeProximity", listener)
             }),
             openExternal: (url) => send("openURL", { url: String(url || "") })
           });

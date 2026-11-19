@@ -57,6 +57,7 @@ final class LucentAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func installTerminationSignals() {
+        signal(SIGPIPE, SIG_IGN)
         for sig in [SIGTERM, SIGINT, SIGHUP] {
             signal(sig, SIG_IGN)
             let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)

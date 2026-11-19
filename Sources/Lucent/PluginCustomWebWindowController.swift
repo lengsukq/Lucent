@@ -116,10 +116,10 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
             let countForPlugin = activeCanvases.values.filter { $0.pluginID == spec.pluginID }.count
             if countForPlugin >= PluginCustomWindowSpec.maxConcurrentWindowsPerPlugin,
                let oldestKey = activeCanvases.first(where: { $0.value.pluginID == spec.pluginID })?.key {
-                _ = close(key: oldestKey)
+                _ = closeByKey(oldestKey)
             }
         } else {
-            _ = close(key: key)
+            _ = closeByKey(key)
         }
 
         if !spec.isSatisfied(by: plugin.grantedCapabilities) {
@@ -127,14 +127,14 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
                 plugin: plugin, capability: reqCap, delegate: self,
                 onAllow: { [weak self] in
                     try? viewModel.setPluginCapabilityGranted(plugin, capability: reqCap, granted: true)
-                    _ = self?.close(key: key)
+                    _ = self?.closeByKey(key)
                     _ = self?.open(spec: spec, viewModel: viewModel)
                 },
                 onOpenSettings: { [weak self] in
-                    _ = self?.close(key: key)
+                    _ = self?.closeByKey(key)
                     viewModel.openPluginSettings(id: plugin.id)
                 },
-                onCancel: { [weak self] in _ = self?.close(key: key) }
+                onCancel: { [weak self] in _ = self?.closeByKey(key) }
             )
             activeCanvases[key] = ManagedCanvas(
                 pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: gateWindow, webView: nil, coordinator: nil
@@ -155,11 +155,11 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
 
     @discardableResult
     func close(pluginID: String, windowID: String) -> Bool {
-        close(key: canvasKey(pluginID: pluginID, windowID: windowID))
+        closeByKey(canvasKey(pluginID: pluginID, windowID: windowID))
     }
 
     @discardableResult
-    private func close(key: String) -> Bool {
+    func closeByKey(_ key: String) -> Bool {
         persistCanvasFrame(forKey: key)
         guard let managed = activeCanvases.removeValue(forKey: key) else { return false }
         WindowLevelStore.shared.detach(key: key)
@@ -173,19 +173,21 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
     }
 
     func closeAll() {
-        for key in Array(activeCanvases.keys) { _ = close(key: key) }
+        for key in Array(activeCanvases.keys) { _ = closeByKey(key) }
     }
 
     func windowDidMove(_ notification: Notification) {
         guard let win = notification.object as? NSWindow,
-              let key = activeCanvases.first(where: { $0.value.window === win })?.key else { return }
-        persistCanvasFrame(forKey: key)
+              let pair = activeCanvases.first(where: { $0.value.window === win }) else { return }
+        persistCanvasFrame(forKey: pair.key)
+        pair.value.coordinator?.motionSession.notifyNativeFrameChanged(settled: false)
     }
 
     func windowDidEndLiveResize(_ notification: Notification) {
         guard let win = notification.object as? NSWindow,
-              let key = activeCanvases.first(where: { $0.value.window === win })?.key else { return }
-        persistCanvasFrame(forKey: key)
+              let pair = activeCanvases.first(where: { $0.value.window === win }) else { return }
+        persistCanvasFrame(forKey: pair.key)
+        pair.value.coordinator?.motionSession.notifyNativeFrameChanged(settled: true)
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -226,7 +228,13 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         PluginWebWindowBuilder.positionWindow(win, spec: spec)
 
         let config = WKWebViewConfiguration()
-        let coordinator = PluginWebBridgeCoordinator(pluginID: plugin.id, windowKey: key, viewModel: viewModel, window: win)
+        let coordinator = PluginWebBridgeCoordinator(
+            pluginID: plugin.id,
+            windowKey: key,
+            allowCompactFloating: spec.chrome != .standard,
+            viewModel: viewModel,
+            window: win
+        )
         let uc = WKUserContentController()
         uc.addUserScript(WKUserScript(
             source: PluginWebSDKBootstrap.buildScript(plugin: plugin, spec: spec),
@@ -236,6 +244,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         config.userContentController = uc
 
         let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: spec.width, height: spec.height), configuration: config)
+        coordinator.bind(webView: webView)
         webView.navigationDelegate = coordinator
         webView.autoresizingMask = [.width, .height]
         if spec.transparent || spec.chrome != .standard {

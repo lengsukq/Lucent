@@ -45,6 +45,7 @@ extension AppViewModel {
     func performStartupOrphanCleanup() {
         LumaLinkRdpSidecarService.shared.cleanupOrphanedDaemonIfNeeded()
         PluginDataPaths.cleanupStaleSocketFiles()
+        PluginDataPaths.cleanupStaleTmpDirectories()
     }
 
     func shutdownAllServicesAndTasks() {

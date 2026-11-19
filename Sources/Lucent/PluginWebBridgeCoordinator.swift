@@ -5,27 +5,53 @@ import WebKit
 
 @MainActor
 final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithReply, WKNavigationDelegate {
+    private static let maxConcurrentBackendRuns = 6
+
     let pluginID: String
     let windowKey: String
+    let motionSession: PluginWindowMotionSession
     private weak var viewModel: AppViewModel?
-    private weak var window: NSWindow?
-    private var dragMonitors: [Any] = []
     private var activeTasks: [UUID: Task<Void, Never>] = [:]
+    private var activeRunCount: Int = 0
+    private var webProcessRecoveryTimestamps: [Date] = []
 
-    init(pluginID: String, windowKey: String, viewModel: AppViewModel, window: NSWindow) {
+    init(
+        pluginID: String,
+        windowKey: String,
+        allowCompactFloating: Bool,
+        viewModel: AppViewModel,
+        window: NSWindow
+    ) {
         self.pluginID = pluginID
         self.windowKey = windowKey
+        self.motionSession = PluginWindowMotionSession(
+            windowKey: windowKey,
+            allowCompactFloating: allowCompactFloating,
+            window: window
+        )
         self.viewModel = viewModel
-        self.window = window
         super.init()
     }
 
+    func bind(webView: WKWebView) {
+        motionSession.bind(webView: webView)
+    }
+
     func tearDown(webView: WKWebView?) {
-        stopDragTracking(persist: false)
+        motionSession.tearDown()
         for (_, task) in activeTasks { task.cancel() }
         activeTasks.removeAll()
+        activeRunCount = 0
         webView?.configuration.userContentController.removeScriptMessageHandler(forName: PluginWebSDKBootstrap.handlerName)
         webView?.navigationDelegate = nil
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        let now = Date()
+        webProcessRecoveryTimestamps.removeAll { now.timeIntervalSince($0) > 60 }
+        guard webProcessRecoveryTimestamps.count < 2 else { return }
+        webProcessRecoveryTimestamps.append(now)
+        webView.reload()
     }
 
     func webView(
@@ -61,7 +87,7 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
 
         switch op {
         case "win":
-            replyHandler(handleWindowCommand(body, plugin: currentPlugin), nil)
+            replyHandler(motionSession.handleCommand(body, plugin: currentPlugin), nil)
         case "openURL":
             if let raw = body["url"] as? String, let url = URL(string: raw) {
                 vm.handlePluginOpenURL(url)
@@ -115,100 +141,29 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
         return ["ok": true, "capability": cap.rawValue, "granted": true, "tccGranted": tccGranted, "settingsURL": settingsURL]
     }
 
-    private func handleWindowCommand(_ body: [String: Any], plugin: PluginDescriptor) -> [String: Any] {
-        guard let win = window, let cmd = body["cmd"] as? String else { return ["ok": false] }
-        switch cmd {
-        case "startDrag":
-            beginNativeMouseDrag(for: win)
-            return ["ok": true]
-        case "resize":
-            let w = PluginCustomWindowSpec.clampWidth((body["width"] as? NSNumber)?.intValue ?? Int(win.frame.width))
-            let h = PluginCustomWindowSpec.clampHeight((body["height"] as? NSNumber)?.intValue ?? Int(win.frame.height))
-            var frame = win.frame
-            frame.origin.y += (frame.height - CGFloat(h))
-            frame.size = NSSize(width: w, height: h)
-            win.setFrame(frame, display: true, animate: (body["animate"] as? Bool) ?? true)
-            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
-            return ["ok": true, "width": w, "height": h]
-        case "moveTo":
-            let x = CGFloat((body["x"] as? NSNumber)?.doubleValue ?? Double(win.frame.origin.x))
-            let y = CGFloat((body["y"] as? NSNumber)?.doubleValue ?? Double(win.frame.origin.y))
-            win.setFrame(NSRect(origin: NSPoint(x: x, y: y), size: win.frame.size), display: true, animate: (body["animate"] as? Bool) ?? false)
-            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
-            return ["ok": true]
-        case "setPinned":
-            guard plugin.grantedCapabilities.contains(.floatingWindow) else {
-                return ["ok": false, "error": "floatingWindow_not_granted"]
-            }
-            let pinned = (body["pinned"] as? Bool) ?? true
-            WindowLevelStore.shared.setPinned(pinned, forKey: windowKey)
-            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
-            return ["ok": true, "pinned": pinned]
-        case "setClickThrough":
-            guard plugin.grantedCapabilities.contains(.floatingWindow) else {
-                return ["ok": false, "error": "floatingWindow_not_granted"]
-            }
-            let enabled = (body["enabled"] as? Bool) ?? false
-            win.ignoresMouseEvents = enabled
-            return ["ok": true, "clickThrough": enabled]
-        case "setOpacity":
-            let raw = (body["opacity"] as? NSNumber)?.doubleValue ?? 1.0
-            let clamped = min(max(raw, PluginCustomWindowSpec.minOpacity), 1.0)
-            win.alphaValue = clamped
-            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
-            return ["ok": true, "opacity": clamped]
-        case "resetFrame":
-            PluginCustomWebWindowController.shared.resetCanvasToDefaults(forKey: windowKey, plugin: plugin)
-            return ["ok": true]
-        case "minimize":
-            win.miniaturize(nil)
-            return ["ok": true]
-        case "close":
-            win.close()
-            return ["ok": true]
-        default:
-            return ["ok": false, "error": "unknown_window_cmd"]
-        }
-    }
-
-    private func beginNativeMouseDrag(for win: NSWindow) {
-        stopDragTracking(persist: false)
-        let startMouse = NSEvent.mouseLocation
-        let startOrigin = win.frame.origin
-        let dragMon = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDragged], handler: { [weak win] ev in
-            guard let win else { return ev }
-            let cur = NSEvent.mouseLocation
-            win.setFrameOrigin(NSPoint(x: startOrigin.x + (cur.x - startMouse.x), y: startOrigin.y + (cur.y - startMouse.y)))
-            return ev
-        })
-        if let dragMon { dragMonitors.append(dragMon) }
-        let upMon = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseUp], handler: { [weak self] ev in
-            self?.stopDragTracking(persist: true)
-            return ev
-        })
-        if let upMon { dragMonitors.append(upMon) }
-    }
-
-    private func stopDragTracking(persist: Bool) {
-        let hadMonitors = !dragMonitors.isEmpty
-        for mon in dragMonitors { NSEvent.removeMonitor(mon) }
-        dragMonitors.removeAll()
-        if persist && hadMonitors {
-            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
-        }
-    }
-
     private func runPluginBackend(
         body: [String: Any], plugin: PluginDescriptor, vm: AppViewModel,
         replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void
     ) {
+        guard activeRunCount < Self.maxConcurrentBackendRuns else {
+            replyHandler([
+                "ok": false,
+                "error": "too_many_concurrent_runs",
+                "message": "Concurrent plugin run limit (\(Self.maxConcurrentBackendRuns)) exceeded for this window"
+            ], nil)
+            return
+        }
         let args = (body["args"] as? [String]) ?? []
         let query = (body["query"] as? String) ?? ""
         let clipText = NSPasteboard.general.string(forType: .string) ?? ""
         let bridgeCtx = vm.makePluginBridgeContext()
         let id = UUID()
+        activeRunCount += 1
         activeTasks[id] = Task { [weak self] in
-            defer { self?.activeTasks.removeValue(forKey: id) }
+            defer {
+                self?.activeTasks.removeValue(forKey: id)
+                if let self { self.activeRunCount = max(0, self.activeRunCount - 1) }
+            }
             do {
                 let res = try await PluginSystem.runPluginAsync(
                     plugin, query: query, clipboardText: clipText, arguments: args, hostContext: bridgeCtx

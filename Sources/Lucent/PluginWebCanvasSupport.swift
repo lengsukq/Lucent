@@ -46,17 +46,31 @@ enum PluginWebWindowBuilder {
     }
 
     static func positionWindow(_ window: NSWindow, spec: PluginCustomWindowSpec) {
+        let screens = PluginWindowMotionSession.currentScreens()
+        if let x = spec.x, let y = spec.y {
+            let candidate = CGRect(x: CGFloat(x), y: CGFloat(y), width: CGFloat(spec.width), height: CGFloat(spec.height))
+            let targetScreen = PluginWindowGeometry.bestScreen(for: candidate, screens: screens)
+            let clamped = PluginWindowGeometry.clampFrameToVisible(candidate, visibleFrame: targetScreen.visibleFrame, margin: 4)
+            window.setFrameOrigin(clamped.origin)
+            return
+        }
         let vis = ScreenTopologyAndWindowMatcher.activeCursorScreen()?.visibleFrame
             ?? NSScreen.main?.visibleFrame
-            ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        if let x = spec.x, let y = spec.y {
-            let safeX = max(vis.minX + 8, min(CGFloat(x), vis.maxX - CGFloat(spec.width) - 8))
-            let safeY = max(vis.minY + 8, min(CGFloat(y), vis.maxY - CGFloat(spec.height) - 8))
-            window.setFrameOrigin(NSPoint(x: safeX, y: safeY))
-        } else if spec.chrome != .standard || spec.pinOnTop {
-            window.setFrameOrigin(NSPoint(x: vis.maxX - CGFloat(spec.width) - 24, y: vis.maxY - CGFloat(spec.height) - 36))
+            ?? PluginWindowScreenRect.fallback.visibleFrame
+        if spec.chrome != .standard || spec.pinOnTop {
+            let origin = CGPoint(x: vis.maxX - CGFloat(spec.width) - 24, y: vis.maxY - CGFloat(spec.height) - 36)
+            let clamped = PluginWindowGeometry.clampFrameToVisible(
+                CGRect(origin: origin, size: CGSize(width: spec.width, height: spec.height)),
+                visibleFrame: vis, margin: 8
+            )
+            window.setFrameOrigin(clamped.origin)
         } else {
-            window.setFrameOrigin(NSPoint(x: vis.midX - CGFloat(spec.width) / 2, y: vis.midY - CGFloat(spec.height) / 2))
+            let origin = CGPoint(x: vis.midX - CGFloat(spec.width) / 2, y: vis.midY - CGFloat(spec.height) / 2)
+            let clamped = PluginWindowGeometry.clampFrameToVisible(
+                CGRect(origin: origin, size: CGSize(width: spec.width, height: spec.height)),
+                visibleFrame: vis, margin: 8
+            )
+            window.setFrameOrigin(clamped.origin)
         }
     }
 
