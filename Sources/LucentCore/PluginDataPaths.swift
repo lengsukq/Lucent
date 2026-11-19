@@ -101,6 +101,35 @@ public enum PluginDataPaths {
         }
     }
 
+    public static func cleanupStaleTmpDirectories(
+        in pluginsRoot: URL = PluginSystem.defaultPluginsDirectory(),
+        olderThanSeconds: TimeInterval = 300
+    ) {
+        let fm = FileManager.default
+        let root = dataRoot(forPluginsRoot: pluginsRoot)
+        guard let pluginDirs = try? fm.contentsOfDirectory(
+            at: root,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return }
+        let now = Date()
+        for pluginDir in pluginDirs {
+            guard let children = try? fm.contentsOfDirectory(
+                at: pluginDir,
+                includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey],
+                options: []
+            ) else { continue }
+            for child in children where child.lastPathComponent.hasPrefix(".tmp-") {
+                let vals = try? child.resourceValues(forKeys: [.contentModificationDateKey])
+                if olderThanSeconds <= 0 {
+                    try? fm.removeItem(at: child)
+                } else if let mtime = vals?.contentModificationDate, now.timeIntervalSince(mtime) >= olderThanSeconds {
+                    try? fm.removeItem(at: child)
+                }
+            }
+        }
+    }
+
     private static func ensurePrivateDirectory(_ url: URL) {
         let fm = FileManager.default
         if !fm.fileExists(atPath: url.path) {

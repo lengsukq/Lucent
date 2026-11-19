@@ -7,16 +7,17 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
     public let socketPath: String
     public let token: String
 
+    private static let maxConcurrentClients = 8
     private let descriptor: PluginDescriptor
     private let grantedCapabilities: Set<PluginCapability>
     private let hostContext: PluginBridgeHostContext
     private let queue = DispatchQueue(label: LucentIdentifiers.scoped("plugin-bridge"), qos: .userInitiated)
     private let clientQueue = DispatchQueue(label: LucentIdentifiers.scoped("plugin-bridge.clients"), qos: .userInitiated, attributes: .concurrent)
-    private let clientSemaphore = DispatchSemaphore(value: 8)
     private let lock = NSLock()
     private var listenFD: Int32 = -1
     private var acceptSource: DispatchSourceRead?
     private var activeClientFDs: Set<Int32> = []
+    private var activeClientCount: Int = 0
     private var stopped = false
 
     public init(
@@ -53,8 +54,11 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
             listenFD = -1
             return (f, s, socketPath, c)
         }
-        src?.cancel()
-        if fd >= 0 { Darwin.close(fd) }
+        if let src {
+            src.cancel()
+        } else if fd >= 0 {
+            Darwin.close(fd)
+        }
         for cfd in clients { _ = Darwin.shutdown(cfd, SHUT_RDWR) }
         Darwin.unlink(path)
     }
@@ -65,6 +69,8 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
             throw LucentError.pluginExecutionFailed("无法创建 Host Bridge UDS 监听句柄")
         }
         _ = Darwin.fcntl(fd, F_SETFD, FD_CLOEXEC)
+        var noSigPipe: Int32 = 1
+        _ = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size))
         Darwin.unlink(socketPath)
 
         var addr = sockaddr_un()
@@ -93,6 +99,7 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
 
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
         source.setEventHandler { [weak self] in self?.acceptPending() }
+        source.setCancelHandler { Darwin.close(fd) }
         lock.withLock {
             self.listenFD = fd
             self.acceptSource = source
@@ -111,33 +118,55 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
             }
             if clientFD < 0 { break }
             _ = Darwin.fcntl(clientFD, F_SETFD, FD_CLOEXEC)
-            clientSemaphore.wait()
-            clientQueue.async { [weak self] in
-                defer { self?.clientSemaphore.signal() }
-                self?.handleClient(clientFD)
+            var noSigPipe: Int32 = 1
+            guard setsockopt(clientFD, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size)) == 0 else {
+                Darwin.close(clientFD)
+                continue
+            }
+            let admitted = lock.withLock { () -> Bool in
+                guard !stopped, activeClientCount < Self.maxConcurrentClients else { return false }
+                activeClientCount += 1
+                activeClientFDs.insert(clientFD)
+                return true
+            }
+            guard admitted else {
+                Darwin.close(clientFD)
+                continue
+            }
+            clientQueue.async {
+                self.handleClient(clientFD)
             }
         }
     }
 
     private func handleClient(_ clientFD: Int32) {
-        lock.withLock { _ = activeClientFDs.insert(clientFD) }
         defer {
-            lock.withLock { _ = activeClientFDs.remove(clientFD) }
+            lock.withLock {
+                _ = activeClientFDs.remove(clientFD)
+                activeClientCount = max(0, activeClientCount - 1)
+            }
             Darwin.close(clientFD)
         }
+        var noSigPipe: Int32 = 1
+        if setsockopt(clientFD, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size)) != 0 {
+            return
+        }
         var tv = timeval(tv_sec: 3, tv_usec: 0)
-        setsockopt(clientFD, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        _ = setsockopt(clientFD, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        _ = setsockopt(clientFD, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
 
         var buffer = [UInt8](repeating: 0, count: 4096)
         var raw = Data()
         while raw.count < 65_536 {
             let n = Darwin.read(clientFD, &buffer, buffer.count)
+            if n < 0 && errno == EINTR { continue }
             if n <= 0 { break }
             raw.append(contentsOf: buffer.prefix(n))
             if raw.contains(0x0A) { break }
         }
         let trimmed = raw.drop(while: { $0 == 0x0A })
         let lineData = trimmed.firstIndex(of: 0x0A).map { Data(trimmed[..<$0]) } ?? Data(trimmed)
+        guard !lineData.isEmpty else { return }
         let response = Self.evaluateRequestData(
             lineData,
             expectedToken: token,
@@ -145,6 +174,7 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
             grantedCapabilities: grantedCapabilities,
             hostContext: hostContext
         )
+        if lock.withLock({ stopped }) { return }
         if var outData = try? JSONSerialization.data(withJSONObject: response, options: [.sortedKeys, .withoutEscapingSlashes]) {
             outData.append(0x0A)
             outData.withUnsafeBytes { ptr in
@@ -152,6 +182,7 @@ public final class PluginHostBridgeServer: @unchecked Sendable {
                 var sent = 0
                 while sent < outData.count {
                     let w = Darwin.write(clientFD, base.advanced(by: sent), outData.count - sent)
+                    if w < 0 && errno == EINTR { continue }
                     if w <= 0 { break }
                     sent += w
                 }
