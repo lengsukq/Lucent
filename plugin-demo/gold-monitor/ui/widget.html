@@ -1,0 +1,1868 @@
+<!doctype html>
+<html lang="zh-Hans" data-theme="white" data-mode="standard" data-edge="right">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>黄金大盘悬浮窗 · Au99.99</title>
+  <style>
+    :root,
+    html[data-theme="white"] {
+      --surface: linear-gradient(165deg, #FFFFFF 0%, #F8FAFC 100%);
+      --drawer-bg: rgba(255, 255, 255, 0.98);
+      --rim: rgba(15, 23, 42, 0.095);
+      --specular: rgba(255, 255, 255, 0.99);
+      --shadow: 0 7px 18px -4px rgba(15, 23, 42, 0.15), 0 2px 5px rgba(15, 23, 42, 0.06);
+      --ink: #0F172A;
+      --ink-dec: #64748B;
+      --ink-muted: #64748B;
+      --ink-dim: #94A3B8;
+      --pill-bg: rgba(15, 23, 42, 0.055);
+      --pill-hover: rgba(15, 23, 42, 0.105);
+      --sym-bg: rgba(217, 119, 6, 0.11);
+      --sym-ink: #92400E;
+      --gold: #D97706;
+      --gold-spine-v: linear-gradient(180deg, #FDE68A 0%, #D97706 48%, #B45309 100%);
+      --gold-spine-h: linear-gradient(90deg, #FDE68A 0%, #D97706 50%, #B45309 100%);
+      --up: #BE123C;
+      --up-bg: #FFF1F2;
+      --up-stroke: #E11D48;
+      --down: #047857;
+      --down-bg: #ECFDF5;
+      --down-stroke: #059669;
+      --flat: #475569;
+      --flat-bg: #F1F5F9;
+      --flat-stroke: #64748B;
+      --grid-line: rgba(15, 23, 42, 0.11);
+      --divider: rgba(15, 23, 42, 0.065);
+    }
+
+    html[data-theme="champagne"] {
+      --surface: linear-gradient(165deg, #FFFDF7 0%, #FEF6E4 100%);
+      --drawer-bg: rgba(255, 251, 240, 0.98);
+      --rim: rgba(180, 83, 9, 0.16);
+      --specular: rgba(255, 255, 255, 0.92);
+      --sym-bg: rgba(180, 83, 9, 0.12);
+      --sym-ink: #78350F;
+      --divider: rgba(146, 64, 14, 0.08);
+    }
+
+    html[data-theme="dark"] {
+      --surface: linear-gradient(165deg, #22232A 0%, #18191F 100%);
+      --drawer-bg: rgba(28, 29, 36, 0.98);
+      --rim: rgba(255, 255, 255, 0.13);
+      --specular: rgba(255, 255, 255, 0.08);
+      --shadow: 0 8px 22px -4px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.25);
+      --ink: #F8FAFC;
+      --ink-dec: #94A3B8;
+      --ink-muted: #94A3B8;
+      --ink-dim: #64748B;
+      --pill-bg: rgba(255, 255, 255, 0.09);
+      --pill-hover: rgba(255, 255, 255, 0.16);
+      --sym-bg: rgba(245, 158, 11, 0.18);
+      --sym-ink: #FCD34D;
+      --gold: #F59E0B;
+      --up: #FDA4AF;
+      --up-bg: rgba(225, 29, 72, 0.20);
+      --up-stroke: #FB7185;
+      --down: #6EE7B7;
+      --down-bg: rgba(16, 185, 129, 0.20);
+      --down-stroke: #34D399;
+      --flat: #CBD5E1;
+      --flat-bg: rgba(148, 163, 184, 0.16);
+      --flat-stroke: #94A3B8;
+      --grid-line: rgba(255, 255, 255, 0.12);
+      --divider: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+      color: var(--ink);
+    }
+
+    /* Outer transparent stage holds drop shadow cleanly for every mode */
+    .stage {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      background: transparent;
+      transition: padding 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    html[data-mode="dock"][data-edge="right"] .stage {
+      align-items: center;
+      justify-content: flex-end;
+      padding: 8px 0 8px 8px;
+    }
+
+    html[data-mode="dock"][data-edge="left"] .stage {
+      align-items: center;
+      justify-content: flex-start;
+      padding: 8px 8px 8px 0;
+    }
+
+    html[data-mode="dock"][data-edge="top"] .stage {
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0 5px 8px 5px;
+    }
+
+    /* Unified Porcelain Card */
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 12px 9px;
+      border-radius: 16px;
+      background: var(--surface);
+      border: 1px solid var(--rim);
+      box-shadow: var(--shadow), inset 0 1px 0 var(--specular);
+      overflow: hidden;
+      transition:
+        width 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+        padding 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .card.alert-flash {
+      border-color: var(--gold);
+    }
+
+    /* Subtle magnetic edge preview glow while dragging near left/right/top screen edges */
+    .card[data-near-edge="left"] {
+      box-shadow: var(--shadow), inset 3px 0 0 var(--gold), inset 0 1px 0 var(--specular);
+    }
+    .card[data-near-edge="right"] {
+      box-shadow: var(--shadow), inset -3px 0 0 var(--gold), inset 0 1px 0 var(--specular);
+    }
+    .card[data-near-edge="top"] {
+      box-shadow: var(--shadow), inset 0 3px 0 var(--gold);
+    }
+
+    /* Mini Mode Sizing */
+    html[data-mode="mini"] .card {
+      padding: 8px 11px 7px;
+      border-radius: 15px;
+      cursor: grab;
+    }
+
+    html[data-mode="mini"] .card:active {
+      cursor: grabbing;
+    }
+
+    /* Dock Mode Base + Edge Spines */
+    html[data-mode="dock"] .card {
+      width: 104px;
+      height: 68px;
+      padding: 7px 11px;
+      border-radius: 15px 0 0 15px;
+      border-right: none;
+      cursor: grab;
+    }
+
+    html[data-mode="dock"] .card:active {
+      cursor: grabbing;
+    }
+
+    html[data-mode="dock"][data-edge="left"] .card {
+      border-radius: 0 15px 15px 0;
+      border: 1px solid var(--rim);
+      border-left: none;
+    }
+
+    html[data-mode="dock"][data-edge="top"] .card {
+      width: 196px;
+      height: 38px;
+      padding: 4px 11px 3px;
+      border-radius: 0 0 14px 14px;
+      border: 1px solid var(--rim);
+      border-top: none;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    /* Brushed gold metallic edge spine (dock mode only) */
+    .card::after {
+      content: "";
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    html[data-mode="dock"][data-edge="right"] .card::after {
+      top: 0; right: 0; width: 2.5px; height: 100%;
+      background: var(--gold-spine-v);
+      opacity: 0.94;
+    }
+
+    html[data-mode="dock"][data-edge="left"] .card::after {
+      top: 0; left: 0; width: 2.5px; height: 100%;
+      background: var(--gold-spine-v);
+      opacity: 0.94;
+    }
+
+    html[data-mode="dock"][data-edge="top"] .card::after {
+      top: 0; left: 0; right: 0; width: 100%; height: 2px;
+      background: var(--gold-spine-h);
+      opacity: 0.94;
+    }
+
+    /* Dock Expanded (Hover or Locked Open) */
+    html[data-mode="dock"] .card:hover,
+    html[data-mode="dock"] .card.pinned-open {
+      width: 198px;
+      height: 80px;
+      padding: 7px 13px 7px 12px;
+    }
+
+    html[data-mode="dock"][data-edge="left"] .card:hover,
+    html[data-mode="dock"][data-edge="left"] .card.pinned-open {
+      padding: 7px 12px 7px 13px;
+    }
+
+    html[data-mode="dock"][data-edge="top"] .card:hover,
+    html[data-mode="dock"][data-edge="top"] .card.pinned-open {
+      width: 198px;
+      height: 82px;
+      padding: 8px 12px 7px;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0;
+    }
+
+    /* ===== Header Row ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+      min-height: 22px;
+      flex-shrink: 0;
+      cursor: grab;
+    }
+
+    .header:active { cursor: grabbing; }
+
+    html[data-mode="dock"] .header {
+      min-height: 18px;
+      height: 18px;
+    }
+
+    .brand-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .gold-dot {
+      width: 6.5px;
+      height: 6.5px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+      flex-shrink: 0;
+    }
+
+    .gold-dot.error {
+      background: #E11D48;
+      box-shadow: 0 0 6px rgba(225, 29, 72, 0.45);
+    }
+
+    .tab-btn {
+      border: none;
+      background: var(--pill-bg);
+      color: var(--ink-muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2.5px 7px;
+      border-radius: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      line-height: 1.2;
+    }
+
+    .tab-btn:hover { background: var(--pill-hover); color: var(--ink); }
+    .tab-btn.active { background: var(--sym-bg); color: var(--sym-ink); font-weight: 700; }
+
+    /* Compact single symbol switcher shown in Mini & Dock modes */
+    .sym-compact-btn {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      border: none;
+      background: var(--sym-bg);
+      color: var(--sym-ink);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      line-height: 1.2;
+      transition: background 0.15s ease, color 0.15s ease, padding 0.18s ease;
+    }
+
+    .sym-compact-btn:hover { filter: brightness(0.96); }
+
+    html[data-mode="mini"] .tab-btn,
+    html[data-mode="dock"] .tab-btn {
+      display: none;
+    }
+
+    html[data-mode="mini"] .sym-compact-btn,
+    html[data-mode="dock"] .sym-compact-btn {
+      display: inline-flex;
+    }
+
+    /* In Dock collapsed, sym button blends cleanly without pill fill */
+    html[data-mode="dock"] .card:not(:hover):not(.pinned-open) .sym-compact-btn {
+      background: transparent;
+      color: var(--ink-muted);
+      padding: 1px 0;
+    }
+
+    html[data-mode="dock"] .card:not(:hover):not(.pinned-open) .sym-swap-hint {
+      display: none;
+    }
+
+    .alert-mini-tag {
+      display: none;
+      font-size: 10px;
+    }
+
+    html[data-mode="mini"] .alert-mini-tag.on {
+      display: inline;
+    }
+
+    /* Controls groups by mode */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .std-only { display: inline-flex; }
+    .mini-only { display: none; }
+    .dock-only { display: none; }
+
+    html[data-mode="mini"] .std-only { display: none; }
+    html[data-mode="mini"] .mini-only { display: inline-flex; }
+
+    html[data-mode="dock"] .std-only,
+    html[data-mode="dock"] .mini-only { display: none; }
+    html[data-mode="dock"] .dock-only { display: inline-flex; }
+
+    html[data-mode="dock"] .controls {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(4px);
+      transition: opacity 0.16s ease, transform 0.18s ease;
+    }
+
+    html[data-mode="dock"][data-edge="top"] .card:not(:hover):not(.pinned-open) .controls {
+      display: none;
+    }
+
+    html[data-mode="dock"] .card:hover .controls,
+    html[data-mode="dock"] .card.pinned-open .controls {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .switch-pill {
+      border: none;
+      background: var(--pill-bg);
+      color: var(--ink-muted);
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2.5px 7px;
+      border-radius: 7px;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      margin-right: 2px;
+      transition: background 0.15s ease, color 0.15s ease;
+      line-height: 1.2;
+    }
+
+    .switch-pill:hover { background: var(--pill-hover); color: var(--ink); }
+
+    .icon-btn {
+      width: 21px;
+      height: 21px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--ink-muted);
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+
+    html[data-mode="dock"] .icon-btn {
+      width: 19px;
+      height: 19px;
+      border-radius: 5px;
+    }
+
+    .icon-btn:hover { background: var(--pill-hover); color: var(--ink); }
+    .icon-btn.active { background: var(--sym-bg); color: var(--sym-ink); }
+    .icon-btn.alert-active { background: var(--sym-bg); color: var(--gold); }
+    .icon-btn.close:hover { background: rgba(225, 29, 72, 0.14); color: #BE123C; }
+
+    /* ===== Hero Price Row ===== */
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    html[data-mode="mini"] .price-row {
+      margin-top: 2px;
+    }
+
+    html[data-mode="dock"] .price-row {
+      margin-top: 1px;
+      gap: 4px;
+    }
+
+    .price-main {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .price-num {
+      display: inline-flex;
+      align-items: baseline;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.025em;
+      line-height: 1;
+      transition: transform 0.16s ease;
+    }
+
+    .price-num.pulse { transform: scale(1.03); }
+
+    .price-int {
+      font-size: 28px;
+      font-weight: 780;
+      color: var(--ink);
+      transition: font-size 0.2s ease;
+    }
+
+    .price-dec {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink-dec);
+      transition: font-size 0.2s ease;
+    }
+
+    html[data-mode="mini"] .price-int { font-size: 23px; }
+    html[data-mode="mini"] .price-dec { font-size: 15px; }
+
+    html[data-mode="dock"] .price-int { font-size: 19px; }
+    html[data-mode="dock"] .price-dec { font-size: 13px; }
+
+    html[data-mode="dock"][data-edge="top"] .card:not(:hover):not(.pinned-open) .price-int { font-size: 15px; }
+    html[data-mode="dock"][data-edge="top"] .card:not(:hover):not(.pinned-open) .price-dec { font-size: 11px; }
+
+    html[data-mode="dock"] .card:hover .price-int,
+    html[data-mode="dock"] .card.pinned-open .price-int { font-size: 22px; }
+    html[data-mode="dock"] .card:hover .price-dec,
+    html[data-mode="dock"] .card.pinned-open .price-dec { font-size: 14px; }
+
+    .price-unit {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      white-space: nowrap;
+    }
+
+    html[data-mode="dock"] .price-unit {
+      display: none;
+      font-size: 9.5px;
+    }
+
+    html[data-mode="dock"] .card:hover .price-unit,
+    html[data-mode="dock"] .card.pinned-open .price-unit {
+      display: inline;
+    }
+
+    .delta-pill {
+      font-size: 11px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 3px 7px;
+      border-radius: 7px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      line-height: 1.15;
+    }
+
+    .delta-pill.up { color: var(--up); background: var(--up-bg); }
+    .delta-pill.down { color: var(--down); background: var(--down-bg); }
+    .delta-pill.flat { color: var(--flat); background: var(--flat-bg); }
+
+    /* In dock mode, delta pill moves to the bottom row alongside the micro-sparkline */
+    html[data-mode="dock"] .price-row .delta-pill {
+      display: none;
+    }
+
+    /* ===== Standard Chart Area ===== */
+    .chart-wrap {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 58px;
+      margin: 7px 0 6px;
+      border-radius: 10px;
+      overflow: hidden;
+      transition: opacity 0.18s ease;
+    }
+
+    html[data-mode="mini"] .chart-wrap,
+    html[data-mode="dock"] .chart-wrap {
+      display: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hover-tip {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--pill-bg);
+      backdrop-filter: blur(8px);
+      color: var(--ink);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+
+    .hover-tip.visible { opacity: 1; }
+
+    .preclose-tag {
+      position: absolute;
+      right: 4px;
+      font-size: 9.5px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink-dim);
+      pointer-events: none;
+      transform: translateY(-50%);
+      padding: 0 3px;
+    }
+
+    .alert-banner {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      max-width: 82%;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #FFFBEB;
+      background: rgba(217, 119, 6, 0.94);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-3px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .alert-banner.visible { opacity: 1; transform: translateY(0); }
+
+    /* ===== Dock Bottom Row (Micro Sparkline + Compact Delta) ===== */
+    .dock-bottom {
+      display: none;
+      align-items: center;
+      justify-content: flex-start;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    html[data-mode="dock"] .dock-bottom {
+      display: flex;
+    }
+
+    .micro-spark-wrap {
+      flex: 0 0 0px;
+      height: 16px;
+      min-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: opacity 0.2s ease, flex-grow 0.2s ease, margin 0.2s ease;
+    }
+
+    html[data-mode="dock"][data-edge="top"] .card:not(:hover):not(.pinned-open) .micro-spark-wrap {
+      display: none;
+    }
+
+    html[data-mode="dock"] .card:hover .micro-spark-wrap,
+    html[data-mode="dock"] .card.pinned-open .micro-spark-wrap {
+      flex: 1 1 auto;
+      opacity: 1;
+      margin-right: 6px;
+    }
+
+    .dock-delta {
+      font-size: 10.5px;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    html[data-mode="dock"][data-edge="top"] .card:not(:hover):not(.pinned-open) .dock-delta {
+      font-size: 10px;
+      padding: 2px 5.5px;
+    }
+
+    /* ===== Footer (Standard & Mini) ===== */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding-top: 5px;
+      border-top: 1px solid var(--divider);
+      font-size: 10.5px;
+      color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+      flex-shrink: 0;
+    }
+
+    html[data-mode="mini"] .footer {
+      padding-top: 4px;
+      font-size: 10px;
+    }
+
+    html[data-mode="mini"] .stat-open { display: none; }
+    html[data-mode="dock"] .footer { display: none; }
+
+    .stats {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stat b { font-weight: 600; color: var(--ink); }
+
+    .status-time {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #10B981;
+    }
+
+    .live-dot.loading { background: var(--gold); opacity: 0.7; }
+    .live-dot.error { background: #E11D48; }
+
+    /* ===== Alert Settings Drawer ===== */
+    .alert-drawer {
+      position: absolute;
+      inset: 6px;
+      border-radius: 12px;
+      padding: 10px 11px;
+      background: var(--drawer-bg);
+      border: 1px solid var(--rim);
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .alert-drawer.open { display: flex; }
+
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    .drawer-sub { font-size: 10px; font-weight: 500; color: var(--ink-muted); }
+
+    .drawer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 2px; }
+    .field label { font-size: 9.5px; color: var(--ink-muted); }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--rim);
+      border-radius: 7px;
+      padding: 4px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      background: var(--pill-bg);
+      color: var(--ink);
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .field input:focus,
+    .field select:focus { border-color: var(--gold); }
+
+    .drawer-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      color: var(--ink-muted);
+      cursor: pointer;
+    }
+
+    .drawer-btns { display: flex; align-items: center; gap: 5px; }
+
+    .btn-sm {
+      border: none;
+      border-radius: 7px;
+      padding: 4px 9px;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--pill-bg);
+      color: var(--ink-muted);
+    }
+
+    .btn-sm:hover { color: var(--ink); }
+    .btn-sm.primary { background: var(--gold); color: #FFFFFF; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stage, .card, .controls, .price-int, .price-dec, .micro-spark-wrap {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="card" id="card">
+      <div class="header" id="dragHeader">
+        <div class="brand-tabs">
+          <span class="gold-dot" id="brandDot" title="上海黄金交易所"></span>
+          <button class="tab-btn active" data-sym="AU9999">Au99.99</button>
+          <button class="tab-btn" data-sym="AUTD">Au(T+D)</button>
+          <button class="sym-compact-btn" id="symCompactBtn" title="点击切换 Au99.99 / Au(T+D)">
+            <span id="symCompactLabel">Au99.99</span><span class="sym-swap-hint"> ⇄</span>
+          </button>
+          <span class="alert-mini-tag" id="alertMiniTag" title="价格预警已开启">🔔</span>
+        </div>
+
+        <div class="controls">
+          <!-- Standard Mode Controls -->
+          <button class="switch-pill std-only" id="toMiniBtn" title="切换为 Mini 紧凑卡片（拖动至左/右/上边缘自动贴边）">
+            <span>Mini</span>
+          </button>
+          <button class="icon-btn std-only" id="alertBtn" title="金价预警与防抖设置" aria-label="金价预警设置">
+            <svg width="12.5" height="12.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+          </button>
+          <button class="icon-btn std-only active" id="pinBtn" title="置顶窗口" aria-label="置顶窗口">
+            <svg width="12.5" height="12.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 17v5"/>
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+            </svg>
+          </button>
+          <button class="icon-btn std-only" id="opacityBtn" title="切换透明度" aria-label="切换透明度">
+            <svg width="12.5" height="12.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" fill-opacity="0.35"/>
+            </svg>
+          </button>
+          <button class="icon-btn std-only" id="refreshBtn" title="立即刷新" aria-label="立即刷新">
+            <svg width="12.5" height="12.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+              <path d="M21 3v6h-6"/>
+            </svg>
+          </button>
+
+          <!-- Mini Mode Controls -->
+          <button class="switch-pill mini-only" id="toStdBtn" title="展开标准图表悬浮窗">
+            <svg width="10.5" height="10.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+            </svg>
+            <span>图表</span>
+          </button>
+
+          <!-- Dock Mode Controls -->
+          <button class="icon-btn dock-only" id="dockLockBtn" title="锁定展开 / 离开自动收窄" aria-label="锁定展开">
+            <svg width="10.5" height="10.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 17v5"/>
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+            </svg>
+          </button>
+          <button class="icon-btn dock-only" id="dockEdgeBtn" title="切换贴边位置（右 → 左 → 上）" aria-label="切换贴边位置">
+            <svg id="dockEdgeIcon" width="10.5" height="10.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3"/>
+              <path d="M15 3v18"/>
+            </svg>
+          </button>
+          <button class="icon-btn dock-only" id="dockExpandBtn" title="展开标准图表窗" aria-label="展开标准图表窗">
+            <svg width="10.5" height="10.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+            </svg>
+          </button>
+
+          <!-- Shared Close Button -->
+          <button class="icon-btn close" style="display:inline-flex" id="closeBtn" title="关闭悬浮窗" aria-label="关闭悬浮窗">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="price-row">
+        <div class="price-main">
+          <span class="price-num" id="priceNum">
+            <span class="price-int" id="priceInt">---</span><span class="price-dec" id="priceDec">.--</span>
+          </span>
+          <span class="price-unit" id="unitVal">元/克</span>
+        </div>
+        <div class="delta-pill flat" id="deltaPill">-- (--%)</div>
+      </div>
+
+      <div class="chart-wrap" id="chartWrap">
+        <canvas id="sparkCanvas"></canvas>
+        <div class="preclose-tag" id="preCloseTag"></div>
+        <div class="hover-tip" id="hoverTip"></div>
+        <div class="alert-banner" id="alertBanner"></div>
+      </div>
+
+      <div class="dock-bottom">
+        <div class="micro-spark-wrap" id="microSparkWrap">
+          <canvas id="microCanvas"></canvas>
+        </div>
+        <span class="delta-pill dock-delta flat" id="dockDeltaPill">--%</span>
+      </div>
+
+      <div class="alert-drawer" id="alertDrawer">
+        <div class="drawer-head">
+          <span id="drawerTitle">Au99.99 价格预警</span>
+          <span class="drawer-sub">穿越触发 + 冷却防抖</span>
+        </div>
+        <div class="drawer-grid">
+          <div class="field">
+            <label for="highInput">突破上限 ≥ (元/克)</label>
+            <input id="highInput" type="number" step="0.01" placeholder="如 815.00" />
+          </div>
+          <div class="field">
+            <label for="lowInput">跌破下限 ≤ (元/克)</label>
+            <input id="lowInput" type="number" step="0.01" placeholder="如 790.00" />
+          </div>
+        </div>
+        <div class="drawer-foot">
+          <label class="toggle-wrap">
+            <input id="alertEnabledInput" type="checkbox" checked />
+            <span>启用</span>
+          </label>
+          <div class="field" style="width: 78px;">
+            <select id="cooldownSelect" title="防抖冷却时间">
+              <option value="1">冷却 1m</option>
+              <option value="5">冷却 5m</option>
+              <option value="15" selected>冷却 15m</option>
+              <option value="30">冷却 30m</option>
+              <option value="60">冷却 60m</option>
+            </select>
+          </div>
+          <div class="drawer-btns">
+            <button class="btn-sm" id="cancelAlertBtn">取消</button>
+            <button class="btn-sm primary" id="saveAlertBtn">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="stats">
+          <span class="stat stat-open">开 <b id="openVal">--</b></span>
+          <span class="stat">高 <b id="highVal">--</b></span>
+          <span class="stat">低 <b id="lowVal">--</b></span>
+        </div>
+        <div class="status-time">
+          <span class="live-dot loading" id="liveDot"></span>
+          <span id="timeVal">加载中...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const EDGE_ORDER = ["right", "left", "top"];
+      const EDGE_LABELS = { right: "靠右", left: "靠左", top: "靠上" };
+      const MODE_SIZES = {
+        standard: { w: 352, h: 240 },
+        mini: { w: 280, h: 112 },
+        dock: { w: 212, h: 96 }
+      };
+
+      const state = {
+        mode: "standard",
+        returnMode: "standard",
+        edge: "right",
+        dockPinnedOpen: false,
+        symbol: null,
+        refreshSec: 5,
+        colorScheme: "cn",
+        themeStyle: "white",
+        lastConfigMode: null,
+        pinned: true,
+        opacityLevels: [1.0, 0.88, 0.72],
+        opacityIdx: 0,
+        lastPrice: null,
+        snapshot: null,
+        hoverIndex: null,
+        timer: null,
+        bannerTimer: null,
+        fetching: false,
+        morphing: false,
+        closing: false,
+        lastFrameUpdatedAt: null,
+        checkingFrame: false,
+        ignoreAutoUntil: 0
+      };
+
+      const el = {
+        card: document.getElementById("card"),
+        dragHeader: document.getElementById("dragHeader"),
+        brandDot: document.getElementById("brandDot"),
+        symCompactBtn: document.getElementById("symCompactBtn"),
+        symCompactLabel: document.getElementById("symCompactLabel"),
+        alertMiniTag: document.getElementById("alertMiniTag"),
+        priceNum: document.getElementById("priceNum"),
+        priceInt: document.getElementById("priceInt"),
+        priceDec: document.getElementById("priceDec"),
+        unitVal: document.getElementById("unitVal"),
+        deltaPill: document.getElementById("deltaPill"),
+        dockDeltaPill: document.getElementById("dockDeltaPill"),
+        openVal: document.getElementById("openVal"),
+        highVal: document.getElementById("highVal"),
+        lowVal: document.getElementById("lowVal"),
+        timeVal: document.getElementById("timeVal"),
+        liveDot: document.getElementById("liveDot"),
+        chartWrap: document.getElementById("chartWrap"),
+        canvas: document.getElementById("sparkCanvas"),
+        microSparkWrap: document.getElementById("microSparkWrap"),
+        microCanvas: document.getElementById("microCanvas"),
+        hoverTip: document.getElementById("hoverTip"),
+        preCloseTag: document.getElementById("preCloseTag"),
+        alertBanner: document.getElementById("alertBanner"),
+        alertDrawer: document.getElementById("alertDrawer"),
+        drawerTitle: document.getElementById("drawerTitle"),
+        highInput: document.getElementById("highInput"),
+        lowInput: document.getElementById("lowInput"),
+        alertEnabledInput: document.getElementById("alertEnabledInput"),
+        cooldownSelect: document.getElementById("cooldownSelect"),
+        cancelAlertBtn: document.getElementById("cancelAlertBtn"),
+        saveAlertBtn: document.getElementById("saveAlertBtn"),
+        toMiniBtn: document.getElementById("toMiniBtn"),
+        toStdBtn: document.getElementById("toStdBtn"),
+        alertBtn: document.getElementById("alertBtn"),
+        pinBtn: document.getElementById("pinBtn"),
+        opacityBtn: document.getElementById("opacityBtn"),
+        refreshBtn: document.getElementById("refreshBtn"),
+        dockLockBtn: document.getElementById("dockLockBtn"),
+        dockEdgeBtn: document.getElementById("dockEdgeBtn"),
+        dockEdgeIcon: document.getElementById("dockEdgeIcon"),
+        dockExpandBtn: document.getElementById("dockExpandBtn"),
+        closeBtn: document.getElementById("closeBtn")
+      };
+
+      // Strictly serialize all lucent.run calls to avoid concurrent bridge teardown races
+      let runQueue = Promise.resolve();
+      function runExclusive(args, query = "") {
+        if (state.closing || !window.lucent?.run) return Promise.resolve(null);
+        const task = runQueue.then(() => {
+          if (state.closing || !window.lucent?.run) return null;
+          return window.lucent.run(args, query);
+        });
+        runQueue = task.catch(() => null);
+        return task;
+      }
+
+      async function safeCloseWindow() {
+        if (state.closing) return;
+        state.closing = true;
+        if (state.timer) clearInterval(state.timer);
+        await runQueue.catch(() => null);
+        await new Promise((r) => setTimeout(r, 160));
+        await window.lucent?.window?.close?.();
+      }
+
+      function currentWindowId() {
+        return window.lucent?.env?.windowId || "gold-monitor-hud";
+      }
+
+      async function moveWindow(x, y) {
+        const fn = window.lucent?.window?.moveTo;
+        if (!fn || !Number.isFinite(x) || !Number.isFinite(y)) return false;
+        const rx = Math.round(x), ry = Math.round(y);
+        const attempt = async (asObj) => {
+          try {
+            const r = asObj ? await fn({ x: rx, y: ry }) : await fn(rx, ry);
+            if (r && typeof r === "object" && r.ok === false) return false;
+            return r !== false;
+          } catch (_) { return false; }
+        };
+        if (fn.length === 1) return (await attempt(true)) || (await attempt(false));
+        return (await attempt(false)) || (await attempt(true));
+      }
+
+      async function resizeWindow(w, h) {
+        const fn = window.lucent?.window?.resize;
+        if (!fn) return false;
+        const rw = Math.round(w), rh = Math.round(h);
+        const attempt = async (asObj) => {
+          try {
+            const r = asObj ? await fn({ width: rw, height: rh }) : await fn(rw, rh);
+            if (r && typeof r === "object" && r.ok === false) return false;
+          } catch (_) { return false; }
+          await new Promise((res) => setTimeout(res, 35));
+          return Math.abs(window.innerWidth - rw) <= 10 && Math.abs(window.innerHeight - rh) <= 10;
+        };
+        if (fn.length === 1) return (await attempt(true)) || (await attempt(false));
+        return (await attempt(false)) || (await attempt(true));
+      }
+
+      function updateEdgeVisual(edge) {
+        state.edge = edge;
+        document.documentElement.setAttribute("data-edge", edge);
+        const nextEdge = EDGE_ORDER[(EDGE_ORDER.indexOf(edge) + 1) % EDGE_ORDER.length];
+        el.dockEdgeBtn.title = `当前${EDGE_LABELS[edge]} · 点击切换${EDGE_LABELS[nextEdge]}`;
+        if (edge === "left") {
+          el.dockEdgeIcon.innerHTML = `<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/>`;
+        } else if (edge === "top") {
+          el.dockEdgeIcon.innerHTML = `<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/>`;
+        } else {
+          el.dockEdgeIcon.innerHTML = `<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M15 3v18"/>`;
+        }
+        setTimeout(drawActiveChart, 230);
+      }
+
+      function applySafeVisualClamp(frame) {
+        if (state.mode !== "dock" || !frame?.screen) {
+          el.card.style.transform = "";
+          return;
+        }
+        let shiftX = 0, shiftY = 0;
+        if (state.edge === "left" && frame.distLeft < 0) {
+          shiftX = Math.min(106, Math.round(-frame.distLeft));
+        } else if (state.edge === "right" && frame.distRight < 0) {
+          shiftX = -Math.min(106, Math.round(-frame.distRight));
+        }
+        if (state.edge === "top" && frame.distTop < 0) {
+          shiftY = Math.min(54, Math.round(-frame.distTop));
+        }
+        el.card.style.transform = (shiftX !== 0 || shiftY !== 0) ? `translate(${shiftX}px, ${shiftY}px)` : "";
+      }
+
+      const hasNativeMotion = Boolean(
+        window.lucent?.window?.snapToEdge &&
+        window.lucent?.window?.morph &&
+        window.lucent?.window?.onDragEnd
+      );
+
+      // Single-window native smooth morph — ZERO window close / reopen!
+      async function morphToMode(targetMode, opts = {}) {
+        if (state.morphing || state.closing) return;
+        const prevMode = state.mode;
+        const targetEdge = opts.edge && EDGE_ORDER.includes(opts.edge) ? opts.edge : state.edge;
+        const size = MODE_SIZES[targetMode] || MODE_SIZES.standard;
+
+        state.morphing = true;
+        state.ignoreAutoUntil = Date.now() + 700;
+        el.alertDrawer.classList.remove("open");
+        el.card.style.transform = "";
+        el.card.removeAttribute("data-near-edge");
+
+        try {
+          if (targetMode === "dock" && prevMode !== "dock") {
+            state.returnMode = prevMode === "mini" ? "mini" : "standard";
+          }
+
+          if (targetMode === "dock") {
+            updateEdgeVisual(targetEdge);
+          }
+
+          if (hasNativeMotion) {
+            state.mode = targetMode;
+            document.documentElement.setAttribute("data-mode", targetMode);
+            if (targetMode === "dock") {
+              await window.lucent.window.snapToEdge(targetEdge, {
+                width: size.w,
+                height: size.h,
+                margin: 0,
+                durationMs: 240,
+                easing: "spring"
+              });
+            } else if (opts.x !== undefined && opts.y !== undefined && Number.isFinite(opts.x) && Number.isFinite(opts.y)) {
+              await window.lucent.window.animateFrame({
+                x: Math.round(opts.x),
+                y: Math.round(opts.y),
+                width: size.w,
+                height: size.h,
+                durationMs: 230,
+                easing: "spring",
+                keepOnScreen: true
+              });
+            } else {
+              const anchor = prevMode === "dock"
+                ? (state.edge === "left" ? "leftCenter" : (state.edge === "top" ? "topCenter" : "rightCenter"))
+                : "topRight";
+              await window.lucent.window.morph({
+                width: size.w,
+                height: size.h,
+                anchor,
+                durationMs: 230,
+                easing: "spring",
+                keepOnScreen: true
+              });
+            }
+            setTimeout(drawActiveChart, 250);
+            return;
+          }
+
+          const isShrinking =
+            (prevMode === "standard" && targetMode !== "standard") ||
+            (prevMode === "mini" && targetMode === "dock");
+
+          if (isShrinking) {
+            state.mode = targetMode;
+            document.documentElement.setAttribute("data-mode", targetMode);
+            await new Promise((r) => setTimeout(r, 190));
+            await resizeWindow(size.w, size.h);
+            if (opts.x !== undefined && opts.y !== undefined && Number.isFinite(opts.x) && Number.isFinite(opts.y)) {
+              await moveWindow(opts.x, opts.y);
+            }
+          } else {
+            await resizeWindow(size.w, size.h);
+            if (opts.x !== undefined && opts.y !== undefined && Number.isFinite(opts.x) && Number.isFinite(opts.y)) {
+              await moveWindow(opts.x, opts.y);
+            }
+            await new Promise((r) => requestAnimationFrame(r));
+            state.mode = targetMode;
+            document.documentElement.setAttribute("data-mode", targetMode);
+          }
+
+          setTimeout(() => checkFrameAfterDrag(true), 220);
+          setTimeout(drawActiveChart, 260);
+        } finally {
+          state.morphing = false;
+        }
+      }
+
+      async function snapDockToEdge(edge) {
+        state.ignoreAutoUntil = Date.now() + 700;
+        updateEdgeVisual(edge);
+        if (hasNativeMotion) {
+          if (state.mode !== "dock") {
+            await morphToMode("dock", { edge });
+          } else {
+            await window.lucent.window.snapToEdge(edge, {
+              width: MODE_SIZES.dock.w,
+              height: MODE_SIZES.dock.h,
+              margin: 0,
+              durationMs: 240,
+              easing: "spring"
+            });
+            setTimeout(drawActiveChart, 250);
+          }
+          return;
+        }
+        try {
+          const res = await runExclusive(["--snap-dock", edge, currentWindowId()], "");
+          const data = res?.data || (res?.stdout ? JSON.parse(res.stdout) : null);
+          if (data?.ok) {
+            if (state.mode !== "dock") {
+              await morphToMode("dock", { edge, x: data.x, y: data.y });
+            } else {
+              await moveWindow(data.x, data.y);
+              setTimeout(() => checkFrameAfterDrag(true), 220);
+            }
+          }
+        } catch (_) {}
+      }
+
+      function pickDockEdgeFromMetrics(edges, threshold = 26) {
+        if (!edges) return null;
+        const candidates = [
+          ["top", Number(edges.distTop)],
+          ["left", Number(edges.distLeft)],
+          ["right", Number(edges.distRight)]
+        ].filter(([, d]) => Number.isFinite(d) && d <= threshold);
+        if (!candidates.length) return null;
+        candidates.sort((a, b) => a[1] - b[1]);
+        return candidates[0][0];
+      }
+
+      async function handleNativeDragEnd(detail) {
+        el.card.removeAttribute("data-near-edge");
+        if (state.morphing || state.closing || Date.now() < state.ignoreAutoUntil) return;
+        if (el.alertDrawer.classList.contains("open")) return;
+        if (!detail || (detail.movedDistance !== undefined && detail.movedDistance < 4)) return;
+        const edges = detail.edges;
+        if (!edges) return;
+
+        if (state.mode === "dock") {
+          const near = pickDockEdgeFromMetrics(edges, 34);
+          if (near) {
+            await snapDockToEdge(near);
+            return;
+          }
+          const minDockDist = Math.min(Number(edges.distLeft), Number(edges.distRight), Number(edges.distTop));
+          if (Number.isFinite(minDockDist) && minDockDist > 56) {
+            await morphToMode(state.returnMode);
+          }
+        } else {
+          const near = pickDockEdgeFromMetrics(edges, 26);
+          if (near) {
+            await morphToMode("dock", { edge: near });
+          }
+        }
+      }
+
+      async function checkFrameAfterDrag(initOnly = false) {
+        if (state.checkingFrame || state.morphing || state.closing) return;
+        if (!initOnly && el.alertDrawer.classList.contains("open")) return;
+        state.checkingFrame = true;
+        try {
+          const res = await runExclusive(["--check-frame", currentWindowId(), state.mode, state.returnMode], "");
+          const frame = res?.data || (res?.stdout ? JSON.parse(res.stdout) : null);
+          if (!frame?.ok) return;
+
+          applySafeVisualClamp(frame);
+
+          if (initOnly || state.lastFrameUpdatedAt === null) {
+            state.lastFrameUpdatedAt = frame.updatedAt || 0;
+            if (state.mode === "dock" && frame.detectedEdge && EDGE_ORDER.includes(frame.detectedEdge)) {
+              updateEdgeVisual(frame.detectedEdge);
+            }
+            return;
+          }
+
+          if (Date.now() < state.ignoreAutoUntil) {
+            state.lastFrameUpdatedAt = Math.max(state.lastFrameUpdatedAt, frame.updatedAt || 0);
+            return;
+          }
+          if (!frame.updatedAt || frame.updatedAt <= state.lastFrameUpdatedAt) return;
+          state.lastFrameUpdatedAt = frame.updatedAt;
+
+          if (state.mode === "dock") {
+            if (frame.shouldUndock) {
+              state.checkingFrame = false;
+              await morphToMode(state.returnMode, { x: frame.restoreX, y: frame.restoreY });
+              return;
+            }
+            if (frame.detectedEdge && EDGE_ORDER.includes(frame.detectedEdge)) {
+              updateEdgeVisual(frame.detectedEdge);
+              if (frame.snapX !== null && frame.snapY !== null) {
+                const drift = Math.hypot(frame.x - frame.snapX, frame.y - frame.snapY);
+                if (drift > 4 || frame.outOfBounds) {
+                  state.ignoreAutoUntil = Date.now() + 1000;
+                  await moveWindow(frame.snapX, frame.snapY);
+                  setTimeout(() => checkFrameAfterDrag(true), 220);
+                }
+              }
+            }
+          } else {
+            // Standard or Mini dragged close to left / right / top edge -> smooth in-place morph to Dock!
+            if (frame.detectedEdge && frame.snapX !== null && frame.snapY !== null) {
+              state.checkingFrame = false;
+              await morphToMode("dock", {
+                edge: frame.detectedEdge,
+                x: frame.snapX,
+                y: frame.snapY
+              });
+              return;
+            }
+          }
+        } catch (_) {
+        } finally {
+          state.checkingFrame = false;
+        }
+      }
+
+      function applyTheme(env) {
+        const style = state.themeStyle || "white";
+        if (style === "auto") {
+          document.documentElement.setAttribute("data-theme", env?.theme === "dark" ? "dark" : "white");
+        } else {
+          document.documentElement.setAttribute("data-theme", style === "pearl" ? "white" : style);
+        }
+        if (typeof env?.pinOnTop === "boolean") {
+          state.pinned = env.pinOnTop;
+          el.pinBtn.classList.toggle("active", state.pinned);
+        }
+        drawActiveChart();
+      }
+
+      function formatSigned(val, suffix = "") {
+        const sign = val > 0 ? "+" : "";
+        return `${sign}${val.toFixed(2)}${suffix}`;
+      }
+
+      function trendClass(change) {
+        if (Math.abs(change) < 0.005) return "flat";
+        const up = change > 0;
+        return state.colorScheme === "intl" ? (up ? "down" : "up") : (up ? "up" : "down");
+      }
+
+      function strokeColor(change) {
+        const cls = trendClass(change);
+        const cs = getComputedStyle(document.documentElement);
+        if (cls === "up") return cs.getPropertyValue("--up-stroke").trim() || "#E11D48";
+        if (cls === "down") return cs.getPropertyValue("--down-stroke").trim() || "#059669";
+        return cs.getPropertyValue("--flat-stroke").trim() || "#64748B";
+      }
+
+      function renderSnapshot(snap) {
+        state.snapshot = snap;
+        state.colorScheme = snap.colorScheme || "cn";
+        if (snap.themeStyle && snap.themeStyle !== state.themeStyle) {
+          state.themeStyle = snap.themeStyle;
+          applyTheme(window.lucent?.env);
+        }
+
+        // Honor explicit launch mode requested by Launcher command (--open-mini / --open-dock / --open-floating)
+        if (snap.dockState?.pendingSnap && snap.dockState.fromMode) {
+          const reqMode = snap.dockState.fromMode;
+          if (reqMode === "dock") {
+            snapDockToEdge(snap.dockState.edge || "right");
+          } else if (reqMode !== state.mode && (reqMode === "mini" || reqMode === "standard")) {
+            morphToMode(reqMode);
+          }
+        }
+
+        // Live sync if user changes defaultMode in Lucent Settings
+        if (snap.defaultMode) {
+          if (state.lastConfigMode !== null && state.lastConfigMode !== snap.defaultMode) {
+            state.lastConfigMode = snap.defaultMode;
+            if (snap.defaultMode === "dock") {
+              snapDockToEdge(state.edge);
+            } else {
+              morphToMode(snap.defaultMode);
+            }
+          } else {
+            state.lastConfigMode = snap.defaultMode;
+          }
+        }
+
+        if (snap.symbol && state.symbol !== snap.symbol) {
+          state.symbol = snap.symbol;
+          document.querySelectorAll(".tab-btn").forEach((b) => {
+            b.classList.toggle("active", b.getAttribute("data-sym") === state.symbol);
+          });
+          el.symCompactLabel.textContent = state.symbol === "AUTD" ? "Au(T+D)" : "Au99.99";
+        }
+
+        if (!snap.ok || !snap.price) {
+          el.liveDot.className = "live-dot error";
+          el.brandDot.classList.add("error");
+          el.timeVal.textContent = snap.error ? "网络异常" : "等待行情";
+          return;
+        }
+
+        el.brandDot.classList.remove("error");
+        const nextPrice = Number(snap.price);
+        if (state.lastPrice !== null && Math.abs(state.lastPrice - nextPrice) >= 0.01) {
+          el.priceNum.classList.add("pulse");
+          setTimeout(() => el.priceNum.classList.remove("pulse"), 200);
+        }
+        state.lastPrice = nextPrice;
+
+        const formatted = nextPrice.toFixed(2);
+        const [intPart, decPart] = formatted.split(".");
+        el.priceInt.textContent = intPart;
+        el.priceDec.textContent = `.${decPart}`;
+        el.unitVal.textContent = snap.unit || "元/克";
+
+        const cls = trendClass(snap.change);
+        el.deltaPill.className = `delta-pill ${cls}`;
+        el.deltaPill.textContent = `${formatSigned(snap.change)} (${formatSigned(snap.changePct, "%")})`;
+        el.dockDeltaPill.className = `delta-pill dock-delta ${cls}`;
+        el.dockDeltaPill.textContent = formatSigned(snap.changePct, "%");
+
+        el.openVal.textContent = Number(snap.open).toFixed(2);
+        el.highVal.textContent = Number(snap.high).toFixed(2);
+        el.lowVal.textContent = Number(snap.low).toFixed(2);
+        el.timeVal.textContent = snap.time || "--:--:--";
+        el.liveDot.className = "live-dot";
+
+        const alertOn = Boolean(snap.alerts?.enabled);
+        el.alertBtn.classList.toggle("alert-active", alertOn);
+        el.alertMiniTag.classList.toggle("on", alertOn);
+
+        let alertTip = "";
+        if (alertOn) {
+          const parts = [];
+          if (snap.alerts.highPrice) parts.push(`≥${Number(snap.alerts.highPrice).toFixed(2)}`);
+          if (snap.alerts.lowPrice) parts.push(`≤${Number(snap.alerts.lowPrice).toFixed(2)}`);
+          if (parts.length) alertTip = `\n🔔 预警 ${parts.join(" / ")} (冷却 ${snap.alerts.cooldownMinutes}m)`;
+        }
+        el.card.title = state.mode === "standard"
+          ? ""
+          : `${snap.name} · ¥${formatted}/g (${formatSigned(snap.change)} / ${formatSigned(snap.changePct, "%")})\n开 ${Number(snap.open).toFixed(2)} · 高 ${Number(snap.high).toFixed(2)} · 低 ${Number(snap.low).toFixed(2)} · ${snap.time}${alertTip}`;
+
+        if (snap.alertTriggered?.message) {
+          el.alertBanner.textContent = `🔔 ${snap.alertTriggered.message}`;
+          el.alertBanner.classList.add("visible");
+          el.card.classList.add("alert-flash");
+          clearTimeout(state.bannerTimer);
+          state.bannerTimer = setTimeout(() => {
+            el.alertBanner.classList.remove("visible");
+            el.card.classList.remove("alert-flash");
+          }, 5000);
+        }
+
+        if (snap.refreshIntervalSec && snap.refreshIntervalSec !== state.refreshSec) {
+          state.refreshSec = snap.refreshIntervalSec;
+          restartPolling();
+        }
+        drawActiveChart();
+      }
+
+      function drawActiveChart() {
+        if (state.mode === "standard") drawMainChart();
+        else if (state.mode === "dock") drawMicroSparkline();
+      }
+
+      function drawMainChart() {
+        const snap = state.snapshot;
+        const rect = el.chartWrap.getBoundingClientRect();
+        if (rect.width <= 4 || rect.height <= 4) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        el.canvas.width = Math.round(rect.width * dpr);
+        el.canvas.height = Math.round(rect.height * dpr);
+        const ctx = el.canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        const series = snap?.series || [];
+        if (series.length === 0) {
+          el.preCloseTag.textContent = "";
+          return;
+        }
+
+        const preClose = Number(snap.preClose || series[0].p);
+        let minP = preClose, maxP = preClose;
+        for (const pt of series) {
+          if (pt.p < minP) minP = pt.p;
+          if (pt.p > maxP) maxP = pt.p;
+        }
+        const pad = Math.max(maxP - minP, 0.4) * 0.14;
+        minP -= pad; maxP += pad;
+        const span = maxP - minP;
+
+        const padX = 4, padY = 6;
+        const w = rect.width - padX * 2;
+        const h = rect.height - padY * 2;
+        const xAt = (i) => series.length === 1 ? padX + w * 0.5 : padX + (i / (series.length - 1)) * w;
+        const yAt = (p) => padY + (1 - (p - minP) / span) * h;
+
+        const cs = getComputedStyle(document.documentElement);
+        const preY = yAt(preClose);
+        ctx.save();
+        ctx.strokeStyle = cs.getPropertyValue("--grid-line").trim() || "rgba(15,23,42,0.11)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(padX, preY);
+        ctx.lineTo(padX + w, preY);
+        ctx.stroke();
+        ctx.restore();
+
+        el.preCloseTag.style.top = `${Math.max(10, Math.min(rect.height - 10, preY))}px`;
+        el.preCloseTag.textContent = `昨收 ${preClose.toFixed(2)}`;
+
+        if (snap.alerts?.enabled) {
+          const drawTarget = (val) => {
+            if (!val || val < minP || val > maxP) return;
+            const ty = yAt(val);
+            ctx.save();
+            ctx.strokeStyle = "rgba(217, 119, 6, 0.72)";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 3]);
+            ctx.beginPath();
+            ctx.moveTo(padX, ty);
+            ctx.lineTo(padX + w, ty);
+            ctx.stroke();
+            ctx.restore();
+          };
+          drawTarget(snap.alerts.highPrice);
+          drawTarget(snap.alerts.lowPrice);
+        }
+
+        const color = strokeColor(snap.change);
+        ctx.save();
+        ctx.beginPath();
+        series.forEach((pt, idx) => {
+          const x = xAt(idx), y = yAt(pt.p);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(xAt(series.length - 1), rect.height);
+        ctx.lineTo(xAt(0), rect.height);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, padY, 0, rect.height);
+        grad.addColorStop(0, color + "2B");
+        grad.addColorStop(1, color + "02");
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.85;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        series.forEach((pt, idx) => {
+          const x = xAt(idx), y = yAt(pt.p);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.restore();
+
+        const lastIdx = series.length - 1;
+        const lx = xAt(lastIdx), ly = yAt(series[lastIdx].p);
+        ctx.save();
+        ctx.fillStyle = color + "33";
+        ctx.beginPath(); ctx.arc(lx, ly, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(lx, ly, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+        if (state.hoverIndex !== null && series[state.hoverIndex]) {
+          const idx = state.hoverIndex;
+          const hx = xAt(idx), hy = yAt(series[idx].p);
+          ctx.save();
+          ctx.strokeStyle = cs.getPropertyValue("--ink-dim").trim() || "rgba(15,23,42,0.35)";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(hx, 2); ctx.lineTo(hx, rect.height - 2); ctx.stroke();
+          ctx.fillStyle = "#FFFFFF";
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(hx, hy, 3.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.restore();
+          el.hoverTip.textContent = `${series[idx].t} · ¥${Number(series[idx].p).toFixed(2)}`;
+          el.hoverTip.classList.add("visible");
+        } else {
+          el.hoverTip.classList.remove("visible");
+        }
+      }
+
+      function drawMicroSparkline() {
+        const snap = state.snapshot;
+        const series = snap?.series || [];
+        const rect = el.microSparkWrap.getBoundingClientRect();
+        if (rect.width <= 4 || rect.height <= 4 || series.length < 2) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        el.microCanvas.width = Math.round(rect.width * dpr);
+        el.microCanvas.height = Math.round(rect.height * dpr);
+        const ctx = el.microCanvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        let minP = series[0].p, maxP = series[0].p;
+        for (const pt of series) {
+          if (pt.p < minP) minP = pt.p;
+          if (pt.p > maxP) maxP = pt.p;
+        }
+        const span = Math.max(maxP - minP, 0.25);
+        const w = rect.width - 3, h = rect.height - 4;
+        const xAt = (i) => 1 + (i / (series.length - 1)) * w;
+        const yAt = (p) => 2 + (1 - (p - minP) / span) * h;
+
+        const color = strokeColor(snap.change);
+        ctx.beginPath();
+        series.forEach((pt, idx) => {
+          const x = xAt(idx), y = yAt(pt.p);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(xAt(series.length - 1), rect.height);
+        ctx.lineTo(xAt(0), rect.height);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, 0, rect.height);
+        grad.addColorStop(0, color + "26");
+        grad.addColorStop(1, color + "00");
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.45;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        series.forEach((pt, idx) => {
+          const x = xAt(idx), y = yAt(pt.p);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(xAt(series.length - 1), yAt(series[series.length - 1].p), 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      async function fetchQuote(manual = false) {
+        if (state.fetching || state.closing) return;
+        state.fetching = true;
+        if (manual) el.liveDot.className = "live-dot loading";
+        try {
+          const args = state.symbol ? ["--quote", state.symbol] : ["--quote"];
+          const res = await runExclusive(args, "");
+          const payload = res?.data || (res?.stdout ? JSON.parse(res.stdout) : null);
+          if (payload) renderSnapshot(payload);
+        } catch (_) {
+          el.liveDot.className = "live-dot error";
+          el.timeVal.textContent = "刷新失败";
+        } finally {
+          state.fetching = false;
+        }
+      }
+
+      function restartPolling() {
+        if (state.timer) clearInterval(state.timer);
+        state.timer = setInterval(async () => {
+          await fetchQuote(false);
+          if (!hasNativeMotion) await checkFrameAfterDrag(false);
+        }, Math.max(2, state.refreshSec) * 1000);
+      }
+
+      // Unified drag handler: in Standard drag header; in Mini & Dock drag anywhere on card
+      el.card.addEventListener("pointerdown", async (e) => {
+        if (e.target.closest("button, input, select, label")) return;
+        if (state.mode === "standard" && !e.target.closest("#dragHeader")) return;
+        await window.lucent?.window?.startDrag?.();
+        if (!hasNativeMotion) {
+          setTimeout(() => checkFrameAfterDrag(false), 240);
+          setTimeout(() => checkFrameAfterDrag(false), 700);
+        }
+      });
+
+      el.card.addEventListener("dblclick", (e) => {
+        if (e.target.closest("button, input, select")) return;
+        if (state.mode === "dock") morphToMode("standard");
+      });
+
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const sym = btn.getAttribute("data-sym");
+          if (!sym || sym === state.symbol) return;
+          state.symbol = sym;
+          state.lastPrice = null;
+          state.hoverIndex = null;
+          document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+          el.symCompactLabel.textContent = sym === "AUTD" ? "Au(T+D)" : "Au99.99";
+          fetchQuote(true);
+        });
+      });
+
+      el.symCompactBtn.addEventListener("click", () => {
+        state.symbol = state.symbol === "AUTD" ? "AU9999" : "AUTD";
+        state.lastPrice = null;
+        el.symCompactLabel.textContent = state.symbol === "AUTD" ? "Au(T+D)" : "Au99.99";
+        document.querySelectorAll(".tab-btn").forEach((b) => {
+          b.classList.toggle("active", b.getAttribute("data-sym") === state.symbol);
+        });
+        fetchQuote(true);
+      });
+
+      el.toMiniBtn.addEventListener("click", () => morphToMode("mini"));
+      el.toStdBtn.addEventListener("click", () => morphToMode("standard"));
+      el.dockExpandBtn.addEventListener("click", () => morphToMode("standard"));
+
+      el.dockLockBtn.addEventListener("click", () => {
+        state.dockPinnedOpen = !state.dockPinnedOpen;
+        el.card.classList.toggle("pinned-open", state.dockPinnedOpen);
+        el.dockLockBtn.classList.toggle("active", state.dockPinnedOpen);
+        setTimeout(drawMicroSparkline, 240);
+      });
+
+      el.dockEdgeBtn.addEventListener("click", () => {
+        const nextEdge = EDGE_ORDER[(EDGE_ORDER.indexOf(state.edge) + 1) % EDGE_ORDER.length];
+        snapDockToEdge(nextEdge);
+      });
+
+      el.alertBtn.addEventListener("click", () => {
+        const sym = state.symbol || "AU9999";
+        const alerts = state.snapshot?.alerts;
+        el.drawerTitle.textContent = `${sym === "AUTD" ? "Au(T+D)" : "Au99.99"} 价格预警`;
+        el.highInput.value = alerts?.highPrice ? Number(alerts.highPrice).toFixed(2) : "";
+        el.lowInput.value = alerts?.lowPrice ? Number(alerts.lowPrice).toFixed(2) : "";
+        el.alertEnabledInput.checked = alerts ? (alerts.enabled || (!alerts.highPrice && !alerts.lowPrice)) : true;
+        if (alerts?.cooldownMinutes) el.cooldownSelect.value = String(alerts.cooldownMinutes);
+        el.alertDrawer.classList.toggle("open");
+      });
+
+      el.cancelAlertBtn.addEventListener("click", () => el.alertDrawer.classList.remove("open"));
+
+      el.saveAlertBtn.addEventListener("click", async () => {
+        el.saveAlertBtn.disabled = true;
+        try {
+          const highNum = parseFloat(el.highInput.value);
+          const lowNum = parseFloat(el.lowInput.value);
+          const enabled = el.alertEnabledInput.checked && ((highNum > 0) || (lowNum > 0));
+          if (enabled && window.lucent?.permissions?.request) {
+            try { await window.lucent.permissions.request("notifications"); } catch (_) {}
+          }
+          const payload = {
+            symbol: state.symbol || "AU9999",
+            enabled,
+            highPrice: highNum > 0 ? highNum : null,
+            lowPrice: lowNum > 0 ? lowNum : null,
+            cooldownMinutes: parseInt(el.cooldownSelect.value, 10) || 15
+          };
+          await runExclusive(["--save-alerts"], JSON.stringify(payload));
+          el.alertDrawer.classList.remove("open");
+          await fetchQuote(true);
+        } finally {
+          el.saveAlertBtn.disabled = false;
+        }
+      });
+
+      el.pinBtn.addEventListener("click", async () => {
+        state.pinned = !state.pinned;
+        el.pinBtn.classList.toggle("active", state.pinned);
+        await window.lucent?.window?.setPinned?.(state.pinned);
+      });
+
+      el.opacityBtn.addEventListener("click", async () => {
+        state.opacityIdx = (state.opacityIdx + 1) % state.opacityLevels.length;
+        await window.lucent?.window?.setOpacity?.(state.opacityLevels[state.opacityIdx], { animate: true, durationMs: 180 });
+      });
+
+      el.refreshBtn.addEventListener("click", () => fetchQuote(true));
+      el.closeBtn.addEventListener("click", () => safeCloseWindow());
+
+      el.chartWrap.addEventListener("pointermove", (e) => {
+        const series = state.snapshot?.series;
+        if (!series || series.length === 0) return;
+        const rect = el.chartWrap.getBoundingClientRect();
+        const rel = Math.max(0, Math.min(1, (e.clientX - rect.left - 4) / Math.max(1, rect.width - 8)));
+        state.hoverIndex = Math.round(rel * (series.length - 1));
+        drawMainChart();
+      });
+
+      el.chartWrap.addEventListener("pointerleave", () => {
+        state.hoverIndex = null;
+        drawMainChart();
+      });
+
+      new ResizeObserver(() => drawActiveChart()).observe(el.chartWrap);
+      new ResizeObserver(() => drawActiveChart()).observe(el.microSparkWrap);
+
+      window.addEventListener("lucent:envChanged", (e) => {
+        applyTheme(e?.detail || window.lucent?.env);
+      });
+
+      window.addEventListener("pagehide", () => {
+        state.closing = true;
+        if (state.timer) clearInterval(state.timer);
+      });
+
+      applyTheme(window.lucent?.env);
+      updateEdgeVisual("right");
+      if (hasNativeMotion) {
+        window.lucent.window.setEdgeBehavior?.({
+          keepOnScreen: true,
+          autoClampOnDrag: true,
+          edgeThreshold: 26
+        });
+        window.lucent.window.onEdgeProximity?.((detail) => {
+          const edge = detail?.edge;
+          if (edge && EDGE_ORDER.includes(edge)) {
+            el.card.setAttribute("data-near-edge", edge);
+          } else {
+            el.card.removeAttribute("data-near-edge");
+          }
+        });
+        window.lucent.window.onDragEnd?.((detail) => {
+          handleNativeDragEnd(detail);
+        });
+      } else {
+        setTimeout(() => checkFrameAfterDrag(true), 600);
+      }
+      fetchQuote(true);
+      restartPolling();
+    })();
+  </script>
+</body>
+</html>

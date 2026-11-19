@@ -16,18 +16,19 @@ public struct PluginManifestWindowDefaults: Codable, Sendable, Hashable, Equatab
     public let transparent: Bool?
     public let pinOnTop: Bool?
     public let clickThrough: Bool?
+    public let showInDock: Bool?
     public let opacity: Double?
 
     public init(
         entryHtml: String? = nil, title: String? = nil, width: Int? = nil, height: Int? = nil,
         minWidth: Int? = nil, minHeight: Int? = nil, resizable: Bool? = nil,
         chrome: PluginWindowChromeStyle? = nil, transparent: Bool? = nil,
-        pinOnTop: Bool? = nil, clickThrough: Bool? = nil, opacity: Double? = nil
+        pinOnTop: Bool? = nil, clickThrough: Bool? = nil, showInDock: Bool? = nil, opacity: Double? = nil
     ) {
         self.entryHtml = entryHtml; self.title = title; self.width = width; self.height = height
         self.minWidth = minWidth; self.minHeight = minHeight; self.resizable = resizable
         self.chrome = chrome; self.transparent = transparent; self.pinOnTop = pinOnTop
-        self.clickThrough = clickThrough; self.opacity = opacity
+        self.clickThrough = clickThrough; self.showInDock = showInDock; self.opacity = opacity
     }
 }
 
@@ -45,6 +46,7 @@ public struct PluginWindowLaunchEffect: Codable, Sendable, Hashable, Equatable {
     public let transparent: Bool?
     public let pinOnTop: Bool?
     public let clickThrough: Bool?
+    public let showInDock: Bool?
     public let opacity: Double?
     public let x: Int?
     public let y: Int?
@@ -54,14 +56,14 @@ public struct PluginWindowLaunchEffect: Codable, Sendable, Hashable, Equatable {
         windowID: String? = nil, title: String? = nil, htmlPath: String? = nil, html: String? = nil,
         width: Int? = nil, height: Int? = nil, minWidth: Int? = nil, minHeight: Int? = nil,
         resizable: Bool? = nil, chrome: PluginWindowChromeStyle? = nil, transparent: Bool? = nil,
-        pinOnTop: Bool? = nil, clickThrough: Bool? = nil, opacity: Double? = nil,
+        pinOnTop: Bool? = nil, clickThrough: Bool? = nil, showInDock: Bool? = nil, opacity: Double? = nil,
         x: Int? = nil, y: Int? = nil, initialStateJSON: String? = nil
     ) {
         self.windowID = windowID; self.title = title; self.htmlPath = htmlPath; self.html = html
         self.width = width; self.height = height; self.minWidth = minWidth; self.minHeight = minHeight
         self.resizable = resizable; self.chrome = chrome; self.transparent = transparent
-        self.pinOnTop = pinOnTop; self.clickThrough = clickThrough; self.opacity = opacity
-        self.x = x; self.y = y; self.initialStateJSON = initialStateJSON
+        self.pinOnTop = pinOnTop; self.clickThrough = clickThrough; self.showInDock = showInDock
+        self.opacity = opacity; self.x = x; self.y = y; self.initialStateJSON = initialStateJSON
     }
 }
 
@@ -84,6 +86,7 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
     public let transparent: Bool
     public let pinOnTop: Bool
     public let clickThrough: Bool
+    public let showInDock: Bool
     public let opacity: Double
     public let x: Int?
     public let y: Int?
@@ -95,7 +98,8 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
         width: Int = 520, height: Int = 560, minWidth: Int = 220, minHeight: Int = 120,
         resizable: Bool = true, chrome: PluginWindowChromeStyle = .standard,
         transparent: Bool = false, pinOnTop: Bool = false, clickThrough: Bool = false,
-        opacity: Double = 1.0, x: Int? = nil, y: Int? = nil, initialStateJSON: String? = nil
+        showInDock: Bool? = nil, opacity: Double = 1.0, x: Int? = nil, y: Int? = nil,
+        initialStateJSON: String? = nil
     ) {
         self.pluginID = pluginID
         self.windowID = Self.sanitizeWindowID(windowID)
@@ -109,8 +113,19 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
         self.resizable = resizable; self.chrome = chrome; self.transparent = transparent
         self.pinOnTop = pinOnTop || chrome == .hud || clickThrough
         self.clickThrough = clickThrough
+        self.showInDock = showInDock ?? (chrome == .standard)
         self.opacity = min(max(opacity, Self.minOpacity), 1.0)
         self.x = x; self.y = y; self.initialStateJSON = initialStateJSON
+    }
+
+    public func withShowInDock(_ enabled: Bool) -> PluginCustomWindowSpec {
+        PluginCustomWindowSpec(
+            pluginID: pluginID, windowID: windowID, title: title, htmlPath: htmlPath, html: html,
+            width: width, height: height, minWidth: minWidth, minHeight: minHeight,
+            resizable: resizable, chrome: chrome, transparent: transparent, pinOnTop: pinOnTop,
+            clickThrough: clickThrough, showInDock: enabled, opacity: opacity, x: x, y: y,
+            initialStateJSON: initialStateJSON
+        )
     }
 
     public var requiresFloatingCapability: Bool {
@@ -149,6 +164,7 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
             transparent: launch?.transparent ?? baseSpec?.transparent ?? def?.transparent ?? false,
             pinOnTop: launch?.pinOnTop ?? baseSpec?.pinOnTop ?? def?.pinOnTop ?? (chrome == .hud),
             clickThrough: launch?.clickThrough ?? baseSpec?.clickThrough ?? def?.clickThrough ?? false,
+            showInDock: launch?.showInDock ?? baseSpec?.showInDock ?? def?.showInDock ?? (chrome == .standard),
             opacity: launch?.opacity ?? baseSpec?.opacity ?? def?.opacity ?? 1.0,
             x: launch?.x ?? baseSpec?.x,
             y: launch?.y ?? baseSpec?.y,
@@ -175,6 +191,7 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
             transparent: (params["transparent"] as? Bool) ?? defaults?.transparent ?? false,
             pinOnTop: (params["pinOnTop"] as? Bool) ?? defaults?.pinOnTop ?? (chrome == .hud),
             clickThrough: (params["clickThrough"] as? Bool) ?? defaults?.clickThrough ?? false,
+            showInDock: (params["showInDock"] as? Bool) ?? defaults?.showInDock ?? (chrome == .standard),
             opacity: (params["opacity"] as? NSNumber)?.doubleValue ?? defaults?.opacity ?? 1.0,
             x: (params["x"] as? NSNumber)?.intValue,
             y: (params["y"] as? NSNumber)?.intValue,
@@ -203,6 +220,7 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
             transparent: parseBool(queryMap["transparent"]) ?? false,
             pinOnTop: parseBool(queryMap["pin"]) ?? (chrome == .hud),
             clickThrough: parseBool(queryMap["clickThrough"]) ?? false,
+            showInDock: parseBool(queryMap["showInDock"]) ?? (chrome == .standard),
             opacity: queryMap["opacity"].flatMap(Double.init) ?? 1.0,
             x: queryMap["x"].flatMap(Int.init), y: queryMap["y"].flatMap(Int.init),
             initialStateJSON: queryMap["state"]

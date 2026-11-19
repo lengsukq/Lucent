@@ -26,10 +26,19 @@ enum PluginWebWindowBuilder {
             win = NSWindow(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
             win.title = title; win.titlebarAppearsTransparent = spec.transparent
         case .frameless:
-            var mask: NSWindow.StyleMask = [.borderless]
-            if spec.resizable { mask.insert(.resizable) }
-            win = PluginFramelessCanvasWindow(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
-            win.title = title
+            if spec.showInDock {
+                var mask: NSWindow.StyleMask = [.borderless]
+                if spec.resizable { mask.insert(.resizable) }
+                win = PluginFramelessCanvasWindow(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
+                win.title = title
+            } else {
+                var mask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
+                if spec.resizable { mask.insert(.resizable) }
+                let panel = PluginHUDCanvasPanel(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
+                panel.hidesOnDeactivate = false; panel.isFloatingPanel = spec.pinOnTop
+                if spec.pinOnTop { panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary] }
+                win = panel; win.title = title
+            }
         case .hud:
             var mask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
             if spec.resizable { mask.insert(.resizable) }
@@ -39,6 +48,7 @@ enum PluginWebWindowBuilder {
             win = panel; win.title = title
         }
         win.isReleasedWhenClosed = false
+        win.acceptsMouseMovedEvents = true
         win.minSize = NSSize(width: spec.minWidth, height: spec.minHeight)
         if spec.transparent || spec.chrome != .standard { win.isOpaque = false; win.backgroundColor = .clear }
         win.hasShadow = !spec.transparent || spec.chrome == .standard
@@ -153,6 +163,7 @@ enum PluginWebEnvBroadcaster {
         to webView: WKWebView?,
         plugin: PluginDescriptor,
         pinOnTop: Bool,
+        showInDock: Bool,
         opacity: Double
     ) {
         guard let webView else { return }
@@ -162,6 +173,7 @@ enum PluginWebEnvBroadcaster {
             "locale": L10n.current.rawValue,
             "theme": AppThemeConfig.load().selectedTheme.rawValue,
             "pinOnTop": pinOnTop,
+            "showInDock": showInDock,
             "opacity": opacity,
             "declaredCapabilities": plugin.declaredCapabilities.map(\.rawValue),
             "grantedCapabilities": plugin.grantedCapabilities.map(\.rawValue).sorted(),

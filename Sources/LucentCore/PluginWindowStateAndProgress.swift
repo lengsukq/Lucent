@@ -154,6 +154,7 @@ public extension PluginCustomWindowSpec {
             transparent: transparent,
             pinOnTop: resolvedPin,
             clickThrough: clickThrough,
+            showInDock: showInDock,
             opacity: resolvedOpacity,
             x: resolvedX,
             y: resolvedY,

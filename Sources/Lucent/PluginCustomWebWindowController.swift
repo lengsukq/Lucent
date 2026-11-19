@@ -38,23 +38,36 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
             guard let plug = vm.plugins.first(where: { $0.id == managed.pluginID }) else { continue }
             let pinned = WindowLevelStore.shared.isPinned(key)
             PluginWebEnvBroadcaster.pushEnvUpdate(
-                to: managed.webView, plugin: plug, pinOnTop: pinned, opacity: Double(managed.window.alphaValue)
+                to: managed.webView, plugin: plug, pinOnTop: pinned, showInDock: managed.spec.showInDock, opacity: Double(managed.window.alphaValue)
             )
         }
     }
 
-    var hasStandardWindows: Bool {
-        activeCanvases.values.contains { $0.spec.chrome != .hud && $0.window.isVisible }
+    var hasDockVisibleWindows: Bool {
+        activeCanvases.values.contains { $0.webView == nil || $0.spec.showInDock }
     }
 
     var activeWindowCount: Int { activeCanvases.count }
+
+    func setShowInDock(_ enabled: Bool, forKey key: String) {
+        guard var managed = activeCanvases[key], managed.spec.showInDock != enabled else { return }
+        managed.spec = managed.spec.withShowInDock(enabled)
+        activeCanvases[key] = managed
+        onWindowVisibilityChanged?()
+        if let plug = boundViewModel?.plugins.first(where: { $0.id == managed.pluginID }) {
+            let pinned = WindowLevelStore.shared.isPinned(key)
+            PluginWebEnvBroadcaster.pushEnvUpdate(
+                to: managed.webView, plugin: plug, pinOnTop: pinned, showInDock: enabled, opacity: Double(managed.window.alphaValue)
+            )
+        }
+    }
 
     func syncPluginState(for pluginID: String, plugins: [PluginDescriptor]) {
         guard let plug = plugins.first(where: { $0.id == pluginID }) else { return }
         for (key, managed) in activeCanvases where managed.pluginID == pluginID {
             let pinned = WindowLevelStore.shared.isPinned(key)
             PluginWebEnvBroadcaster.pushEnvUpdate(
-                to: managed.webView, plugin: plug, pinOnTop: pinned, opacity: Double(managed.window.alphaValue)
+                to: managed.webView, plugin: plug, pinOnTop: pinned, showInDock: managed.spec.showInDock, opacity: Double(managed.window.alphaValue)
             )
         }
     }
@@ -275,8 +288,8 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
             }
         }
 
-        if spec.chrome == .hud { win.orderFrontRegardless() }
-        else { NSApp.activate(ignoringOtherApps: true); win.makeKeyAndOrderFront(nil) }
+        if spec.showInDock { NSApp.activate(ignoringOtherApps: true); win.makeKeyAndOrderFront(nil) }
+        else { win.orderFrontRegardless() }
     }
 
     private func canvasKey(pluginID: String, windowID: String) -> String {

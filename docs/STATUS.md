@@ -30,7 +30,7 @@
 - **原生卡片、置顶面板与自由画布挂件**：支持零前端自动生成原生设置表单、结构化交互卡片、`lucent://panel/<id>` 独立置顶轮询面板，以及授权 `window` / `floatingWindow` 后的沙盒化 `WKWebView` 透明桌面挂件（含网络规则拦截、坐标记忆与环境变更实时广播）。
 - **单文件双向同步快捷脚本库 (`Quick Scripts`)**：支持 Zsh、Bash、Python 3、AppleScript、Swift 及任意 `#!` 自定义 Shebang 脚本，与 `@lucent.*` 头部注释双向同步，支持专属安全 SVG 图标、独立热键与 5 种输出反馈。
 - **智能商店订阅、备份同步与内置 MCP 服务**：
-  - 单输入框自动嗅探 GitHub 仓库、商店 `lucent-registry.json` 或 `.zip` 包，强制校验 `SHA-256` 与权限升级差异，附带 `plugin-demo/` 7 款原生 Swift 6 官方插件与 3 款内置精选模板；
+  - 单输入框自动嗅探 GitHub 仓库、商店 `lucent-registry.json` 或 `.zip` 包，强制校验 `SHA-256` 与权限升级差异，附带 `plugin-demo/` 9 款原生 Swift 6 官方插件（含 `antigravity-pulse` 与 `gold-monitor` 自由画布悬浮窗）与 3 款内置精选模板；
   - 支持应用与插件更新检查、含 `LZFSE` 压缩与可选口令密钥迁移的 `.lucentbackup` v2 归档及 HTTPS WebDAV 云端自动轮转同步；
   - 安装包内置零外部依赖 `lucent-mcp` 二进制，暴露 4 份规范资源与 20 项工具供 AI 客户端直接创建脚本、脚手架开发插件与编排启动面板。
 

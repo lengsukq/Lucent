@@ -9,7 +9,9 @@ REGISTRY_FILE="$DEMO_ROOT/lucent-registry.json"
 SIGN_ID="${LUCENT_SIGN_IDENTITY:--}"
 
 PLUGINS=(
+  "antigravity-pulse"
   "browser-hub"
+  "gold-monitor"
   "lumalink-companion"
   "notion-bookmarks"
   "translate-hub"

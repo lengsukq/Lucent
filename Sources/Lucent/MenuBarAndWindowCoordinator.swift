@@ -116,7 +116,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
     func syncDockPolicy() {
         let hasOpenWindows = !windows.isEmpty
             || OCRResultWindowController.shared.isWindowVisible
-            || PluginCustomWebWindowController.shared.hasStandardWindows
+            || PluginCustomWebWindowController.shared.hasDockVisibleWindows
         let target: NSApplication.ActivationPolicy = (viewModel.showDockIcon || hasOpenWindows) ? .regular : .accessory
         if NSApp.activationPolicy() != target { NSApp.setActivationPolicy(target) }
     }

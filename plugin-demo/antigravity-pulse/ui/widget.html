@@ -1,0 +1,2044 @@
+<!doctype html>
+<html lang="zh-Hans" data-theme="light" data-docked="true" data-expanded="false" data-edge="right">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antigravity Pulse</title>
+  <style>
+    :root,
+    html[data-theme="light"] {
+      --card-bg: rgba(255, 255, 255, 0.965);
+      --tile-bg: #F2F2F7;
+      --tile-hover: #E5E5EA;
+      --sheet-bg: rgba(255, 255, 255, 0.985);
+      --border: rgba(60, 60, 67, 0.12);
+      --specular: rgba(255, 255, 255, 0.96);
+      --shadow: 0 10px 26px -6px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06);
+
+      --label: #1C1C1E;
+      --label-secondary: #636366;
+      --label-tertiary: #8E8E93;
+
+      --seg-bg: rgba(118, 118, 128, 0.12);
+      --seg-active: #FFFFFF;
+      --seg-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 0.5px 1px rgba(0, 0, 0, 0.06);
+
+      --btn-bg: rgba(118, 118, 128, 0.10);
+      --btn-hover: rgba(118, 118, 128, 0.18);
+      --track: rgba(118, 118, 128, 0.16);
+
+      --ios-blue: #007AFF;
+      --ios-blue-soft: rgba(0, 122, 255, 0.12);
+      --ios-green: #248A3D;
+      --ios-green-bar: #34C759;
+      --ios-green-soft: rgba(52, 199, 89, 0.14);
+      --ios-orange: #C96A00;
+      --ios-orange-bar: #FF9500;
+      --ios-orange-soft: rgba(255, 149, 0, 0.14);
+      --ios-red: #D70015;
+      --ios-red-bar: #FF3B30;
+      --ios-red-soft: rgba(255, 59, 48, 0.13);
+    }
+
+    html[data-theme="dark"] {
+      --card-bg: rgba(28, 28, 30, 0.965);
+      --tile-bg: #2C2C2E;
+      --tile-hover: #3A3A3C;
+      --sheet-bg: rgba(28, 28, 30, 0.985);
+      --border: rgba(255, 255, 255, 0.12);
+      --specular: rgba(255, 255, 255, 0.08);
+      --shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.52), 0 2px 8px rgba(0, 0, 0, 0.30);
+
+      --label: #F5F5F7;
+      --label-secondary: #98989D;
+      --label-tertiary: #6E6E73;
+
+      --seg-bg: rgba(118, 118, 128, 0.24);
+      --seg-active: #48484A;
+      --seg-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+
+      --btn-bg: rgba(255, 255, 255, 0.09);
+      --btn-hover: rgba(255, 255, 255, 0.16);
+      --track: rgba(255, 255, 255, 0.13);
+
+      --ios-blue: #0A84FF;
+      --ios-blue-soft: rgba(10, 132, 255, 0.20);
+      --ios-green: #30D158;
+      --ios-green-bar: #30D158;
+      --ios-green-soft: rgba(48, 209, 88, 0.18);
+      --ios-orange: #FF9F0A;
+      --ios-orange-bar: #FF9F0A;
+      --ios-orange-soft: rgba(255, 159, 10, 0.20);
+      --ios-red: #FF453A;
+      --ios-red-bar: #FF453A;
+      --ios-red-soft: rgba(255, 69, 58, 0.20);
+    }
+
+    @media (prefers-contrast: more) {
+      :root, html[data-theme="light"] {
+        --card-bg: #FFFFFF;
+        --border: rgba(0, 0, 0, 0.26);
+        --label-secondary: #3A3A3C;
+      }
+      html[data-theme="dark"] {
+        --card-bg: #141416;
+        --border: rgba(255, 255, 255, 0.28);
+        --label-secondary: #D1D1D6;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", sans-serif;
+      color: var(--label);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    .stage {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      background: transparent;
+    }
+
+    html[data-docked="true"][data-edge="right"] .stage {
+      justify-content: flex-end;
+      padding: 4px 0 4px 6px;
+    }
+    html[data-docked="true"][data-edge="left"] .stage {
+      justify-content: flex-start;
+      padding: 4px 6px 4px 0;
+    }
+    html[data-docked="true"][data-edge="top"] .stage {
+      align-items: flex-start;
+      padding: 0 5px 6px 5px;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 12px 10px;
+      border-radius: 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow), inset 0 1px 0 var(--specular);
+      overflow: hidden;
+      transition: border-radius 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card.alert-ring { border-color: var(--ios-red-bar); }
+    .card.done-ring { border-color: var(--ios-green-bar); }
+
+    .card[data-near-edge="left"] {
+      box-shadow: var(--shadow), inset 3px 0 0 var(--ios-blue), inset 0 1px 0 var(--specular);
+    }
+    .card[data-near-edge="right"] {
+      box-shadow: var(--shadow), inset -3px 0 0 var(--ios-blue), inset 0 1px 0 var(--specular);
+    }
+    .card[data-near-edge="top"] {
+      box-shadow: var(--shadow), inset 0 3px 0 var(--ios-blue);
+    }
+
+    /* Flush Edge Styling when Docked (both collapsed strip & hover-expanded full card) */
+    html[data-docked="true"][data-edge="right"] .card {
+      border-radius: 18px 0 0 18px;
+      border-right: none;
+    }
+    html[data-docked="true"][data-edge="left"] .card {
+      border-radius: 0 18px 18px 0;
+      border-left: none;
+    }
+    html[data-docked="true"][data-edge="top"] .card {
+      border-radius: 0 0 18px 18px;
+      border-top: none;
+    }
+
+    /* Collapsed Edge Strip Padding & Cursor */
+    html[data-docked="true"][data-expanded="false"] .card {
+      padding: 7px 10px;
+      border-radius: 15px 0 0 15px;
+      cursor: pointer;
+    }
+    html[data-docked="true"][data-expanded="false"][data-edge="left"] .card {
+      border-radius: 0 15px 15px 0;
+    }
+    html[data-docked="true"][data-expanded="false"][data-edge="top"] .card {
+      padding: 4px 11px;
+      border-radius: 0 0 14px 14px;
+    }
+
+    /* Colored Status Spine Along Docked Edge */
+    .card::after {
+      content: "";
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, background 0.2s ease;
+      background: var(--ios-blue);
+    }
+    .card[data-health="running"]::after { background: var(--ios-blue); }
+    .card[data-health="good"]::after { background: var(--ios-green-bar); }
+    .card[data-health="warn"]::after { background: var(--ios-orange-bar); }
+    .card[data-health="crit"]::after { background: var(--ios-red-bar); }
+
+    html[data-docked="true"][data-edge="right"] .card::after {
+      top: 0; right: 0; width: 3px; height: 100%; opacity: 0.94;
+    }
+    html[data-docked="true"][data-edge="left"] .card::after {
+      top: 0; left: 0; width: 3px; height: 100%; opacity: 0.94;
+    }
+    html[data-docked="true"][data-edge="top"] .card::after {
+      top: 0; left: 0; right: 0; width: 100%; height: 2.5px; opacity: 0.94;
+    }
+
+    /* View Visibility: Strictly 2 Clean Views (Collapsed Strip vs Full Large HUD) */
+    .strip-view, .full-view { display: none; }
+    html[data-docked="true"][data-expanded="false"] .strip-view {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 100%;
+      height: 100%;
+      gap: 2px;
+    }
+    html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-view {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    html[data-expanded="true"] .full-view,
+    html[data-docked="false"] .full-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 7px;
+    }
+
+    /* Edge-Cycle Button Only Relevant When Docked */
+    html[data-docked="false"] #edgeCycleBtn { display: none; }
+
+    @keyframes pulseDot {
+      0%, 100% { box-shadow: 0 0 0 2px var(--ios-blue-soft); opacity: 1; }
+      50% { box-shadow: 0 0 0 5px rgba(0, 122, 255, 0.08); opacity: 0.72; }
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ios-green-bar);
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px var(--ios-green-soft);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .live-dot.running {
+      background: var(--ios-blue);
+      box-shadow: 0 0 0 2px var(--ios-blue-soft);
+      animation: pulseDot 1.6s ease-in-out infinite;
+    }
+    .live-dot.loading { background: var(--ios-blue); box-shadow: 0 0 0 2px var(--ios-blue-soft); }
+    .live-dot.warn { background: var(--ios-orange-bar); box-shadow: 0 0 0 2px var(--ios-orange-soft); }
+    .live-dot.error { background: var(--ios-red-bar); box-shadow: 0 0 0 2px var(--ios-red-soft); }
+    .live-dot.idle { background: var(--label-tertiary); box-shadow: none; }
+
+    /* Collapsed Edge Strip Content */
+    .strip-top {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+    .strip-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--label);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1;
+    }
+    .strip-pager {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--label-tertiary);
+      flex-shrink: 0;
+    }
+    .strip-pager:empty { display: none; }
+    .strip-mid {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      min-width: 0;
+    }
+    .strip-ctx {
+      font-size: 15.5px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.08;
+    }
+    .strip-pct {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--label-secondary);
+    }
+    .strip-status {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--ios-green);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .strip-status.running { color: var(--ios-blue); }
+    .strip-status.warn { color: var(--ios-orange); }
+    .strip-status.crit { color: var(--ios-red); }
+
+    html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-top {
+      max-width: 102px;
+    }
+    html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-ctx {
+      font-size: 13px;
+    }
+    html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-pct {
+      display: none;
+    }
+
+    /* Full Large HUD Header & Controls */
+    .icon-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--label-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+    }
+    .icon-btn:hover { background: var(--btn-bg); color: var(--label); }
+    .icon-btn:active { transform: scale(0.92); background: var(--btn-hover); }
+    .icon-btn.active { background: var(--ios-blue-soft); color: var(--ios-blue); }
+    .icon-btn.close-btn:hover { background: var(--ios-red-soft); color: var(--ios-red); }
+    .icon-btn svg { width: 12.5px; height: 12.5px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .status-toast {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      transform: translate(-50%, 6px);
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--label);
+      color: var(--card-bg);
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+      max-width: calc(100% - 16px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+      z-index: 25;
+    }
+    .status-toast.visible { opacity: 0.94; transform: translate(-50%, 0); }
+
+    .std-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      min-height: 24px;
+      cursor: grab;
+    }
+    .std-header:active { cursor: grabbing; }
+
+    .session-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+      min-width: 0;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: none;
+      background: var(--tile-bg);
+      color: var(--label);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, box-shadow 0.18s ease;
+      overflow: hidden;
+    }
+    .session-pill:hover { background: var(--tile-hover); }
+    .session-pill.switch-flash,
+    .strip-view.switch-flash {
+      box-shadow: 0 0 0 1.5px var(--ios-blue);
+    }
+    .session-pill-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+    .proj-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: var(--ios-blue-soft);
+      color: var(--ios-blue);
+      flex-shrink: 0;
+      max-width: 74px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .proj-badge:empty { display: none; }
+
+    .pager-badge {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--label-tertiary);
+      flex-shrink: 0;
+      margin-left: auto;
+      padding-left: 2px;
+    }
+    .pager-badge:empty { display: none; }
+
+    .session-state-tag {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1.5px 5.5px;
+      border-radius: 999px;
+      background: var(--ios-green-soft);
+      color: var(--ios-green);
+      flex-shrink: 0;
+    }
+    .session-state-tag.running { background: var(--ios-blue-soft); color: var(--ios-blue); }
+    .session-state-tag.error { background: var(--ios-red-soft); color: var(--ios-red); }
+    .session-state-tag.idle { background: var(--btn-bg); color: var(--label-secondary); }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1.5px;
+      flex-shrink: 0;
+    }
+
+    .ios-tile {
+      background: var(--tile-bg);
+      border-radius: 13px;
+      padding: 8px 10px;
+    }
+
+    .ctx-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+    .ctx-title-group { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+    .ctx-big { font-size: 19px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+    .ctx-limit { font-size: 10.5px; font-weight: 500; color: var(--label-secondary); }
+    .ctx-meta-right { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; min-width: 0; }
+    .ctx-model-chip {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--label-secondary);
+      max-width: 82px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ctx-model-chip:empty { display: none; }
+
+    .status-pill {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--ios-blue-soft);
+      color: var(--ios-blue);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .status-pill.good { background: var(--ios-green-soft); color: var(--ios-green); }
+    .status-pill.warn { background: var(--ios-orange-soft); color: var(--ios-orange); }
+    .status-pill.crit { background: var(--ios-red-soft); color: var(--ios-red); }
+
+    .storage-bar {
+      width: 100%;
+      height: 6.5px;
+      border-radius: 999px;
+      background: var(--track);
+      overflow: hidden;
+      display: flex;
+      gap: 1.5px;
+    }
+    .bar-seg-cache {
+      height: 100%;
+      background: var(--ios-green-bar);
+      border-radius: 999px 0 0 999px;
+      transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .bar-seg-input {
+      height: 100%;
+      background: var(--ios-blue);
+      border-radius: 0 999px 999px 0;
+      transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .bar-seg-input.warn { background: var(--ios-orange-bar); }
+    .bar-seg-input.crit { background: var(--ios-red-bar); }
+
+    .ctx-legend {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 5px;
+      font-size: 10px;
+      color: var(--label-secondary);
+    }
+    .legend-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .dot-label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .swatch { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .swatch.cache { background: var(--ios-green-bar); }
+    .swatch.input { background: var(--ios-blue); }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+    .stat-tile {
+      background: var(--tile-bg);
+      border-radius: 13px;
+      padding: 7px 9px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 66px;
+      min-width: 0;
+    }
+    .stat-tile.warn-tile { box-shadow: inset 0 0 0 1px var(--ios-red-bar); }
+    .stat-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+    .stat-label { font-size: 10.5px; font-weight: 600; color: var(--label-secondary); white-space: nowrap; }
+
+    .ios-seg {
+      display: inline-flex;
+      align-items: center;
+      padding: 1.5px;
+      border-radius: 7px;
+      background: var(--seg-bg);
+      gap: 1px;
+    }
+    .ios-seg button {
+      border: none;
+      background: transparent;
+      color: var(--label-secondary);
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 2px 5px;
+      border-radius: 5.5px;
+      cursor: pointer;
+      line-height: 1.1;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .ios-seg button.active {
+      background: var(--seg-active);
+      color: var(--label);
+      box-shadow: var(--seg-shadow);
+    }
+
+    .stat-value-row { display: flex; align-items: baseline; justify-content: space-between; gap: 4px; margin-top: 2px; }
+    .stat-value { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+    .stat-value.good { color: var(--ios-green); }
+    .stat-value.warn { color: var(--ios-orange); }
+    .stat-value.crit { color: var(--ios-red); }
+    .stat-sub { font-size: 10px; color: var(--label-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+    /* Bottom Docked Panel: Inline Recent Sessions OR Context Sparkline */
+    .bottom-panel {
+      position: relative;
+      flex: 1;
+      min-height: 100px;
+      background: var(--tile-bg);
+      border-radius: 13px;
+      padding: 7px 9px 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .panel-title-wrap { display: flex; align-items: center; gap: 5px; min-width: 0; }
+    .panel-title { font-size: 10.5px; font-weight: 700; color: var(--label); white-space: nowrap; }
+    .panel-sub { font-size: 9.5px; color: var(--label-secondary); white-space: nowrap; }
+    .panel-controls { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .all-link-btn {
+      border: none;
+      background: transparent;
+      color: var(--ios-blue);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 2px;
+      cursor: pointer;
+    }
+    .all-link-btn:hover { opacity: 0.78; }
+
+    .inline-sessions {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 3.5px;
+      overflow: hidden;
+    }
+    .inline-sess-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 3.5px 6px;
+      border-radius: 8px;
+      background: var(--card-bg);
+      cursor: pointer;
+      transition: background 0.14s ease;
+      min-height: 24px;
+    }
+    .inline-sess-row:hover { background: var(--tile-hover); }
+    .inline-sess-row.active-row { box-shadow: inset 0 0 0 1px var(--ios-blue-soft); }
+    .inline-sess-left { display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; }
+    .inline-sess-title { font-size: 10.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .inline-sess-right { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .open-sess-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 9.5px;
+      font-weight: 600;
+      background: var(--ios-blue-soft);
+      color: var(--ios-blue);
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+    .open-sess-btn:hover { background: var(--ios-blue); color: #FFFFFF; }
+
+    .spark-canvas-box { position: relative; width: 100%; flex: 1; min-height: 62px; display: none; }
+    .bottom-panel[data-tab="chart"] .inline-sessions { display: none; }
+    .bottom-panel[data-tab="chart"] .spark-canvas-box { display: block; }
+    #sparkCanvas { width: 100%; height: 100%; display: block; }
+    .hover-tip {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--label);
+      font-size: 9.5px;
+      font-weight: 600;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    .hover-tip.visible { opacity: 1; }
+
+    .alert-banner {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 11px;
+      background: var(--ios-red-bar);
+      color: #FFFFFF;
+      font-size: 10.5px;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(255, 59, 48, 0.30);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .alert-banner.done-banner {
+      background: var(--ios-green-bar);
+      box-shadow: 0 6px 16px rgba(52, 199, 89, 0.32);
+    }
+    .alert-banner.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .alert-banner-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .alert-banner-cta {
+      flex-shrink: 0;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.22);
+      font-size: 9.5px;
+    }
+
+    /* Full Recent Sessions Sheet */
+    .session-sheet {
+      position: absolute;
+      inset: 0;
+      background: var(--sheet-bg);
+      border-radius: inherit;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 20;
+    }
+    .session-sheet.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .sheet-title-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .sheet-title { font-size: 12px; font-weight: 700; }
+    .sheet-summary { font-size: 10px; color: var(--label-secondary); font-weight: 600; }
+    .sheet-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 2px; }
+    .sheet-row {
+      border-radius: 11px;
+      padding: 6px 8px;
+      background: var(--tile-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      cursor: pointer;
+      transition: background 0.14s ease;
+    }
+    .sheet-row:hover { background: var(--tile-hover); }
+    .sheet-row.selected {
+      background: var(--ios-blue-soft);
+      box-shadow: inset 0 0 0 1px var(--ios-blue);
+    }
+    .sheet-row-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; }
+    .sheet-row-title-wrap { display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; }
+    .sheet-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sheet-row-actions { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .sheet-jump-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 9.5px;
+      font-weight: 600;
+      background: var(--ios-blue);
+      color: #FFFFFF;
+      cursor: pointer;
+    }
+    .sheet-jump-btn:hover { opacity: 0.88; }
+    .sheet-row-sub { font-size: 9.5px; color: var(--label-secondary); display: flex; justify-content: space-between; gap: 6px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage" class="stage">
+    <div id="card" class="card" data-health="good">
+
+      <!-- COLLAPSED EDGE-DOCKED STRIP (136x74 side / 228x44 top; Hover -> Expands to Full Large HUD) -->
+      <div id="stripView" class="strip-view" title="悬停展开大悬浮窗 · 滚轮切换活跃项目">
+        <div class="strip-top">
+          <span id="stripDot" class="live-dot"></span>
+          <span id="stripTitle" class="strip-title">Antigravity</span>
+          <span id="stripPager" class="strip-pager tabular"></span>
+        </div>
+        <div class="strip-mid">
+          <span id="stripCtx" class="strip-ctx tabular">--</span>
+          <span id="stripPct" class="strip-pct tabular">--%</span>
+        </div>
+        <span id="stripStatus" class="strip-status tabular">--</span>
+      </div>
+
+      <!-- FULL LARGE iOS WIDGET VIEW (352 x 334, Used Both When Hover-Expanded & Free-Floating) -->
+      <div class="full-view">
+        <div id="dragHeader" class="std-header">
+          <button id="sessionPillBtn" class="session-pill" type="button" title="鼠标滚轮切换相邻活跃项目 · 点击查看全部">
+            <span id="liveDot" class="live-dot"></span>
+            <span id="stdProjBadge" class="proj-badge"></span>
+            <span id="stdTitle" class="session-pill-text">Antigravity</span>
+            <span id="stdPager" class="pager-badge tabular"></span>
+          </button>
+          <div class="header-actions">
+            <button id="returnAgyBtn" class="icon-btn" type="button" aria-label="直达对应对话" title="直达当前 Antigravity 对话">
+              <svg viewBox="0 0 16 16"><path d="M6 3.5h6.5V10M12.5 3.5L5 11"/><path d="M10.5 12.5h-6a1 1 0 0 1-1-1v-6"/></svg>
+            </button>
+            <button id="dockModeBtn" class="icon-btn" type="button" aria-label="切换常驻大窗或缩边" title="切换常驻大窗 / 缩边自动收缩">
+              <svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="2"/><path d="M10.2 3v10"/></svg>
+            </button>
+            <button id="edgeCycleBtn" class="icon-btn" type="button" aria-label="切换停靠边缘" title="切换停靠边缘（右 / 左 / 顶）">
+              <svg viewBox="0 0 16 16"><path d="M3 5.5h10M10.5 3L13 5.5 10.5 8M13 10.5H3M5.5 8L3 10.5 5.5 13"/></svg>
+            </button>
+            <button id="opacityBtn" class="icon-btn" type="button" aria-label="切换透明度" title="切换透明度">
+              <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor" stroke="none"/></svg>
+            </button>
+            <button id="closeBtn" class="icon-btn close-btn" type="button" aria-label="关闭悬浮窗" title="关闭悬浮窗">
+              <svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hero Context Usage Tile -->
+        <div class="ios-tile">
+          <div class="ctx-top">
+            <div class="ctx-title-group">
+              <span id="ctxBig" class="ctx-big tabular">--</span>
+              <span id="ctxLimit" class="ctx-limit tabular">/ --</span>
+            </div>
+            <div class="ctx-meta-right">
+              <span id="modelLabel" class="ctx-model-chip"></span>
+              <span id="stateTag" class="session-state-tag">--</span>
+              <span id="ctxPctPill" class="status-pill tabular">--%</span>
+            </div>
+          </div>
+          <div class="storage-bar" role="progressbar" aria-label="上下文占用">
+            <div id="segCache" class="bar-seg-cache" style="width: 0%"></div>
+            <div id="segInput" class="bar-seg-input" style="width: 0%"></div>
+          </div>
+          <div class="ctx-legend">
+            <div class="legend-left">
+              <span class="dot-label"><span class="swatch cache"></span><span id="legendCache" class="tabular">缓存 --</span></span>
+              <span class="dot-label"><span class="swatch input"></span><span id="legendInput" class="tabular">新输入 --</span></span>
+            </div>
+            <span id="legendOutput" class="tabular">输出 --</span>
+          </div>
+        </div>
+
+        <!-- Two-Column Bento Stats -->
+        <div class="bento-grid">
+          <div id="cacheTile" class="stat-tile">
+            <div class="stat-head">
+              <span class="stat-label">缓存命中</span>
+              <div class="ios-seg" role="tablist" aria-label="缓存口径">
+                <button class="cache-tab active" data-scope="cum" type="button">累计</button>
+                <button class="cache-tab" data-scope="last" type="button">本轮</button>
+              </div>
+            </div>
+            <div class="stat-value-row">
+              <span id="cacheRateVal" class="stat-value good tabular">--</span>
+            </div>
+            <div id="cacheSubVal" class="stat-sub tabular">等待会话数据</div>
+          </div>
+
+          <div class="stat-tile">
+            <div class="stat-head">
+              <span class="stat-label">净用量</span>
+              <div class="ios-seg" role="tablist" aria-label="统计周期">
+                <button class="win-tab active" data-win="5h" type="button">5h</button>
+                <button class="win-tab" data-win="today" type="button">今</button>
+                <button class="win-tab" data-win="7d" type="button">7d</button>
+              </div>
+            </div>
+            <div class="stat-value-row">
+              <span id="winTotalVal" class="stat-value tabular">--</span>
+            </div>
+            <div id="winSubVal" class="stat-sub tabular">含缓存 -- · -- 轮</div>
+          </div>
+        </div>
+
+        <!-- Inline Recent Sessions + Sparkline Toggle -->
+        <div id="bottomPanel" class="bottom-panel" data-tab="sessions">
+          <div class="panel-head">
+            <div class="panel-title-wrap">
+              <span class="panel-title">最近会话</span>
+              <span id="recentCountMeta" class="panel-sub tabular">--</span>
+            </div>
+            <div class="panel-controls">
+              <div class="ios-seg" role="tablist" aria-label="底部视图">
+                <button class="panel-tab active" data-panel="sessions" type="button">会话</button>
+                <button class="panel-tab" data-panel="chart" type="button">趋势</button>
+              </div>
+              <button id="allSessionsBtn" class="all-link-btn" type="button" title="展开全部最近会话">全部›</button>
+            </div>
+          </div>
+          <div id="inlineSessionsList" class="inline-sessions"></div>
+          <div id="sparkBox" class="spark-canvas-box">
+            <canvas id="sparkCanvas"></canvas>
+            <div id="hoverTip" class="hover-tip tabular"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert / Session Completed Banner -->
+      <div id="alertBanner" class="alert-banner">
+        <span id="alertBannerText" class="alert-banner-text"></span>
+        <span id="alertBannerCta" class="alert-banner-cta">直达 ↗</span>
+      </div>
+      <div id="statusToast" class="status-toast"></div>
+
+      <!-- Full Recent Sessions Sheet -->
+      <div id="sessionSheet" class="session-sheet" aria-hidden="true">
+        <div class="sheet-head">
+          <div class="sheet-title-wrap">
+            <span class="sheet-title">全部最近会话</span>
+            <span id="sheetSummary" class="sheet-summary tabular"></span>
+          </div>
+          <button id="closeSheetBtn" class="icon-btn close-btn" type="button" aria-label="关闭会话列表">
+            <svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>
+          </button>
+        </div>
+        <div id="sheetList" class="sheet-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const FULL_SIZE = { w: 352, h: 334 };
+      const STRIP_SIZES = {
+        right: { w: 136, h: 74 },
+        left: { w: 136, h: 74 },
+        top: { w: 228, h: 44 }
+      };
+      const EDGE_ORDER = ["right", "left", "top"];
+
+      const state = {
+        docked: true,
+        expanded: false,
+        edge: "right",
+        themeStyle: "auto",
+        refreshSec: 3,
+        cacheScope: "cum",
+        winScope: "5h",
+        bottomTab: "sessions",
+        pinnedSessionId: "",
+        snapshot: null,
+        hoverIndex: null,
+        opacityIdx: 0,
+        opacityLevels: [1.0, 0.88, 0.74],
+        mouseInside: false,
+        dragging: false,
+        morphing: false,
+        closing: false,
+        fetching: false,
+        pendingRefetch: false,
+        ignoreAutoUntil: 0,
+        ignoreHoverUntil: 0,
+        expandTimer: null,
+        retractTimer: null,
+        wheelAccum: 0,
+        wheelLastEventAt: 0,
+        wheelLastSwitchAt: 0,
+        wheelFetchTimer: null,
+        flashTimer: null,
+        lastConfigMode: null,
+        lastAlertKey: "",
+        bannerPayload: null,
+        bannerTimer: null,
+        timer: null,
+        runChain: Promise.resolve()
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const el = {
+        stage: $("stage"),
+        card: $("card"),
+        stripView: $("stripView"),
+        stripDot: $("stripDot"),
+        stripTitle: $("stripTitle"),
+        stripPager: $("stripPager"),
+        stripCtx: $("stripCtx"),
+        stripPct: $("stripPct"),
+        stripStatus: $("stripStatus"),
+        liveDot: $("liveDot"),
+        stdProjBadge: $("stdProjBadge"),
+        stdTitle: $("stdTitle"),
+        stdPager: $("stdPager"),
+        modelLabel: $("modelLabel"),
+        stateTag: $("stateTag"),
+        sessionPillBtn: $("sessionPillBtn"),
+        returnAgyBtn: $("returnAgyBtn"),
+        dockModeBtn: $("dockModeBtn"),
+        edgeCycleBtn: $("edgeCycleBtn"),
+        opacityBtn: $("opacityBtn"),
+        closeBtn: $("closeBtn"),
+        ctxBig: $("ctxBig"),
+        ctxLimit: $("ctxLimit"),
+        ctxPctPill: $("ctxPctPill"),
+        segCache: $("segCache"),
+        segInput: $("segInput"),
+        legendCache: $("legendCache"),
+        legendInput: $("legendInput"),
+        legendOutput: $("legendOutput"),
+        cacheTile: $("cacheTile"),
+        cacheRateVal: $("cacheRateVal"),
+        cacheSubVal: $("cacheSubVal"),
+        winTotalVal: $("winTotalVal"),
+        winSubVal: $("winSubVal"),
+        bottomPanel: $("bottomPanel"),
+        recentCountMeta: $("recentCountMeta"),
+        inlineSessionsList: $("inlineSessionsList"),
+        allSessionsBtn: $("allSessionsBtn"),
+        sparkBox: $("sparkBox"),
+        sparkCanvas: $("sparkCanvas"),
+        hoverTip: $("hoverTip"),
+        alertBanner: $("alertBanner"),
+        alertBannerText: $("alertBannerText"),
+        alertBannerCta: $("alertBannerCta"),
+        statusToast: $("statusToast"),
+        sessionSheet: $("sessionSheet"),
+        sheetSummary: $("sheetSummary"),
+        sheetList: $("sheetList"),
+        closeSheetBtn: $("closeSheetBtn")
+      };
+      let statusToastTimer = null;
+
+      const hasNativeMotion = Boolean(
+        window.lucent?.window?.snapToEdge &&
+        window.lucent?.window?.morph &&
+        window.lucent?.window?.onDragEnd
+      );
+
+      function syncDOMState() {
+        document.documentElement.setAttribute("data-docked", state.docked ? "true" : "false");
+        document.documentElement.setAttribute("data-expanded", (state.expanded || !state.docked) ? "true" : "false");
+        document.documentElement.setAttribute("data-edge", state.edge);
+        el.dockModeBtn.classList.toggle("active", !state.docked);
+        el.dockModeBtn.title = state.docked
+          ? "当前：贴边悬停展开（点击改为常驻大窗）"
+          : "当前：常驻大窗（点击缩回屏幕边缘）";
+      }
+
+      function stripSizeForEdge(edge) {
+        return STRIP_SIZES[edge] || STRIP_SIZES.right;
+      }
+
+      function anchorForEdge(edge) {
+        if (edge === "left") return "leftCenter";
+        if (edge === "top") return "topCenter";
+        return "rightCenter";
+      }
+
+      function clearHoverTimers() {
+        if (state.expandTimer) { clearTimeout(state.expandTimer); state.expandTimer = null; }
+        if (state.retractTimer) { clearTimeout(state.retractTimer); state.retractTimer = null; }
+      }
+
+      function showStatusToast(msg) {
+        if (!el.statusToast) return;
+        el.statusToast.textContent = msg;
+        el.statusToast.classList.add("visible");
+        clearTimeout(statusToastTimer);
+        statusToastTimer = setTimeout(() => el.statusToast.classList.remove("visible"), 2000);
+      }
+
+      async function copyTextReliable(text) {
+        if (!text) return false;
+        try {
+          const granted = window.lucent?.env?.grantedCapabilities || [];
+          if (granted.includes("clipboard") && window.lucent?.bridge) {
+            const res = await window.lucent.bridge("clipboard", "write", { text });
+            if (res?.ok) return true;
+          }
+        } catch (_) {}
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch (_) {}
+        return false;
+      }
+
+      function runExclusive(args, query = "") {
+        const next = state.runChain.then(() => {
+          if (state.closing || !window.lucent?.run) return null;
+          return window.lucent.run(args, query);
+        });
+        state.runChain = next.catch(() => null);
+        return next;
+      }
+
+      async function jumpBackToSession(sess) {
+        if (!sess) {
+          await window.lucent?.openExternal?.("file:///Applications/Antigravity.app");
+          showStatusToast("已切到 Antigravity");
+          return;
+        }
+        if (sess.source === "cli") {
+          const cmd = sess.resumeCommand || `agy --conversation ${sess.sessionId}`;
+          const ok = await copyTextReliable(cmd);
+          showStatusToast(ok ? "已复制 CLI 续聊命令" : cmd);
+          return;
+        }
+        try {
+          const res = await runExclusive(["--focus-session", sess.sessionId || "", sess.title || ""], "");
+          const payload = res?.data || (res?.stdout ? JSON.parse(res.stdout) : null);
+          if (payload?.focused) {
+            showStatusToast(payload.message || "已直达对应对话");
+            if (state.docked && state.expanded) scheduleDockRetract(450);
+            return;
+          }
+          if (sess.title) await copyTextReliable(sess.title);
+          if (payload?.message) {
+            showStatusToast(payload.message);
+            return;
+          }
+        } catch (_) {}
+
+        if (sess.title) await copyTextReliable(sess.title);
+        await window.lucent?.openExternal?.("file:///Applications/Antigravity.app");
+        showStatusToast("已切回 Antigravity · 标题已复制");
+      }
+
+      function escapeHTML(str) {
+        return String(str || "").replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "\"": "&quot;" }[c]));
+      }
+
+      function formatTokens(n) {
+        const v = Number(n || 0);
+        const abs = Math.abs(v);
+        if (abs >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+        if (abs >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+        if (abs >= 1e5) return `${Math.round(v / 1e3)}K`;
+        if (abs >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
+        return String(Math.round(v));
+      }
+
+      function formatPct(r) {
+        const c = Math.max(0, Math.min(1, Number(r || 0)));
+        const p = c * 100;
+        if (p === 0) return "0%";
+        if (p < 0.1) return "<0.1%";
+        return `${p.toFixed(1)}%`;
+      }
+
+      function formatUSD(v) {
+        const num = Number(v || 0);
+        return num < 0.005 ? "$0.00" : `$${num.toFixed(2)}`;
+      }
+
+      function applyTheme(env) {
+        const style = state.themeStyle || "auto";
+        let resolved = "light";
+        if (style === "dark") resolved = "dark";
+        else if (style === "light") resolved = "light";
+        else {
+          const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          resolved = (env?.theme === "dark" || (!env?.theme && prefersDark)) ? "dark" : "light";
+        }
+        document.documentElement.setAttribute("data-theme", resolved);
+        drawSparkline();
+      }
+
+      async function safeCloseWindow() {
+        state.closing = true;
+        clearHoverTimers();
+        if (state.timer) clearInterval(state.timer);
+        await window.lucent?.window?.close?.();
+      }
+
+      // --- 2-State Edge-Retractable <-> Full Large HUD Motion ---
+      async function expandDockToFull() {
+        if (!state.docked || state.expanded || state.morphing || state.closing) return;
+        clearHoverTimers();
+        state.morphing = true;
+        state.expanded = true;
+        state.ignoreAutoUntil = Date.now() + 500;
+        syncDOMState();
+
+        try {
+          if (hasNativeMotion) {
+            await window.lucent.window.morph({
+              width: FULL_SIZE.w,
+              height: FULL_SIZE.h,
+              anchor: anchorForEdge(state.edge),
+              durationMs: 180,
+              easing: "spring",
+              keepOnScreen: true
+            });
+          } else {
+            await window.lucent?.window?.resize?.(FULL_SIZE.w, FULL_SIZE.h);
+          }
+          await window.lucent?.window?.setPinned?.(true);
+          setTimeout(drawSparkline, 80);
+        } finally {
+          setTimeout(() => {
+            state.morphing = false;
+            if (!state.mouseInside && state.docked && state.expanded && !state.dragging && !el.sessionSheet.classList.contains("open")) {
+              scheduleDockRetract(260);
+            }
+          }, 40);
+        }
+      }
+
+      async function retractToDockStrip(edgeOverride = null) {
+        if (state.morphing || state.closing) return;
+        if (edgeOverride && EDGE_ORDER.includes(edgeOverride)) state.edge = edgeOverride;
+        clearHoverTimers();
+        closeSessionSheet();
+        el.card.removeAttribute("data-near-edge");
+
+        state.morphing = true;
+        state.docked = true;
+        state.expanded = false;
+        state.ignoreAutoUntil = Date.now() + 650;
+        state.ignoreHoverUntil = Date.now() + 280;
+        syncDOMState();
+
+        const sz = stripSizeForEdge(state.edge);
+        try {
+          if (hasNativeMotion) {
+            await window.lucent.window.snapToEdge(state.edge, {
+              width: sz.w, height: sz.h, margin: 0, durationMs: 200, easing: "spring"
+            });
+          } else {
+            const res = await runExclusive(["--snap-dock", state.edge, window.lucent?.env?.windowId || "antigravity-pulse-hud"]);
+            const data = res?.data || (res?.stdout ? JSON.parse(res.stdout) : null);
+            await window.lucent?.window?.resize?.(sz.w, sz.h);
+            if (data?.ok) await window.lucent?.window?.moveTo?.(data.x, data.y);
+          }
+          await window.lucent?.window?.setPinned?.(true);
+        } finally {
+          setTimeout(() => { state.morphing = false; }, 50);
+        }
+      }
+
+      async function switchToFreeFloatingFull() {
+        if (state.morphing || state.closing) return;
+        clearHoverTimers();
+        el.card.removeAttribute("data-near-edge");
+        const wasCollapsed = !state.expanded;
+        state.morphing = true;
+        state.docked = false;
+        state.expanded = true;
+        state.ignoreAutoUntil = Date.now() + 650;
+        syncDOMState();
+
+        try {
+          if (wasCollapsed) {
+            if (hasNativeMotion) {
+              await window.lucent.window.morph({
+                width: FULL_SIZE.w,
+                height: FULL_SIZE.h,
+                anchor: anchorForEdge(state.edge),
+                durationMs: 200,
+                easing: "spring",
+                keepOnScreen: true
+              });
+            } else {
+              await window.lucent?.window?.resize?.(FULL_SIZE.w, FULL_SIZE.h);
+            }
+          }
+          await window.lucent?.window?.setPinned?.(true);
+          setTimeout(drawSparkline, 120);
+        } finally {
+          setTimeout(() => { state.morphing = false; }, 40);
+        }
+      }
+
+      function scheduleDockExpand(delayMs = 110) {
+        if (!state.docked || state.expanded || state.dragging || state.morphing || state.closing) return;
+        if (Date.now() < state.ignoreHoverUntil) return;
+        if (state.retractTimer) { clearTimeout(state.retractTimer); state.retractTimer = null; }
+        if (state.expandTimer) return;
+        state.expandTimer = setTimeout(() => {
+          state.expandTimer = null;
+          if (state.mouseInside && state.docked && !state.expanded && !state.dragging) {
+            expandDockToFull();
+          }
+        }, delayMs);
+      }
+
+      function scheduleDockRetract(delayMs = 300) {
+        if (!state.docked || !state.expanded || state.dragging || state.closing) return;
+        if (el.sessionSheet.classList.contains("open")) return;
+        if (state.expandTimer) { clearTimeout(state.expandTimer); state.expandTimer = null; }
+        if (state.retractTimer) clearTimeout(state.retractTimer);
+        state.retractTimer = setTimeout(() => {
+          state.retractTimer = null;
+          if (state.mouseInside || !state.docked || !state.expanded || state.dragging || state.closing) return;
+          if (el.sessionSheet.classList.contains("open")) return;
+          if (state.morphing) { scheduleDockRetract(140); return; }
+          retractToDockStrip();
+        }, delayMs);
+      }
+
+      function pickDockEdge(edges, threshold = 28) {
+        if (!edges) return null;
+        const candidates = [
+          ["top", Number(edges.distTop)],
+          ["left", Number(edges.distLeft)],
+          ["right", Number(edges.distRight)]
+        ].filter(([, d]) => Number.isFinite(d) && d <= threshold);
+        if (!candidates.length) return null;
+        candidates.sort((a, b) => a[1] - b[1]);
+        return candidates[0][0];
+      }
+
+      async function handleNativeDragEnd(detail) {
+        state.dragging = false;
+        el.card.removeAttribute("data-near-edge");
+        if (state.morphing || state.closing || Date.now() < state.ignoreAutoUntil) return;
+        if (el.sessionSheet.classList.contains("open")) return;
+        if (!detail || (detail.movedDistance !== undefined && detail.movedDistance < 4)) return;
+        const edges = detail.edges;
+        if (!edges) return;
+
+        const near = pickDockEdge(edges, state.docked ? 36 : 28);
+        if (near) {
+          await retractToDockStrip(near);
+          return;
+        }
+        if (state.docked) {
+          const minDist = Math.min(Number(edges.distLeft), Number(edges.distRight), Number(edges.distTop));
+          if (Number.isFinite(minDist) && minDist > 52) {
+            await switchToFreeFloatingFull();
+            showStatusToast("已切换为常驻大窗 · 拖到边缘可重新缩边");
+          }
+        }
+      }
+
+      // --- Rendering Helpers ---
+      function dotClassForActivity(activityState, cacheDropped) {
+        if (cacheDropped || activityState === "error") return "live-dot error";
+        if (activityState === "running") return "live-dot running";
+        if (activityState === "idle") return "live-dot idle";
+        return "live-dot";
+      }
+
+      function tagClassForActivity(activityState) {
+        if (activityState === "running") return "session-state-tag running";
+        if (activityState === "error") return "session-state-tag error";
+        if (activityState === "idle") return "session-state-tag idle";
+        return "session-state-tag";
+      }
+
+      function findSessionIndex(list, sessionId) {
+        if (!list || !list.length) return -1;
+        if (!sessionId) return 0;
+        const idx = list.findIndex((x) => x.sessionId === sessionId);
+        return idx >= 0 ? idx : 0;
+      }
+
+      function currentDisplayedSession() {
+        const list = state.snapshot?.recentSessions || [];
+        if (state.pinnedSessionId) {
+          const found = list.find((x) => x.sessionId === state.pinnedSessionId);
+          if (found) return found;
+        }
+        return state.snapshot?.activeSession || list[0] || null;
+      }
+
+      function renderProjectTitles(sess, list) {
+        const total = list ? list.length : 0;
+        const idx = findSessionIndex(list, sess?.sessionId);
+        const pager = total > 1 && idx >= 0 ? `${idx + 1}/${total}` : "";
+        const proj = (sess?.projectName || "").trim();
+        const title = (sess?.title || "Antigravity").trim();
+        const fullLabel = proj ? `${proj} · ${title}` : title;
+        const stripLabel = proj ? `${proj} · ${title}` : title;
+
+        el.stdProjBadge.textContent = proj;
+        el.stdTitle.textContent = title;
+        el.stdPager.textContent = pager;
+        el.sessionPillBtn.title = `${fullLabel}\n滚轮切换相邻活跃项目 · 点击查看全部`;
+
+        el.stripTitle.textContent = stripLabel;
+        el.stripPager.textContent = pager;
+        el.stripView.title = `${fullLabel}\n悬停自动展开大窗 · 滚轮切换活跃项目`;
+      }
+
+      function flashTitleSwitch() {
+        el.sessionPillBtn?.classList.add("switch-flash");
+        el.stripView?.classList.add("switch-flash");
+        clearTimeout(state.flashTimer);
+        state.flashTimer = setTimeout(() => {
+          el.sessionPillBtn?.classList.remove("switch-flash");
+          el.stripView?.classList.remove("switch-flash");
+        }, 220);
+      }
+
+      function updateCacheView(sess) {
+        if (!sess) return;
+        const isLast = state.cacheScope === "last";
+        const rate = isLast ? sess.latestCacheHitRate : sess.cumulativeCacheHitRate;
+        const isFirstTurnOnly = sess.turnCount <= 1 && sess.latestCacheReadTokens === 0;
+
+        el.cacheRateVal.textContent = isFirstTurnOnly ? "--" : formatPct(rate);
+        el.cacheRateVal.className = "stat-value tabular";
+        el.cacheTile.classList.toggle("warn-tile", Boolean(sess.cacheDropped));
+
+        if (sess.cacheDropped) {
+          el.cacheRateVal.classList.add("crit");
+          el.cacheSubVal.textContent = `掉缓存 · 上轮 ${formatPct(sess.cacheDropPrevRate || 0)}`;
+        } else if (isFirstTurnOnly) {
+          el.cacheSubVal.textContent = "首轮建缓存中";
+        } else if (rate >= 0.70) {
+          el.cacheRateVal.classList.add("good");
+          el.cacheSubVal.textContent = isLast
+            ? `本轮读 ${formatTokens(sess.latestCacheReadTokens)}`
+            : `已省 ${formatUSD(sess.estimatedSavedUSD)} · ${sess.turnCount}轮`;
+        } else if (rate >= 0.35) {
+          el.cacheRateVal.classList.add("warn");
+          el.cacheSubVal.textContent = isLast
+            ? `本轮读 ${formatTokens(sess.latestCacheReadTokens)}`
+            : `已省 ${formatUSD(sess.estimatedSavedUSD)} · ${sess.turnCount}轮`;
+        } else {
+          el.cacheRateVal.classList.add("crit");
+          el.cacheSubVal.textContent = isLast ? "本轮命中偏低" : `累计读 ${formatTokens(sess.cumulativeCacheReadTokens)}`;
+        }
+      }
+
+      function updateWindowView(snap) {
+        if (!snap) return;
+        const w = state.winScope === "7d"
+          ? snap.window7d
+          : (state.winScope === "today" ? snap.windowToday : snap.window5h);
+        if (!w) return;
+
+        const net = (w.netTokens !== undefined && w.netTokens !== null)
+          ? w.netTokens
+          : (Number(w.inputTokens || 0) + Number(w.outputTokens || 0));
+        el.winTotalVal.textContent = formatTokens(net);
+        el.winSubVal.textContent = `含缓存 ${formatTokens(w.totalTokens)} · ${w.turns}轮`;
+        el.winSubVal.title = `新输入 ${formatTokens(w.inputTokens)} · 输出 ${formatTokens(w.outputTokens)} · 缓存读 ${formatTokens(w.cacheReadTokens)} · 估算 ${formatUSD(w.estimatedCostUSD)}`;
+      }
+
+      function renderInlineSessions(snap, activeIdOverride = null) {
+        const list = snap?.recentSessions || [];
+        const runCnt = Number(snap?.runningCount || 0);
+        const doneCnt = Number(snap?.completedCount || 0);
+        el.recentCountMeta.textContent = runCnt > 0 ? `${runCnt}运行 · ${doneCnt}完成` : `${doneCnt} 已完成`;
+        el.inlineSessionsList.innerHTML = "";
+
+        if (list.length === 0) {
+          el.inlineSessionsList.innerHTML = `<div class="panel-sub" style="padding:10px 4px;">暂无最近会话记录</div>`;
+          return;
+        }
+
+        const activeId = activeIdOverride || state.pinnedSessionId || snap?.activeSession?.sessionId || list[0].sessionId;
+        const activeIdx = Math.max(0, findSessionIndex(list, activeId));
+        let start = 0;
+        if (list.length > 3) {
+          start = Math.max(0, Math.min(activeIdx - 1, list.length - 3));
+        }
+
+        for (const item of list.slice(start, start + 3)) {
+          const row = document.createElement("div");
+          row.className = "inline-sess-row" + (item.sessionId === activeId ? " active-row" : "");
+          const dotCls = dotClassForActivity(item.activityState, false);
+          const tagCls = tagClassForActivity(item.activityState);
+          const cta = item.source === "cli" ? "命令" : "直达↗";
+          const projHtml = item.projectName ? `<span class="proj-badge">${escapeHTML(item.projectName)}</span>` : "";
+          const tipTitle = item.projectName ? `${item.projectName} · ${item.title}` : item.title;
+
+          row.innerHTML = `
+            <div class="inline-sess-left">
+              <span class="${dotCls}"></span>
+              ${projHtml}
+              <span class="inline-sess-title" title="${escapeHTML(tipTitle)}">${escapeHTML(item.title)}</span>
+            </div>
+            <div class="inline-sess-right">
+              <span class="${tagCls}">${escapeHTML(item.activityLabel)}</span>
+              <button class="open-sess-btn" type="button" title="${item.source === "cli" ? "复制 CLI 续聊命令" : "直达 Antigravity 对应对话"}">${cta}</button>
+            </div>
+          `;
+          row.addEventListener("click", (e) => {
+            if (e.target.closest(".open-sess-btn")) return;
+            const idx = findSessionIndex(list, item.sessionId);
+            state.pinnedSessionId = idx === 0 ? "" : item.sessionId;
+            applyOptimisticSessionPreview(item, list);
+            fetchSnapshot(true);
+          });
+          row.querySelector(".open-sess-btn")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = findSessionIndex(list, item.sessionId);
+            state.pinnedSessionId = idx === 0 ? "" : item.sessionId;
+            jumpBackToSession(item);
+          });
+          el.inlineSessionsList.appendChild(row);
+        }
+      }
+
+      function applyOptimisticSessionPreview(item, list) {
+        if (!item) return;
+        renderProjectTitles(item, list);
+        flashTitleSwitch();
+
+        const ratio = Math.max(0, item.contextRatio || 0);
+        const health = ratio >= 0.85 || item.activityState === "error"
+          ? "crit"
+          : (item.activityState === "running" ? "running" : (ratio >= 0.70 ? "warn" : "good"));
+        el.card.setAttribute("data-health", health);
+
+        const dotCls = dotClassForActivity(item.activityState, false);
+        const tagCls = tagClassForActivity(item.activityState);
+        el.liveDot.className = dotCls;
+        el.stripDot.className = dotCls;
+        el.stateTag.textContent = item.activityLabel;
+        el.stateTag.className = tagCls;
+        el.modelLabel.textContent = item.modelShortName;
+
+        const ctxStr = formatTokens(item.contextTokens);
+        const pctStr = formatPct(ratio);
+        el.ctxBig.textContent = ctxStr;
+        if (item.contextLimit) el.ctxLimit.textContent = `/ ${formatTokens(item.contextLimit)}`;
+        el.ctxPctPill.textContent = pctStr;
+        el.ctxPctPill.className = "status-pill tabular" + (ratio >= 0.85 ? " crit" : (ratio >= 0.70 ? " warn" : ""));
+
+        const totalPct = Math.min(100, ratio * 100);
+        const approxCachePct = Math.min(totalPct, totalPct * Math.max(0, Math.min(1, item.cumulativeCacheHitRate || 0)));
+        const approxInputPct = Math.max(0, totalPct - approxCachePct);
+        const inputCls = "bar-seg-input" + (ratio >= 0.85 ? " crit" : (ratio >= 0.70 ? " warn" : ""));
+        el.segCache.style.width = `${approxCachePct.toFixed(2)}%`;
+        el.segInput.style.width = `${approxInputPct.toFixed(2)}%`;
+        el.segInput.className = inputCls;
+
+        const cacheStr = formatPct(item.cumulativeCacheHitRate || 0);
+        const cachePillCls = item.cumulativeCacheHitRate >= 0.7 ? "good" : "warn";
+        el.stripCtx.textContent = ctxStr;
+        el.stripPct.textContent = pctStr;
+        if (item.activityState === "running") {
+          el.stripStatus.textContent = "● 运行中";
+          el.stripStatus.className = "strip-status running tabular";
+        } else {
+          el.stripStatus.textContent = `✓ ${cacheStr}`;
+          el.stripStatus.className = `strip-status ${cachePillCls === "good" ? "" : cachePillCls} tabular`;
+        }
+
+        if (state.snapshot) renderInlineSessions(state.snapshot, item.sessionId);
+      }
+
+      function cycleAdjacentSession(step) {
+        const list = state.snapshot?.recentSessions || [];
+        if (list.length <= 1) {
+          showStatusToast("暂无其他相邻活跃项目");
+          return;
+        }
+        if (state.retractTimer) { clearTimeout(state.retractTimer); state.retractTimer = null; }
+        const currentId = state.pinnedSessionId || state.snapshot?.activeSession?.sessionId || list[0].sessionId;
+        const curIdx = Math.max(0, findSessionIndex(list, currentId));
+        const nextIdx = (curIdx + step + list.length) % list.length;
+        const target = list[nextIdx];
+        state.pinnedSessionId = nextIdx === 0 ? "" : target.sessionId;
+
+        applyOptimisticSessionPreview(target, list);
+
+        clearTimeout(state.wheelFetchTimer);
+        state.wheelFetchTimer = setTimeout(() => fetchSnapshot(false), 95);
+      }
+
+      function openSessionSheet() {
+        renderSessionSheet();
+        el.sessionSheet.classList.add("open");
+        el.sessionSheet.setAttribute("aria-hidden", "false");
+        clearHoverTimers();
+      }
+
+      function closeSessionSheet() {
+        el.sessionSheet.classList.remove("open");
+        el.sessionSheet.setAttribute("aria-hidden", "true");
+        if (state.docked && state.expanded && !state.mouseInside) {
+          scheduleDockRetract(260);
+        }
+      }
+
+      function renderSessionSheet() {
+        const snap = state.snapshot;
+        const list = snap?.recentSessions || [];
+        el.sheetSummary.textContent = `${Number(snap?.runningCount || 0)} 运行中 · ${Number(snap?.completedCount || 0)} 已完成`;
+        el.sheetList.innerHTML = "";
+
+        const autoRow = document.createElement("div");
+        autoRow.className = "sheet-row" + (state.pinnedSessionId === "" ? " selected" : "");
+        autoRow.innerHTML = `
+          <div class="sheet-row-top">
+            <span class="sheet-row-title-wrap"><span class="live-dot"></span><span class="sheet-row-title">自动跟随最新活跃会话</span></span>
+            <span class="session-state-tag">AUTO</span>
+          </div>
+          <div class="sheet-row-sub"><span>始终锁定刚更新的对话</span><span>点击任意行切换监控</span></div>
+        `;
+        autoRow.addEventListener("click", () => {
+          state.pinnedSessionId = "";
+          closeSessionSheet();
+          fetchSnapshot(true);
+        });
+        el.sheetList.appendChild(autoRow);
+
+        for (const item of list) {
+          const row = document.createElement("div");
+          row.className = "sheet-row" + (state.pinnedSessionId === item.sessionId ? " selected" : "");
+          const dotCls = dotClassForActivity(item.activityState, false);
+          const tagCls = tagClassForActivity(item.activityState);
+          const jumpText = item.source === "cli" ? "复制命令" : "直达 ↗";
+          const projHtml = item.projectName ? `<span class="proj-badge">${escapeHTML(item.projectName)}</span>` : "";
+
+          row.innerHTML = `
+            <div class="sheet-row-top">
+              <span class="sheet-row-title-wrap">
+                <span class="${dotCls}"></span>
+                ${projHtml}
+                <span class="sheet-row-title">${escapeHTML(item.title)}</span>
+              </span>
+              <span class="sheet-row-actions">
+                <span class="${tagCls}">${escapeHTML(item.activityLabel)}</span>
+                <button class="sheet-jump-btn" type="button">${jumpText}</button>
+              </span>
+            </div>
+            <div class="sheet-row-sub">
+              <span>${escapeHTML(item.modelShortName)} · ${formatTokens(item.contextTokens)} · 缓存 ${formatPct(item.cumulativeCacheHitRate)}</span>
+              <span>${escapeHTML(item.updatedLabel)}</span>
+            </div>
+          `;
+          row.addEventListener("click", (e) => {
+            if (e.target.closest(".sheet-jump-btn")) return;
+            const idx = findSessionIndex(list, item.sessionId);
+            state.pinnedSessionId = idx === 0 ? "" : item.sessionId;
+            closeSessionSheet();
+            applyOptimisticSessionPreview(item, list);
+            fetchSnapshot(true);
+          });
+          row.querySelector(".sheet-jump-btn")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = findSessionIndex(list, item.sessionId);
+            state.pinnedSessionId = idx === 0 ? "" : item.sessionId;
+            jumpBackToSession(item);
+          });
+          el.sheetList.appendChild(row);
+        }
+      }
+
+      function renderSnapshot(snap) {
+        state.snapshot = snap;
+        if (snap.themeStyle && snap.themeStyle !== state.themeStyle) {
+          state.themeStyle = snap.themeStyle;
+          applyTheme(window.lucent?.env);
+        }
+        if (snap.dockState?.pendingSnap && snap.dockState.fromMode) {
+          const req = snap.dockState.fromMode;
+          const edge = EDGE_ORDER.includes(snap.dockState.edge) ? snap.dockState.edge : state.edge;
+          if (req === "standard") switchToFreeFloatingFull();
+          else retractToDockStrip(edge);
+        }
+        if (snap.defaultMode) {
+          if (state.lastConfigMode !== null && state.lastConfigMode !== snap.defaultMode) {
+            state.lastConfigMode = snap.defaultMode;
+            if (snap.defaultMode === "standard") switchToFreeFloatingFull();
+            else retractToDockStrip(state.edge);
+          } else {
+            state.lastConfigMode = snap.defaultMode;
+          }
+        }
+        if (snap.refreshIntervalSec && snap.refreshIntervalSec !== state.refreshSec) {
+          state.refreshSec = snap.refreshIntervalSec;
+          restartPolling();
+        }
+
+        updateWindowView(snap);
+        renderInlineSessions(snap);
+
+        const sess = snap.activeSession;
+        if (!sess) {
+          el.liveDot.className = "live-dot idle";
+          el.stripDot.className = "live-dot idle";
+          renderProjectTitles({ projectName: "", title: "等待 Antigravity", sessionId: "" }, []);
+          el.modelLabel.textContent = "";
+          el.stateTag.textContent = "空闲";
+          el.stateTag.className = "session-state-tag idle";
+          el.ctxBig.textContent = "--";
+          el.ctxLimit.textContent = "";
+          el.ctxPctPill.textContent = "空闲";
+          el.stripCtx.textContent = "--";
+          el.stripPct.textContent = "";
+          el.stripStatus.textContent = "空闲";
+          return;
+        }
+
+        renderProjectTitles(sess, snap.recentSessions || []);
+
+        const ratio = Math.max(0, sess.contextRatio || 0);
+        const health = sess.cacheDropped || ratio >= 0.85 || sess.activityState === "error"
+          ? "crit"
+          : (sess.activityState === "running" ? "running" : (ratio >= 0.70 ? "warn" : "good"));
+        el.card.setAttribute("data-health", health);
+
+        const dotCls = dotClassForActivity(sess.activityState, sess.cacheDropped);
+        const tagCls = tagClassForActivity(sess.activityState);
+        el.liveDot.className = dotCls;
+        el.stripDot.className = dotCls;
+        el.stateTag.textContent = sess.activityLabel;
+        el.stateTag.className = tagCls;
+        el.modelLabel.textContent = sess.modelShortName;
+
+        const ctxStr = formatTokens(sess.contextTokens);
+        const pctStr = formatPct(ratio);
+        el.ctxBig.textContent = ctxStr;
+        el.ctxLimit.textContent = `/ ${formatTokens(sess.contextLimit)}`;
+        el.ctxPctPill.textContent = pctStr;
+        el.ctxPctPill.className = "status-pill tabular" + (ratio >= 0.85 ? " crit" : (ratio >= 0.70 ? " warn" : ""));
+
+        const totalLimit = Math.max(1, sess.contextLimit);
+        const cacheWidth = Math.min(100, (sess.latestCacheReadTokens / totalLimit) * 100);
+        const inputWidth = Math.min(100 - cacheWidth, (sess.latestInputTokens / totalLimit) * 100);
+        const inputCls = "bar-seg-input" + (ratio >= 0.85 ? " crit" : (ratio >= 0.70 ? " warn" : ""));
+
+        el.segCache.style.width = `${cacheWidth.toFixed(2)}%`;
+        el.segInput.style.width = `${inputWidth.toFixed(2)}%`;
+        el.segInput.className = inputCls;
+
+        el.legendCache.textContent = `缓存 ${formatTokens(sess.latestCacheReadTokens)}`;
+        el.legendInput.textContent = `新输入 ${formatTokens(sess.latestInputTokens)}`;
+        el.legendOutput.textContent = `输出 ${formatTokens(sess.latestOutputTokens)}`;
+
+        updateCacheView(sess);
+
+        const displayCacheStr = (sess.turnCount <= 1 && sess.latestCacheReadTokens === 0)
+          ? "--"
+          : formatPct(sess.cumulativeCacheHitRate);
+        const cachePillCls = sess.cacheDropped ? "crit" : (sess.cumulativeCacheHitRate >= 0.7 ? "good" : "warn");
+
+        el.stripCtx.textContent = ctxStr;
+        el.stripPct.textContent = pctStr;
+        if (sess.activityState === "running") {
+          el.stripStatus.textContent = "● 运行中";
+          el.stripStatus.className = "strip-status running tabular";
+        } else if (sess.cacheDropped) {
+          el.stripStatus.textContent = "掉缓存!";
+          el.stripStatus.className = "strip-status crit tabular";
+        } else {
+          el.stripStatus.textContent = `✓ ${displayCacheStr}`;
+          el.stripStatus.className = `strip-status ${cachePillCls === "good" ? "" : cachePillCls} tabular`;
+        }
+
+        if (snap.alertBanner?.title) {
+          const alertKey = `${snap.alertBanner.sessionId || sess.sessionId}:${sess.latestStep}:${snap.alertBanner.kind}`;
+          if (alertKey !== state.lastAlertKey) {
+            state.lastAlertKey = alertKey;
+            state.bannerPayload = snap.alertBanner;
+            const isDoneBanner = snap.alertBanner.kind === "session_done";
+            el.alertBanner.classList.toggle("done-banner", isDoneBanner);
+            el.alertBannerText.textContent = `${snap.alertBanner.title} · ${snap.alertBanner.detail}`;
+            el.alertBannerCta.textContent = snap.alertBanner.source === "cli" ? "复制命令" : "直达 ↗";
+            el.alertBanner.classList.add("visible");
+            el.card.classList.toggle("done-ring", isDoneBanner);
+            el.card.classList.toggle("alert-ring", !isDoneBanner);
+            clearTimeout(state.bannerTimer);
+            state.bannerTimer = setTimeout(() => {
+              el.alertBanner.classList.remove("visible");
+              el.card.classList.remove("alert-ring", "done-ring");
+            }, isDoneBanner ? 7000 : 5000);
+          }
+        }
+
+        if (el.sessionSheet.classList.contains("open")) renderSessionSheet();
+        drawSparkline();
+      }
+
+      function drawSparkline() {
+        if ((state.docked && !state.expanded) || state.bottomTab !== "chart") return;
+        const turns = state.snapshot?.activeSession?.turns || [];
+        const rect = el.sparkBox.getBoundingClientRect();
+        if (rect.width <= 4 || rect.height <= 4) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        el.sparkCanvas.width = Math.round(rect.width * dpr);
+        el.sparkCanvas.height = Math.round(rect.height * dpr);
+        const ctx = el.sparkCanvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        if (turns.length === 0) return;
+
+        let maxVal = 1000;
+        for (const t of turns) { if (t.contextTokens > maxVal) maxVal = t.contextTokens; }
+        maxVal *= 1.12;
+
+        const padX = 4, padY = 6;
+        const w = rect.width - padX * 2, h = rect.height - padY * 2;
+        const xAt = (i) => turns.length === 1 ? padX + w * 0.5 : padX + (i / (turns.length - 1)) * w;
+        const yAt = (v) => padY + (1 - Math.max(0, v) / maxVal) * h;
+
+        const cs = getComputedStyle(document.documentElement);
+        const stroke = cs.getPropertyValue("--ios-blue").trim() || "#007AFF";
+        const green = cs.getPropertyValue("--ios-green-bar").trim() || "#34C759";
+        const red = cs.getPropertyValue("--ios-red-bar").trim() || "#FF3B30";
+
+        ctx.beginPath();
+        turns.forEach((pt, idx) => {
+          const x = xAt(idx), y = yAt(pt.contextTokens);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(xAt(turns.length - 1), rect.height);
+        ctx.lineTo(xAt(0), rect.height);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, padY, 0, rect.height);
+        grad.addColorStop(0, stroke + "2E");
+        grad.addColorStop(1, stroke + "02");
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.75;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        turns.forEach((pt, idx) => {
+          const x = xAt(idx), y = yAt(pt.contextTokens);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        const lastIdx = turns.length - 1;
+        const lx = xAt(lastIdx), ly = yAt(turns[lastIdx].contextTokens);
+        const lastColor = state.snapshot?.activeSession?.cacheDropped ? red : (state.snapshot?.activeSession?.activityState === "running" ? stroke : green);
+        ctx.fillStyle = lastColor + "33";
+        ctx.beginPath(); ctx.arc(lx, ly, 4.8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = lastColor;
+        ctx.beginPath(); ctx.arc(lx, ly, 2.4, 0, Math.PI * 2); ctx.fill();
+
+        if (state.hoverIndex !== null && turns[state.hoverIndex]) {
+          const pt = turns[state.hoverIndex];
+          const hx = xAt(state.hoverIndex), hy = yAt(pt.contextTokens);
+          ctx.strokeStyle = cs.getPropertyValue("--label-tertiary").trim() || "#8E8E93";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(hx, 2); ctx.lineTo(hx, rect.height - 2); ctx.stroke();
+          ctx.fillStyle = "#FFFFFF";
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath(); ctx.arc(hx, hy, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          el.hoverTip.textContent = `#${pt.step} · ${formatTokens(pt.contextTokens)} · 缓存 ${formatPct(pt.cacheHitRate)} · ${pt.time}`;
+          el.hoverTip.classList.add("visible");
+        } else {
+          el.hoverTip.classList.remove("visible");
+        }
+      }
+
+      async function fetchSnapshot(manual = false) {
+        if (state.closing) return;
+        if (state.fetching) {
+          state.pendingRefetch = true;
+          return;
+        }
+        state.fetching = true;
+        if (manual) {
+          el.liveDot.className = "live-dot loading";
+          el.stripDot.className = "live-dot loading";
+        }
+        try {
+          const args = state.pinnedSessionId ? ["--snapshot", state.pinnedSessionId] : ["--snapshot"];
+          const res = await runExclusive(args, "");
+          const payload = res?.data || (res?.stdout ? JSON.parse(res.stdout) : null);
+          if (payload) renderSnapshot(payload);
+        } catch (_) {
+          el.liveDot.className = "live-dot error";
+          el.stripDot.className = "live-dot error";
+        } finally {
+          state.fetching = false;
+          if (state.pendingRefetch && !state.closing) {
+            state.pendingRefetch = false;
+            fetchSnapshot(false);
+          }
+        }
+      }
+
+      function restartPolling() {
+        if (state.timer) clearInterval(state.timer);
+        state.timer = setInterval(() => fetchSnapshot(false), Math.max(2, state.refreshSec) * 1000);
+      }
+
+      // --- Hover-Expand & Auto-Retract Event Wiring ---
+      function markPointerInside() {
+        state.mouseInside = true;
+        if (state.retractTimer) { clearTimeout(state.retractTimer); state.retractTimer = null; }
+        if (state.docked && !state.expanded) scheduleDockExpand(110);
+      }
+      function markPointerLeft() {
+        state.mouseInside = false;
+        if (state.expandTimer) { clearTimeout(state.expandTimer); state.expandTimer = null; }
+        if (state.docked && state.expanded) scheduleDockRetract(300);
+      }
+
+      el.card.addEventListener("pointerenter", markPointerInside);
+      el.card.addEventListener("mouseenter", markPointerInside);
+      el.card.addEventListener("pointermove", () => {
+        if (!state.mouseInside) markPointerInside();
+        else if (state.retractTimer) { clearTimeout(state.retractTimer); state.retractTimer = null; }
+      });
+      document.documentElement.addEventListener("mouseleave", markPointerLeft);
+      el.stage.addEventListener("pointerleave", markPointerLeft);
+
+      // Click collapsed strip -> expand immediately
+      el.stripView.addEventListener("click", () => {
+        if (state.docked && !state.expanded) expandDockToFull();
+      });
+
+      // Mouse Wheel Switching (Collapsed Strip + Expanded Full HUD)
+      el.card.addEventListener("wheel", (e) => {
+        if (el.sessionSheet.classList.contains("open") && e.target.closest(".sheet-list")) return;
+        e.preventDefault();
+        const raw = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+        if (!Number.isFinite(raw) || Math.abs(raw) < 1) return;
+        const scale = e.deltaMode === 1 ? 24 : (e.deltaMode === 2 ? 120 : 1);
+        const delta = raw * scale;
+        const now = Date.now();
+        if (now - state.wheelLastEventAt > 180) state.wheelAccum = 0;
+        state.wheelLastEventAt = now;
+        if (now - state.wheelLastSwitchAt < 230) return;
+        state.wheelAccum += delta;
+        if (Math.abs(state.wheelAccum) >= 24) {
+          const step = state.wheelAccum > 0 ? 1 : -1;
+          state.wheelAccum = 0;
+          state.wheelLastSwitchAt = now;
+          cycleAdjacentSession(step);
+        }
+      }, { passive: false });
+
+      window.addEventListener("keydown", (e) => {
+        if (el.sessionSheet.classList.contains("open")) {
+          if (e.key === "Escape") closeSessionSheet();
+          return;
+        }
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          e.preventDefault();
+          cycleAdjacentSession(1);
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          cycleAdjacentSession(-1);
+        }
+      });
+
+      // Native Drag
+      el.card.addEventListener("pointerdown", async (e) => {
+        if (e.target.closest("button, input, select, .session-sheet, .alert-banner, .inline-sess-row")) return;
+        if ((state.expanded || !state.docked) && !e.target.closest("#dragHeader")) return;
+        state.dragging = true;
+        clearHoverTimers();
+        await window.lucent?.window?.startDrag?.();
+        setTimeout(() => { state.dragging = false; }, 120);
+      });
+
+      el.sessionPillBtn.addEventListener("click", openSessionSheet);
+      el.allSessionsBtn.addEventListener("click", openSessionSheet);
+      el.closeSheetBtn.addEventListener("click", closeSessionSheet);
+      el.returnAgyBtn.addEventListener("click", () => jumpBackToSession(currentDisplayedSession()));
+
+      el.dockModeBtn.addEventListener("click", () => {
+        if (state.docked) {
+          switchToFreeFloatingFull();
+          showStatusToast("已固定为常驻大窗");
+        } else {
+          retractToDockStrip(state.edge);
+        }
+      });
+      el.edgeCycleBtn.addEventListener("click", () => {
+        const next = EDGE_ORDER[(EDGE_ORDER.indexOf(state.edge) + 1) % EDGE_ORDER.length];
+        retractToDockStrip(next);
+      });
+      el.opacityBtn.addEventListener("click", async () => {
+        state.opacityIdx = (state.opacityIdx + 1) % state.opacityLevels.length;
+        await window.lucent?.window?.setOpacity?.(state.opacityLevels[state.opacityIdx], { animate: true, durationMs: 180 });
+      });
+      el.closeBtn.addEventListener("click", () => safeCloseWindow());
+
+      el.alertBanner.addEventListener("click", () => {
+        const bp = state.bannerPayload;
+        el.alertBanner.classList.remove("visible");
+        el.card.classList.remove("alert-ring", "done-ring");
+        if (bp) {
+          jumpBackToSession({
+            sessionId: bp.sessionId,
+            source: bp.source,
+            resumeURL: bp.resumeURL,
+            resumeCommand: bp.resumeCommand,
+            title: ""
+          });
+        }
+      });
+
+      document.querySelectorAll(".cache-tab").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.cacheScope = btn.getAttribute("data-scope") || "cum";
+          document.querySelectorAll(".cache-tab").forEach((b) => b.classList.toggle("active", b === btn));
+          updateCacheView(state.snapshot?.activeSession);
+        });
+      });
+      document.querySelectorAll(".win-tab").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.winScope = btn.getAttribute("data-win") || "5h";
+          document.querySelectorAll(".win-tab").forEach((b) => b.classList.toggle("active", b === btn));
+          updateWindowView(state.snapshot);
+        });
+      });
+      document.querySelectorAll(".panel-tab").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.bottomTab = btn.getAttribute("data-panel") || "sessions";
+          el.bottomPanel.setAttribute("data-tab", state.bottomTab);
+          document.querySelectorAll(".panel-tab").forEach((b) => b.classList.toggle("active", b === btn));
+          if (state.bottomTab === "chart") setTimeout(drawSparkline, 20);
+        });
+      });
+
+      el.sparkBox.addEventListener("pointermove", (e) => {
+        const turns = state.snapshot?.activeSession?.turns;
+        if (!turns || turns.length === 0) return;
+        const rect = el.sparkBox.getBoundingClientRect();
+        const rel = Math.max(0, Math.min(1, (e.clientX - rect.left - 4) / Math.max(1, rect.width - 8)));
+        state.hoverIndex = Math.round(rel * (turns.length - 1));
+        drawSparkline();
+      });
+      el.sparkBox.addEventListener("pointerleave", () => { state.hoverIndex = null; drawSparkline(); });
+
+      new ResizeObserver(() => drawSparkline()).observe(el.sparkBox);
+      window.addEventListener("lucent:envChanged", (e) => applyTheme(e?.detail || window.lucent?.env));
+      window.addEventListener("pagehide", () => { state.closing = true; clearHoverTimers(); if (state.timer) clearInterval(state.timer); });
+
+      applyTheme(window.lucent?.env);
+      syncDOMState();
+      window.lucent?.window?.setPinned?.(true);
+      if (hasNativeMotion) {
+        window.lucent.window.setEdgeBehavior?.({ keepOnScreen: true, autoClampOnDrag: true, edgeThreshold: 28 });
+        window.lucent.window.onEdgeProximity?.((detail) => {
+          const edge = detail?.edge;
+          if (edge && EDGE_ORDER.includes(edge)) el.card.setAttribute("data-near-edge", edge);
+          else el.card.removeAttribute("data-near-edge");
+        });
+        window.lucent.window.onDragEnd?.((detail) => handleNativeDragEnd(detail));
+      }
+
+      fetchSnapshot(true);
+      restartPolling();
+    })();
+  </script>
+</body>
+</html>

@@ -7,7 +7,9 @@ DEST_ROOT="$HOME/Library/Application Support/Lucent/Plugins"
 DATA_ROOT="$HOME/Library/Application Support/Lucent/PluginData"
 
 ALL_PLUGINS=(
+  "antigravity-pulse"
   "browser-hub"
+  "gold-monitor"
   "lumalink-companion"
   "notion-bookmarks"
   "translate-hub"

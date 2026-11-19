@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 3,
+  "id": "antigravity-pulse",
+  "name": "Antigravity Pulse · 上下文与会话监控",
+  "version": "1.3.0",
+  "description": "零侵入缩边悬浮窗监控 Antigravity 上下文占用、缓存命中率、5h/7d 净用量与活跃项目状态：悬停自动展开大窗、滚轮切换项目、一键直达对应对话",
+  "mode": "view",
+  "keywords": [
+    "agpulse",
+    "pulse",
+    "antigravity",
+    "agy",
+    "context",
+    "cache",
+    "token",
+    "上下文",
+    "缓存",
+    "用量",
+    "会话"
+  ],
+  "entry": "bin/antigravity-pulse",
+  "author": "Lucent Official",
+  "icon": "icon.svg",
+  "accentColor": "blue",
+  "categoryTag": "开发监控",
+  "capabilities": [
+    "floatingWindow",
+    "notifications",
+    "clipboard"
+  ],
+  "resourceScopes": [
+    "filesystem"
+  ],
+  "includeInGlobalSearch": true,
+  "searchIndexInGlobalSearch": true,
+  "timeoutSeconds": 12,
+  "window": {
+    "entryHtml": "ui/widget.html",
+    "width": 136,
+    "height": 74,
+    "minWidth": 112,
+    "minHeight": 42,
+    "resizable": false,
+    "chrome": "frameless",
+    "transparent": true,
+    "pinOnTop": true,
+    "clickThrough": false,
+    "showInDock": false,
+    "opacity": 1.0
+  },
+  "commands": [
+    {
+      "id": "open-floating",
+      "title": "打开缩边监控悬浮窗（悬停自动展开大窗）",
+      "subtitle": "贴边不挡视野，鼠标放上自动展开完整大悬浮窗，滚轮切换活跃项目并一键直达对话",
+      "keywords": [
+        "aghud",
+        "agdock",
+        "悬浮窗",
+        "缩边",
+        "上下文悬浮窗",
+        "pulse hud",
+        "floating",
+        "dock"
+      ],
+      "icon": "sidebar.right",
+      "arguments": [
+        "--open-dock"
+      ],
+      "passQuery": false
+    },
+    {
+      "id": "open-standard",
+      "title": "打开常驻大悬浮窗",
+      "subtitle": "保持完整大悬浮窗常驻置顶，拖到屏幕左/右/顶边缘自动磁吸缩边",
+      "keywords": [
+        "agbig",
+        "大悬浮窗",
+        "常驻悬浮窗",
+        "standard"
+      ],
+      "icon": "macwindow.on.rectangle",
+      "arguments": [
+        "--open-standard"
+      ],
+      "passQuery": false
+    },
+    {
+      "id": "usage-card",
+      "title": "查看上下文与最近会话状态",
+      "subtitle": "在启动器卡片查看活跃项目、5h/今日/7天净用量并一键直达对应对话",
+      "keywords": [
+        "agcard",
+        "用量概览",
+        "缓存命中",
+        "token统计",
+        "最近会话"
+      ],
+      "icon": "gauge.with.dots.needle.67percent",
+      "arguments": [
+        "--card"
+      ],
+      "passQuery": false
+    }
+  ],
+  "config": [
+    {
+      "key": "defaultMode",
+      "label": "默认悬浮窗形态（dock 缩边悬停展开大窗 / standard 常驻大窗）",
+      "type": "select",
+      "defaultValue": "dock",
+      "options": [
+        "dock",
+        "standard"
+      ],
+      "section": "显示与交互"
+    },
+    {
+      "key": "themeStyle",
+      "label": "iOS 外观模式（auto 跟随系统 / light 纯净浅色 / dark 深色）",
+      "type": "select",
+      "defaultValue": "auto",
+      "options": [
+        "auto",
+        "light",
+        "dark"
+      ],
+      "section": "显示与交互"
+    },
+    {
+      "key": "refreshIntervalSec",
+      "label": "悬浮窗自动刷新间隔（秒）",
+      "type": "select",
+      "defaultValue": "3",
+      "options": [
+        "2",
+        "3",
+        "5",
+        "10",
+        "30"
+      ],
+      "section": "监控设置"
+    },
+    {
+      "key": "contextWindowK",
+      "label": "上下文上限参考值（auto 按模型推断 / 200K / 512K / 1000K）",
+      "type": "select",
+      "defaultValue": "auto",
+      "options": [
+        "auto",
+        "200",
+        "512",
+        "1000"
+      ],
+      "section": "监控设置"
+    },
+    {
+      "key": "includeCliLogs",
+      "label": "同时汇总 Antigravity CLI (~/.gemini/antigravity-cli) 日志",
+      "type": "select",
+      "defaultValue": "true",
+      "options": [
+        "true",
+        "false"
+      ],
+      "section": "监控设置"
+    },
+    {
+      "key": "sessionDoneAlertEnabled",
+      "label": "运行中的会话完成回复时发送系统通知提醒回来继续",
+      "type": "select",
+      "defaultValue": "true",
+      "options": [
+        "true",
+        "false"
+      ],
+      "section": "预警通知"
+    },
+    {
+      "key": "cacheDropAlertEnabled",
+      "label": "检测到缓存命中骤降或上下文 ≥85% 时发送系统通知",
+      "type": "select",
+      "defaultValue": "true",
+      "options": [
+        "true",
+        "false"
+      ],
+      "section": "预警通知"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Antigravity Pulse · Context & Session HUD",
+      "description": "Zero-invasion edge-retractable iOS HUD for Antigravity: hover to expand full dashboard, scroll wheel to switch active projects, and jump directly to exact conversations",
+      "categoryTag": "Dev Monitor",
+      "commands": {
+        "open-floating": {
+          "title": "Open Edge-Retractable Pulse HUD",
+          "subtitle": "Hugs the screen edge unobtrusively and expands to the full dashboard on hover"
+        },
+        "open-standard": {
+          "title": "Open Always-Expanded Pulse HUD",
+          "subtitle": "Keep the full dashboard always visible; drag near any screen edge to dock"
+        },
+        "usage-card": {
+          "title": "View Context & Recent Sessions",
+          "subtitle": "Inspect active projects, net usage, and jump directly to conversations"
+        }
+      },
+      "config": {
+        "defaultMode": {
+          "label": "Default HUD Style (dock hover-expand / standard always-full)",
+          "section": "Appearance"
+        },
+        "themeStyle": {
+          "label": "iOS Appearance (auto / light / dark)",
+          "section": "Appearance"
+        },
+        "refreshIntervalSec": {
+          "label": "Auto-Refresh Interval (seconds)",
+          "section": "Monitoring"
+        },
+        "contextWindowK": {
+          "label": "Reference Context Limit (auto / 200K / 512K / 1000K)",
+          "section": "Monitoring"
+        },
+        "includeCliLogs": {
+          "label": "Include Antigravity CLI (~/.gemini/antigravity-cli) Transcripts",
+          "section": "Monitoring"
+        },
+        "sessionDoneAlertEnabled": {
+          "label": "Notify When a Running Session Finishes",
+          "section": "Alerts"
+        },
+        "cacheDropAlertEnabled": {
+          "label": "Notify on Sudden Cache Drop or High Context (>=85%)",
+          "section": "Alerts"
+        }
+      }
+    }
+  }
+}

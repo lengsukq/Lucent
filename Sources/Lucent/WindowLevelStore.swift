@@ -66,6 +66,7 @@ final class WindowLevelStore: ObservableObject {
     }
 
     private func applyState(to window: NSWindow, pinned: Bool) {
+        if let panel = window as? NSPanel { panel.isFloatingPanel = pinned }
         window.level = pinned ? .floating : .normal
         if pinned {
             window.collectionBehavior.insert([.canJoinAllSpaces, .fullScreenAuxiliary])

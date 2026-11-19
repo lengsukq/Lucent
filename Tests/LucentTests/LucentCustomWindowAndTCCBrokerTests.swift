@@ -38,6 +38,7 @@ struct LucentCustomWindowAndTCCBrokerTests {
         #expect(stdSpec.height == 96)
         #expect(stdSpec.opacity == PluginCustomWindowSpec.minOpacity)
         #expect(!stdSpec.requiresFloatingCapability)
+        #expect(stdSpec.showInDock)
         #expect(stdSpec.requiredCapability == .window)
         #expect(stdSpec.isSatisfied(by: [.window]))
         #expect(stdSpec.isSatisfied(by: [.floatingWindow]))
@@ -48,11 +49,21 @@ struct LucentCustomWindowAndTCCBrokerTests {
             chrome: .frameless, transparent: true, pinOnTop: true
         )
         #expect(hudSpec.requiresFloatingCapability)
+        #expect(!hudSpec.showInDock)
+        #expect(hudSpec.withShowInDock(true).showInDock)
         #expect(hudSpec.requiredCapability == .floatingWindow)
         #expect(!hudSpec.isSatisfied(by: [.window]))
         #expect(hudSpec.isSatisfied(by: [.floatingWindow]))
 
-        let deepURL = try #require(URL(string: "lucent://window/demo-hud/hud?html=ui/widget.html&chrome=frameless&transparent=1&pin=1&w=392&h=488&opacity=0.92"))
+        let explicitDockFloat = PluginCustomWindowSpec(
+            pluginID: "demo-win", windowID: "hud2", htmlPath: "ui/widget.html",
+            chrome: .frameless, transparent: true, pinOnTop: true, showInDock: true
+        )
+        #expect(explicitDockFloat.showInDock)
+        let savedFrame = PluginSavedWindowFrame(x: 100, y: 120, width: 320, height: 220, opacity: 0.9, pinOnTop: true)
+        #expect(explicitDockFloat.applyingSavedFrame(savedFrame, canRestoreFloatingPin: true).showInDock)
+
+        let deepURL = try #require(URL(string: "lucent://window/demo-hud/hud?html=ui/widget.html&chrome=frameless&transparent=1&pin=1&showInDock=1&w=392&h=488&opacity=0.92"))
         guard case .pluginCustomWindow(let parsed) = PluginDeepLinkParser.parse(deepURL) else {
             Issue.record("Expected .pluginCustomWindow deep link target")
             return
@@ -60,7 +71,7 @@ struct LucentCustomWindowAndTCCBrokerTests {
         #expect(parsed.pluginID == "demo-hud")
         #expect(parsed.windowID == "hud")
         #expect(parsed.htmlPath == "ui/widget.html")
-        #expect(parsed.chrome == .frameless && parsed.transparent && parsed.pinOnTop)
+        #expect(parsed.chrome == .frameless && parsed.transparent && parsed.pinOnTop && parsed.showInDock)
         #expect(parsed.width == 392 && parsed.height == 488)
         #expect(abs(parsed.opacity - 0.92) < 0.001)
 
@@ -159,8 +170,9 @@ struct LucentCustomWindowAndTCCBrokerTests {
         #expect((stdOK["ok"] as? Bool) == true)
         #expect(box.openedSpecs.count == 1)
         #expect(box.openedSpecs.first?.chrome == .standard)
+        #expect(box.openedSpecs.first?.showInDock == true)
 
-        // 3. Frameless transparent HUD succeeds under `.floatingWindow`
+        // 3. Frameless transparent HUD succeeds under `.floatingWindow` (defaults to showInDock = false)
         let floatOK = PluginHostBridgeHandlers.dispatch(
             capability: .floatingWindow,
             action: "open",
@@ -170,6 +182,17 @@ struct LucentCustomWindowAndTCCBrokerTests {
         #expect((floatOK["ok"] as? Bool) == true)
         #expect(box.openedSpecs.last?.pinOnTop == true)
         #expect(box.openedSpecs.last?.transparent == true)
+        #expect(box.openedSpecs.last?.showInDock == false)
+
+        // 3b. Floating HUD may explicitly opt into Dock visibility
+        let floatDockOK = PluginHostBridgeHandlers.dispatch(
+            capability: .floatingWindow,
+            action: "open",
+            params: ["windowID": "hud-dock", "htmlPath": "ui/index.html", "chrome": "frameless", "showInDock": true],
+            hostContext: ctx
+        )
+        #expect((floatDockOK["ok"] as? Bool) == true)
+        #expect(box.openedSpecs.last?.showInDock == true)
 
         let closeOK = PluginHostBridgeHandlers.dispatch(
             capability: .floatingWindow, action: "close", params: ["windowID": "hud"], hostContext: ctx

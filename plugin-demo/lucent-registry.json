@@ -2,6 +2,91 @@
   "maintainer" : "Lucent Official",
   "plugins" : [
     {
+      "accentColor" : "blue",
+      "author" : "Lucent Official",
+      "capabilities" : [
+        "floatingWindow",
+        "notifications",
+        "clipboard"
+      ],
+      "categoryTag" : "开发监控",
+      "description" : "零侵入缩边悬浮窗监控 Antigravity 上下文占用、缓存命中率、5h/7d 净用量与活跃项目状态：悬停自动展开大窗、滚轮切换项目、一键直达对应对话",
+      "downloadURL" : "./dist/antigravity-pulse.zip",
+      "id" : "antigravity-pulse",
+      "keywords" : [
+        "agpulse",
+        "pulse",
+        "antigravity",
+        "agy",
+        "context",
+        "cache",
+        "token",
+        "上下文",
+        "缓存",
+        "用量",
+        "会话"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Dev Monitor",
+          "commands" : {
+            "open-floating" : {
+              "subtitle" : "Hugs the screen edge unobtrusively and expands to the full dashboard on hover",
+              "title" : "Open Edge-Retractable Pulse HUD"
+            },
+            "open-standard" : {
+              "subtitle" : "Keep the full dashboard always visible; drag near any screen edge to dock",
+              "title" : "Open Always-Expanded Pulse HUD"
+            },
+            "usage-card" : {
+              "subtitle" : "Inspect active projects, net usage, and jump directly to conversations",
+              "title" : "View Context & Recent Sessions"
+            }
+          },
+          "config" : {
+            "cacheDropAlertEnabled" : {
+              "label" : "Notify on Sudden Cache Drop or High Context (>=85%)",
+              "section" : "Alerts"
+            },
+            "contextWindowK" : {
+              "label" : "Reference Context Limit (auto / 200K / 512K / 1000K)",
+              "section" : "Monitoring"
+            },
+            "defaultMode" : {
+              "label" : "Default HUD Style (dock hover-expand / standard always-full)",
+              "section" : "Appearance"
+            },
+            "includeCliLogs" : {
+              "label" : "Include Antigravity CLI (~/.gemini/antigravity-cli) Transcripts",
+              "section" : "Monitoring"
+            },
+            "refreshIntervalSec" : {
+              "label" : "Auto-Refresh Interval (seconds)",
+              "section" : "Monitoring"
+            },
+            "sessionDoneAlertEnabled" : {
+              "label" : "Notify When a Running Session Finishes",
+              "section" : "Alerts"
+            },
+            "themeStyle" : {
+              "label" : "iOS Appearance (auto / light / dark)",
+              "section" : "Appearance"
+            }
+          },
+          "description" : "Zero-invasion edge-retractable iOS HUD for Antigravity: hover to expand full dashboard, scroll wheel to switch active projects, and jump directly to exact conversations",
+          "name" : "Antigravity Pulse · Context & Session HUD"
+        }
+      },
+      "mode" : "view",
+      "name" : "Antigravity Pulse · 上下文与会话监控",
+      "resourceScopes" : [
+        "filesystem"
+      ],
+      "sha256" : "721aca0f0ae8f04477e311b7699fe8c5b90c4028cc878d88280f05a6414068ca",
+      "sizeBytes" : 271619,
+      "version" : "1.3.0"
+    },
+    {
       "accentColor" : "indigo",
       "author" : "Lucent Official",
       "capabilities" : [
@@ -85,9 +170,99 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "495bfbfca40d2d157c1fd94bd8fcc0ec12626b264000cb49b1ff4f6dedb214ec",
-      "sizeBytes" : 180534,
+      "sha256" : "d8233a541e0a92c138ef23286410ff871375c8fa9fe32c39cb0932f6e0eaa79f",
+      "sizeBytes" : 180823,
       "version" : "1.0.0"
+    },
+    {
+      "accentColor" : "orange",
+      "author" : "Lucent Official",
+      "capabilities" : [
+        "floatingWindow",
+        "notifications"
+      ],
+      "categoryTag" : "金融行情",
+      "description" : "实时监控国内黄金（上海金 Au99.99 / Au(T+D)）人民币元/克行情，支持标准图表悬浮窗与 Mini 极简悬浮条一键切换",
+      "downloadURL" : "./dist/gold-monitor.zip",
+      "id" : "gold-monitor",
+      "keywords" : [
+        "gold",
+        "au9999",
+        "autd",
+        "黄金",
+        "金价",
+        "上海金",
+        "大盘",
+        "悬浮窗",
+        "mini"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Finance",
+          "commands" : {
+            "live-quote" : {
+              "subtitle" : "Inspect live Shanghai Gold Exchange price, change %, and intraday high/low",
+              "title" : "View Live Au99.99 / Au(T+D) Quote"
+            },
+            "open-dock" : {
+              "subtitle" : "Launch ultra-compact edge-docked gold badge showing symbol, price & delta",
+              "title" : "Open Edge-Docked Gold Strip"
+            },
+            "open-floating" : {
+              "subtitle" : "Launch transparent Liquid Glass HUD with live Au99.99 price and intraday chart",
+              "title" : "Open Standard Floating Gold HUD"
+            },
+            "open-mini" : {
+              "subtitle" : "Launch compact white floating ticker card with instant switch",
+              "title" : "Open Mini Gold Ticker Card"
+            }
+          },
+          "config" : {
+            "alertCooldownMin" : {
+              "label" : "Alert Debounce Cooldown (minutes)",
+              "section" : "Price Alerts (Debounced)"
+            },
+            "alertHighAu9999" : {
+              "label" : "Au99.99 Upper Break Alert (CNY/g)",
+              "section" : "Price Alerts (Debounced)"
+            },
+            "alertLowAu9999" : {
+              "label" : "Au99.99 Lower Break Alert (CNY/g)",
+              "section" : "Price Alerts (Debounced)"
+            },
+            "colorScheme" : {
+              "label" : "Price Color Convention (cn / intl)",
+              "section" : "Appearance"
+            },
+            "defaultMode" : {
+              "label" : "Default Floating Window Style (standard / mini / dock)",
+              "section" : "Appearance"
+            },
+            "defaultSymbol" : {
+              "label" : "Default Gold Symbol",
+              "section" : "Market Data"
+            },
+            "refreshIntervalSec" : {
+              "label" : "Refresh Interval (seconds)",
+              "section" : "Market Data"
+            },
+            "themeStyle" : {
+              "label" : "HUD Surface Theme (white / champagne / auto)",
+              "section" : "Appearance"
+            }
+          },
+          "description" : "Real-time China SGE Au99.99 & Au(T+D) gold price monitor (CNY/g) with switchable Standard Chart HUD & Mini Pill HUD",
+          "name" : "Gold Monitor HUD · Au99.99"
+        }
+      },
+      "mode" : "view",
+      "name" : "黄金大盘悬浮窗 · Au99.99",
+      "resourceScopes" : [
+        "network"
+      ],
+      "sha256" : "fa27115c9ffae10d99bfbfde94fe8a8f3d129f228f5e9f54b62a9347b6789de1",
+      "sizeBytes" : 207658,
+      "version" : "1.1.0"
     },
     {
       "accentColor" : "cyan",
@@ -166,8 +341,8 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "a7607c28a46c5de79f3001fb3a43298d53cdc70956e8322a844ce5c9987faa9f",
-      "sizeBytes" : 140645,
+      "sha256" : "f4c5db3d1f77d78830815515e4412f6ae2e58ba17bc1fbee7f447971c6404271",
+      "sizeBytes" : 141026,
       "version" : "2.2.0"
     },
     {
@@ -254,8 +429,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "750faac3826e84a96ac087a92ee874d7913f3aa0dd43a109cb949bb0c9317784",
-      "sizeBytes" : 155764,
+      "sha256" : "efc333ed80cbae0426d7b4fe1bdcf36bcda9b679df8400ee87f8aa0225665793",
+      "sizeBytes" : 155987,
       "version" : "1.0.0"
     },
     {
@@ -335,8 +510,8 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "82f2110876d3193e64118d7f43085213e37198ee5bf71e398f5961d367d82296",
-      "sizeBytes" : 201894,
+      "sha256" : "20c2759901820048c481c9b6da4a6027a79b35c3ca145382fbbcd09a6ff8282b",
+      "sizeBytes" : 202175,
       "version" : "1.4.0"
     },
     {
@@ -408,8 +583,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "594aedc3662bd3ba7891f86007909dc612042a9455fd827be4b818506d81a4a3",
-      "sizeBytes" : 143716,
+      "sha256" : "c451b8c390585de225eca0f28a6f6ea1bdc8273e0e444013c7f3bf2a9f52cbae",
+      "sizeBytes" : 144002,
       "version" : "1.0.0"
     },
     {
@@ -497,8 +672,8 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "c2db078ca9f7ca94098e3d238946da65ad0d7cf4b9483199aa893b8a38187f06",
-      "sizeBytes" : 114997,
+      "sha256" : "a91fff623da94b722756f838bfd837f17be24e03485842b2ee713fb7f3946204",
+      "sizeBytes" : 115285,
       "version" : "1.0.0"
     },
     {
@@ -598,13 +773,13 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "b45d817779ac2756efa7c964c203f320d438055dfa4eee0367a7cf73789cda78",
-      "sizeBytes" : 158899,
+      "sha256" : "a95034d076363c2e0f02e63d602c1350f3d7e6959e68f0991bd26d1b91674e8c",
+      "sizeBytes" : 159123,
       "version" : "1.0.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-18T05:19:48Z"
+  "updatedAt" : "2026-11-19T11:18:03Z"
 }

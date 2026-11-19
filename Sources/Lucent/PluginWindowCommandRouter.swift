@@ -33,6 +33,10 @@ extension PluginWindowMotionSession {
             WindowLevelStore.shared.setPinned(pinned, forKey: windowKey)
             PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
             return ["ok": true, "pinned": pinned]
+        case "setShowInDock":
+            let enabled = (body["enabled"] as? Bool) ?? false
+            PluginCustomWebWindowController.shared.setShowInDock(enabled, forKey: windowKey)
+            return ["ok": true, "showInDock": enabled]
         case "setClickThrough":
             guard plugin.grantedCapabilities.contains(.floatingWindow) else {
                 return ["ok": false, "error": "floatingWindow_not_granted"]

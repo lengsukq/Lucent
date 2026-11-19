@@ -3,7 +3,9 @@
 本目录既是仓库自带的**完整自定义插件商店示例（含 `lucent-registry.json`、`dist/*.zip` 校验归档包与 `starters/*.zip` 内置起始模板包）**，也是面向 **Lucent Plugin v3.7** 架构的 **100% 原生 Swift 6（零外部依赖、零 Python 运行时依赖）** 独立 SwiftPM 工程：
 
 - **统一原生底座 (`Package.swift` + `Shared/PluginKit/`)**：封装 `stdin` JSON 与配置解析、结构化 `ViewPayload` 编码、`PluginData` 免前缀索引 (`search-index.json`) 与运行摘要 (`status.json`) 原子写盘、原生 Unix Domain Socket (`Darwin.socket`) Host Bridge 客户端以及带超时强杀的子进程与同步 HTTP 工具；全部插件均预编译为签名裁剪后的 `arm64` Mach-O 可执行文件（`bin/<id>`），在新装 macOS 上无需安装 Python 3 或 Xcode Command Line Tools 即可毫秒级启动。
+- [`antigravity-pulse/`](antigravity-pulse/README.md)：**Antigravity Pulse · 上下文与会话监控**（零侵入只读增量扫描本地 `transcript.jsonl`，简洁 iOS 风格三形态置顶悬浮窗且默认不占程序坞，支持双段式上下文进度条、缓存命中掉线预警、5h/今日/7天统计、最近会话完成状态监测与一键回到对应会话）。
 - [`browser-hub/`](browser-hub/README.md)：**三端浏览器书签与历史中枢**（原生 `SQLite3` WAL 无锁快照与 `PropertyListSerialization` 直连 Microsoft Edge、Google Chrome 多 Profile 与 Apple Safari 书签、阅读列表及历史记录，自动同步 `⌥Space` 免前缀索引并支持按来源浏览器打开）。
+- [`gold-monitor/`](gold-monitor/README.md)：**黄金大盘悬浮窗 · Au99.99**（实时监控上海金 `Au99.99` / `Au(T+D)` 人民币元/克行情，支持标准分时图卡片、Mini 悬浮条与贴边极简挂件丝滑原地变形及滞回防抖价格预警）。
 - [`lumalink-companion/`](lumalink-companion/README.md)：**流光随行 · LumaLink 远控伴侣**（纯外部沙盒 `resourceScopes: []` + 受控宿主桥接 `capabilities: ["lumaLinkStatus"]` 全功能远控台，支持置顶配对二维码、多屏 HiDPI 切换、防窥黑屏、防休眠与设备解绑）。
 - [`notion-bookmarks/`](notion-bookmarks/README.md)：**Notion 书签收藏插件**（云端 REST API + 本地免前缀检索索引示例，声明 `capabilities: ["clipboard"]`、`resourceScopes: ["network", "filesystem"]`）。
 - [`translate-hub/`](translate-hub/README.md)：**流光译站 · 划词/截图多源翻译与生词本**（联动 `selection`、`ocr`、`audio`、`clipboard` 桥接，支持跨应用划词即译、截图离线识字翻译、免配置词典与本地 Ollama 并行、原声朗读及导出 Anki `.tsv` / `.csv` 生词卡片）。
@@ -23,10 +25,10 @@
 ### 方式二：命令行编译并安装到本地插件目录
 
 ```bash
-# 编译原生 arm64 Swift 二进制并安装全部七款商店插件
+# 编译原生 arm64 Swift 二进制并安装全部九款商店插件
 bash plugin-demo/install.sh
 
-# 或单独安装指定插件（如 translate-hub / browser-hub / screen-shield / mac-pilot / quick-remind）
+# 或单独安装指定插件（如 antigravity-pulse / gold-monitor / translate-hub / browser-hub）
 bash plugin-demo/install.sh translate-hub
 ```
 

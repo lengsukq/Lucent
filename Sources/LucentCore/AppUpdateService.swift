@@ -36,7 +36,7 @@ public enum AppUpdateService {
            !ver.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return ver
         }
-        return "0.9.9"
+        return "0.9.9.1"
     }
 
     public static func currentBuildNumber(bundle: Bundle = .main) -> String {

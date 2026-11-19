@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 3,
+  "id": "gold-monitor",
+  "name": "黄金大盘悬浮窗 · Au99.99",
+  "version": "1.1.0",
+  "description": "实时监控国内黄金（上海金 Au99.99 / Au(T+D)）人民币元/克行情，支持标准图表悬浮窗与 Mini 极简悬浮条一键切换",
+  "mode": "view",
+  "keywords": [
+    "gold",
+    "au9999",
+    "autd",
+    "黄金",
+    "金价",
+    "上海金",
+    "大盘",
+    "悬浮窗",
+    "mini"
+  ],
+  "entry": "bin/gold-monitor",
+  "author": "Lucent Official",
+  "icon": "icon.svg",
+  "accentColor": "orange",
+  "categoryTag": "金融行情",
+  "capabilities": [
+    "floatingWindow",
+    "notifications"
+  ],
+  "resourceScopes": [
+    "network"
+  ],
+  "includeInGlobalSearch": true,
+  "searchIndexInGlobalSearch": true,
+  "timeoutSeconds": 10,
+  "window": {
+    "entryHtml": "ui/widget.html",
+    "width": 352,
+    "height": 240,
+    "minWidth": 212,
+    "minHeight": 96,
+    "resizable": false,
+    "chrome": "frameless",
+    "transparent": true,
+    "pinOnTop": true,
+    "clickThrough": false,
+    "opacity": 1.0,
+    "showInDock": false
+  },
+  "commands": [
+    {
+      "id": "open-floating",
+      "title": "打开黄金大盘标准悬浮窗",
+      "subtitle": "弹出纯白毛玻璃置顶卡片，含实时 Au99.99 价格、涨跌幅与日内分时折线图",
+      "keywords": [
+        "悬浮窗",
+        "置顶",
+        "金价悬浮窗",
+        "gold hud",
+        "floating"
+      ],
+      "icon": "macwindow.on.rectangle",
+      "arguments": [
+        "--open-floating"
+      ],
+      "passQuery": false
+    },
+    {
+      "id": "open-mini",
+      "title": "打开 Mini 极简金价悬浮条",
+      "subtitle": "弹出紧凑纯白桌面小卡片，显示实时金价、涨跌幅与日内高低点",
+      "keywords": [
+        "mini",
+        "迷你",
+        "悬浮条",
+        "精简",
+        "金价胶囊",
+        "gold mini"
+      ],
+      "icon": "rectangle.compress.vertical",
+      "arguments": [
+        "--open-mini"
+      ],
+      "passQuery": false
+    },
+    {
+      "id": "open-dock",
+      "title": "打开靠边超精简金价挂件",
+      "subtitle": "自动贴靠屏幕边缘的超窄纯白悬浮挂件，仅展示品种、现价与涨跌幅",
+      "keywords": [
+        "靠边",
+        "贴边",
+        "精简",
+        "dock",
+        "edge",
+        "sidebar"
+      ],
+      "icon": "sidebar.right",
+      "arguments": [
+        "--open-dock"
+      ],
+      "passQuery": false
+    },
+    {
+      "id": "live-quote",
+      "title": "查看 Au99.99 / Au(T+D) 实时金价",
+      "subtitle": "在启动器卡片中查看上海金实时报价、今开、昨收及日内高低点",
+      "keywords": [
+        "实时金价",
+        "上海金",
+        "au9999",
+        "autd",
+        "gold price"
+      ],
+      "icon": "chart.line.uptrend.xyaxis",
+      "arguments": [
+        "--card"
+      ],
+      "passQuery": false
+    }
+  ],
+  "config": [
+    {
+      "key": "defaultMode",
+      "label": "默认打开的悬浮窗形态（standard 标准 / mini 紧凑 / dock 靠边精简）",
+      "type": "select",
+      "defaultValue": "standard",
+      "options": [
+        "standard",
+        "mini",
+        "dock"
+      ],
+      "section": "显示与交互"
+    },
+    {
+      "key": "defaultSymbol",
+      "label": "默认监控品种",
+      "type": "select",
+      "defaultValue": "AU9999",
+      "options": [
+        "AU9999",
+        "AUTD"
+      ],
+      "section": "行情设置"
+    },
+    {
+      "key": "refreshIntervalSec",
+      "label": "悬浮窗自动刷新间隔（秒）",
+      "type": "select",
+      "defaultValue": "5",
+      "options": [
+        "3",
+        "5",
+        "10",
+        "30"
+      ],
+      "section": "行情设置"
+    },
+    {
+      "key": "colorScheme",
+      "label": "涨跌配色习惯（cn 红涨绿跌 / intl 绿涨红跌）",
+      "type": "select",
+      "defaultValue": "cn",
+      "options": [
+        "cn",
+        "intl"
+      ],
+      "section": "显示与交互"
+    },
+    {
+      "key": "themeStyle",
+      "label": "悬浮窗外观风格（white 纯白玻璃 / champagne 浅香槟金 / auto 跟随系统）",
+      "type": "select",
+      "defaultValue": "white",
+      "options": [
+        "white",
+        "champagne",
+        "auto"
+      ],
+      "section": "显示与交互"
+    },
+    {
+      "key": "alertCooldownMin",
+      "label": "金价预警防抖冷却时间（分钟）",
+      "type": "select",
+      "defaultValue": "15",
+      "options": [
+        "1",
+        "5",
+        "15",
+        "30",
+        "60"
+      ],
+      "section": "价格预警（带防抖）"
+    },
+    {
+      "key": "alertHighAu9999",
+      "label": "Au99.99 突破上限预警价（元/克，留空关闭）",
+      "type": "text",
+      "defaultValue": "",
+      "placeholder": "例如 815.00",
+      "section": "价格预警（带防抖）"
+    },
+    {
+      "key": "alertLowAu9999",
+      "label": "Au99.99 跌破下限预警价（元/克，留空关闭）",
+      "type": "text",
+      "defaultValue": "",
+      "placeholder": "例如 790.00",
+      "section": "价格预警（带防抖）"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Gold Monitor HUD · Au99.99",
+      "description": "Real-time China SGE Au99.99 & Au(T+D) gold price monitor (CNY/g) with switchable Standard Chart HUD & Mini Pill HUD",
+      "categoryTag": "Finance",
+      "commands": {
+        "open-floating": {
+          "title": "Open Standard Floating Gold HUD",
+          "subtitle": "Launch transparent Liquid Glass HUD with live Au99.99 price and intraday chart"
+        },
+        "open-mini": {
+          "title": "Open Mini Gold Ticker Card",
+          "subtitle": "Launch compact white floating ticker card with instant switch"
+        },
+        "open-dock": {
+          "title": "Open Edge-Docked Gold Strip",
+          "subtitle": "Launch ultra-compact edge-docked gold badge showing symbol, price & delta"
+        },
+        "live-quote": {
+          "title": "View Live Au99.99 / Au(T+D) Quote",
+          "subtitle": "Inspect live Shanghai Gold Exchange price, change %, and intraday high/low"
+        }
+      },
+      "config": {
+        "defaultMode": {
+          "label": "Default Floating Window Style (standard / mini / dock)",
+          "section": "Appearance"
+        },
+        "defaultSymbol": {
+          "label": "Default Gold Symbol",
+          "section": "Market Data"
+        },
+        "refreshIntervalSec": {
+          "label": "Refresh Interval (seconds)",
+          "section": "Market Data"
+        },
+        "colorScheme": {
+          "label": "Price Color Convention (cn / intl)",
+          "section": "Appearance"
+        },
+        "themeStyle": {
+          "label": "HUD Surface Theme (white / champagne / auto)",
+          "section": "Appearance"
+        },
+        "alertCooldownMin": {
+          "label": "Alert Debounce Cooldown (minutes)",
+          "section": "Price Alerts (Debounced)"
+        },
+        "alertHighAu9999": {
+          "label": "Au99.99 Upper Break Alert (CNY/g)",
+          "section": "Price Alerts (Debounced)"
+        },
+        "alertLowAu9999": {
+          "label": "Au99.99 Lower Break Alert (CNY/g)",
+          "section": "Price Alerts (Debounced)"
+        }
+      }
+    }
+  }
+}

@@ -28,6 +28,7 @@ public struct WindowLaunchSpec: Codable, Sendable, Equatable {
     public var transparent: Bool?
     public var pinOnTop: Bool?
     public var clickThrough: Bool?
+    public var showInDock: Bool?
     public var opacity: Double?
     public var x: Int?
     public var y: Int?
@@ -47,6 +48,7 @@ public struct WindowLaunchSpec: Codable, Sendable, Equatable {
         transparent: Bool? = nil,
         pinOnTop: Bool? = nil,
         clickThrough: Bool? = nil,
+        showInDock: Bool? = nil,
         opacity: Double? = nil,
         x: Int? = nil,
         y: Int? = nil,
@@ -65,6 +67,7 @@ public struct WindowLaunchSpec: Codable, Sendable, Equatable {
         self.transparent = transparent
         self.pinOnTop = pinOnTop
         self.clickThrough = clickThrough
+        self.showInDock = showInDock
         self.opacity = opacity
         self.x = x
         self.y = y

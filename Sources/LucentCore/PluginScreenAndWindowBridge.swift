@@ -197,14 +197,14 @@ enum PluginScreenAndWindowBridge {
                     htmlPath: spec.htmlPath, html: spec.html, width: spec.width, height: spec.height,
                     minWidth: spec.minWidth, minHeight: spec.minHeight, resizable: spec.resizable,
                     chrome: spec.chrome, transparent: spec.transparent, pinOnTop: true,
-                    clickThrough: spec.clickThrough, opacity: spec.opacity, x: spec.x, y: spec.y,
+                    clickThrough: spec.clickThrough, showInDock: spec.showInDock, opacity: spec.opacity, x: spec.x, y: spec.y,
                     initialStateJSON: spec.initialStateJSON
                 )
             }
             let opened = hostContext.customWindowOpener?(spec) ?? false
             return PluginHostBridgeHandlers.okJSON(capability, action, [
                 "opened": opened, "pluginID": spec.pluginID, "windowID": spec.windowID,
-                "chrome": spec.chrome.rawValue, "pinOnTop": spec.pinOnTop
+                "chrome": spec.chrome.rawValue, "pinOnTop": spec.pinOnTop, "showInDock": spec.showInDock
             ])
         case "close":
             let winID = PluginCustomWindowSpec.sanitizeWindowID((params["windowID"] as? String) ?? "main")

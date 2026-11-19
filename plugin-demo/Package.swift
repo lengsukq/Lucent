@@ -2,7 +2,9 @@
 import PackageDescription
 
 let demoPlugins = [
+    "antigravity-pulse",
     "browser-hub",
+    "gold-monitor",
     "lumalink-companion",
     "mac-pilot",
     "notion-bookmarks",
@@ -27,7 +29,7 @@ var targets: [Target] = [
 
 for id in demoPlugins {
     var linker: [LinkerSetting] = []
-    if id == "browser-hub" {
+    if id == "browser-hub" || id == "antigravity-pulse" {
         linker.append(.linkedLibrary("sqlite3"))
     }
     targets.append(
