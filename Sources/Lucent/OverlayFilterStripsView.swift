@@ -60,7 +60,39 @@ struct OverlayClipboardCategoryStrip: View {
                 )
             }
             .buttonStyle(GlassPillButtonStyle(prominent: viewModel.isClipboardPaused))
-            Button("清空非收藏") { viewModel.clearUnpinnedClipboard() }.buttonStyle(GlassPillButtonStyle())
+            Menu {
+                if ![.all, .pinned].contains(viewModel.clipboardCategory) {
+                    Button(L10n.pick(
+                        "清空当前「\(viewModel.clipboardCategory.localizedTitle)」未收藏",
+                        "Clear Unpinned \(viewModel.clipboardCategory.localizedTitle)"
+                    )) {
+                        viewModel.batchCleanClipboard(.unpinnedCategory(viewModel.clipboardCategory))
+                    }
+                    Divider()
+                }
+                Button(L10n.pick("清理 24 小时前（未收藏）", "Clean Older Than 24h (Unpinned)")) {
+                    viewModel.batchCleanClipboard(.olderThan24Hours)
+                }
+                Button(L10n.pick("清理 7 天前（未收藏）", "Clean Older Than 7 Days (Unpinned)")) {
+                    viewModel.batchCleanClipboard(.olderThan7Days)
+                }
+                Button(L10n.pick("仅清理图片与视频（未收藏）", "Clean Images & Videos Only (Unpinned)")) {
+                    viewModel.batchCleanClipboard(.unpinnedMediaOnly)
+                }
+                Divider()
+                Button(L10n.pick("清空全部未收藏项（保留收藏）", "Clear All Unpinned (Keep Pinned)")) {
+                    viewModel.batchCleanClipboard(.unpinnedAll)
+                }
+                Button(role: .destructive) {
+                    viewModel.batchCleanClipboard(.allIncludingPinned)
+                } label: {
+                    Text(L10n.pick("清空全部剪贴板（含收藏）", "Clear All History (Including Pinned)"))
+                }
+            } label: {
+                Label(L10n.pick("批量清理", "Batch Clean"), systemImage: "trash")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
         }
         .padding(.horizontal, 14).padding(.vertical, 7)
     }
@@ -111,6 +143,8 @@ struct OverlayBottomFooterBar: View {
                 if !compactFooter {
                     Button { viewModel.startGifRecording() } label: { Image(systemName: "record.circle.fill").font(.caption).foregroundStyle(.pink) }
                         .buttonStyle(.plain).help("区域 / 窗口 GIF 动图录制 (⌥G)")
+                    Button { viewModel.startVideoRecording() } label: { Image(systemName: "video.circle.fill").font(.caption).foregroundStyle(.red) }
+                        .buttonStyle(.plain).help(L10n.pick("区域 / 窗口视频录像 (⌥R)", "Record Region / Window Video (⌥R)"))
                     Button { viewModel.openRoute(.networkMonitor) } label: { Image(systemName: "network").font(.caption).foregroundStyle(LiquidColors.textSecondary) }
                         .buttonStyle(.plain).help("本机网络流量与去向监控 (⌥N)")
                     Button { SystemPulseWindowController.shared.toggleFloatingWidget() } label: { Image(systemName: "waveform.path.ecg").font(.caption).foregroundStyle(LiquidColors.textSecondary) }

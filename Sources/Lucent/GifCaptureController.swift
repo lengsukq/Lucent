@@ -9,42 +9,58 @@ import UniformTypeIdentifiers
 final class GifCaptureController: ObservableObject {
     static let shared = GifCaptureController()
 
-    @Published private(set) var phase: GifCapturePhase = .idle
+    @Published var phase: GifCapturePhase = .idle
+    @Published var recordingMode: CaptureRecordingMode = .gif
     @Published var options: GifRecordingOptions = GeneralPreferences.load().gifDefaultOptions
-    @Published private(set) var elapsedSeconds: Double = 0
-    @Published private(set) var encodedFrameCount: Int = 0
-    @Published private(set) var mergedFrameCount: Int = 0
-    @Published private(set) var latestResult: GifFinalizeResult?
+    @Published var videoOptions: VideoRecordingOptions = GeneralPreferences.load().videoDefaultOptions
+    @Published var elapsedSeconds: Double = 0
+    @Published var encodedFrameCount: Int = 0
+    @Published var mergedFrameCount: Int = 0
+    @Published var latestResult: GifFinalizeResult?
+    @Published var latestVideoResult: VideoFinalizeResult?
 
     var onRecordingCompleted: ((GifFinalizeResult) -> Void)?
+    var onVideoRecordingCompleted: ((VideoFinalizeResult) -> Void)?
     var onStatusMessage: ((String) -> Void)?
     var onDiagnostic: ((UserFacingDiagnostic) -> Void)?
 
     private var selectionPanels: [CaptureOverlayPanel] = []
     private var panelByDisplayID: [CGDirectDisplayID: CaptureOverlayPanel] = [:]
-    private var borderPanels: [RecordingRegionBorderPanel] = []
-    private var hudPanel: GifHUDPanel?
+    var borderPanels: [RecordingRegionBorderPanel] = []
+    var hudPanel: GifHUDPanel?
     private var keyMonitor: Any?
     private var screenObserver: NSObjectProtocol?
     private var selectionSession: GifSelectionSession?
-    private var captureTask: Task<Void, Never>?
+    var captureTask: Task<Void, Never>?
     private var activeEncoder: GifStreamEncoder?
+    var activeVideoEncoder: VideoStreamEncoder?
+    var activeVideoClock: ActiveRecordingClock?
+    var activeVideoStream: SCStream?
     private var pendingCompletionHandler: ((GifFinalizeResult) -> Void)?
+    var pendingVideoCompletionHandler: ((VideoFinalizeResult) -> Void)?
     private let focusGuard = CaptureFocusGuard()
 
     private init() {}
     var isActive: Bool { phase != .idle }
 
     func startInteractiveCapture(
-        options overrideOptions: GifRecordingOptions? = nil, preferredTargetApp: NSRunningApplication? = nil,
-        onComplete: ((GifFinalizeResult) -> Void)? = nil
+        mode: CaptureRecordingMode = .gif,
+        options overrideOptions: GifRecordingOptions? = nil,
+        videoOptions overrideVideoOptions: VideoRecordingOptions? = nil,
+        preferredTargetApp: NSRunningApplication? = nil,
+        onComplete: ((GifFinalizeResult) -> Void)? = nil,
+        onVideoComplete: ((VideoFinalizeResult) -> Void)? = nil
     ) {
         if case .recording = phase { hudPanel?.orderFrontRegardless(); return }
         if case .encoding = phase { return }
         cleanupAllResources(discardEncoder: true, animatedHUD: false)
         focusGuard.prepareForNewCapture(preferredApp: preferredTargetApp)
-        self.options = overrideOptions ?? GeneralPreferences.load().gifDefaultOptions
+        let prefs = GeneralPreferences.load()
+        self.recordingMode = mode
+        self.options = overrideOptions ?? prefs.gifDefaultOptions
+        self.videoOptions = overrideVideoOptions ?? prefs.videoDefaultOptions
         self.pendingCompletionHandler = onComplete
+        self.pendingVideoCompletionHandler = onVideoComplete
 
         guard CGPreflightScreenCaptureAccess() else {
             focusGuard.finishRestore(restorePreviousApp: false)
@@ -59,10 +75,16 @@ final class GifCaptureController: ObservableObject {
 
     func togglePauseResume() {
         guard case .recording(let isPaused) = phase else { return }
-        phase = .recording(isPaused: !isPaused)
+        let nextPaused = !isPaused
+        activeVideoClock?.setPaused(nextPaused)
+        phase = .recording(isPaused: nextPaused)
     }
 
     func finishRecording() {
+        if recordingMode == .video {
+            finishVideoRecording()
+            return
+        }
         guard case .recording = phase, let encoder = activeEncoder else { return }
         captureTask?.cancel(); captureTask = nil; activeEncoder = nil
         closeBorderPanels(); phase = .encoding
@@ -84,8 +106,9 @@ final class GifCaptureController: ObservableObject {
     }
 
     func cancelCapture() {
+        let wasVideo = recordingMode == .video
         cleanupAllResources(discardEncoder: true, animatedHUD: true); phase = .idle
-        onStatusMessage?("已取消 GIF 录制并清理临时缓冲")
+        onStatusMessage?(wasVideo ? L10n.pick("已取消区域录像并清理临时文件", "Cancelled video recording") : "已取消 GIF 录制并清理临时缓冲")
     }
 
     func dismissCompletedHUD(immediately: Bool = false) {
@@ -103,7 +126,9 @@ final class GifCaptureController: ObservableObject {
         do {
             let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includePixelatedPreview: false)
             let initialPt = topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation)
-            presentSelectionOverlays(session: GifSelectionSession(topology: topology, initialCursorCanvasPoint: initialPt, options: options))
+            presentSelectionOverlays(session: GifSelectionSession(
+                topology: topology, initialCursorCanvasPoint: initialPt, mode: recordingMode, options: options, videoOptions: videoOptions
+            ))
         } catch {
             focusGuard.finishRestore(restorePreviousApp: false); onStatusMessage?(error.localizedDescription)
         }
@@ -121,8 +146,7 @@ final class GifCaptureController: ObservableObject {
             )
             selectionPanels.append(p); panelByDisplayID[slice.displayID] = p
         }
-        focusGuard.activateAppForCapture()
-        panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
+        focusGuard.activateAppForCapture(); panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
         installScreenChangeObserver()
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .rightMouseDown, .mouseMoved, .leftMouseDragged]) { [weak self] event in
@@ -151,6 +175,8 @@ final class GifCaptureController: ObservableObject {
 
     private func beginRecordingFromSelection() {
         guard let session = selectionSession, let sel = session.selectionRect?.standardized, sel.width >= 12, sel.height >= 12 else { return }
+        recordingMode = session.mode
+        if session.mode == .video { beginVideoRecordingFromSelection(session: session, selection: sel); return }
         options = session.options
         var prefs = GeneralPreferences.load()
         if prefs.gifDefaultOptions != session.options { prefs.gifDefaultOptions = session.options; prefs.save() }
@@ -160,20 +186,15 @@ final class GifCaptureController: ObservableObject {
         let displaySpecs = session.topology.displays.map { (scDisplay: $0.scDisplay, canvasFrame: $0.canvasFrame, scale: $0.scale) }
         let outDims = session.outputDimensions(for: sel)
 
-        closeSelectionPanels(); elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0
-        phase = .recording(isPaused: false)
+        closeSelectionPanels(); elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0; phase = .recording(isPaused: false)
         if lockedWindowID == nil { borderPanels = RecordingRegionBorderPanel.presentBorders(forAppKitRect: appKitRegion) }
         hudPanel = GifHUDPanel.present(near: appKitRegion, visibleFrame: targetSlice.appKitScreen.visibleFrame, controller: self)
 
         let encoder = GifStreamEncoder(options: options); activeEncoder = encoder
         var excludedIDs = Set(borderPanels.map { CGWindowID($0.windowNumber) })
         if let hudID = hudPanel.map({ CGWindowID($0.windowNumber) }) { excludedIDs.insert(hudID) }
-
         captureTask = Task { [weak self] in
-            await self?.runCaptureLoop(
-                canvasRect: sel, lockedWindowID: lockedWindowID, displaySpecs: displaySpecs,
-                outputSize: outDims, excludedWindowIDs: excludedIDs, encoder: encoder
-            )
+            await self?.runCaptureLoop(canvasRect: sel, lockedWindowID: lockedWindowID, displaySpecs: displaySpecs, outputSize: outDims, excludedWindowIDs: excludedIDs, encoder: encoder)
         }
     }
 
@@ -188,7 +209,8 @@ final class GifCaptureController: ObservableObject {
         let excluded = content.windows.filter { excludedWindowIDs.contains($0.windowID) }
         let streamPair = await ScreenRecordingStreamEngine.startHardwareStreamIfSingleSource(
             canvasRect: canvasRect, lockedWindowID: lockedWindowID, displaySpecs: displaySpecs,
-            excludedWindowIDs: excludedWindowIDs, options: options, outputSize: outputSize, shareableContent: content
+            excludedWindowIDs: excludedWindowIDs, fps: options.fps, maxDimension: options.maxDimension,
+            showsCursor: options.showsCursor, outputSize: outputSize, shareableContent: content
         )
         defer { if let stream = streamPair?.stream { Task { try? await stream.stopCapture() } } }
 
@@ -234,13 +256,15 @@ final class GifCaptureController: ObservableObject {
                 guard let self else { return }
                 if case .selectingRegion = self.phase { self.cancelCapture() }
                 else if case .recording = self.phase {
-                    if (self.activeEncoder?.encodedFrameCount ?? 0) > 0 { self.finishRecording() } else { self.cancelCapture() }
+                    let hasFrames = (self.activeEncoder?.encodedFrameCount ?? 0) > 0
+                        || (self.activeVideoEncoder?.encodedFrameCount ?? 0) > 0
+                    if hasFrames { self.finishRecording() } else { self.cancelCapture() }
                 }
             }
         }
     }
 
-    private func closeSelectionPanels() {
+    func closeSelectionPanels() {
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor); keyMonitor = nil }
         let hadPanels = !selectionPanels.isEmpty
         for p in selectionPanels { p.orderOut(nil); p.contentView = nil }
@@ -248,16 +272,18 @@ final class GifCaptureController: ObservableObject {
         if hadPanels { focusGuard.finishRestore(restorePreviousApp: true) }
     }
 
-    private func closeBorderPanels() {
+    func closeBorderPanels() {
         for p in borderPanels { p.orderOut(nil); p.contentView = nil }
         borderPanels.removeAll()
     }
 
-    private func cleanupAllResources(discardEncoder: Bool, animatedHUD: Bool) {
+    func cleanupAllResources(discardEncoder: Bool, animatedHUD: Bool) {
         captureTask?.cancel(); captureTask = nil; closeSelectionPanels(); closeBorderPanels()
         if let obs = screenObserver { NotificationCenter.default.removeObserver(obs); screenObserver = nil }
-        if discardEncoder { activeEncoder?.discard() }
-        activeEncoder = nil
+        activeVideoClock = nil
+        if let stream = activeVideoStream { activeVideoStream = nil; Task { try? await stream.stopCapture() } }
+        if discardEncoder { activeEncoder?.discard(); activeVideoEncoder?.discard() }
+        activeEncoder = nil; activeVideoEncoder = nil
         if let closingHUD = hudPanel {
             hudPanel = nil
             if animatedHUD && closingHUD.isVisible {

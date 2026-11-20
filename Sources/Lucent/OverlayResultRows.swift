@@ -164,6 +164,18 @@ struct OverlayUnifiedRowsView: View {
                     .padding(.horizontal, 6).padding(.vertical, 3)
                     .background(Color.orange.opacity(0.14), in: Capsule(style: .continuous))
                     .overlay { Capsule(style: .continuous).strokeBorder(Color.orange.opacity(0.30), lineWidth: 0.7) }
+            } else if viewModel.generalPreferences.enableSmartSearchRanking {
+                let clicks = SearchAffinityStore.shared.clickCount(for: candidate)
+                if clicks >= 2 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "sparkles").font(.system(size: 8.5, weight: .bold))
+                        Text(L10n.pick("常选 \(clicks)", "Top \(clicks)")).font(.system(size: 9.5, weight: .semibold).monospacedDigit())
+                    }
+                    .foregroundStyle(LiquidColors.accentPrimary)
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(LiquidColors.accentPrimary.opacity(0.12), in: Capsule(style: .continuous))
+                    .overlay { Capsule(style: .continuous).strokeBorder(LiquidColors.accentPrimary.opacity(0.26), lineWidth: 0.7) }
+                }
             }
             if case .fileHit(let hit) = candidate.kind {
                 Text(hit.formattedSize).font(.caption2.monospacedDigit()).foregroundStyle(LiquidColors.textSecondary)

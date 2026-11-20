@@ -82,6 +82,7 @@ extension AppViewModel {
         case .clipboard: setOmniFilter(.clipboard)
         case .screenshotPin: captureAndPinScreenshot()
         case .gifRecord: startGifRecording()
+        case .videoRecord: startVideoRecording()
         case .ocr: captureAndAnalyzeOCR()
         case .networkMonitor: openRoute(.networkMonitor)
         case .fileWorkspace: openRoute(.workspace)

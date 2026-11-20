@@ -8,6 +8,7 @@ enum GifCapturePhase: Equatable {
     case recording(isPaused: Bool)
     case encoding
     case completed(GifFinalizeResult)
+    case completedVideo(VideoFinalizeResult)
 }
 
 final class GifHUDPanel: NSPanel {
@@ -17,9 +18,11 @@ final class GifHUDPanel: NSPanel {
     @MainActor
     static func present(near region: NSRect, visibleFrame: NSRect, controller: GifCaptureController) -> GifHUDPanel {
         let hosting = NSHostingView(rootView: LocalizedRootContainer { GifRecordingHUDView(controller: controller) })
-        let fittedWidth = max(640, ceil(hosting.fittingSize.width) + 28)
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        let fittedWidth = max(720, ceil(hosting.fittingSize.width) + 64)
         let hudFrame = MultiDisplayLayout.clampedHUDFrame(
-            preferredSize: CGSize(width: fittedWidth, height: 64),
+            preferredSize: CGSize(width: fittedWidth, height: 96),
             near: region,
             visibleFrame: visibleFrame
         )
@@ -68,26 +71,17 @@ struct GifRecordingHUDView: View {
     @ObservedObject var controller: GifCaptureController
 
     private var islandTransition: AnyTransition {
-        .asymmetric(
-            insertion: .scale(scale: 0.90).combined(with: .opacity),
-            removal: .scale(scale: 0.93).combined(with: .opacity)
-        )
+        .asymmetric(insertion: .scale(scale: 0.90).combined(with: .opacity), removal: .scale(scale: 0.93).combined(with: .opacity))
     }
 
     var body: some View {
         ZStack {
             switch controller.phase {
-            case .recording(let isPaused):
-                recordingCapsule(isPaused: isPaused)
-                    .transition(islandTransition)
-            case .encoding:
-                encodingCapsule
-                    .transition(islandTransition)
-            case .completed(let result):
-                completedCapsule(result: result)
-                    .transition(islandTransition)
-            case .idle, .selectingRegion:
-                EmptyView()
+            case .recording(let isPaused): recordingCapsule(isPaused: isPaused).transition(islandTransition)
+            case .encoding: encodingCapsule.transition(islandTransition)
+            case .completed(let result): completedCapsule(result: result).transition(islandTransition)
+            case .completedVideo(let video): completedVideoCapsule(result: video).transition(islandTransition)
+            case .idle, .selectingRegion: EmptyView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -97,7 +91,10 @@ struct GifRecordingHUDView: View {
     private func recordingCapsule(isPaused: Bool) -> some View {
         let pulse = isPaused ? 1.0 : (0.45 + 0.55 * (0.5 + 0.5 * sin(controller.elapsedSeconds * 5.4)))
         let dotColor = isPaused ? Color.orange : Color(red: 1.0, green: 0.24, blue: 0.22)
-        let dimLabel = GifRecordingOptions.dimensionLabel(for: controller.options.maxDimension)
+        let isVideo = controller.recordingMode == .video
+        let dimLabel = isVideo ? VideoRecordingOptions.dimensionLabel(for: controller.videoOptions.maxDimension) : GifRecordingOptions.dimensionLabel(for: controller.options.maxDimension)
+        let fpsVal = isVideo ? controller.videoOptions.fps : controller.options.fps
+        let audioTag = (isVideo && controller.videoOptions.captureAudio) ? "·🔊" : ""
 
         return HStack(spacing: 10) {
             HStack(spacing: 7) {
@@ -107,8 +104,7 @@ struct GifRecordingHUDView: View {
                 }
                 Text(Self.formatDuration(controller.elapsedSeconds))
                     .font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundStyle(.white)
-                    .contentTransition(.numericText())
-                    .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                    .contentTransition(.numericText()).lineLimit(1).fixedSize(horizontal: true, vertical: false)
             }
             .padding(.leading, 4)
 
@@ -117,9 +113,8 @@ struct GifRecordingHUDView: View {
             HStack(spacing: 6) {
                 Text(frameSummaryText(isPaused: isPaused))
                     .font(.system(size: 11, weight: .medium, design: .monospaced)).foregroundStyle(.white.opacity(0.86))
-                    .contentTransition(.numericText())
-                    .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                Text("\(dimLabel)·\(controller.options.fps)FPS")
+                    .contentTransition(.numericText()).lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                Text("\(dimLabel)·\(fpsVal)FPS\(audioTag)")
                     .font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundStyle(.cyan)
                     .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                     .padding(.horizontal, 7).padding(.vertical, 2.5).background(.cyan.opacity(0.16), in: Capsule())
@@ -128,12 +123,8 @@ struct GifRecordingHUDView: View {
             capsuleDivider
 
             HStack(spacing: 6) {
-                hudButton(title: isPaused ? "继续" : "暂停", symbol: isPaused ? "play.fill" : "pause.fill", tint: .white.opacity(0.14)) {
-                    controller.togglePauseResume()
-                }
-                hudButton(title: "取消", symbol: "xmark", tint: .white.opacity(0.12)) {
-                    controller.cancelCapture()
-                }
+                hudButton(title: isPaused ? "继续" : "暂停", symbol: isPaused ? "play.fill" : "pause.fill", tint: .white.opacity(0.14)) { controller.togglePauseResume() }
+                hudButton(title: "取消", symbol: "xmark", tint: .white.opacity(0.12)) { controller.cancelCapture() }
                 Button(action: { controller.finishRecording() }) {
                     HStack(spacing: 5) {
                         Image(systemName: "stop.fill").font(.system(size: 9, weight: .bold))
@@ -141,27 +132,21 @@ struct GifRecordingHUDView: View {
                     }
                     .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                     .foregroundStyle(.white).padding(.horizontal, 11).padding(.vertical, 5.5)
-                    .background(
-                        LinearGradient(
-                            colors: [Color(red: 1.0, green: 0.28, blue: 0.26), Color(red: 0.88, green: 0.14, blue: 0.34)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ),
-                        in: Capsule()
-                    )
+                    .background(LinearGradient(colors: [Color(red: 1.0, green: 0.28, blue: 0.26), Color(red: 0.88, green: 0.14, blue: 0.34)], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
                 }
-                .buttonStyle(GifScaleButtonStyle())
-                .fixedSize(horizontal: true, vertical: false)
+                .buttonStyle(GifScaleButtonStyle()).fixedSize(horizontal: true, vertical: false)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
-        .fixedSize(horizontal: true, vertical: false)
+        .padding(.horizontal, 12).padding(.vertical, 8).fixedSize(horizontal: true, vertical: false)
         .modifier(DynamicIslandGlassModifier())
     }
 
     private var encodingCapsule: some View {
         HStack(spacing: 9) {
             ProgressView().controlSize(.small).tint(.cyan)
-            Text("正在合成 GIF89a 动图 (\(controller.encodedFrameCount) 帧)…")
+            Text(controller.recordingMode == .video
+                 ? L10n.pick("正在封装 MP4 视频 (\(controller.encodedFrameCount) 帧)…", "Finalizing MP4 video (\(controller.encodedFrameCount) frames)…")
+                 : "正在合成 GIF89a 动图 (\(controller.encodedFrameCount) 帧)…")
                 .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
         }
         .padding(.horizontal, 16).padding(.vertical, 9)
@@ -171,14 +156,45 @@ struct GifRecordingHUDView: View {
     private func completedCapsule(result: GifFinalizeResult) -> some View {
         let sizeText = FastFormatters.formatFileBytes(result.fileSizeBytes)
         let w = Int(result.pixelSize.width), h = Int(result.pixelSize.height)
+        return completedCapsuleShell(
+            title: "已复制 GIF 动图",
+            subtitle: "\(sizeText) · \(w)×\(h) · \(result.frameCount)帧",
+            onCopy: { controller.copyResultAgain(result) },
+            onSave: { controller.saveResultAs(result) },
+            onReveal: { controller.revealResultInFinder(result.fileURL) },
+            onPreview: { controller.previewResult(result.fileURL) }
+        )
+    }
 
-        return HStack(spacing: 9) {
+    private func completedVideoCapsule(result: VideoFinalizeResult) -> some View {
+        let sizeText = FastFormatters.formatFileBytes(result.fileSizeBytes)
+        let w = Int(result.pixelSize.width), h = Int(result.pixelSize.height)
+        let durText = Self.formatDuration(result.durationSeconds)
+        return completedCapsuleShell(
+            title: L10n.pick("已复制 MP4 录像", "MP4 Recording Copied"),
+            subtitle: "\(sizeText) · \(w)×\(h) · \(durText)",
+            onCopy: { controller.copyVideoResultAgain(result) },
+            onSave: { controller.saveVideoResultAs(result) },
+            onReveal: { controller.revealResultInFinder(result.fileURL) },
+            onPreview: { controller.previewResult(result.fileURL) }
+        )
+    }
+
+    private func completedCapsuleShell(
+        title: String,
+        subtitle: String,
+        onCopy: @escaping () -> Void,
+        onSave: @escaping () -> Void,
+        onReveal: @escaping () -> Void,
+        onPreview: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 9) {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill").font(.system(size: 14, weight: .semibold)).foregroundStyle(.green)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("已复制 GIF 动图").font(.system(size: 11.5, weight: .bold)).foregroundStyle(.white)
+                    Text(title).font(.system(size: 11.5, weight: .bold)).foregroundStyle(.white)
                         .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                    Text("\(sizeText) · \(w)×\(h) · \(result.frameCount)帧")
+                    Text(subtitle)
                         .font(.system(size: 10, weight: .medium, design: .monospaced)).foregroundStyle(.white.opacity(0.75))
                         .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                 }
@@ -188,10 +204,10 @@ struct GifRecordingHUDView: View {
             capsuleDivider
 
             HStack(spacing: 6) {
-                hudButton(title: "复制", symbol: "doc.on.doc", tint: .white.opacity(0.14)) { controller.copyResultAgain(result) }
-                hudButton(title: "另存为", symbol: "square.and.arrow.down", tint: .white.opacity(0.14)) { controller.saveResultAs(result) }
-                hudButton(title: "访达定位", symbol: "folder", tint: .white.opacity(0.14)) { controller.revealResultInFinder(result) }
-                hudButton(title: "预览", symbol: "eye", tint: .white.opacity(0.14)) { controller.previewResult(result) }
+                hudButton(title: "复制", symbol: "doc.on.doc", tint: .white.opacity(0.14), action: onCopy)
+                hudButton(title: "另存为", symbol: "square.and.arrow.down", tint: .white.opacity(0.14), action: onSave)
+                hudButton(title: "访达定位", symbol: "folder", tint: .white.opacity(0.14), action: onReveal)
+                hudButton(title: "预览", symbol: "eye", tint: .white.opacity(0.14), action: onPreview)
                 hudButton(title: "再来一段", symbol: "arrow.clockwise", tint: .cyan.opacity(0.28)) { controller.recordAgain() }
                 Button(action: { controller.dismissCompletedHUD() }) {
                     Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.78))
@@ -240,17 +256,20 @@ struct GifRecordingHUDView: View {
 private struct DynamicIslandGlassModifier: ViewModifier {
     func body(content: Content) -> some View {
         let reduceTransparency = SystemDisplayPreferences.shared.reduceTransparency
+        let capsule = Capsule(style: .continuous)
         content
             .background {
                 ZStack {
-                    if !reduceTransparency { Capsule(style: .continuous).fill(.ultraThinMaterial) }
-                    Capsule(style: .continuous).fill(Color(red: 0.06, green: 0.07, blue: 0.11).opacity(reduceTransparency ? 0.96 : 0.76))
+                    if !reduceTransparency { capsule.fill(.ultraThinMaterial) }
+                    capsule.fill(Color(red: 0.06, green: 0.07, blue: 0.11).opacity(reduceTransparency ? 0.96 : 0.76))
                     WindowDragRegion()
                 }
             }
-            .clipShape(Capsule(style: .continuous))
-            .overlay { Capsule(style: .continuous).strokeBorder(LiquidColors.specularRimGradient, lineWidth: 1.0) }
-            .shadow(color: .black.opacity(0.32), radius: 12, y: 5)
+            .clipShape(capsule)
+            .overlay { capsule.strokeBorder(LiquidColors.specularRimGradient, lineWidth: 1.0) }
+            .background {
+                RoundedShapeOuterShadow(shape: capsule, color: .black.opacity(0.26), radius: 10, yOffset: 4)
+            }
     }
 }
 

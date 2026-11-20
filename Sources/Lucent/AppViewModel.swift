@@ -184,6 +184,7 @@ final class AppViewModel: ObservableObject {
     func bootstrap() {
         refreshLaunchAtLoginStatus()
         GifCaptureController.shared.options = generalPreferences.gifDefaultOptions
+        GifCaptureController.shared.videoOptions = generalPreferences.videoDefaultOptions
         performStartupOrphanCleanup(); refreshCachedVolumes(); installVolumeObservers()
         configureLifecycleIntegrations(); reloadAppsAndPlugins()
         primeEverythingIndexOnStartup(scope: everythingScope)

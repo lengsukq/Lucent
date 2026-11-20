@@ -60,7 +60,7 @@ struct SettingsDetailSectionsView: View {
                 VStack(spacing: 10) {
                     LucentBrandIconView(size: 78, showAmbientGlow: true)
                     Text(L10n.pick("流光 Lucent \(appVer)", "Lucent \(appVer)")).font(.title2.weight(.bold))
-                    Text(L10n.pick("一触流光，用完即焚", "One Touch of Light · Zero Trace Left Behind"))
+                    Text(L10n.pick("一触流光，用完即焚 · 越用越懂你", "One Touch of Light · Smarter Every Click"))
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(

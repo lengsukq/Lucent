@@ -70,7 +70,7 @@ struct StartupAndResidenceCardView: View {
 
             FlowWrapLayout(horizontalSpacing: 18, verticalSpacing: 8) {
                 Toggle(
-                    L10n.pick("启动时播放「一触流光，用完即焚」开场动画", "Play 'One Touch of Light' intro animation on launch"),
+                    L10n.pick("启动时播放「一触流光，用完即焚」开场动画（仅退出重开时触发）", "Play 'One Touch of Light' intro animation on cold launch"),
                     isOn: Binding(
                         get: { prefs.showLaunchIntroAnimation },
                         set: { val in viewModel.updateGeneralPreferences { $0.showLaunchIntroAnimation = val } }
@@ -95,6 +95,15 @@ struct StartupAndResidenceCardView: View {
                 .fixedSize(horizontal: true, vertical: false)
 
                 Toggle(
+                    L10n.pick("重启后自动恢复上次打开的悬浮窗（插件悬浮窗 / 屏幕贴图）", "Restore open floating windows on relaunch (Plugin HUDs / Pins)"),
+                    isOn: Binding(
+                        get: { prefs.restoreFloatingWindowsOnLaunch },
+                        set: { val in viewModel.updateGeneralPreferences { $0.restoreFloatingWindowsOnLaunch = val } }
+                    )
+                )
+                .fixedSize(horizontal: true, vertical: false)
+
+                Toggle(
                     L10n.pick("无窗口时仍在程序坞 (Dock) 常驻图标", "Keep icon in Dock when all windows are closed"),
                     isOn: Binding(
                         get: { viewModel.showDockIcon },
@@ -104,6 +113,16 @@ struct StartupAndResidenceCardView: View {
                 .fixedSize(horizontal: true, vertical: false)
             }
             .font(.caption)
+
+            if prefs.launchSilentlyInMenuBar && prefs.showLaunchIntroAnimation {
+                Text(L10n.pick(
+                    "已开启静默驻留与开场动画：退出后重新打开 Lucent 时会播放开场动画，播完后静默驻留状态栏（仅在后台切换唤起时不播放）。",
+                    "Silent menu-bar mode + intro animation enabled: relaunching after quit plays the intro and stays in the menu bar without popping up the launcher."
+                ))
+                .font(.caption2)
+                .foregroundStyle(LiquidColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
 
             Divider().opacity(0.22)
 
@@ -207,6 +226,17 @@ struct LauncherBehaviorCardView: View {
                 .fixedSize(horizontal: true, vertical: false)
 
                 Toggle(
+                    L10n.pick("开启「越用越懂你」智能点击频率排序（按搜索词与点击热度动态置顶常用项）", "Enable adaptive 'Smarter Every Click' search ranking"),
+                    isOn: Binding(
+                        get: { prefs.enableSmartSearchRanking },
+                        set: { val in
+                            viewModel.updateGeneralPreferences { $0.enableSmartSearchRanking = val }
+                        }
+                    )
+                )
+                .fixedSize(horizontal: true, vertical: false)
+
+                Toggle(
                     L10n.pick("鼠标划词后显示悬浮翻译气泡（需开启辅助功能权限）", "Show floating translate bubble after highlighting text (requires Accessibility)"),
                     isOn: Binding(
                         get: { prefs.enableSelectionQuickBar },
@@ -216,6 +246,23 @@ struct LauncherBehaviorCardView: View {
                 .fixedSize(horizontal: true, vertical: false)
             }
             .font(.caption)
+
+            let learnedCount = SearchAffinityStore.shared.learnedItemCount
+            if learnedCount > 0 {
+                HStack(spacing: 8) {
+                    Text(L10n.pick(
+                        "已本地学习 \(learnedCount) 项常用偏好（仅存本机，不记录剪贴板与计算结果）",
+                        "Learned \(learnedCount) local preferences (offline only; clipboard & math excluded)"
+                    ))
+                    .font(.caption2)
+                    .foregroundStyle(LiquidColors.textSecondary)
+                    Spacer()
+                    Button(L10n.pick("清空学习记录", "Clear Learned Data")) {
+                        viewModel.clearAllSearchAffinity()
+                    }
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
+                }
+            }
         }
         .padding(14)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)

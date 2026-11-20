@@ -277,7 +277,7 @@ struct HotKeySettingsView: View {
     private func badgeColors(for action: HotKeyActionID) -> (top: Color, bottom: Color) {
         switch action {
         case .launcher: (.cyan, .blue); case .files: (.teal, .indigo); case .clipboard: (.orange, .pink)
-        case .screenshotPin: (.mint, .teal); case .screenshotOCR: (.indigo, .purple); case .gifRecord: (.pink, .red)
+        case .screenshotPin: (.mint, .teal); case .screenshotOCR: (.indigo, .purple); case .gifRecord: (.pink, .red); case .videoRecord: (.orange, .red)
         case .workspace: (.blue, .indigo); case .systemPulse: (.mint, .cyan); case .networkMonitor: (.cyan, .teal)
         case .quickBackup: (.purple, .blue)
         }

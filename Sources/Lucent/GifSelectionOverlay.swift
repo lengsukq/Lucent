@@ -73,9 +73,12 @@ struct GifSelectionOverlayView: View {
             }
             if badgeVisible {
                 CaptureClampedBadgeLayout(localSelection: rect) {
+                    let modeTag = session.mode == .video ? "MP4" : "GIF"
+                    let fpsVal = session.mode == .video ? session.videoOptions.fps : session.options.fps
+                    let audioTag = (session.mode == .video && session.videoOptions.captureAudio) ? " · 🔊" : ""
                     HStack(spacing: 6) {
                         Circle().fill(Color.red).frame(width: 6, height: 6)
-                        Text("\(winBadge)GIF \(outW)×\(outH) px · \(session.options.fps) FPS").lineLimit(1)
+                        Text("\(winBadge)\(modeTag) \(outW)×\(outH) px · \(fpsVal) FPS\(audioTag)").lineLimit(1)
                     }
                     .font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(.white)
                     .padding(.horizontal, 9).padding(.vertical, 4).background(.black.opacity(0.78), in: Capsule())
@@ -109,20 +112,40 @@ struct GifSelectionOverlayView: View {
         let hasSelection = (session.selectionRect?.standardized.width ?? 0) >= 12
         let barContent = HStack(spacing: 8) {
             if !hasSelection {
-                Text("单击锁定应用窗 (Tab 切下层) 或跨屏框选 · Esc 取消")
+                Text(L10n.pick("单击锁定窗口 (Tab 切换) 或框选 · Esc 取消", "Click window (Tab cycle) or drag region · Esc cancel"))
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).padding(.leading, 4)
             }
             HStack(spacing: 3) {
-                ForEach(GifRecordingOptions.fpsPresets, id: \.self) { fps in
-                    presetChip("\(fps)FPS", active: session.options.fps == fps) { session.options.fps = fps }
-                }
+                presetChip("GIF", active: session.mode == .gif) { session.mode = .gif }
+                presetChip(L10n.pick("视频 MP4", "Video MP4"), active: session.mode == .video) { session.mode = .video }
             }.padding(3).background(.white.opacity(0.08), in: Capsule())
 
-            HStack(spacing: 3) {
-                ForEach(GifRecordingOptions.dimensionPresets, id: \.self) { dim in
-                    presetChip(GifRecordingOptions.dimensionLabel(for: dim), active: session.options.maxDimension == dim) { session.options.maxDimension = dim }
-                }
-            }.padding(3).background(.white.opacity(0.08), in: Capsule())
+            if session.mode == .gif {
+                HStack(spacing: 3) {
+                    ForEach(GifRecordingOptions.fpsPresets, id: \.self) { fps in
+                        presetChip("\(fps)FPS", active: session.options.fps == fps) { session.options.fps = fps }
+                    }
+                }.padding(3).background(.white.opacity(0.08), in: Capsule())
+                HStack(spacing: 3) {
+                    ForEach(GifRecordingOptions.dimensionPresets, id: \.self) { dim in
+                        presetChip(GifRecordingOptions.dimensionLabel(for: dim), active: session.options.maxDimension == dim) { session.options.maxDimension = dim }
+                    }
+                }.padding(3).background(.white.opacity(0.08), in: Capsule())
+            } else {
+                HStack(spacing: 3) {
+                    ForEach(VideoRecordingOptions.fpsPresets, id: \.self) { fps in
+                        presetChip("\(fps)FPS", active: session.videoOptions.fps == fps) { session.videoOptions.fps = fps }
+                    }
+                }.padding(3).background(.white.opacity(0.08), in: Capsule())
+                HStack(spacing: 3) {
+                    ForEach(VideoRecordingOptions.dimensionPresets, id: \.self) { dim in
+                        presetChip(VideoRecordingOptions.dimensionLabel(for: dim), active: session.videoOptions.maxDimension == dim) { session.videoOptions.maxDimension = dim }
+                    }
+                }.padding(3).background(.white.opacity(0.08), in: Capsule())
+                presetChip(session.videoOptions.captureAudio ? L10n.pick("🔊 声音", "🔊 Audio") : L10n.pick("🔇 静音", "🔇 Muted"), active: session.videoOptions.captureAudio) {
+                    session.videoOptions.captureAudio.toggle()
+                }.padding(3).background(.white.opacity(0.08), in: Capsule())
+            }
 
             Button(action: onCancel) {
                 Text("取消").font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.88))
@@ -140,6 +163,7 @@ struct GifSelectionOverlayView: View {
                 }.buttonStyle(.plain)
             }
         }
+        let capsule = Capsule(style: .continuous)
         return ViewThatFits(in: .horizontal) {
             barContent.fixedSize(horizontal: true, vertical: false)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -148,9 +172,17 @@ struct GifSelectionOverlayView: View {
             .frame(maxWidth: max(260, viewSize.width - 48))
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(.ultraThinMaterial, in: Capsule()).background(Color.black.opacity(0.58), in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.24), lineWidth: 0.9))
-        .shadow(color: .black.opacity(0.32), radius: 14, y: 6)
+        .background {
+            ZStack {
+                capsule.fill(.ultraThinMaterial)
+                capsule.fill(Color.black.opacity(0.58))
+            }
+        }
+        .clipShape(capsule)
+        .overlay(capsule.strokeBorder(.white.opacity(0.24), lineWidth: 0.9))
+        .background {
+            RoundedShapeOuterShadow(shape: capsule, color: .black.opacity(0.26), radius: 10, yOffset: 4)
+        }
     }
 
     private func presetChip(_ title: String, active: Bool, action: @escaping () -> Void) -> some View {

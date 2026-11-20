@@ -49,7 +49,7 @@ struct SettingsCenterView: View {
                     LucentBrandIconView(size: 28, showAmbientGlow: themeManager.current == .prismPulse)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(L10n.pick("流光 Lucent", "Lucent")).font(.system(size: 12.5, weight: .bold))
-                        Text(L10n.pick("一触流光，用完即焚", "One Touch · Zero Trace"))
+                        Text(L10n.pick("一触流光 · 越用越懂你", "One Touch · Learns Your Flow"))
                             .font(.system(size: 9.5, weight: .medium)).foregroundStyle(LiquidColors.textSecondary)
                     }
                     Spacer(minLength: 0)

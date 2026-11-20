@@ -17,6 +17,7 @@ public enum SystemCommandKind: Sendable, Hashable {
     case capturePin
     case captureOCR
     case recordGif
+    case recordVideo
     case openTrash
     case emptyTrash
     case lockScreen
@@ -185,6 +186,7 @@ public enum UnitAndCommandEngine {
             (["ocr", "识字", "shizi"], "ocr", L10n.pick("截图并离线 OCR 识字 (⌥O)", "Capture & Offline Vision OCR (⌥O)"), L10n.pick("调用 Vision 中英识别并复制", "Recognize CJK/English text offline & copy"), L10n.pick("视觉", "OCR"), "text.viewfinder", .captureOCR),
             (["screenshot", "截图", "jietu", "钉图"], "capture", L10n.pick("选区截图并钉在屏幕 (⌥A)", "Capture, Annotate & Pin (⌥A)"), L10n.pick("悬停工具条支持识别与主体抠图", "Hover toolbar supports OCR & subject cutout"), L10n.pick("截图", "Capture"), "camera.viewfinder", .capturePin),
             (["gif", "录屏", "动图", "record", "luping", "dongtu"], "gif-record", L10n.pick("区域 / 窗口 GIF 动图录制 (⌥G)", "Record Region / Window GIF (⌥G)"), L10n.pick("框选区域或吸附窗口录制高帧率轻量 GIF 并复制", "Capture high-FPS GIF89a and copy to clipboard"), L10n.pick("录屏", "GIF"), "record.circle.fill", .recordGif),
+            (["video", "录像", "录屏", "mp4", "rec", "luxiang", "shipin"], "video-record", L10n.pick("区域 / 窗口视频录像 (⌥R)", "Record Region / Window Video (⌥R)"), L10n.pick("框选区域或吸附窗口录制流畅 MP4 视频（可选系统声音）", "Record smooth MP4 video of region or window with optional system audio"), L10n.pick("录像", "Video"), "video.circle.fill", .recordVideo),
             (["clipboard", "剪贴板", "jianqieban"], "clip", L10n.pick("打开剪贴板历史 (⌥C)", "Open Clipboard History (⌥C)"), L10n.pick("按类型筛选并回车复制", "Filter by category and press Return to copy"), L10n.pick("工具", "Tool"), "doc.on.clipboard.fill", .openClipboard),
             (["files", "workspace", "工作台", "gongzuotai"], "ws", L10n.pick("打开双栏文件工作台 (⌥E)", "Open Dual-Pane File Workspace (⌥E)"), L10n.pick("外置 NTFS 检测与侧边预览", "External NTFS guard & live side preview"), L10n.pick("附加", "Workspace"), "sidebar.squares.left", .openWorkspace),
             (["settings", "设置", "shezhi"], "settings", L10n.pick("流光设置与插件中心 (⌘,)", "Lucent Settings & Plugins (⌘,)"), L10n.pick("语言、外观、索引目录、MCP 与快捷键", "Language, theme, search scope, MCP & hotkeys"), L10n.pick("设置", "Settings"), "gearshape.fill", .openSettings),

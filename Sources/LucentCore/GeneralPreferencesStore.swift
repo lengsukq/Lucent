@@ -11,6 +11,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public var schemaVersion: Int
     public var launchSilentlyInMenuBar: Bool
     public var showLaunchIntroAnimation: Bool
+    public var restoreFloatingWindowsOnLaunch: Bool
     public var showDockIcon: Bool
     public var defaultEverythingScope: PersistedEverythingScope
 
@@ -28,6 +29,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public var quickSaveCaptureWithoutDialog: Bool
     public var screenshotExcludeWindowShadow: Bool
     public var gifDefaultOptions: GifRecordingOptions
+    public var videoDefaultOptions: VideoRecordingOptions
 
     public var excludedIndexPaths: [String]
 
@@ -38,11 +40,13 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public var autoInstallSafePluginUpdates: Bool
     public var lastUpdateCheckTimestamp: Double
     public var enableSelectionQuickBar: Bool
+    public var enableSmartSearchRanking: Bool
 
     public init(
         schemaVersion: Int = 1,
         launchSilentlyInMenuBar: Bool = false,
         showLaunchIntroAnimation: Bool = true,
+        restoreFloatingWindowsOnLaunch: Bool = true,
         showDockIcon: Bool = false,
         defaultEverythingScope: PersistedEverythingScope = .allVolumes,
         queryClearPolicy: OverlayQueryClearPolicy = .afterIdle30s,
@@ -57,6 +61,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         quickSaveCaptureWithoutDialog: Bool = false,
         screenshotExcludeWindowShadow: Bool = false,
         gifDefaultOptions: GifRecordingOptions = GifRecordingOptions(),
+        videoDefaultOptions: VideoRecordingOptions = VideoRecordingOptions(),
         excludedIndexPaths: [String] = [],
         updateCheckFrequency: UpdateCheckFrequency = .daily,
         includePrereleaseAppUpdates: Bool = false,
@@ -64,11 +69,13 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         autoCheckPluginUpdates: Bool = true,
         autoInstallSafePluginUpdates: Bool = false,
         lastUpdateCheckTimestamp: Double = 0,
-        enableSelectionQuickBar: Bool = true
+        enableSelectionQuickBar: Bool = true,
+        enableSmartSearchRanking: Bool = true
     ) {
         self.schemaVersion = schemaVersion
         self.launchSilentlyInMenuBar = launchSilentlyInMenuBar
         self.showLaunchIntroAnimation = showLaunchIntroAnimation
+        self.restoreFloatingWindowsOnLaunch = restoreFloatingWindowsOnLaunch
         self.showDockIcon = showDockIcon
         self.defaultEverythingScope = defaultEverythingScope
         self.queryClearPolicy = queryClearPolicy
@@ -83,6 +90,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.quickSaveCaptureWithoutDialog = quickSaveCaptureWithoutDialog
         self.screenshotExcludeWindowShadow = screenshotExcludeWindowShadow
         self.gifDefaultOptions = gifDefaultOptions
+        self.videoDefaultOptions = videoDefaultOptions
         self.excludedIndexPaths = Self.normalizeExcludedPaths(excludedIndexPaths)
         self.updateCheckFrequency = updateCheckFrequency
         self.includePrereleaseAppUpdates = includePrereleaseAppUpdates
@@ -91,17 +99,18 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.autoInstallSafePluginUpdates = autoInstallSafePluginUpdates
         self.lastUpdateCheckTimestamp = max(0, lastUpdateCheckTimestamp)
         self.enableSelectionQuickBar = enableSelectionQuickBar
+        self.enableSmartSearchRanking = enableSmartSearchRanking
     }
 
     private enum CodingKeys: String, CodingKey {
-        case schemaVersion, launchSilentlyInMenuBar, showLaunchIntroAnimation, showDockIcon, defaultEverythingScope
+        case schemaVersion, launchSilentlyInMenuBar, showLaunchIntroAnimation, restoreFloatingWindowsOnLaunch, showDockIcon, defaultEverythingScope
         case queryClearPolicy, overlayScreenTarget, rememberOverlayPosition, savedOverlayTopCenter, menuBarIconStyle
         case clipboardMaxUnpinned, clipboardRetentionTTL, clipboardExcludedBundleIDs
-        case defaultCaptureSaveDirectoryPath, quickSaveCaptureWithoutDialog, screenshotExcludeWindowShadow, gifDefaultOptions
+        case defaultCaptureSaveDirectoryPath, quickSaveCaptureWithoutDialog, screenshotExcludeWindowShadow, gifDefaultOptions, videoDefaultOptions
         case excludedIndexPaths
         case updateCheckFrequency, includePrereleaseAppUpdates, skippedAppVersion
         case autoCheckPluginUpdates, autoInstallSafePluginUpdates, lastUpdateCheckTimestamp
-        case enableSelectionQuickBar
+        case enableSelectionQuickBar, enableSmartSearchRanking
     }
 
     public init(from decoder: Decoder) throws {
@@ -110,6 +119,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
             schemaVersion: (try? c.decodeIfPresent(Int.self, forKey: .schemaVersion)) ?? 1,
             launchSilentlyInMenuBar: (try? c.decodeIfPresent(Bool.self, forKey: .launchSilentlyInMenuBar)) ?? false,
             showLaunchIntroAnimation: (try? c.decodeIfPresent(Bool.self, forKey: .showLaunchIntroAnimation)) ?? true,
+            restoreFloatingWindowsOnLaunch: (try? c.decodeIfPresent(Bool.self, forKey: .restoreFloatingWindowsOnLaunch)) ?? true,
             showDockIcon: (try? c.decodeIfPresent(Bool.self, forKey: .showDockIcon)) ?? false,
             defaultEverythingScope: (try? c.decodeIfPresent(PersistedEverythingScope.self, forKey: .defaultEverythingScope)) ?? .allVolumes,
             queryClearPolicy: (try? c.decodeIfPresent(OverlayQueryClearPolicy.self, forKey: .queryClearPolicy)) ?? .afterIdle30s,
@@ -124,6 +134,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
             quickSaveCaptureWithoutDialog: (try? c.decodeIfPresent(Bool.self, forKey: .quickSaveCaptureWithoutDialog)) ?? false,
             screenshotExcludeWindowShadow: (try? c.decodeIfPresent(Bool.self, forKey: .screenshotExcludeWindowShadow)) ?? false,
             gifDefaultOptions: (try? c.decodeIfPresent(GifRecordingOptions.self, forKey: .gifDefaultOptions)) ?? GifRecordingOptions(),
+            videoDefaultOptions: (try? c.decodeIfPresent(VideoRecordingOptions.self, forKey: .videoDefaultOptions)) ?? VideoRecordingOptions(),
             excludedIndexPaths: (try? c.decodeIfPresent([String].self, forKey: .excludedIndexPaths)) ?? [],
             updateCheckFrequency: (try? c.decodeIfPresent(UpdateCheckFrequency.self, forKey: .updateCheckFrequency)) ?? .daily,
             includePrereleaseAppUpdates: (try? c.decodeIfPresent(Bool.self, forKey: .includePrereleaseAppUpdates)) ?? false,
@@ -131,7 +142,8 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
             autoCheckPluginUpdates: (try? c.decodeIfPresent(Bool.self, forKey: .autoCheckPluginUpdates)) ?? true,
             autoInstallSafePluginUpdates: (try? c.decodeIfPresent(Bool.self, forKey: .autoInstallSafePluginUpdates)) ?? false,
             lastUpdateCheckTimestamp: (try? c.decodeIfPresent(Double.self, forKey: .lastUpdateCheckTimestamp)) ?? 0,
-            enableSelectionQuickBar: (try? c.decodeIfPresent(Bool.self, forKey: .enableSelectionQuickBar)) ?? true
+            enableSelectionQuickBar: (try? c.decodeIfPresent(Bool.self, forKey: .enableSelectionQuickBar)) ?? true,
+            enableSmartSearchRanking: (try? c.decodeIfPresent(Bool.self, forKey: .enableSmartSearchRanking)) ?? true
         )
     }
 

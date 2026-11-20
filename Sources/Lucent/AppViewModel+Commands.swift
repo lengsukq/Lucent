@@ -4,6 +4,9 @@ import LucentCore
 
 extension AppViewModel {
     func executeCandidate(_ candidate: LauncherCandidate) {
+        if generalPreferences.enableSmartSearchRanking {
+            SearchAffinityStore.shared.recordSelection(candidate: candidate, query: overlayQuery)
+        }
         switch candidate.kind {
         case .app(let app):
             launchApp(app)
@@ -133,7 +136,13 @@ extension AppViewModel {
     func startGifRecording() {
         let preferredTargetApp = resolveOverlayTargetApp?()
         onHideOverlayRequest?()
-        GifCaptureController.shared.startInteractiveCapture(preferredTargetApp: preferredTargetApp)
+        GifCaptureController.shared.startInteractiveCapture(mode: .gif, preferredTargetApp: preferredTargetApp)
+    }
+
+    func startVideoRecording() {
+        let preferredTargetApp = resolveOverlayTargetApp?()
+        onHideOverlayRequest?()
+        GifCaptureController.shared.startInteractiveCapture(mode: .video, preferredTargetApp: preferredTargetApp)
     }
 
     func executeEverythingHit(_ hit: EverythingSearchHit) {
@@ -179,6 +188,7 @@ extension AppViewModel {
         case .capturePin: captureAndPinScreenshot()
         case .captureOCR: captureAndAnalyzeOCR()
         case .recordGif: startGifRecording()
+        case .recordVideo: startVideoRecording()
         case .openTrash: NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash"))
         case .emptyTrash: runAppleScript("tell application \"Finder\" to empty the trash")
         case .lockScreen: runAppleScript("tell application \"System Events\" to keystroke \"q\" using {command down, control down}")

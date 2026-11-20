@@ -34,12 +34,18 @@ struct CaptureSettingsView: View {
                         Button(L10n.pick("录 GIF (⌥G)", "GIF (⌥G)")) {
                             viewModel.startGifRecording()
                         }
+                        .buttonStyle(GlassPillButtonStyle())
+
+                        Button(L10n.pick("区域录像 (⌥R)", "Record (⌥R)")) {
+                            viewModel.startVideoRecording()
+                        }
                         .buttonStyle(GlassPillButtonStyle(prominent: true))
                     }
                 }
 
                 captureExportDefaultsCard
                 gifDefaultsCard
+                videoDefaultsCard
                 captureTipsCard
             }
             .padding(.trailing, 4)
@@ -153,6 +159,48 @@ struct CaptureSettingsView: View {
                 }
                 Spacer()
             }
+        }
+        .padding(14)
+        .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
+    }
+
+    private var videoDefaultsCard: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(spacing: 8) {
+                Label(L10n.pick("区域 MP4 录像默认规格", "Region MP4 Recording Defaults"), systemImage: "video.circle.fill")
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Text("\(prefs.videoDefaultOptions.fps) FPS · \(VideoRecordingOptions.dimensionLabel(for: prefs.videoDefaultOptions.maxDimension))")
+                    .font(.caption2.monospacedDigit().weight(.semibold)).foregroundStyle(LiquidColors.accentPrimary)
+                    .padding(.horizontal, 8).padding(.vertical, 2.5).background(LiquidColors.pillSurface, in: Capsule())
+            }
+
+            HStack(spacing: 7) {
+                Text(L10n.pick("默认帧率：", "Default FPS:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
+                ForEach(VideoRecordingOptions.fpsPresets, id: \.self) { fps in
+                    Button("\(fps) FPS") { viewModel.updateGeneralPreferences { $0.videoDefaultOptions.fps = fps } }
+                        .buttonStyle(GlassPillButtonStyle(prominent: prefs.videoDefaultOptions.fps == fps, compact: true))
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 7) {
+                Text(L10n.pick("画质规格：", "Resolution:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
+                ForEach(VideoRecordingOptions.dimensionPresets, id: \.self) { dim in
+                    Button(VideoRecordingOptions.dimensionLabel(for: dim)) { viewModel.updateGeneralPreferences { $0.videoDefaultOptions.maxDimension = dim } }
+                        .buttonStyle(GlassPillButtonStyle(prominent: prefs.videoDefaultOptions.maxDimension == dim, compact: true))
+                }
+                Spacer()
+            }
+
+            Toggle(
+                L10n.pick("录制时同时捕获系统内部音频（单屏或单窗口模式生效）", "Capture system audio during recording (single-display or window mode)"),
+                isOn: Binding(
+                    get: { prefs.videoDefaultOptions.captureAudio },
+                    set: { val in viewModel.updateGeneralPreferences { $0.videoDefaultOptions.captureAudio = val } }
+                )
+            )
+            .font(.caption)
         }
         .padding(14)
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)

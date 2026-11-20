@@ -59,6 +59,7 @@ public enum MenuBarBuiltinItemID: String, Codable, Sendable, Hashable, CaseItera
     case screenshotPin
     case screenshotOCR
     case gifRecord
+    case videoRecord
     case closeAllPins
     case closeAllPluginWindows
     case fileWorkspace
@@ -92,7 +93,7 @@ public enum MenuBarBuiltinItemID: String, Codable, Sendable, Hashable, CaseItera
     public var group: MenuBarItemGroup {
         switch self {
         case .launcherAll, .filesFilter, .clipboardFilter: .launcher
-        case .screenshotPin, .screenshotOCR, .gifRecord, .closeAllPins, .closeAllPluginWindows: .capture
+        case .screenshotPin, .screenshotOCR, .gifRecord, .videoRecord, .closeAllPins, .closeAllPluginWindows: .capture
         case .systemPulseWidget, .systemPulseSnapEdge, .menuBarTelemetryReadout, .networkMonitor: .monitor
         case .fileWorkspace, .lumaLinkConsole, .mosSettings, .backupSync, .cacheCleanup, .reclaimMemory, .switchLanguage, .checkForUpdates: .workspaceAndTools
         case .settingsCenter, .quitApp: .system
@@ -107,6 +108,7 @@ public enum MenuBarBuiltinItemID: String, Codable, Sendable, Hashable, CaseItera
         case .screenshotPin: .screenshotPin
         case .screenshotOCR: .screenshotOCR
         case .gifRecord: .gifRecord
+        case .videoRecord: .videoRecord
         case .fileWorkspace: .workspace
         case .systemPulseWidget: .systemPulse
         case .networkMonitor: .networkMonitor
@@ -127,6 +129,7 @@ public enum MenuBarBuiltinItemID: String, Codable, Sendable, Hashable, CaseItera
         case .screenshotPin: "camera.viewfinder"
         case .screenshotOCR: "text.viewfinder"
         case .gifRecord: "record.circle"
+        case .videoRecord: "video.circle"
         case .closeAllPins: "pin.slash"
         case .closeAllPluginWindows: "xmark.rectangle.portrait"
         case .fileWorkspace: "externaldrive"
@@ -154,6 +157,7 @@ public enum MenuBarBuiltinItemID: String, Codable, Sendable, Hashable, CaseItera
         case .screenshotPin: "选区截图钉屏"
         case .screenshotOCR: "选区截图离线识字"
         case .gifRecord: "区域 GIF 动图录制"
+        case .videoRecord: L10n.pick("区域视频录像", "Region Video Recording")
         case .closeAllPins: "关闭全部钉图"
         case .closeAllPluginWindows: "关闭全部插件自由窗口"
         case .fileWorkspace: "文件与外置磁盘工作台 · 附加"

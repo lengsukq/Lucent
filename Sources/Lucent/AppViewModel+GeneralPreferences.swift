@@ -27,6 +27,9 @@ extension AppViewModel {
         if previous.gifDefaultOptions != current.gifDefaultOptions {
             GifCaptureController.shared.options = current.gifDefaultOptions
         }
+        if previous.videoDefaultOptions != current.videoDefaultOptions {
+            GifCaptureController.shared.videoOptions = current.videoDefaultOptions
+        }
         if previous.clipboardMaxUnpinned != current.clipboardMaxUnpinned
             || previous.clipboardRetentionTTL != current.clipboardRetentionTTL {
             clipboardItems = ClipboardService.pruneAndCap(
@@ -55,6 +58,7 @@ extension AppViewModel {
         showDockIcon = loaded.showDockIcon
         onDockVisibilityChanged?(loaded.showDockIcon)
         GifCaptureController.shared.options = loaded.gifDefaultOptions
+        GifCaptureController.shared.videoOptions = loaded.videoDefaultOptions
         clipboardItems = ClipboardService.pruneAndCap(
             clipboardItems,
             maxUnpinned: loaded.clipboardMaxUnpinned,

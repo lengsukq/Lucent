@@ -24,6 +24,7 @@ enum BackupCoordinator {
         passphraseOverride: String? = nil
     ) throws -> Data {
         let resolvedPass = passphraseOverride ?? WebDAVKeychainStore.loadBackupPassphrase()
+        SearchAffinityStore.shared.flush()
         return try BackupArchiveService.exportBackupData(
             clipboardEntries: viewModel.clipboardItems,
             mosConfig: viewModel.mosConfig,
@@ -36,6 +37,7 @@ enum BackupCoordinator {
     static func applyRestoreReport(_ report: BackupRestoreReport, to viewModel: AppViewModel) {
         SnippetStore.shared.reloadFromDisk()
         AppUsageService.shared.discardPendingAndReloadFromDisk()
+        SearchAffinityStore.shared.discardPendingAndReloadFromDisk()
         LocalSecretVault.clearMemoryCache()
 
         viewModel.reloadGeneralPreferencesFromDisk()

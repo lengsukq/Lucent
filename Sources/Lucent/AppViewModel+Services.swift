@@ -34,6 +34,15 @@ extension AppViewModel {
             let sizeStr = FastFormatters.formatFileBytes(result.fileSizeBytes)
             self.serviceMessage = "GIF 动图已复制 (\(sizeStr) · \(result.frameCount) 帧)，可直接 ⌘V 粘贴"
         }
+        GifCaptureController.shared.onVideoRecordingCompleted = { [weak self] result in
+            guard let self else { return }
+            self.capturePasteboardOnceIfChanged()
+            let sizeStr = FastFormatters.formatFileBytes(result.fileSizeBytes)
+            self.serviceMessage = L10n.pick(
+                "MP4 区域录像已复制 (\(sizeStr) · \(result.frameCount) 帧)，可直接 ⌘V 粘贴",
+                "MP4 recording copied (\(sizeStr) · \(result.frameCount) frames), ready for ⌘V"
+            )
+        }
         GifCaptureController.shared.onStatusMessage = { [weak self] msg in
             self?.serviceMessage = msg
         }

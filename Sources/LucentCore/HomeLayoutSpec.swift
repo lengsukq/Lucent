@@ -31,7 +31,7 @@ extension HomeLayoutConfig {
     Every item across Bento, Dock, Shelves, and Utility Strip shares one unified schema:
     - Optional visual overrides: `id`, `customTitle`, `customSubtitle`, `customIcon` (SF Symbol), `accentColor` (`cyan`, `blue`, `indigo`, `purple`, `mint`, `teal`, `green`, `orange`, `pink`, `red`, `slate`, or `#RRGGBB`), `hotkeyHint`.
     - `kind` (`HomeLaunchTarget`):
-      - `"builtin"`: requires `builtinID` in `["files", "clipboard", "screenshotPin", "gifRecord", "ocr", "networkMonitor", "fileWorkspace", "systemPulse", "toggleMos", "pluginsList", "scripts", "snippets", "backupSync", "cacheCleanup", "reclaimMemory", "settingsCenter"]`.
+      - `"builtin"`: requires `builtinID` in `["files", "clipboard", "screenshotPin", "gifRecord", "videoRecord", "ocr", "networkMonitor", "fileWorkspace", "systemPulse", "toggleMos", "pluginsList", "scripts", "snippets", "backupSync", "cacheCleanup", "reclaimMemory", "settingsCenter"]`.
       - `"nativeApp"`: requires absolute `.app` bundle `path` (e.g. `"/Applications/Visual Studio Code.app"`), optional `bundleID`.
       - `"plugin"`: requires `pluginID`, optional `behavior` (`"auto"` | `"scoped"` | `"runInline"` | `"openWindow"`).
       - `"pluginCommand"`: requires `pluginID` and `commandID`, optional `arguments` (`[String]`).

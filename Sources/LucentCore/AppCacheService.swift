@@ -3,7 +3,7 @@ import LucentSearch
 import Foundation
 
 public enum AppCacheBucketKind: String, CaseIterable, Identifiable, Sendable {
-    case clipboardImages, screenshotsAndPins, gifCaptures, visionCutouts, cinemaRemux, diskIndexSnapshot, inMemoryIndexes, appSupportConfig
+    case clipboardImages, screenshotsAndPins, gifCaptures, videoCaptures, visionCutouts, cinemaRemux, diskIndexSnapshot, inMemoryIndexes, appSupportConfig
     public var id: String { rawValue }
     public var isProtected: Bool { self == .appSupportConfig }
 
@@ -16,6 +16,7 @@ public enum AppCacheBucketKind: String, CaseIterable, Identifiable, Sendable {
         case .clipboardImages: "剪贴板图片与富媒体缓存"
         case .screenshotsAndPins: "选区截图与贴图临时文件"
         case .gifCaptures: "GIF 录屏动图临时缓存"
+        case .videoCaptures: "区域录像 MP4 临时缓存"
         case .visionCutouts: "Vision 主体抠图缓存"
         case .cinemaRemux: "影院容器转封装临时缓存"
         case .diskIndexSnapshot: "全盘文件索引二进制快照"
@@ -33,6 +34,7 @@ public enum AppCacheBucketKind: String, CaseIterable, Identifiable, Sendable {
         case .clipboardImages: "自动保留已收藏/置顶的剪贴板文件，其余可安全释放"
         case .screenshotsAndPins: "含截图、OCR 与钉屏临时 PNG（跳过仍在置顶引用的文件）"
         case .gifCaptures: "区域与窗口 GIF 录制生成的临时动图文件（lucent-gifs）"
+        case .videoCaptures: "区域与窗口录像生成的临时 MP4 视频（lucent-videos）"
         case .visionCutouts: "离线主体分割生成的透明 PNG 缓存"
         case .cinemaRemux: "MKV/AVI 等封装无损重封 MP4 临时缓存"
         case .diskIndexSnapshot: "全盘索引二进制快照 (.lcntidx)，支持 mmap 秒开启动"
@@ -90,6 +92,7 @@ public enum AppCacheService {
         switch kind {
         case .clipboardImages: tempRoot.appendingPathComponent("lucent-clipboard", isDirectory: true)
         case .gifCaptures: tempRoot.appendingPathComponent("lucent-gifs", isDirectory: true)
+        case .videoCaptures: tempRoot.appendingPathComponent("lucent-videos", isDirectory: true)
         case .visionCutouts: tempRoot.appendingPathComponent("lucent-cutouts", isDirectory: true)
         case .cinemaRemux: tempRoot.appendingPathComponent("lucent-cinema", isDirectory: true)
         default: nil

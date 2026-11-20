@@ -76,8 +76,7 @@ struct AppCacheSettingsView: View {
                     .buttonStyle(GlassPillButtonStyle())
 
                     Button {
-                        ClipboardService.removeTempFiles(for: viewModel.clipboardItems)
-                        viewModel.clipboardItems.removeAll()
+                        viewModel.batchCleanClipboard(.allIncludingPinned)
                         cacheState.statusBanner = L10n.pick("已清空全部剪贴板历史与对应媒体缓存", "Cleared all clipboard history & cached media")
                         cacheState.refresh(viewModel: viewModel)
                     } label: {
@@ -185,6 +184,7 @@ struct AppCacheSettingsView: View {
         case .clipboardImages: ("doc.on.clipboard.fill", .orange, .pink)
         case .screenshotsAndPins: ("camera.viewfinder", .mint, .teal)
         case .gifCaptures: ("film.stack.fill", .pink, .red)
+        case .videoCaptures: ("video.fill", .orange, .red)
         case .visionCutouts: ("wand.and.stars", .purple, .indigo)
         case .cinemaRemux: ("film.fill", .cyan, .blue)
         case .diskIndexSnapshot: ("internaldrive.fill", .blue, .teal)

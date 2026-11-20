@@ -105,11 +105,15 @@ extension AppViewModel {
         let scopedClipboard = currentFilter == .clipboard
             ? ClipboardService.filter(clipboardItems, query: "", category: clipboardCategory) : clipboardItems
 
+        let smartRankingEnabled = generalPreferences.enableSmartSearchRanking
+        let affinitySnapshot = smartRankingEnabled ? SearchAffinityStore.shared.boosts(forQuery: trimmed) : [:]
+
         if let activeScope = scopedPluginID,
            let scopedPlugin = plugins.first(where: { $0.id == activeScope && $0.isValid && ($0.isBuiltin || $0.isEnabled) }) {
             let scopedRanked = LauncherEngine.rankCandidates(
                 query: trimmed, filter: .plugins, apps: [], plugins: [scopedPlugin],
-                pluginCommands: pluginCommands, pluginSearchEntries: pluginSearchEntries, scopedPluginID: activeScope
+                pluginCommands: pluginCommands, pluginSearchEntries: pluginSearchEntries,
+                affinityBoosts: affinitySnapshot, scopedPluginID: activeScope
             )
             applyRefreshedCandidates(Array(scopedRanked.prefix(50)))
             return
@@ -125,7 +129,8 @@ extension AppViewModel {
             case .plugins:
                 Array(LauncherEngine.rankCandidates(
                     query: "", filter: .plugins, apps: [], plugins: plugins,
-                    pluginCommands: pluginCommands, pluginSearchEntries: pluginSearchEntries, scripts: scripts
+                    pluginCommands: pluginCommands, pluginSearchEntries: pluginSearchEntries,
+                    scripts: scripts, affinityBoosts: affinitySnapshot
                 ).prefix(50))
             case .files:
                 (everythingIndex?.search(queryText: "", limit: 40) ?? []).enumerated().map { idx, hit in
@@ -152,7 +157,8 @@ extension AppViewModel {
                     plugins: pluginsSnapshot, pluginCommands: commandsSnapshot,
                     pluginSearchEntries: entriesSnapshot, scripts: scriptsSnapshot, clipboardItems: scopedClipboard,
                     volumes: volumesSnapshot, everythingIndex: indexSnapshot,
-                    launchCounts: countsSnapshot, usageBoosts: usageBoostsSnapshot, clipboardText: clipTextSnapshot
+                    launchCounts: countsSnapshot, usageBoosts: usageBoostsSnapshot,
+                    affinityBoosts: affinitySnapshot, clipboardText: clipTextSnapshot
                 )
             }.value
             guard !Task.isCancelled else { return }
@@ -224,6 +230,19 @@ extension AppViewModel {
         } else {
             runtime.previewTask?.cancel(); previewState = .empty
         }
+    }
+
+    func resetSearchAffinity(for candidate: LauncherCandidate) {
+        SearchAffinityStore.shared.resetItem(for: candidate)
+        refreshDisplayedCandidates(resetSelection: false)
+        serviceMessage = L10n.pick("已重置该项的搜索频率热度", "Reset search affinity for item")
+    }
+
+    func clearAllSearchAffinity() {
+        SearchAffinityStore.shared.clearAll()
+        SearchAffinityStore.shared.flush()
+        refreshDisplayedCandidates(resetSelection: false)
+        serviceMessage = L10n.pick("已清空全部搜索频率学习记录", "Cleared all learned search preferences")
     }
 
     func fileEntry(from hit: EverythingSearchHit) -> FileEntry {

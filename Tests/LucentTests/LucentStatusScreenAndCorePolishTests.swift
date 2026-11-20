@@ -1,8 +1,10 @@
 import AppKit
+import AVFoundation
 import Foundation
 import Testing
 @testable import LucentCore
 @testable import LucentMedia
+@testable import LucentSearch
 
 @Suite("Status Screen Host Bridge & Core Feature Refinements")
 struct LucentStatusScreenAndCorePolishTests {
@@ -142,5 +144,106 @@ struct LucentStatusScreenAndCorePolishTests {
             windowImage: winImg, windowCanvasFrame: CGRect(x: 100, y: 100, width: 100, height: 70), annotations: [lineAnn]
         )
         #expect(composed.width == 240 && composed.height == 180)
+    }
+
+    @Test("Global search prioritizes apps, plugins, and plugin commands ahead of implicit file and clipboard hits")
+    func globalSearchPrioritizesAppsAndPluginsOverFilesAndClipboard() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lucent-rank-priority-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        try "body".write(to: root.appendingPathComponent("note.md"), atomically: true, encoding: .utf8)
+        let index = try EverythingIndex.build(rootURLs: [root])
+
+        let notesApp = InstalledAppItem(name: "备忘录", englishName: "Notes", url: URL(fileURLWithPath: "/System/Applications/Notes.app"))
+        let subApp = InstalledAppItem(name: "MyNotePad", englishName: "MyNotePad", url: URL(fileURLWithPath: "/Applications/MyNotePad.app"))
+
+        let pluginsDir = root.appendingPathComponent("Plugins", isDirectory: true)
+        let plugin = try PluginSystem.scaffoldPlugin(
+            id: "quick-note-plugin",
+            name: "Quick Note",
+            keywords: ["qnote"],
+            description: "Capture notes fast",
+            mode: .view,
+            includeInGlobalSearch: true,
+            capabilities: [],
+            resourceScopes: [],
+            commands: [
+                PluginCommandSpec(id: "take-note", title: "Take Note", subtitle: "Action", keywords: ["tn"], includeInGlobalSearch: true)
+            ],
+            in: pluginsDir
+        )
+        let cmdItems = PluginCommandRegistry.registeredCommands(for: [plugin])
+        let clip = ClipboardEntry(title: "note snippet", subtitle: "文本", textValue: "note snippet", payloadKind: .text)
+
+        let ranked = LauncherEngine.rankCandidates(
+            query: "note",
+            filter: .all,
+            apps: [notesApp, subApp],
+            plugins: [plugin],
+            pluginCommands: cmdItems,
+            clipboardItems: [clip],
+            everythingIndex: index
+        )
+
+        guard let filePos = ranked.firstIndex(where: { if case .fileHit = $0.kind { return true }; return false }),
+              let clipPos = ranked.firstIndex(where: { if case .clipboard = $0.kind { return true }; return false }),
+              let prefixAppPos = ranked.firstIndex(where: { $0.id == notesApp.id }),
+              let subAppPos = ranked.firstIndex(where: { $0.id == subApp.id }),
+              let pluginPos = ranked.firstIndex(where: { $0.id == "plugin:\(plugin.id)" }),
+              let cmdPos = ranked.firstIndex(where: { $0.id == "plugcmd:\(plugin.id)::take-note" }) else {
+            Issue.record("Expected all candidate types in ranked results, got \(ranked.map(\.id))")
+            return
+        }
+
+        #expect(prefixAppPos < filePos && subAppPos < filePos)
+        #expect(pluginPos < filePos && cmdPos < filePos)
+        #expect(filePos < clipPos)
+
+        let explicitFileRanked = LauncherEngine.rankCandidates(
+            query: "f note",
+            filter: .all,
+            apps: [notesApp, subApp],
+            plugins: [plugin],
+            pluginCommands: cmdItems,
+            clipboardItems: [clip],
+            everythingIndex: index
+        )
+        if let top = explicitFileRanked.first, case .fileHit = top.kind {} else {
+            Issue.record("Expected explicit 'f note' query to rank fileHit first")
+        }
+    }
+
+    @Test("VideoStreamEncoder produces valid even-dimension MP4 from frames and tracks .videoCaptures cache")
+    func videoStreamEncoderAndCacheBucket() async throws {
+        let even = VideoRecordingOptions.evenScaledDimensions(width: 1921, height: 1081, maxDimension: 1280)
+        #expect(even.0 % 2 == 0 && even.1 % 2 == 0 && max(even.0, even.1) <= 1280)
+
+        let tmpRoot = FileManager.default.temporaryDirectory.appendingPathComponent("lucent-video-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: tmpRoot) }
+        let outURL = tmpRoot.appendingPathComponent("lucent-videos/sample.mp4")
+
+        let encoder = VideoStreamEncoder(options: VideoRecordingOptions(fps: 30, maxDimension: 1280), outputSize: (321, 181), outputURL: outURL)
+        try encoder.prepare()
+
+        let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        for i in 0..<4 {
+            let ctx = CGContext(data: nil, width: 320, height: 180, bitsPerComponent: 8, bytesPerRow: 320 * 4, space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            ctx.setFillColor(CGColor(srgbRed: Double(i) * 0.25, green: 0.4, blue: 0.8, alpha: 1))
+            ctx.fill(CGRect(x: 0, y: 0, width: 320, height: 180))
+            #expect(encoder.appendImage(ctx.makeImage()!, presentationSeconds: Double(i) * (1.0 / 30.0)))
+        }
+
+        let result = try await encoder.finalize()
+        #expect(result.frameCount == 4)
+        #expect(result.fileSizeBytes > 512)
+        #expect(Int(result.pixelSize.width) == 320 && Int(result.pixelSize.height) == 180)
+        let tracks = try await AVURLAsset(url: result.fileURL).loadTracks(withMediaType: .video)
+        #expect(tracks.count == 1)
+
+        let cache = AppCacheService.inspectAll(tempRoot: tmpRoot)
+        let bucket = cache.buckets.first(where: { $0.kind == .videoCaptures })
+        #expect(bucket?.fileCount == 1 && (bucket?.sizeBytes ?? 0) > 512)
     }
 }

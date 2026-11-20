@@ -10,6 +10,7 @@ public enum HotKeyActionID: String, CaseIterable, Codable, Sendable, Identifiabl
     case screenshotPin
     case screenshotOCR
     case gifRecord
+    case videoRecord
     case workspace
     case systemPulse
     case networkMonitor
@@ -34,6 +35,7 @@ public enum HotKeyActionID: String, CaseIterable, Codable, Sendable, Identifiabl
         case .systemPulse: (7, "系统脉搏监控悬浮窗", "开启或隐藏 CPU、频率、内存、功耗与实时网速浮窗", "waveform.path.ecg", HotKeyChord(keyCode: kVK_ANSI_M, carbonModifiers: opt))
         case .networkMonitor: (8, "本机网络流量与去向", "实时拆解进程网速、远端 IP 域名去向与连接状态", "network", HotKeyChord(keyCode: kVK_ANSI_N, carbonModifiers: opt))
         case .gifRecord: (9, "区域 / 窗口 GIF 录制", "框选区域或吸附窗口录制高帧率轻量 GIF 动图", "record.circle.fill", HotKeyChord(keyCode: kVK_ANSI_G, carbonModifiers: opt))
+        case .videoRecord: (11, L10n.pick("区域 / 窗口视频录制", "Record Region / Window Video"), L10n.pick("框选区域或吸附窗口录制高清 MP4 区域录像", "Record smooth MP4 video of any selected region or window"), "video.circle.fill", HotKeyChord(keyCode: kVK_ANSI_R, carbonModifiers: opt))
         case .quickBackup: (10, "一键快速备份设置", "可选绑定 · 按下即触发配置快照导出或云端同步备份", "externaldrive.badge.icloud", nil)
         }
     }

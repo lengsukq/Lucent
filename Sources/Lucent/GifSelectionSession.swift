@@ -23,15 +23,23 @@ final class GifSelectionSession: ObservableObject {
     @Published var windowCycleIndex: Int = 0
     @Published var selectedWindow: DetectedScreenWindow?
     @Published var isDragging: Bool = false
+    @Published var mode: CaptureRecordingMode
     @Published var options: GifRecordingOptions
+    @Published var videoOptions: VideoRecordingOptions
 
     var activeDrag: GifSelectionDragMode?
     var lastClickTime: TimeInterval = 0
     var lastClickPoint: CGPoint = .zero
     private var lastTopHitWindowID: CGWindowID?
 
-    init(topology: ScreenTopologySnapshot, initialCursorCanvasPoint: CGPoint, options: GifRecordingOptions) {
-        self.topology = topology; self.options = options
+    init(
+        topology: ScreenTopologySnapshot,
+        initialCursorCanvasPoint: CGPoint,
+        mode: CaptureRecordingMode = .gif,
+        options: GifRecordingOptions,
+        videoOptions: VideoRecordingOptions = VideoRecordingOptions()
+    ) {
+        self.topology = topology; self.mode = mode; self.options = options; self.videoOptions = videoOptions
         let clamped = CGPoint(
             x: min(max(0, initialCursorCanvasPoint.x), topology.canvasBounds.width),
             y: min(max(0, initialCursorCanvasPoint.y), topology.canvasBounds.height)
@@ -79,7 +87,12 @@ final class GifSelectionSession: ObservableObject {
         let scale = topology.effectiveScale(forSelection: rect)
         let rawW = max(2, Int((rect.width * scale).rounded()))
         let rawH = max(2, Int((rect.height * scale).rounded()))
-        return GifStreamEncoder.scaledDimensions(width: rawW, height: rawH, maxDimension: options.maxDimension)
+        switch mode {
+        case .gif:
+            return GifStreamEncoder.scaledDimensions(width: rawW, height: rawH, maxDimension: options.maxDimension)
+        case .video:
+            return VideoRecordingOptions.evenScaledDimensions(width: rawW, height: rawH, maxDimension: videoOptions.maxDimension)
+        }
     }
 
     func appKitScreenRect(for canvasRect: CGRect) -> NSRect { topology.appKitGlobalRect(fromCanvas: canvasRect) }

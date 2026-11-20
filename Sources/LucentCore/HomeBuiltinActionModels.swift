@@ -2,7 +2,7 @@ import LucentFoundation
 import Foundation
 
 public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
-    case files, clipboard, screenshotPin, gifRecord, ocr
+    case files, clipboard, screenshotPin, gifRecord, videoRecord, ocr
     case networkMonitor, fileWorkspace, systemPulse, toggleMos, pluginsList
     case scripts, snippets, backupSync, cacheCleanup, reclaimMemory, settingsCenter
 
@@ -14,6 +14,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .clipboard: L10n.pick("剪贴板库", "Clipboard")
         case .screenshotPin: L10n.pick("截图钉屏", "Capture & Pin")
         case .gifRecord: L10n.pick("动图录屏", "GIF Recorder")
+        case .videoRecord: L10n.pick("区域录像", "Video Recorder")
         case .ocr: L10n.pick("离线识字", "Offline OCR")
         case .networkMonitor: L10n.pick("网络流量", "Network Monitor")
         case .fileWorkspace: L10n.pick("双栏文件台", "File Workspace")
@@ -35,6 +36,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .clipboard: L10n.pick("历史记录与粘贴", "Clipboard history")
         case .screenshotPin: L10n.pick("选区标注悬浮置顶", "Annotate & pin on screen")
         case .gifRecord: L10n.pick("区域/窗口高帧率 GIF", "Region or window GIF")
+        case .videoRecord: L10n.pick("区域/窗口高清 MP4 录像", "Region or window MP4 video")
         case .ocr: L10n.pick("Vision OCR / 抠图", "Offline OCR & cutout")
         case .networkMonitor: L10n.pick("本机进程 · 远端去向", "Per-process live traffic")
         case .fileWorkspace: L10n.pick("双栏整理与批量重命名", "Dual-pane file manager")
@@ -56,6 +58,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .clipboard: "doc.on.clipboard.fill"
         case .screenshotPin: "camera.viewfinder"
         case .gifRecord: "record.circle.fill"
+        case .videoRecord: "video.circle.fill"
         case .ocr: "text.viewfinder"
         case .networkMonitor: "network"
         case .fileWorkspace: "sidebar.squares.left"
@@ -77,6 +80,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .clipboard, .cacheCleanup: "orange"
         case .screenshotPin, .systemPulse: "mint"
         case .gifRecord: "pink"
+        case .videoRecord: "red"
         case .ocr, .pluginsList: "purple"
         case .networkMonitor, .backupSync: "blue"
         case .fileWorkspace, .reclaimMemory, .scripts: "teal"
@@ -91,6 +95,7 @@ public enum HomeBuiltinActionID: String, Codable, Sendable, Hashable, CaseIterab
         case .clipboard: "⌥C"
         case .screenshotPin: "⌥A"
         case .gifRecord: "⌥G"
+        case .videoRecord: "⌥R"
         case .ocr: "⌥O"
         case .networkMonitor: "⌥N"
         case .fileWorkspace: "⌥E"

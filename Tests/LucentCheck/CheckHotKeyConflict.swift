@@ -5,7 +5,7 @@ import LucentCore
 
 func testV070HotKeyConflict() throws {
     // 1. HotKeyActionID metadata & defaults coverage
-    check(HotKeyActionID.allCases.count == 10, "HotKeyActionID has all 10 global actions")
+    check(HotKeyActionID.allCases.count == 11, "HotKeyActionID has all 11 global actions")
     let uniqueNumericIDs = Set(HotKeyActionID.allCases.map(\.carbonHotKeyNumericID))
     check(uniqueNumericIDs.count == HotKeyActionID.allCases.count, "HotKeyActionID numeric Carbon IDs are unique")
     for action in HotKeyActionID.allCases {
@@ -13,6 +13,7 @@ func testV070HotKeyConflict() throws {
     }
     check(HotKeyActionID.launcher.defaultChord?.displayString == "⌥Space", "launcher defaults to ⌥Space")
     check(HotKeyActionID.gifRecord.defaultChord?.displayString == "⌥G", "gifRecord defaults to ⌥G")
+    check(HotKeyActionID.videoRecord.defaultChord?.displayString == "⌥R", "videoRecord defaults to ⌥R")
     check(HotKeyActionID.quickBackup.defaultChord == nil, "quickBackup defaults to nil (optional)")
 
     // 2. HotKeyChord formatting, NSEvent.ModifierFlags conversion & legality validation

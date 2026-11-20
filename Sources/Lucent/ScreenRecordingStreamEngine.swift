@@ -69,17 +69,67 @@ private struct RecordingRegionBorderView: View {
     }
 }
 
+final class ActiveRecordingClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var paused = false
+    private var accumulated: Double = 0
+    private var activeSegmentStart: Double?
+
+    func currentElapsed(at hostSeconds: Double = ProcessInfo.processInfo.systemUptime) -> Double? {
+        lock.withLock {
+            guard !paused else { return nil }
+            if let start = activeSegmentStart {
+                return accumulated + max(0, hostSeconds - start)
+            }
+            activeSegmentStart = hostSeconds
+            return accumulated
+        }
+    }
+
+    func setPaused(_ isPaused: Bool, at hostSeconds: Double = ProcessInfo.processInfo.systemUptime) {
+        lock.withLock {
+            guard paused != isPaused else { return }
+            if isPaused {
+                if let start = activeSegmentStart {
+                    accumulated += max(0, hostSeconds - start)
+                    activeSegmentStart = nil
+                }
+                paused = true
+            } else {
+                paused = false
+                activeSegmentStart = hostSeconds
+            }
+        }
+    }
+}
+
 final class ScreenStreamFrameSink: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
     private let lock = NSLock()
     private var latestFrame: CGImage?
     private var streamError: Error?
+    private let onVideoSampleBuffer: (@Sendable (CVPixelBuffer, Double) -> Void)?
+    private let onAudioSampleBuffer: (@Sendable (CMSampleBuffer, Double) -> Void)?
+
+    init(
+        onVideoSampleBuffer: (@Sendable (CVPixelBuffer, Double) -> Void)? = nil,
+        onAudioSampleBuffer: (@Sendable (CMSampleBuffer, Double) -> Void)? = nil
+    ) {
+        self.onVideoSampleBuffer = onVideoSampleBuffer
+        self.onAudioSampleBuffer = onAudioSampleBuffer
+        super.init()
+    }
 
     func snapshotLatest() -> (image: CGImage?, error: Error?) {
         lock.withLock { (latestFrame, streamError) }
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of outputType: SCStreamOutputType) {
-        guard outputType == .screen, CMSampleBufferIsValid(sampleBuffer) else { return }
+        guard CMSampleBufferIsValid(sampleBuffer) else { return }
+        if outputType == .audio {
+            onAudioSampleBuffer?(sampleBuffer, ProcessInfo.processInfo.systemUptime)
+            return
+        }
+        guard outputType == .screen else { return }
         if let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
            let first = attachments.first,
            let rawStatus = first[.status] as? Int,
@@ -88,6 +138,10 @@ final class ScreenStreamFrameSink: NSObject, SCStreamOutput, SCStreamDelegate, @
             return
         }
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        if let onVideoSampleBuffer {
+            onVideoSampleBuffer(pixelBuffer, ProcessInfo.processInfo.systemUptime)
+            return
+        }
         var cgImage: CGImage?
         guard VTCreateCGImageFromCVPixelBuffer(pixelBuffer, options: nil, imageOut: &cgImage) == noErr,
               let resolved = cgImage else { return }
@@ -106,20 +160,32 @@ enum ScreenRecordingStreamEngine {
         lockedWindowID: CGWindowID?,
         displaySpecs: [(scDisplay: SCDisplay, canvasFrame: CGRect, scale: CGFloat)],
         excludedWindowIDs: Set<CGWindowID>,
-        options: GifRecordingOptions,
+        fps: Int,
+        maxDimension: Int,
+        showsCursor: Bool,
+        captureAudio: Bool = false,
+        evenOutputDimensions: Bool = false,
         outputSize: (Int, Int),
-        shareableContent: SCShareableContent
+        shareableContent: SCShareableContent,
+        onVideoSampleBuffer: (@Sendable (CVPixelBuffer, Double) -> Void)? = nil,
+        onAudioSampleBuffer: (@Sendable (CMSampleBuffer, Double) -> Void)? = nil
     ) async -> (stream: SCStream, sink: ScreenStreamFrameSink)? {
         let excludedWins = shareableContent.windows.filter { excludedWindowIDs.contains($0.windowID) }
         let cfg = SCStreamConfiguration()
-        cfg.width = max(2, outputSize.0)
-        cfg.height = max(2, outputSize.1)
-        cfg.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(max(1, options.fps)))
-        cfg.queueDepth = 4
+        cfg.width = evenOutputDimensions ? max(16, outputSize.0 & ~1) : max(2, outputSize.0)
+        cfg.height = evenOutputDimensions ? max(16, outputSize.1 & ~1) : max(2, outputSize.1)
+        cfg.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(max(1, fps)))
+        cfg.queueDepth = 6
         cfg.pixelFormat = kCVPixelFormatType_32BGRA
-        cfg.showsCursor = options.showsCursor
+        cfg.showsCursor = showsCursor
         cfg.scalesToFit = true
         cfg.captureResolution = .best
+        cfg.capturesAudio = captureAudio
+        if captureAudio {
+            cfg.excludesCurrentProcessAudio = true
+            cfg.sampleRate = 48_000
+            cfg.channelCount = 2
+        }
 
         let filter: SCContentFilter
         if let wid = lockedWindowID,
@@ -132,7 +198,9 @@ enum ScreenRecordingStreamEngine {
             ) {
                 let rawW = max(2, Int(round(winSize.width * winScale)))
                 let rawH = max(2, Int(round(winSize.height * winScale)))
-                let scaled = GifStreamEncoder.scaledDimensions(width: rawW, height: rawH, maxDimension: options.maxDimension)
+                let scaled = evenOutputDimensions
+                    ? VideoRecordingOptions.evenScaledDimensions(width: rawW, height: rawH, maxDimension: maxDimension)
+                    : GifStreamEncoder.scaledDimensions(width: rawW, height: rawH, maxDimension: maxDimension)
                 cfg.width = scaled.0
                 cfg.height = scaled.1
             }
@@ -156,11 +224,15 @@ enum ScreenRecordingStreamEngine {
             filter = SCContentFilter(display: liveDisp, excludingWindows: excludedWins)
         }
 
-        let sink = ScreenStreamFrameSink()
+        let sink = ScreenStreamFrameSink(onVideoSampleBuffer: onVideoSampleBuffer, onAudioSampleBuffer: onAudioSampleBuffer)
         let stream = SCStream(filter: filter, configuration: cfg, delegate: sink)
-        let sampleQueue = DispatchQueue(label: "app.lucent.gif.scstream", qos: .userInitiated)
+        let sampleQueue = DispatchQueue(label: "app.lucent.capture.scstream", qos: .userInitiated)
         do {
             try stream.addStreamOutput(sink, type: .screen, sampleHandlerQueue: sampleQueue)
+            if captureAudio {
+                let audioQueue = DispatchQueue(label: "app.lucent.capture.scstream.audio", qos: .userInitiated)
+                try stream.addStreamOutput(sink, type: .audio, sampleHandlerQueue: audioQueue)
+            }
             try await stream.startCapture()
             return (stream, sink)
         } catch {
