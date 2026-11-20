@@ -93,6 +93,7 @@ public enum LauncherEngine {
         everythingIndex: EverythingIndex? = nil,
         launchCounts: [String: Int] = [:],
         usageBoosts: [String: Int] = [:],
+        affinityBoosts: [String: Int] = [:],
         clipboardText: String? = nil,
         scopedPluginID: String? = nil
     ) -> [LauncherCandidate] {
@@ -107,7 +108,8 @@ public enum LauncherEngine {
                 plugin: scopedPlugin,
                 query: trimmed,
                 commands: resolvedCommands.filter { $0.pluginID == scopedID },
-                entries: pluginSearchEntries
+                entries: pluginSearchEntries,
+                affinityBoosts: affinityBoosts
             )
         }
 
@@ -149,12 +151,12 @@ public enum LauncherEngine {
         }
 
         if let everythingIndex, filter == .all || filter == .files {
-            let fileQuery = stripFilePrefix(trimmed)
-            if filter == .files || !fileQuery.isEmpty {
-                let limit = filter == .files ? 40 : 12
-                for (idx, hit) in everythingIndex.search(queryText: fileQuery, limit: limit).enumerated() {
-                    let bonus = filter == .files ? 9_400 : 8_100
-                    results.append(LauncherCandidate(id: "file:\(hit.id)", score: bonus - idx, kind: .fileHit(hit)))
+            let fileSpec = stripFilePrefix(trimmed)
+            if filter == .files || !fileSpec.query.isEmpty {
+                let limit = filter == .files ? 40 : (affinityBoosts.isEmpty ? 12 : 24)
+                for (idx, hit) in everythingIndex.search(queryText: fileSpec.query, limit: limit).enumerated() {
+                    let baseScore = fileScore(hit: hit, needle: needle, filter: filter, isExplicit: fileSpec.isExplicit)
+                    results.append(LauncherCandidate(id: "file:\(hit.id)", score: baseScore - idx, kind: .fileHit(hit)))
                 }
             }
         }
@@ -163,7 +165,7 @@ public enum LauncherEngine {
             let filteredClips = ClipboardService.filter(clipboardItems, query: trimmed, category: .all)
             let limit = filter == .clipboard ? 40 : (needle.isEmpty ? 0 : 6)
             for (idx, clip) in filteredClips.prefix(limit).enumerated() {
-                let baseScore = filter == .clipboard ? 9_300 : 7_500
+                let baseScore = filter == .clipboard ? 9_300 : 6_200
                 results.append(LauncherCandidate(id: "clip:\(clip.id.uuidString)", score: baseScore - idx, kind: .clipboard(clip)))
             }
         }
@@ -172,16 +174,8 @@ public enum LauncherEngine {
             for plugin in plugins where plugin.isValid && (plugin.isBuiltin || plugin.isEnabled) {
                 if filter == .all && (!plugin.isEnabled || !plugin.includeInGlobalSearch) { continue }
                 if filter == .plugins && !plugin.isBuiltin && !plugin.isEnabled { continue }
-                let kws = plugin.effectiveKeywordsLowercased
-                let kwHit = !needle.isEmpty && kws.contains {
-                    $0 == needle || needle.hasPrefix($0 + " ") || $0.hasPrefix(needle)
-                }
-                let nameHit = !needle.isEmpty && (plugin.nameLowercased.contains(needle)
-                    || plugin.descriptionLowercased.contains(needle)
-                    || plugin.localizedSearchPoolLowercased.contains(needle))
-                if filter == .plugins || kwHit || nameHit {
-                    let base = kwHit ? 9_500 : (nameHit ? 7_800 : 6_200)
-                    results.append(LauncherCandidate(id: "plugin:\(plugin.id)", score: base + plugin.effectiveRankingBoost, kind: .plugin(plugin)))
+                if let score = pluginScore(plugin, needle: needle, filter: filter) {
+                    results.append(LauncherCandidate(id: "plugin:\(plugin.id)", score: score, kind: .plugin(plugin)))
                 }
             }
 
@@ -214,25 +208,27 @@ public enum LauncherEngine {
                 }
                 let lowerName = app.nameLowercased; let lowerEng = app.englishNameLowercased
                 var score = 0
-                if lowerName == needle || lowerEng == needle { score = 9_000 }
-                else if lowerName.hasPrefix(needle) || lowerEng.hasPrefix(needle) { score = 8_500 }
-                else if app.pinyinInitials.hasPrefix(needle) { score = 8_200 }
-                else if app.fullPinyin.hasPrefix(needle) { score = 7_600 }
-                else if lowerName.contains(needle) || lowerEng.contains(needle) { score = 5_800 }
+                if lowerName == needle || lowerEng == needle { score = 9_450 }
+                else if lowerName.hasPrefix(needle) || lowerEng.hasPrefix(needle) { score = 9_150 }
+                else if app.pinyinInitials.hasPrefix(needle) { score = 8_900 }
+                else if app.fullPinyin.hasPrefix(needle) { score = 8_550 }
+                else if lowerName.contains(needle) || lowerEng.contains(needle) { score = 8_150 }
                 else if app.fullPinyin.contains(needle) || app.pinyinInitials.contains(needle)
-                    || (!app.altPinyinPool.isEmpty && app.altPinyinPool.contains(needle)) { score = 4_800 }
+                    || (!app.altPinyinPool.isEmpty && app.altPinyinPool.contains(needle)) { score = 7_800 }
                 if score > 0 { results.append(LauncherCandidate(id: app.id, score: score + boost, kind: .app(app))) }
             }
         }
 
-        return results.sorted { $0.score != $1.score ? $0.score > $1.score : $0.id < $1.id }
+        let boosted = SearchAffinityStore.applyBoosts(affinityBoosts, to: results)
+        return boosted.sorted { $0.score != $1.score ? $0.score > $1.score : $0.id < $1.id }
     }
 
     private static func rankScopedPluginCandidates(
         plugin: PluginDescriptor,
         query: String,
         commands: [PluginRegisteredCommand],
-        entries: [PluginSearchEntry]
+        entries: [PluginSearchEntry],
+        affinityBoosts: [String: Int] = [:]
     ) -> [LauncherCandidate] {
         var out: [LauncherCandidate] = []
         let cmdHits = PluginCommandRegistry.matchCommands(
@@ -247,14 +243,48 @@ public enum LauncherEngine {
         }
         let runScore = out.isEmpty ? 9_800 : 7_100
         out.append(LauncherCandidate(id: "plugin:\(plugin.id)", score: runScore, kind: .plugin(plugin)))
-        return out.sorted { $0.score != $1.score ? $0.score > $1.score : $0.id < $1.id }
+        let boosted = SearchAffinityStore.applyBoosts(affinityBoosts, to: out)
+        return boosted.sorted { $0.score != $1.score ? $0.score > $1.score : $0.id < $1.id }
     }
 
-    private static func stripFilePrefix(_ raw: String) -> String {
+    private static func fileScore(
+        hit: EverythingSearchHit,
+        needle: String,
+        filter: OmniFilter,
+        isExplicit: Bool
+    ) -> Int {
+        if filter == .files { return 9_400 }
+        if isExplicit { return 9_100 }
+        guard !needle.isEmpty else { return 5_600 }
+        let nameLower = hit.name.lowercased()
+        let stemLower = URL(fileURLWithPath: hit.name).deletingPathExtension().lastPathComponent.lowercased()
+        if nameLower == needle || stemLower == needle { return 7_300 }
+        if nameLower.hasPrefix(needle) { return 6_700 }
+        return 5_600
+    }
+
+    private static func pluginScore(_ plugin: PluginDescriptor, needle: String, filter: OmniFilter) -> Int? {
+        if needle.isEmpty { return filter == .plugins ? 6_200 + plugin.effectiveRankingBoost : nil }
+        let kws = plugin.effectiveKeywordsLowercased
+        let name = plugin.nameLowercased
+        let base: Int
+        if kws.contains(where: { $0 == needle || needle.hasPrefix($0 + " ") }) { base = 9_550 }
+        else if name == needle { base = 9_400 }
+        else if name.hasPrefix(needle) { base = 9_050 }
+        else if kws.contains(where: { $0.hasPrefix(needle) }) { base = 8_950 }
+        else if name.contains(needle) { base = 8_300 }
+        else if plugin.descriptionLowercased.contains(needle) || plugin.localizedSearchPoolLowercased.contains(needle) { base = 7_750 }
+        else if filter == .plugins { base = 6_200 }
+        else { return nil }
+        return base + plugin.effectiveRankingBoost
+    }
+
+    private static func stripFilePrefix(_ raw: String) -> (query: String, isExplicit: Bool) {
         let lower = raw.lowercased()
         for p in ["open ", "find ", "f "] where lower.hasPrefix(p) {
-            return String(raw.dropFirst(p.count)).trimmingCharacters(in: .whitespaces)
+            let query = String(raw.dropFirst(p.count)).trimmingCharacters(in: .whitespaces)
+            return (query, !query.isEmpty)
         }
-        return raw
+        return (raw, false)
     }
 }

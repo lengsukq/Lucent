@@ -47,7 +47,7 @@ extension ScriptLibraryStore {
                     bestScore = 8_550
                 } else if pyFull.hasPrefix(needle) || titleLo.contains(needle) || (!enLo.isEmpty && enLo.contains(needle))
                     || item.subtitle.lowercased().contains(needle) || item.category.lowercased().contains(needle) {
-                    bestScore = 7_650
+                    bestScore = 7_800
                 }
             }
             if bestScore > 0 {
