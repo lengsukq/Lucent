@@ -1,10 +1,11 @@
 {
   "schemaVersion": 3,
   "id": "translate-hub",
-  "name": "流光译站 · 划词/截图多源翻译与生词本",
-  "version": "1.0.0",
-  "description": "支持跨应用划词即译、截图/图片离线 OCR 翻译、内置免密钥引擎与本地 Ollama 大模型并行、单词词典发音及可导出 Anki 的生词本",
+  "name": "流光译站 · 有道/苹果与多源大模型翻译",
+  "version": "1.1.0",
+  "description": "支持跨应用划词即译、截图/图片离线 OCR 翻译、网易有道翻译（默认优先）、苹果自带翻译、OpenAI / Google Gemini 通用协议大模型、本地 Ollama 与公共通道并行对比及生词本导出",
   "mode": "view",
+  "timeoutSeconds": 20,
   "keywords": ["tr", "fy", "trans", "translate", "dict", "翻译", "划词", "词典", "生词本"],
   "entry": "bin/translate-hub",
   "author": "Lucent Official",
@@ -36,7 +37,7 @@
     {
       "id": "input-translate",
       "title": "输入互译与单词词典查词",
-      "subtitle": "输入单词展示音标、词性与释义，输入长句调用内置与本地大模型引擎并行翻译",
+      "subtitle": "输入单词展示音标、词性与释义，输入长句调用已启用引擎并行翻译",
       "keywords": ["输入翻译", "查词", "词典", "dict", "lookup"],
       "icon": "character.book.closed.fill",
       "arguments": ["--input"],
@@ -76,38 +77,181 @@
       "label": "第一语言（母语）",
       "type": "select",
       "defaultValue": "zh-Hans",
-      "options": ["zh-Hans", "en", "ja", "ko", "fr", "de", "es"],
-      "section": "语言与行为"
+      "options": ["zh-Hans", "zh-Hant", "en", "ja", "ko", "fr", "de", "es"],
+      "section": "语言与展示内容"
     },
     {
       "key": "secondaryLang",
       "label": "第二语言（默认互译目标）",
       "type": "select",
       "defaultValue": "en",
-      "options": ["en", "zh-Hans", "ja", "ko", "fr", "de", "es"],
-      "section": "语言与行为"
+      "options": ["en", "zh-Hans", "zh-Hant", "ja", "ko", "fr", "de", "es"],
+      "section": "语言与展示内容"
+    },
+    {
+      "key": "primaryEngine",
+      "label": "首选展示引擎（决定主译文与排序首位）",
+      "type": "select",
+      "defaultValue": "auto",
+      "options": ["auto", "youdao", "openai", "gemini", "ollama", "apple", "free"],
+      "helpText": "auto 默认优先级：网易有道 → OpenAI → Gemini → Ollama → 苹果翻译 → 内置通道",
+      "section": "语言与展示内容"
     },
     {
       "key": "autoCopyResult",
       "label": "翻译完成后自动将首选译文写入剪贴板",
       "type": "boolean",
       "defaultValue": "false",
-      "section": "语言与行为"
+      "section": "语言与展示内容"
+    },
+    {
+      "key": "showDictionaryCard",
+      "label": "展示单词词典音标与释义卡片",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "语言与展示内容"
+    },
+    {
+      "key": "showMarkdownQuote",
+      "label": "展示顶部原文引用与摘要预览",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "语言与展示内容"
+    },
+    {
+      "key": "showTranslateActions",
+      "label": "每条译文显示朗读 / 加入生词本按钮",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "语言与展示内容"
+    },
+    {
+      "key": "showEngineErrors",
+      "label": "显示引擎未就绪或调用失败提示",
+      "type": "boolean",
+      "defaultValue": "true",
+      "helpText": "例如未下载苹果离线语言包或未填 API Key 时在结果末尾给出提示",
+      "section": "语言与展示内容"
+    },
+    {
+      "key": "enableYoudaoTranslate",
+      "label": "启用网易有道翻译（免密钥 · 默认优先）",
+      "type": "boolean",
+      "defaultValue": "true",
+      "helpText": "参考 Easydict 接入网易有道 Web 翻译接口，中英日韩多语种直译准确",
+      "section": "翻译引擎开关"
+    },
+    {
+      "key": "enableAppleTranslate",
+      "label": "启用苹果自带翻译（macOS 系统离线翻译）",
+      "type": "boolean",
+      "defaultValue": "false",
+      "helpText": "需 macOS 26+ 并在「系统设置 → 通用 → 语言与地区 → 翻译语言」下载对应语种离线包",
+      "section": "翻译引擎开关"
     },
     {
       "key": "enableFreeEngine",
       "label": "启用内置免配置公共词典与翻译通道",
       "type": "boolean",
       "defaultValue": "true",
-      "section": "翻译引擎与本地模型"
+      "section": "翻译引擎开关"
     },
     {
-      "key": "llmProvider",
-      "label": "并行本地大模型引擎（Ollama 免密钥）",
-      "type": "select",
-      "defaultValue": "none",
-      "options": ["none", "ollama"],
-      "section": "翻译引擎与本地模型"
+      "key": "enableOpenAI",
+      "label": "启用 OpenAI 通用协议大模型翻译",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "翻译引擎开关"
+    },
+    {
+      "key": "enableGemini",
+      "label": "启用 Google Gemini 通用协议大模型翻译",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "翻译引擎开关"
+    },
+    {
+      "key": "enableOllama",
+      "label": "启用本地 Ollama 大模型翻译",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "翻译引擎开关"
+    },
+    {
+      "key": "openaiBaseUrl",
+      "label": "OpenAI 协议 Base URL",
+      "type": "text",
+      "defaultValue": "https://api.openai.com/v1",
+      "placeholder": "https://api.openai.com/v1 或兼容中转/DeepSeek 地址",
+      "helpText": "自动补全 /chat/completions；如填完整接口地址则直接使用",
+      "section": "OpenAI 通用协议配置"
+    },
+    {
+      "key": "openaiApiKey",
+      "label": "OpenAI 协议 API Key",
+      "type": "secret",
+      "defaultValue": "",
+      "placeholder": "sk-...",
+      "helpText": "由 Lucent 加密保存在本地保险库；本地无鉴权接口可留空",
+      "section": "OpenAI 通用协议配置"
+    },
+    {
+      "key": "openaiModel",
+      "label": "OpenAI 协议模型名称",
+      "type": "text",
+      "defaultValue": "gpt-4o-mini",
+      "placeholder": "gpt-4o-mini / deepseek-chat / qwen-plus",
+      "section": "OpenAI 通用协议配置"
+    },
+    {
+      "key": "openaiPrompt",
+      "label": "自定义翻译提示词（可选）",
+      "type": "text",
+      "defaultValue": "",
+      "placeholder": "留空使用默认专业提示词；支持 {{target}} 占位符",
+      "section": "OpenAI 通用协议配置"
+    },
+    {
+      "key": "geminiBaseUrl",
+      "label": "Google Gemini Base URL",
+      "type": "text",
+      "defaultValue": "https://generativelanguage.googleapis.com",
+      "placeholder": "https://generativelanguage.googleapis.com 或自定义反代地址",
+      "helpText": "自动拼接 /v1beta/models/{model}:generateContent",
+      "section": "Google Gemini 协议配置"
+    },
+    {
+      "key": "geminiApiKey",
+      "label": "Google Gemini API Key",
+      "type": "secret",
+      "defaultValue": "",
+      "placeholder": "AIza...",
+      "helpText": "由 Lucent 加密保存在本地保险库",
+      "section": "Google Gemini 协议配置"
+    },
+    {
+      "key": "geminiModel",
+      "label": "Google Gemini 模型名称",
+      "type": "text",
+      "defaultValue": "gemini-2.5-flash",
+      "placeholder": "gemini-2.5-flash / gemini-2.5-pro",
+      "section": "Google Gemini 协议配置"
+    },
+    {
+      "key": "geminiPrompt",
+      "label": "自定义翻译提示词（可选）",
+      "type": "text",
+      "defaultValue": "",
+      "placeholder": "留空使用默认专业提示词；支持 {{target}} 占位符",
+      "section": "Google Gemini 协议配置"
+    },
+    {
+      "key": "ollamaBaseUrl",
+      "label": "本地 Ollama 服务地址",
+      "type": "text",
+      "defaultValue": "http://127.0.0.1:11434",
+      "placeholder": "http://127.0.0.1:11434",
+      "section": "本地 Ollama 配置"
     },
     {
       "key": "llmModel",
@@ -115,7 +259,7 @@
       "type": "text",
       "defaultValue": "qwen2.5:7b",
       "placeholder": "qwen2.5:7b / llama3.2",
-      "section": "翻译引擎与本地模型"
+      "section": "本地 Ollama 配置"
     },
     {
       "key": "exportDir",
@@ -127,8 +271,8 @@
   ],
   "locales": {
     "en": {
-      "name": "Translate Hub · Selection, OCR & Vocabulary",
-      "description": "Cross-app selection & image OCR translation with zero-config built-in engine, local Ollama parallel results, TTS pronunciation & Anki vocabulary export",
+      "name": "Translate Hub · Youdao, Apple & LLM",
+      "description": "Cross-app selection & image OCR translation with Youdao Translate (default priority), Apple Translate, OpenAI-compatible & Google Gemini LLMs, local Ollama, TTS & Anki vocabulary export",
       "categoryTag": "Translate",
       "commands": {
         "selection-translate": {
@@ -141,7 +285,7 @@
         },
         "input-translate": {
           "title": "Input Translate & Dictionary Lookup",
-          "subtitle": "Look up single words with phonetics/definitions or translate sentences"
+          "subtitle": "Look up single words with phonetics/definitions or translate sentences across enabled engines"
         },
         "vocab-book": {
           "title": "Browse Vocabulary Book",
@@ -159,27 +303,101 @@
       "config": {
         "primaryLang": {
           "label": "Primary Language",
-          "section": "Languages & Behavior"
+          "section": "Languages & Display"
         },
         "secondaryLang": {
           "label": "Secondary Language",
-          "section": "Languages & Behavior"
+          "section": "Languages & Display"
+        },
+        "primaryEngine": {
+          "label": "Preferred Primary Engine",
+          "helpText": "Auto priority: Youdao → OpenAI → Gemini → Ollama → Apple Translate → Built-in Free",
+          "section": "Languages & Display"
         },
         "autoCopyResult": {
           "label": "Auto-copy primary translation to clipboard",
-          "section": "Languages & Behavior"
+          "section": "Languages & Display"
+        },
+        "showDictionaryCard": {
+          "label": "Show dictionary phonetics & definitions for single words",
+          "section": "Languages & Display"
+        },
+        "showMarkdownQuote": {
+          "label": "Show source quote & summary Markdown header",
+          "section": "Languages & Display"
+        },
+        "showTranslateActions": {
+          "label": "Show Speak & Save actions on each result",
+          "section": "Languages & Display"
+        },
+        "showEngineErrors": {
+          "label": "Show engine diagnostics when a provider fails",
+          "section": "Languages & Display"
+        },
+        "enableYoudaoTranslate": {
+          "label": "Enable Youdao Translate (Zero-Config · Default Priority)",
+          "section": "Translation Engines"
+        },
+        "enableAppleTranslate": {
+          "label": "Enable Apple Translate (macOS Offline)",
+          "helpText": "Requires macOS 26+ with offline packs downloaded in System Settings → General → Language & Region → Translation Languages",
+          "section": "Translation Engines"
         },
         "enableFreeEngine": {
           "label": "Enable built-in zero-config dictionary & translation",
-          "section": "Engines & Local LLM"
+          "section": "Translation Engines"
         },
-        "llmProvider": {
-          "label": "Parallel Local LLM Engine (Ollama)",
-          "section": "Engines & Local LLM"
+        "enableOpenAI": {
+          "label": "Enable OpenAI-Compatible LLM",
+          "section": "Translation Engines"
+        },
+        "enableGemini": {
+          "label": "Enable Google Gemini LLM",
+          "section": "Translation Engines"
+        },
+        "enableOllama": {
+          "label": "Enable Local Ollama LLM",
+          "section": "Translation Engines"
+        },
+        "openaiBaseUrl": {
+          "label": "OpenAI-Compatible Base URL",
+          "section": "OpenAI-Compatible LLM"
+        },
+        "openaiApiKey": {
+          "label": "OpenAI-Compatible API Key",
+          "section": "OpenAI-Compatible LLM"
+        },
+        "openaiModel": {
+          "label": "OpenAI Model Name",
+          "section": "OpenAI-Compatible LLM"
+        },
+        "openaiPrompt": {
+          "label": "Custom Prompt (optional)",
+          "section": "OpenAI-Compatible LLM"
+        },
+        "geminiBaseUrl": {
+          "label": "Google Gemini Base URL",
+          "section": "Google Gemini LLM"
+        },
+        "geminiApiKey": {
+          "label": "Google Gemini API Key",
+          "section": "Google Gemini LLM"
+        },
+        "geminiModel": {
+          "label": "Gemini Model Name",
+          "section": "Google Gemini LLM"
+        },
+        "geminiPrompt": {
+          "label": "Custom Prompt (optional)",
+          "section": "Google Gemini LLM"
+        },
+        "ollamaBaseUrl": {
+          "label": "Local Ollama Base URL",
+          "section": "Local Ollama"
         },
         "llmModel": {
           "label": "Ollama Model Name",
-          "section": "Engines & Local LLM"
+          "section": "Local Ollama"
         },
         "exportDir": {
           "label": "Anki TSV & CSV Export Folder",

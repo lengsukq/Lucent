@@ -82,7 +82,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "721aca0f0ae8f04477e311b7699fe8c5b90c4028cc878d88280f05a6414068ca",
+      "sha256" : "6d4df35ff9ddea7f4eb9aa49cffce470203f21855ec0fd88c068d984ef66a224",
       "sizeBytes" : 271619,
       "version" : "1.3.0"
     },
@@ -170,7 +170,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "d8233a541e0a92c138ef23286410ff871375c8fa9fe32c39cb0932f6e0eaa79f",
+      "sha256" : "0a3a43ee8e48a0a63660058c340f0e28794abbae710a9d8e5ba7e358945328ed",
       "sizeBytes" : 180823,
       "version" : "1.0.0"
     },
@@ -260,7 +260,7 @@
       "resourceScopes" : [
         "network"
       ],
-      "sha256" : "fa27115c9ffae10d99bfbfde94fe8a8f3d129f228f5e9f54b62a9347b6789de1",
+      "sha256" : "11458d1034974a69b37a3960fdd17529fe80e949162a1507ba3999650089a016",
       "sizeBytes" : 207658,
       "version" : "1.1.0"
     },
@@ -341,7 +341,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "f4c5db3d1f77d78830815515e4412f6ae2e58ba17bc1fbee7f447971c6404271",
+      "sha256" : "dd912e5f84448a16cd9d22517dce8e0f52cbdff3357ca162b238776f3a9cced3",
       "sizeBytes" : 141026,
       "version" : "2.2.0"
     },
@@ -429,7 +429,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "efc333ed80cbae0426d7b4fe1bdcf36bcda9b679df8400ee87f8aa0225665793",
+      "sha256" : "9ae3ee5ef400dac3a147a743f915e3bf0e328b3acb5614f7a675cca742ca0902",
       "sizeBytes" : 155987,
       "version" : "1.0.0"
     },
@@ -510,7 +510,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "20c2759901820048c481c9b6da4a6027a79b35c3ca145382fbbcd09a6ff8282b",
+      "sha256" : "45da56ffd91054a7a56359b9ebdd1dcd82c7d40d83f34e8592d1ca6f25378a10",
       "sizeBytes" : 202175,
       "version" : "1.4.0"
     },
@@ -583,7 +583,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "c451b8c390585de225eca0f28a6f6ea1bdc8273e0e444013c7f3bf2a9f52cbae",
+      "sha256" : "bec39b6ea0dbef7750643cb5651e5c11fbed5386a21d5f1bb0e85a0ea537ea46",
       "sizeBytes" : 144002,
       "version" : "1.0.0"
     },
@@ -672,7 +672,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "a91fff623da94b722756f838bfd837f17be24e03485842b2ee713fb7f3946204",
+      "sha256" : "b5be95737c87fe5c832e8d74d1debd9e532ba3ebef3285492659cc07ca12838e",
       "sizeBytes" : 115285,
       "version" : "1.0.0"
     },
@@ -690,7 +690,7 @@
         "audio"
       ],
       "categoryTag" : "翻译词典",
-      "description" : "支持跨应用划词即译、截图/图片离线 OCR 翻译、内置免密钥引擎与本地 Ollama 大模型并行、单词词典发音及可导出 Anki 的生词本",
+      "description" : "支持跨应用划词即译、截图/图片离线 OCR 翻译、网易有道翻译（默认优先）、苹果自带翻译、OpenAI / Google Gemini 通用协议大模型、本地 Ollama 与公共通道并行对比及生词本导出",
       "downloadURL" : "./dist/translate-hub.zip",
       "id" : "translate-hub",
       "keywords" : [
@@ -717,7 +717,7 @@
               "title" : "Export Vocabulary to Anki (.tsv) & CSV"
             },
             "input-translate" : {
-              "subtitle" : "Look up single words with phonetics/definitions or translate sentences",
+              "subtitle" : "Look up single words with phonetics/definitions or translate sentences across enabled engines",
               "title" : "Input Translate & Dictionary Lookup"
             },
             "selection-translate" : {
@@ -736,50 +736,124 @@
           "config" : {
             "autoCopyResult" : {
               "label" : "Auto-copy primary translation to clipboard",
-              "section" : "Languages & Behavior"
+              "section" : "Languages & Display"
+            },
+            "enableAppleTranslate" : {
+              "helpText" : "Requires macOS 26+ with offline packs downloaded in System Settings → General → Language & Region → Translation Languages",
+              "label" : "Enable Apple Translate (macOS Offline)",
+              "section" : "Translation Engines"
             },
             "enableFreeEngine" : {
               "label" : "Enable built-in zero-config dictionary & translation",
-              "section" : "Engines & Local LLM"
+              "section" : "Translation Engines"
+            },
+            "enableGemini" : {
+              "label" : "Enable Google Gemini LLM",
+              "section" : "Translation Engines"
+            },
+            "enableOllama" : {
+              "label" : "Enable Local Ollama LLM",
+              "section" : "Translation Engines"
+            },
+            "enableOpenAI" : {
+              "label" : "Enable OpenAI-Compatible LLM",
+              "section" : "Translation Engines"
+            },
+            "enableYoudaoTranslate" : {
+              "label" : "Enable Youdao Translate (Zero-Config · Default Priority)",
+              "section" : "Translation Engines"
             },
             "exportDir" : {
               "label" : "Anki TSV & CSV Export Folder",
               "section" : "Vocabulary & Export"
             },
+            "geminiApiKey" : {
+              "label" : "Google Gemini API Key",
+              "section" : "Google Gemini LLM"
+            },
+            "geminiBaseUrl" : {
+              "label" : "Google Gemini Base URL",
+              "section" : "Google Gemini LLM"
+            },
+            "geminiModel" : {
+              "label" : "Gemini Model Name",
+              "section" : "Google Gemini LLM"
+            },
+            "geminiPrompt" : {
+              "label" : "Custom Prompt (optional)",
+              "section" : "Google Gemini LLM"
+            },
             "llmModel" : {
               "label" : "Ollama Model Name",
-              "section" : "Engines & Local LLM"
+              "section" : "Local Ollama"
             },
-            "llmProvider" : {
-              "label" : "Parallel Local LLM Engine (Ollama)",
-              "section" : "Engines & Local LLM"
+            "ollamaBaseUrl" : {
+              "label" : "Local Ollama Base URL",
+              "section" : "Local Ollama"
+            },
+            "openaiApiKey" : {
+              "label" : "OpenAI-Compatible API Key",
+              "section" : "OpenAI-Compatible LLM"
+            },
+            "openaiBaseUrl" : {
+              "label" : "OpenAI-Compatible Base URL",
+              "section" : "OpenAI-Compatible LLM"
+            },
+            "openaiModel" : {
+              "label" : "OpenAI Model Name",
+              "section" : "OpenAI-Compatible LLM"
+            },
+            "openaiPrompt" : {
+              "label" : "Custom Prompt (optional)",
+              "section" : "OpenAI-Compatible LLM"
+            },
+            "primaryEngine" : {
+              "helpText" : "Auto priority: Youdao → OpenAI → Gemini → Ollama → Apple Translate → Built-in Free",
+              "label" : "Preferred Primary Engine",
+              "section" : "Languages & Display"
             },
             "primaryLang" : {
               "label" : "Primary Language",
-              "section" : "Languages & Behavior"
+              "section" : "Languages & Display"
             },
             "secondaryLang" : {
               "label" : "Secondary Language",
-              "section" : "Languages & Behavior"
+              "section" : "Languages & Display"
+            },
+            "showDictionaryCard" : {
+              "label" : "Show dictionary phonetics & definitions for single words",
+              "section" : "Languages & Display"
+            },
+            "showEngineErrors" : {
+              "label" : "Show engine diagnostics when a provider fails",
+              "section" : "Languages & Display"
+            },
+            "showMarkdownQuote" : {
+              "label" : "Show source quote & summary Markdown header",
+              "section" : "Languages & Display"
+            },
+            "showTranslateActions" : {
+              "label" : "Show Speak & Save actions on each result",
+              "section" : "Languages & Display"
             }
           },
-          "description" : "Cross-app selection & image OCR translation with zero-config built-in engine, local Ollama parallel results, TTS pronunciation & Anki vocabulary export",
-          "name" : "Translate Hub · Selection, OCR & Vocabulary"
+          "description" : "Cross-app selection & image OCR translation with Youdao Translate (default priority), Apple Translate, OpenAI-compatible & Google Gemini LLMs, local Ollama, TTS & Anki vocabulary export",
+          "name" : "Translate Hub · Youdao, Apple & LLM"
         }
       },
       "mode" : "view",
-      "name" : "流光译站 · 划词/截图多源翻译与生词本",
+      "name" : "流光译站 · 有道/苹果与多源大模型翻译",
       "resourceScopes" : [
         "network",
         "filesystem"
       ],
-      "sha256" : "a95034d076363c2e0f02e63d602c1350f3d7e6959e68f0991bd26d1b91674e8c",
-      "sizeBytes" : 159123,
-      "version" : "1.0.0"
+      "sha256" : "ff8661dac18de502578d496b023b0463a7bf360a43ba431411b4606a8bb9dbb6",
+      "sizeBytes" : 200714,
+      "version" : "1.1.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-19T11:18:03Z"
+  "updatedAt" : "2026-11-20T02:37:42Z"
 }

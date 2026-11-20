@@ -111,17 +111,27 @@ let (rawText, srcOrigin): (String, String) = if flag == "--translate-direct", ar
 }
 
 if rawText.isEmpty {
+    var activeEngines: [String] = []
+    if input.cfgBool("enableYoudaoTranslate", default: true) { activeEngines.append(isEn ? "Youdao" : "网易有道") }
+    if input.cfgBool("enableAppleTranslate", default: false) { activeEngines.append("Apple") }
+    if input.cfgBool("enableOpenAI", default: false) { activeEngines.append("OpenAI") }
+    if input.cfgBool("enableGemini", default: false) { activeEngines.append("Gemini") }
+    let legacyOllama = input.cfgString("llmProvider", default: "none").lowercased() == "ollama"
+    if input.cfgBool("enableOllama", default: legacyOllama) { activeEngines.append("Ollama") }
+    if input.cfgBool("enableFreeEngine", default: true) { activeEngines.append("Free") }
+    let enginesLabel = activeEngines.isEmpty ? (isEn ? "None" : "未启用") : activeEngines.joined(separator: " · ")
+
     PluginOutput.emit(ViewPayload(
         schemaVersion: 2,
-        title: isEn ? "Translate Hub · Ready" : "流光译站 · 多源划词与截图翻译",
+        title: isEn ? "Translate Hub · Ready" : "流光译站 · 多源划词与大模型翻译",
         subtitle: isEn
             ? "Type any word/sentence above, use '>ja text' to pick target language, or trigger Selection/OCR"
             : "直接在搜索框输入单词/长句互译（可用 '>ja 文本' 指定目标语言），或使用下方快捷入口",
         badge: "\(vocab.count) SAVED",
         metrics: [
             KeyValue(key: isEn ? "Lang Pair" : "默认互译", value: "\(primary) ⇄ \(secondary)"),
-            KeyValue(key: isEn ? "Vocabulary" : "生词本", value: String(vocab.count)),
-            KeyValue(key: isEn ? "History" : "最近历史", value: String(history.count))
+            KeyValue(key: isEn ? "Engines" : "已启引擎", value: enginesLabel),
+            KeyValue(key: isEn ? "Vocabulary" : "生词本", value: String(vocab.count))
         ],
         items: [
             ViewItem(id: "act-sel", title: isEn ? "Translate Frontmost Selection" : "翻译当前前台选中文本（划词即译）", subtitle: isEn ? "Reads active app selection via Accessibility (or clipboard fallback)" : "读取前台应用选中文字（无选区时自动回退剪贴板）", icon: "text.cursor", badge: "SELECTION", commandArgs: ["--selection"]),
@@ -134,9 +144,14 @@ if rawText.isEmpty {
 }
 
 let (cleanText, srcLang, targetLang) = parseTargetOverride(rawQuery: rawText, primary: primary, secondary: secondary)
-let (results, dictInfo) = runParallelTranslation(text: cleanText, src: srcLang, target: targetLang, input: input)
+let (results, dictInfo, diagnostics) = runParallelTranslation(text: cleanText, src: srcLang, target: targetLang, input: input)
 
-let primaryTrans = results.first?.text ?? (isEn ? "(Network unavailable or blocked)" : "（当前离线或未开启网络域，请检查插件权限）")
+let showDictCard = input.cfgBool("showDictionaryCard", default: true)
+let showMarkdownQuote = input.cfgBool("showMarkdownQuote", default: true)
+let showEngineErrors = input.cfgBool("showEngineErrors", default: true)
+let showTranslateActions = input.cfgBool("showTranslateActions", default: true)
+
+let primaryTrans = results.first?.text ?? (isEn ? "(No translation returned — check engine settings)" : "（未获取到译文，请检查已启用引擎配置或离线语言包）")
 let phoneticNote = dictInfo?.explain ?? ""
 let eid = makeEntryID(sourceText: cleanText, targetLang: targetLang)
 
@@ -155,42 +170,80 @@ if !results.isEmpty {
     }
 }
 
+func iconForEngine(_ engineID: String) -> String {
+    switch engineID {
+    case "youdao": return "y.circle.fill"
+    case "apple": return "apple.logo"
+    case "openai", "gemini", "ollama": return "sparkles"
+    case "dictionary": return "character.book.closed.fill"
+    default: return "globe"
+    }
+}
+
 var items: [ViewItem] = []
 for (idx, res) in results.enumerated() {
     let prov = res.provider
     let txt = res.text
+    let rowActions: [ViewAction]? = showTranslateActions ? [
+        ViewAction(id: "speak-src-\(idx)", label: isEn ? "Speak Src" : "朗读原文", commandArgs: ["--speak", ttsVoices[srcLang] ?? "en-US", cleanText]),
+        ViewAction(id: "speak-dst-\(idx)", label: isEn ? "Speak Dst" : "朗读译文", commandArgs: ["--speak", ttsVoices[targetLang] ?? "en-US", txt]),
+        ViewAction(
+            id: "save-voc-\(idx)",
+            label: vocabIDs.contains(eid) ? "Saved ⭐" : (isEn ? "Save Word" : "加入生词本"),
+            commandArgs: vocabIDs.contains(eid)
+                ? ["--vocab"]
+                : ["--save-inline", eid, String(cleanText.prefix(200)), String(txt.prefix(300)), targetLang, String(phoneticNote.prefix(160))]
+        )
+    ] : nil
+
     items.append(ViewItem(
-        id: "res-\(idx)", title: txt,
+        id: "res-\(res.engineID)-\(idx)",
+        title: txt,
         subtitle: "\(prov) · \(srcLang) → \(targetLang)" + (isEn ? " · Return to Copy" : " · 回车复制译文"),
-        icon: prov.contains("LLM") || prov.contains("Ollama") ? "sparkles" : "globe",
-        badge: String(prov.uppercased().prefix(12)), copyText: txt,
-        actions: [
-            ViewAction(id: "speak-src-\(idx)", label: isEn ? "Speak Src" : "朗读原文", commandArgs: ["--speak", ttsVoices[srcLang] ?? "en-US", cleanText]),
-            ViewAction(id: "speak-dst-\(idx)", label: isEn ? "Speak Dst" : "朗读译文", commandArgs: ["--speak", ttsVoices[targetLang] ?? "en-US", txt]),
-            ViewAction(
-                id: "save-voc-\(idx)",
-                label: vocabIDs.contains(eid) ? "Saved ⭐" : (isEn ? "Save Word" : "加入生词本"),
-                commandArgs: vocabIDs.contains(eid)
-                    ? ["--vocab"]
-                    : ["--save-inline", eid, String(cleanText.prefix(200)), String(txt.prefix(300)), targetLang, String(phoneticNote.prefix(160))]
-            )
-        ]
+        icon: iconForEngine(res.engineID),
+        badge: String(res.engineID.uppercased().prefix(12)),
+        copyText: txt,
+        actions: rowActions
     ))
 }
 
-if let dictInfo, !dictInfo.explain.isEmpty {
+if showDictCard, let dictInfo, !dictInfo.explain.isEmpty {
     let rel = dictInfo.related.joined(separator: " · ")
+    let dictActions: [ViewAction]? = showTranslateActions ? [
+        ViewAction(id: "speak-src", label: isEn ? "Pronounce" : "原词发音", commandArgs: ["--speak", ttsVoices[srcLang] ?? "en-US", cleanText])
+    ] : nil
     items.append(ViewItem(
-        id: "dict-card", title: "📖 \(dictInfo.word) — \(dictInfo.explain)",
+        id: "dict-card",
+        title: "📖 \(dictInfo.word) — \(dictInfo.explain)",
         subtitle: rel.isEmpty ? (isEn ? "Dictionary Definition" : "词典词性与核心释义") : rel,
-        icon: "character.book.closed.fill", badge: "DICT", copyText: dictInfo.explain,
-        actions: [ViewAction(id: "speak-src", label: isEn ? "Pronounce" : "原词发音", commandArgs: ["--speak", ttsVoices[srcLang] ?? "en-US", cleanText])]
+        icon: "character.book.closed.fill",
+        badge: "DICT",
+        copyText: dictInfo.explain,
+        actions: dictActions
     ))
 }
 
-var mdLines = ["> \(cleanText)"]
-if let dictInfo, !dictInfo.explain.isEmpty {
-    mdLines.append("\n**\(isEn ? "Dictionary" : "词典释义")**：\(dictInfo.explain)")
+if (showEngineErrors || results.isEmpty) && !diagnostics.isEmpty {
+    for diag in diagnostics {
+        items.append(ViewItem(
+            id: "diag-\(diag.engineID)",
+            title: "\(diag.provider)：\(diag.message)",
+            subtitle: isEn ? "Engine diagnostic (toggleable in plugin settings)" : "引擎状态提示（可在插件设置中关闭错误提示）",
+            icon: "exclamationmark.triangle.fill",
+            tintColor: "orange",
+            badge: "NOTICE",
+            copyText: diag.message
+        ))
+    }
+}
+
+var markdownText: String? = nil
+if showMarkdownQuote {
+    var mdLines = ["> \(cleanText)"]
+    if showDictCard, let dictInfo, !dictInfo.explain.isEmpty {
+        mdLines.append("\n**\(isEn ? "Dictionary" : "词典释义")**：\(dictInfo.explain)")
+    }
+    markdownText = mdLines.joined(separator: "\n")
 }
 
 PluginOutput.emit(ViewPayload(
@@ -198,7 +251,7 @@ PluginOutput.emit(ViewPayload(
     title: String(primaryTrans.prefix(96)),
     subtitle: "[\(srcOrigin)] \(srcLang) → \(targetLang) · \(results.count) engine(s)",
     badge: "\(srcLang.uppercased())→\(targetLang.uppercased())",
-    markdown: mdLines.joined(separator: "\n"),
+    markdown: markdownText,
     items: items,
     effect: PostActionEffect(
         toast: toast, reloadSearchIndex: true,
