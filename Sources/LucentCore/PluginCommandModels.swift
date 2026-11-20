@@ -214,11 +214,11 @@ public enum PluginCommandRegistry {
             else if cmd.keywordsLowercased.contains(where: { $0.hasPrefix(needle) }) { base = 9_120 }
             else if cmd.titleLowercased.hasPrefix(needle) || cmd.localizedTitleLowercased.hasPrefix(needle) { base = 8_820 }
             else if cmd.pinyinInitials.hasPrefix(needle) { base = 8_460 }
-            else if cmd.fullPinyin.hasPrefix(needle) { base = 7_960 }
-            else if cmd.titleLowercased.contains(needle) || cmd.localizedTitleLowercased.contains(needle) { base = 7_150 }
-            else if cmd.keywordsLowercased.contains(where: { $0.contains(needle) }) { base = 6_850 }
-            else if cmd.pinyinInitials.contains(needle) || cmd.fullPinyin.contains(needle) { base = 6_350 }
-            else if cmd.subtitleLowercased.contains(needle) { base = 5_900 }
+            else if cmd.fullPinyin.hasPrefix(needle) { base = 8_050 }
+            else if cmd.titleLowercased.contains(needle) || cmd.localizedTitleLowercased.contains(needle) { base = 7_850 }
+            else if cmd.keywordsLowercased.contains(where: { $0.contains(needle) }) { base = 7_700 }
+            else if cmd.pinyinInitials.contains(needle) || cmd.fullPinyin.contains(needle) { base = 7_550 }
+            else if cmd.subtitleLowercased.contains(needle) { base = 7_400 }
 
             if base > 0 {
                 let qbBonus = cmd.isQuickButtonEnabled ? 160 : 0

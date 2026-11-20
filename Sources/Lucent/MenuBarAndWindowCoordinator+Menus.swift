@@ -68,7 +68,7 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
         }
         let dockItems: [MenuBarBuiltinItemID] = [
             .fileWorkspace, .networkMonitor, .launcherAll, .screenshotPin,
-            .gifRecord, .backupSync, .checkForUpdates, .switchLanguage, .settingsCenter
+            .gifRecord, .videoRecord, .backupSync, .checkForUpdates, .switchLanguage, .settingsCenter
         ]
         for id in dockItems {
             menu.addItem(makeBuiltinMenuItem(id, context: currentRuntimeContext()))
@@ -133,7 +133,7 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
         let updater = AppUpdateCoordinator.shared
         return MenuBarRuntimeContext(
             activePinCount: PinWindowController.shared.activePinCount,
-            activePluginWindowCount: PluginCustomWebWindowController.shared.activeWindowCount,
+            activePluginWindowCount: PluginCustomWebWindowController.shared.activeWindowCount + FileShelfPanels.shared.visibleCount,
             isSystemPulseFloatingVisible: pulseCfg.floatingEnabled,
             isLumaLinkAvailableOrEnabled: hasLumaLink,
             availableAppUpdateVersion: updater.availableAppRelease?.normalizedVersion,
@@ -227,8 +227,11 @@ extension MenuBarAndWindowCoordinator: NSMenuDelegate {
         case .screenshotPin: viewModel.captureAndPinScreenshot()
         case .screenshotOCR: viewModel.captureAndAnalyzeOCR()
         case .gifRecord: viewModel.startGifRecording()
+        case .videoRecord: viewModel.startVideoRecording()
         case .closeAllPins: PinWindowController.shared.closeAll()
-        case .closeAllPluginWindows: PluginCustomWebWindowController.shared.closeAll()
+        case .closeAllPluginWindows:
+            PluginCustomWebWindowController.shared.closeAll()
+            FileShelfPanels.shared.closeAll()
         case .backupSync: open(route: .settings(.backup))
         case .lumaLinkConsole: openLumaLinkConsole()
         case .cacheCleanup: open(route: .settings(.cache))

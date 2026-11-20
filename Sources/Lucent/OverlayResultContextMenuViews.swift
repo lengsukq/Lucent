@@ -80,6 +80,18 @@ extension OverlayUnifiedRowsView {
         default:
             Button { viewModel.executeCandidate(candidate) } label: { Label("执行", systemImage: "play.fill") }
         }
+        let affinityClicks = SearchAffinityStore.shared.clickCount(for: candidate)
+        if affinityClicks > 0 {
+            Divider()
+            Button(role: .destructive) {
+                viewModel.resetSearchAffinity(for: candidate)
+            } label: {
+                Label(
+                    L10n.pick("重置此项搜索热度（已选 \(affinityClicks) 次）", "Reset Search Affinity (\(affinityClicks) clicks)"),
+                    systemImage: "arrow.counterclockwise"
+                )
+            }
+        }
     }
 
     @ViewBuilder
@@ -114,7 +126,7 @@ extension OverlayUnifiedRowsView {
         if !matched.isEmpty {
             Menu("发送到扩展插件") {
                 ForEach(matched) { plugin in
-                    Button(plugin.displayName) { viewModel.runPluginWithContext(plugin, context: ctx) }
+                    Button(plugin.fileContextActionTitle) { viewModel.runPluginWithContext(plugin, context: ctx) }
                 }
             }
         }

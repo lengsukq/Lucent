@@ -3,88 +3,6 @@ import LucentMedia
 import AppKit
 import Foundation
 
-public struct PluginBridgeHostContext: Sendable {
-    public let everythingIndex: EverythingIndex?
-    public let clipboardReader: @Sendable () -> String
-    public let clipboardWriter: @Sendable (String) -> Bool
-    public let selectionReader: @Sendable () -> PluginSelectionSnapshot
-    public let preCapturedSelection: PluginSelectionSnapshot?
-    public let pluginID: String?
-    public let pluginName: String?
-    public let pluginDirectoryURL: URL?
-    public let manifestWindowDefaults: PluginManifestWindowDefaults?
-    public let pasteBackHandler: (@Sendable (String) -> PluginPasteBackOutcome)?
-    public let interactiveCaptureHandler: (@Sendable () throws -> PluginCapturedScreenFile)?
-    public let customWindowOpener: (@Sendable (PluginCustomWindowSpec) -> Bool)?
-    public let customWindowCloser: (@Sendable (String, String) -> Bool)?
-    public let progressReporter: (@Sendable (PluginExecutionProgress) -> Void)?
-
-    public init(
-        everythingIndex: EverythingIndex? = nil,
-        clipboardReader: (@Sendable () -> String)? = nil,
-        clipboardWriter: (@Sendable (String) -> Bool)? = nil,
-        selectionReader: (@Sendable () -> PluginSelectionSnapshot)? = nil,
-        preCapturedSelection: PluginSelectionSnapshot? = nil,
-        pluginID: String? = nil,
-        pluginName: String? = nil,
-        pluginDirectoryURL: URL? = nil,
-        manifestWindowDefaults: PluginManifestWindowDefaults? = nil,
-        pasteBackHandler: (@Sendable (String) -> PluginPasteBackOutcome)? = nil,
-        interactiveCaptureHandler: (@Sendable () throws -> PluginCapturedScreenFile)? = nil,
-        customWindowOpener: (@Sendable (PluginCustomWindowSpec) -> Bool)? = nil,
-        customWindowCloser: (@Sendable (String, String) -> Bool)? = nil,
-        progressReporter: (@Sendable (PluginExecutionProgress) -> Void)? = nil
-    ) {
-        self.everythingIndex = everythingIndex
-        self.clipboardReader = clipboardReader ?? {
-            Self.runOnMainSync { NSPasteboard.general.string(forType: .string) ?? "" }
-        }
-        self.clipboardWriter = clipboardWriter ?? { text in
-            Self.runOnMainSync {
-                NSPasteboard.general.clearContents()
-                return NSPasteboard.general.setString(text, forType: .string)
-            }
-        }
-        self.selectionReader = selectionReader ?? { PluginSelectionReader.captureFrontmostSelection() }
-        self.preCapturedSelection = preCapturedSelection
-        self.pluginID = pluginID
-        self.pluginName = pluginName
-        self.pluginDirectoryURL = pluginDirectoryURL
-        self.manifestWindowDefaults = manifestWindowDefaults
-        self.pasteBackHandler = pasteBackHandler
-        self.interactiveCaptureHandler = interactiveCaptureHandler
-        self.customWindowOpener = customWindowOpener
-        self.customWindowCloser = customWindowCloser
-        self.progressReporter = progressReporter
-    }
-
-    public func scoped(to descriptor: PluginDescriptor) -> PluginBridgeHostContext {
-        PluginBridgeHostContext(
-            everythingIndex: everythingIndex,
-            clipboardReader: clipboardReader,
-            clipboardWriter: clipboardWriter,
-            selectionReader: selectionReader,
-            preCapturedSelection: preCapturedSelection,
-            pluginID: descriptor.id,
-            pluginName: descriptor.displayName,
-            pluginDirectoryURL: descriptor.directoryURL,
-            manifestWindowDefaults: descriptor.manifest.window,
-            pasteBackHandler: pasteBackHandler,
-            interactiveCaptureHandler: interactiveCaptureHandler,
-            customWindowOpener: customWindowOpener,
-            customWindowCloser: customWindowCloser,
-            progressReporter: progressReporter
-        )
-    }
-
-    public static let `default` = PluginBridgeHostContext()
-
-    private static func runOnMainSync<T: Sendable>(_ work: @MainActor @Sendable () -> T) -> T {
-        if Thread.isMainThread { return MainActor.assumeIsolated(work) }
-        return DispatchQueue.main.sync { MainActor.assumeIsolated(work) }
-    }
-}
-
 public enum PluginHostBridgeHandlers {
     public static func dispatch(
         capability: PluginCapability,
@@ -189,6 +107,22 @@ public enum PluginHostBridgeHandlers {
 
         case .systemControl:
             return handleSystemControl(action: action, params: params)
+
+        case .fileShelf:
+            guard action == "open" || action == "addContextItems", params.isEmpty else {
+                return errorJSON("invalid_action", "Expected open or addContextItems without parameters", capability: capability)
+            }
+            guard let id = hostContext.pluginID, let perform = hostContext.fileShelfAction,
+                  perform(id, action == "addContextItems") else {
+                return errorJSON("shelf_unavailable", "No authorized file shelf or selected files", capability: capability)
+            }
+            return okJSON(capability, action, ["opened": true])
+
+        case .audioDevices:
+            guard hostContext.allowsAudioDevices else {
+                return errorJSON("unsupported_context", "Audio devices require the Lucent desktop host", capability: capability)
+            }
+            return PluginAudioDeviceRouter.shared.dispatch(action, params: params, feedback: hostContext.audioFeedback)
 
         case .lumaLinkStatus:
             return handleLumaLinkBridge(action: action, params: params)

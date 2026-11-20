@@ -106,6 +106,9 @@ public enum PluginSandboxProfileBuilder {
         }
 
         // 不可覆盖底线（置于末尾，在 SBPL 后规则优先语义下拥有最高优先级）：严禁读取宿主密钥库或系统钥匙串
+        let shelfRoot = URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/Lucent")
+            .appendingPathComponent(FileShelfStore.directoryName, isDirectory: true)
+        lines.append("(deny file-read* file-write* (subpath \"\(escapeSBPL(canonicalPath(shelfRoot)))\"))")
         let keychainsPath = "\(home)/Library/Keychains"
         lines.append("(deny file-read* file-write* (subpath \"\(escapeSBPL(keychainsPath))\"))")
         var seenVaults = Set<String>()

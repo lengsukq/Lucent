@@ -34,7 +34,7 @@ struct WorkspaceEntryContextMenu: View {
             if !matchedPlugins.isEmpty {
                 Menu("发送到扩展插件") {
                     ForEach(matchedPlugins) { plugin in
-                        Button(plugin.manifest.name) {
+                        Button(plugin.fileContextActionTitle) {
                             viewModel.runPluginWithContext(plugin, context: ctx)
                         }
                     }

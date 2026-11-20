@@ -74,7 +74,8 @@ extension PluginSystem {
             case .audio: "stop"
             case .ocr: "recognize"
             case .everythingSearch: "search"
-            case .displayInfo: "list"
+            case .displayInfo, .audioDevices: "list"
+            case .fileShelf: "open"
             }
             return """
             #!/bin/zsh

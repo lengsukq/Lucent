@@ -6,6 +6,7 @@ extension AppViewModel {
     func reloadPlugins() {
         let loaded = PluginSystem.listPlugins(includeBuiltin: true, includeSecrets: false)
         plugins = loaded
+        FileShelfPanels.shared.synchronize(plugins: loaded)
         pluginCommands = PluginCommandRegistry.registeredCommands(for: loaded)
         enabledQuickButtons = PluginCommandRegistry.enabledQuickButtons(for: loaded)
         pluginSearchEntries = PluginSearchIndex.loadEntries(for: loaded)
@@ -181,13 +182,14 @@ extension AppViewModel {
         contextPayload: PluginContextPayload? = nil,
         showInline: Bool = false
     ) {
+        guard let plugin = authorizeFileShelfIfNeeded(plugin) else { return }
         let runToken = runtime.beginForegroundRun()
         isRunningPlugin = true
         PluginSystem.recordPluginUsage(id: plugin.id)
         let clipText = clipboardItems.first(where: { $0.textValue != nil })?.textValue
             ?? NSPasteboard.general.string(forType: .string)
             ?? ""
-        let bridgeContext = makePluginBridgeContext()
+        let bridgeContext = buildRichPluginBridgeContext(shelfContext: contextPayload)
         serviceMessage = L10n.pick("正在执行：\(plugin.displayName)…", "Running \(plugin.displayName)…")
         runtime.pluginRunTask = Task { [weak self] in
             defer {

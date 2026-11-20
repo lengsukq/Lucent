@@ -21,6 +21,8 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
     case everythingSearch
     case displayInfo
     case systemControl
+    case fileShelf
+    case audioDevices
     case lumaLinkStatus
 
     public var id: String { rawValue }
@@ -38,6 +40,8 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .everythingSearch: L10n.pick("搜索本地文件", "Local File Search")
         case .displayInfo: L10n.pick("读取屏幕分辨率", "Display Info")
         case .systemControl: L10n.pick("系统音量与防休眠控制", "System & Screen Shield Control")
+        case .fileShelf: L10n.pick("文件中转站", "File Shelf")
+        case .audioDevices: L10n.pick("切换默认音频设备", "Switch Default Audio Devices")
         case .lumaLinkStatus: L10n.pick("读取远程控制状态", "LumaLink Remote Status")
         }
     }
@@ -55,6 +59,8 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .everythingSearch: L10n.pick("查询 Lucent 已建立的本机文件名索引", "Query Lucent's local filename index")
         case .displayInfo: L10n.pick("查看当前连接的显示器数量和屏幕尺寸", "Read connected displays and screen resolutions")
         case .systemControl: L10n.pick("按指令调节系统音量、防休眠或开启清洁防误触遮罩", "Adjust volume, keep awake, or show the screen-cleaning shield")
+        case .fileShelf: L10n.pick("打开中转站并放入用户选中的文件", "Open the shelf and add files selected by the user")
+        case .audioDevices: L10n.pick("查看并切换系统默认麦克风与扬声器", "Read and switch the system default microphone and speakers")
         case .lumaLinkStatus: L10n.pick("查看 LumaLink 局域网远程服务状态（不含敏感凭证）", "Read redacted LumaLink remote-control connection status")
         }
     }
@@ -72,6 +78,8 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .everythingSearch: "magnifyingglass"
         case .displayInfo: "display"
         case .systemControl: "speaker.wave.2.fill"
+        case .fileShelf: "tray.full"
+        case .audioDevices: "headphones"
         case .lumaLinkStatus: "ipad.and.iphone"
         }
     }

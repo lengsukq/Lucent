@@ -4,7 +4,7 @@ import Foundation
 import LucentCore
 
 extension AppViewModel {
-    func buildRichPluginBridgeContext() -> PluginBridgeHostContext {
+    func buildRichPluginBridgeContext(shelfContext: PluginContextPayload? = nil) -> PluginBridgeHostContext {
         PluginBridgeHostContext(
             everythingIndex: everythingIndex,
             preCapturedSelection: lastCapturedSelection,
@@ -37,6 +37,21 @@ extension AppViewModel {
                 Self.runOnMainActorSync {
                     PluginCustomWebWindowController.shared.close(pluginID: pluginID, windowID: windowID)
                 }
+            },
+            fileShelfAction: { [weak self] id, adding in
+                guard let self else { return false }
+                return Self.runOnMainActorSync {
+                    guard self.plugins.contains(where: {
+                        $0.id == id && $0.isEnabled && $0.isValid && $0.isCapabilityGranted(.fileShelf)
+                    }) else { return false }
+                    let urls = adding ? (shelfContext?.filePaths ?? []).map { URL(fileURLWithPath: $0) } : []
+                    guard !adding || !urls.isEmpty else { return false }
+                    return FileShelfPanels.shared.open(pluginID: id, urls: urls, takeFocus: !adding)
+                }
+            },
+            allowsAudioDevices: true,
+            audioFeedback: { input, output in
+                Task { @MainActor in AudioPresetHUD.shared.present(input: input, output: output) }
             },
             progressReporter: { [weak self] progress in
                 Task { @MainActor [weak self] in

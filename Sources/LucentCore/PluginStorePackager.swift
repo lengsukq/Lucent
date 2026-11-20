@@ -69,6 +69,9 @@ public enum PluginStorePackager {
         let effectiveDownloadURL = (downloadURL?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? "./\(pluginID).zip"
         let effectiveMinApp = (minAppVersion?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? m.minAppVersion
 
+        let registryIcon = [m.icon, m.commands?.first?.icon].compactMap { $0 }.first {
+            !PluginIconResolver.looksLikeRelativeFilePath($0)
+        }
         let item = PluginStoreItem(
             id: m.id,
             name: m.name,
@@ -77,7 +80,7 @@ public enum PluginStorePackager {
             changelog: changelog,
             description: m.description,
             author: m.author,
-            icon: (m.icon.map { PluginIconResolver.looksLikeRelativeFilePath($0) ? nil : $0 }) ?? nil,
+            icon: registryIcon,
             accentColor: m.accentColor,
             categoryTag: m.categoryTag,
             mode: m.mode,
