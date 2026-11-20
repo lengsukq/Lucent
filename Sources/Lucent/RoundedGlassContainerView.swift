@@ -43,7 +43,7 @@ final class RoundedGlassContainerView: NSVisualEffectView {
     func applyCurrentThemeMetrics(force: Bool) {
         let isPrism = ThemeManager.currentSnapshot == .prismPulse
         material = isPrism ? .popover : .menu
-        updateCornerRadius(LiquidRadii.panel, force: force)
+        updateCornerRadius(currentCornerRadius, force: force)
         updateRimAppearance()
     }
 

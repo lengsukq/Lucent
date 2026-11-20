@@ -150,8 +150,9 @@ extension AppViewModel {
         overlayQuery = initialQuery
         let hasIndexedItems = pluginSearchEntries.contains { $0.pluginID == plugin.id }
             || !plugin.declaredCommands.isEmpty
+        let hasDirectFloatingSurface = plugin.manifest.window != nil || plugin.declaredCapabilities.contains(.fileShelf)
         if !hasIndexedItems
-            || (initialQuery.isEmpty && !plugin.isBuiltin && plugin.manifest.mode == .view && plugin.manifest.window == nil) {
+            || (initialQuery.isEmpty && !plugin.isBuiltin && plugin.manifest.mode == .view && !hasDirectFloatingSurface) {
             runPlugin(plugin, query: initialQuery, showInline: true)
         } else if !plugin.isBuiltin && PluginDataInspector.inspect(plugin).needsAutoRefresh {
             runBackgroundPluginSync(plugin)

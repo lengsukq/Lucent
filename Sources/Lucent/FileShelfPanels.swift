@@ -94,11 +94,11 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
-        panel.level = .floating
+        panel.level = .statusBar
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = true
         panel.isMovableByWindowBackground = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         super.init(window: panel)
         panel.delegate = self
 
@@ -135,6 +135,7 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
             if !cursorVis.intersects(window.frame) {
                 panelState.settings.anchorMidY = Double(cursorVis.midY)
             }
+            saveSettings()
         } else {
             isManuallyRevealed = false
         }

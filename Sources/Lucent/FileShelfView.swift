@@ -21,7 +21,7 @@ struct FileShelfView: View {
     }
 
     var body: some View {
-        let highContrast = SystemDisplayPreferences.shared.increaseContrast
+        let prefs = SystemDisplayPreferences.shared.snapshot
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         Group {
             switch panelState.mode {
@@ -43,12 +43,13 @@ struct FileShelfView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.shellTint.opacity(0.84)))
         .clipShape(shape)
         .overlay {
             if isDropTarget {
                 shape.strokeBorder(Color.teal, lineWidth: 2.0).allowsHitTesting(false)
             } else {
-                DoubleSpecularBorder(cornerRadius: cornerRadius, isShell: true, highContrast: highContrast)
+                DoubleSpecularBorder(cornerRadius: cornerRadius, isShell: true, highContrast: prefs.increaseContrast)
             }
         }
         .onDrop(of: [.fileURL], isTargeted: $isDropTarget, perform: accept)

@@ -23,6 +23,14 @@ extension AppViewModel {
             return nil
         }
     }
+
+    func openFileShelfDirectly(_ plugin: PluginDescriptor) {
+        guard let authorized = authorizeFileShelfIfNeeded(plugin) else { return }
+        PluginSystem.recordPluginUsage(id: authorized.id)
+        if !FileShelfPanels.shared.open(pluginID: authorized.id, urls: [], takeFocus: true, expandIfTucked: true) {
+            serviceMessage = L10n.pick("无法打开文件中转站。", "Unable to open File Shelf.")
+        }
+    }
 }
 
 

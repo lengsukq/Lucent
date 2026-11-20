@@ -119,9 +119,18 @@ struct PluginDedicatedSettingsView: View {
                     }
                     .buttonStyle(GlassPillButtonStyle(prominent: true))
                     .disabled(!plugin.isEnabled || !plugin.isValid)
+                } else if plugin.declaredCapabilities.contains(.fileShelf) {
+                    Button {
+                        viewModel.openFileShelfDirectly(plugin)
+                    } label: {
+                        Label(L10n.pick("打开文件中转站悬浮窗", "Open File Shelf"), systemImage: "tray.full.fill")
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: true))
+                    .disabled(!plugin.isEnabled || !plugin.isValid)
                 }
+                let hasDirectWindowButton = plugin.manifest.window != nil || plugin.declaredCapabilities.contains(.fileShelf)
                 Button(L10n.pick("在快捷台打开 ↩", "Open in Launcher ↩")) { viewModel.enterPluginScopedOverlay(plugin) }
-                    .buttonStyle(GlassPillButtonStyle(prominent: plugin.manifest.window == nil))
+                    .buttonStyle(GlassPillButtonStyle(prominent: !hasDirectWindowButton))
                     .disabled(!plugin.isEnabled || !plugin.isValid)
                 Button(L10n.pick("插件市场 →", "Plugin Store →")) {
                     viewModel.activePluginSettingsID = nil; viewModel.activeSettingsSection = .plugins

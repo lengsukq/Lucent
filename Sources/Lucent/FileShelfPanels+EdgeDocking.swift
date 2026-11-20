@@ -40,6 +40,12 @@ final class FileShelfHoverTrackingView: NSView {
     }
 }
 
+private final class UnconstrainedFileShelfHostingView<Content: View>: NSHostingView<Content> {
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+    }
+}
+
 @MainActor
 extension FileShelfPanelController {
     var currentShellCornerRadius: CGFloat {
@@ -54,8 +60,6 @@ extension FileShelfPanelController {
         guard let window else { return }
         let radius = currentShellCornerRadius
         let glass = RoundedGlassContainerView(cornerRadius: radius)
-        glass.frame = NSRect(origin: .zero, size: window.frame.size)
-        glass.autoresizingMask = [.width, .height]
         lastAppliedCornerRadius = radius
         glassView = glass
 
@@ -74,18 +78,27 @@ extension FileShelfPanelController {
             clear: { [weak self] in self?.confirmClear() }
         )
         let root = FileShelfView(model: model, panelState: panelState, actions: actions)
-        let hosting = NSHostingView(rootView: LocalizedRootContainer { root })
+        let hosting = UnconstrainedFileShelfHostingView(rootView: LocalizedRootContainer { root })
         hosting.sizingOptions = []
+        hosting.translatesAutoresizingMaskIntoConstraints = false
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
 
-        let tracker = FileShelfHoverTrackingView(frame: glass.bounds)
-        tracker.autoresizingMask = [.width, .height]
+        let tracker = FileShelfHoverTrackingView()
+        tracker.translatesAutoresizingMaskIntoConstraints = false
         tracker.onHoverChanged = { [weak self] hovered in self?.setHovered(hovered) }
-        hosting.frame = tracker.bounds
-        hosting.autoresizingMask = [.width, .height]
         tracker.addSubview(hosting)
         glass.addSubview(tracker)
+        NSLayoutConstraint.activate([
+            tracker.leadingAnchor.constraint(equalTo: glass.leadingAnchor),
+            tracker.trailingAnchor.constraint(equalTo: glass.trailingAnchor),
+            tracker.topAnchor.constraint(equalTo: glass.topAnchor),
+            tracker.bottomAnchor.constraint(equalTo: glass.bottomAnchor),
+            hosting.leadingAnchor.constraint(equalTo: tracker.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: tracker.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: tracker.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: tracker.bottomAnchor)
+        ])
         hoverContainer = tracker
         window.contentView = glass
     }
@@ -102,7 +115,10 @@ extension FileShelfPanelController {
         if panelState.mode != nextMode {
             panelState.mode = nextMode
         }
-        let visible = preferCursorScreen ? activeVisibleFrame : (window.screen?.visibleFrame ?? activeVisibleFrame)
+        let targetScreen = preferCursorScreen
+            ? (ScreenTopologyAndWindowMatcher.activeCursorScreen() ?? NSScreen.main)
+            : (window.screen ?? ScreenTopologyAndWindowMatcher.activeCursorScreen() ?? NSScreen.main)
+        let visible = targetScreen?.visibleFrame ?? activeVisibleFrame
         let size = FileShelfEdgeGeometry.targetSize(for: nextMode, isEmpty: model.rows.isEmpty, visibleFrame: visible)
         let anchorY = panelState.settings.anchorMidY.map { CGFloat($0) }
         let targetFrame = FileShelfEdgeGeometry.frame(
@@ -119,8 +135,9 @@ extension FileShelfPanelController {
             glassView?.updateCornerRadius(radius, force: true)
         }
         guard !NSEqualRects(window.frame, targetFrame) else { return }
+        let movingAcrossDisplays = window.screen != nil && targetScreen != nil && window.screen !== targetScreen
         isApplyingFrame = true
-        let allowAnimate = animate && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let allowAnimate = animate && !movingAcrossDisplays && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         if allowAnimate {
             WindowMotionAnimator.animateFrame(window, to: targetFrame, duration: 0.20) { [weak self] in
                 self?.isApplyingFrame = false
