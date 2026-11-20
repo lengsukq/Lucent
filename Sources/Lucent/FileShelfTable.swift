@@ -1,7 +1,25 @@
 import AppKit
 import LucentCore
-import QuickLookThumbnailing
 import SwiftUI
+
+@MainActor
+final class ShelfTableRowView: NSTableRowView {
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard selectionHighlightStyle != .none else { return }
+        let inset = bounds.insetBy(dx: 4, dy: 1.5)
+        let path = NSBezierPath(roundedRect: inset, xRadius: 11, yRadius: 11)
+        NSColor.systemTeal.withAlphaComponent(0.18).setFill()
+        path.fill()
+        NSColor.systemTeal.withAlphaComponent(0.36).setStroke()
+        path.lineWidth = 0.85
+        path.stroke()
+    }
+
+    override var isEmphasized: Bool {
+        get { false }
+        set {}
+    }
+}
 
 @MainActor
 final class ShelfTableView: NSTableView {
@@ -9,6 +27,7 @@ final class ShelfTableView: NSTableView {
     var clearSelectionItems: (() -> Void)?
     var searchFiles: (() -> Void)?
     var previewSelection: (() -> Void)?
+    var contextMenuBuilder: ((Int) -> NSMenu?)?
 
     @objc func copy(_ sender: Any?) { copyFiles?() }
 
@@ -21,6 +40,16 @@ final class ShelfTableView: NSTableView {
         default: super.keyDown(with: event)
         }
     }
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let point = convert(event.locationInWindow, from: nil)
+        let row = row(at: point)
+        guard row >= 0 else { return nil }
+        if !selectedRowIndexes.contains(row) {
+            selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        }
+        return contextMenuBuilder?(row)
+    }
 }
 
 struct FileShelfTable: NSViewRepresentable {
@@ -28,6 +57,7 @@ struct FileShelfTable: NSViewRepresentable {
     let focusSearch: () -> Void
     let preview: (FileShelfRowState) -> Void
     let locate: (FileShelfRowState) -> Void
+    let onDraggedOut: (Set<UUID>) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(table: self) }
 
@@ -40,9 +70,9 @@ struct FileShelfTable: NSViewRepresentable {
         table.headerView = nil
         table.backgroundColor = .clear
         table.allowsMultipleSelection = true
-        table.rowHeight = 51
-        table.intercellSpacing = NSSize(width: 0, height: 3)
-        table.style = .inset
+        table.rowHeight = 52
+        table.intercellSpacing = NSSize(width: 0, height: 4)
+        table.style = .plain
         table.usesAlternatingRowBackgroundColors = false
         table.setDraggingSourceOperationMask(.copy, forLocal: true)
         table.setDraggingSourceOperationMask(.copy, forLocal: false)
@@ -52,6 +82,8 @@ struct FileShelfTable: NSViewRepresentable {
         table.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
         table.delegate = context.coordinator
         table.dataSource = context.coordinator
+        table.target = context.coordinator
+        table.doubleAction = #selector(Coordinator.handleDoubleClick(_:))
         table.setAccessibilityLabel(L10n.pick("暂放文件", "Shelved files"))
         table.copyFiles = { [weak coordinator = context.coordinator] in coordinator?.table.model.copySelected() }
         table.clearSelectionItems = { [weak coordinator = context.coordinator] in coordinator?.table.model.removeSelected() }
@@ -59,6 +91,9 @@ struct FileShelfTable: NSViewRepresentable {
         table.previewSelection = { [weak coordinator = context.coordinator] in
             guard let coordinator, let row = coordinator.table.model.selectedRows.first else { return }
             if row.url != nil { coordinator.table.preview(row) } else { coordinator.table.locate(row) }
+        }
+        table.contextMenuBuilder = { [weak coordinator = context.coordinator] index in
+            coordinator?.buildContextMenu(for: index)
         }
         scroll.documentView = table
         return scroll
@@ -76,6 +111,7 @@ struct FileShelfTable: NSViewRepresentable {
         private var rows: [FileShelfRowState] = []
         private var updating = false
         private var lastSelection: Set<UUID> = []
+        private var activeDraggedIDs: Set<UUID> = []
 
         init(table: FileShelfTable) { self.table = table }
 
@@ -95,6 +131,10 @@ struct FileShelfTable: NSViewRepresentable {
 
         func numberOfRows(in tableView: NSTableView) -> Int { rows.count }
 
+        func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+            ShelfTableRowView()
+        }
+
         func tableViewSelectionDidChange(_ notification: Notification) {
             guard !updating, let view = notification.object as? NSTableView else { return }
             let selection = Set(view.selectedRowIndexes.compactMap { rows.indices.contains($0) ? rows[$0].id : nil })
@@ -104,10 +144,13 @@ struct FileShelfTable: NSViewRepresentable {
         func tableView(_ view: NSTableView, viewFor tableColumn: NSTableColumn?, row index: Int) -> NSView? {
             guard rows.indices.contains(index) else { return nil }
             let row = rows[index]
-            let root = ShelfRowContent(row: row) { [weak self] in
+            let root = FileShelfRowContent(row: row) { [weak self] in
                 if row.url != nil { self?.table.preview(row) } else { self?.table.locate(row) }
             }
-            return NSHostingView(rootView: root)
+            let hosting = NSHostingView(rootView: root)
+            hosting.wantsLayer = true
+            hosting.layer?.backgroundColor = NSColor.clear.cgColor
+            return hosting
         }
 
         func tableView(_ view: NSTableView, pasteboardWriterForRow index: Int) -> (any NSPasteboardWriting)? {
@@ -115,49 +158,63 @@ struct FileShelfTable: NSViewRepresentable {
                   let url = table.model.validatedURLs(for: [rows[index]]).first else { return nil }
             return url as NSURL
         }
+
+        func tableView(_ tableView: NSTableView, draggingSession session: NSDraggingSession,
+                       willBeginAt screenPoint: NSPoint, forRowIndexes rowIndexes: IndexSet) {
+            activeDraggedIDs = Set(rowIndexes.compactMap { rows.indices.contains($0) ? rows[$0].id : nil })
+        }
+
+        func tableView(_ tableView: NSTableView, draggingSession session: NSDraggingSession,
+                       endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+            let dragged = activeDraggedIDs
+            activeDraggedIDs = []
+            guard !dragged.isEmpty, operation != [] else { return }
+            table.onDraggedOut(dragged)
+        }
+
+        @objc func handleDoubleClick(_ sender: NSTableView) {
+            let idx = sender.clickedRow
+            guard rows.indices.contains(idx) else { return }
+            let row = rows[idx]
+            if row.url != nil { table.model.open([row]) } else { table.locate(row) }
+        }
+
+        func buildContextMenu(for index: Int) -> NSMenu? {
+            guard rows.indices.contains(index) else { return nil }
+            let targets = table.model.selectedRows.isEmpty ? [rows[index]] : table.model.selectedRows
+            let primary = rows[index]
+            let menu = NSMenu()
+            if primary.url != nil {
+                menu.addItem(makeItem(L10n.pick("打开", "Open")) { [weak self] in self?.table.model.open(targets) })
+                menu.addItem(makeItem(L10n.pick("快速查看", "Quick Look")) { [weak self] in self?.table.preview(primary) })
+                menu.addItem(makeItem(L10n.pick("在访达中显示", "Reveal in Finder")) { [weak self] in self?.table.model.revealInFinder(targets) })
+                menu.addItem(.separator())
+                menu.addItem(makeItem(L10n.pick("复制文件", "Copy Files")) { [weak self] in self?.table.model.copyFiles(for: targets) })
+                menu.addItem(makeItem(L10n.pick("复制路径", "Copy Paths")) { [weak self] in self?.table.model.copyPaths(for: targets) })
+            } else {
+                menu.addItem(makeItem(L10n.pick("重新定位源文件…", "Locate Original…")) { [weak self] in self?.table.locate(primary) })
+            }
+            menu.addItem(.separator())
+            menu.addItem(makeItem(L10n.pick("从中转站移出", "Remove from Shelf")) { [weak self] in
+                self?.table.model.remove(ids: Set(targets.map(\.id)))
+            })
+            return menu
+        }
+
+        private func makeItem(_ title: String, action: @escaping () -> Void) -> NSMenuItem {
+            ShelfContextMenuItem(title: title, callback: action)
+        }
     }
 }
 
-private struct ShelfRowContent: View {
-    let row: FileShelfRowState
-    let activate: () -> Void
-    @State private var thumbnail: NSImage?
-
-    var body: some View {
-        HStack(spacing: 9) {
-            Group {
-                if let thumbnail { Image(nsImage: thumbnail).resizable().scaledToFit() }
-                else { Image(systemName: row.url == nil ? "doc.badge.ellipsis" : "doc.fill")
-                    .font(.system(size: 17)).foregroundStyle(row.url == nil ? Color.secondary : Color.teal) }
-            }
-            .frame(width: 35, height: 34)
-            .background(LiquidColors.solidCardSurface, in: RoundedRectangle(cornerRadius: 8))
-            .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(row.name).font(.system(size: 13, weight: .medium)).lineLimit(1).truncationMode(.middle)
-                Text(row.detail).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
-            }
-            Spacer(minLength: 4)
-            if row.availability != nil {
-                let label = row.url == nil ? L10n.pick("重新定位", "Locate") : L10n.pick("快速查看", "Quick Look")
-                Button(action: activate) {
-                    Image(systemName: row.url == nil ? "link" : "eye").frame(width: 28, height: 28)
-                }
-                .buttonStyle(.borderless).help(label).accessibilityLabel(label)
-            }
-        }
-        .padding(.horizontal, 7)
-        .help("\(row.name) · \(row.detail)")
-        .task(id: row.url) {
-            thumbnail = nil
-            guard let url = row.url else { return }
-            let values = try? url.resourceValues(forKeys: [.isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey])
-            if values?.isUbiquitousItem == true && values?.ubiquitousItemDownloadingStatus != .current { return }
-            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 72, height: 64),
-                                                       scale: 2, representationTypes: [.icon, .thumbnail])
-            defer { QLThumbnailGenerator.shared.cancel(request) }
-            if let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request),
-               !Task.isCancelled { thumbnail = representation.nsImage }
-        }
+@MainActor
+private final class ShelfContextMenuItem: NSMenuItem {
+    private let callback: () -> Void
+    init(title: String, callback: @escaping () -> Void) {
+        self.callback = callback
+        super.init(title: title, action: #selector(run), keyEquivalent: "")
+        self.target = self
     }
+    @available(*, unavailable) required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    @objc private func run() { callback() }
 }

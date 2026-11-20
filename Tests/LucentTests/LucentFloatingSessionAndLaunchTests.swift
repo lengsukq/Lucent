@@ -103,6 +103,14 @@ struct LucentFloatingSessionAndLaunchTests {
         FloatingWindowSessionStore.pruneOrphanPinnedFiles(keeping: [keepFile.path], in: pinDir)
         #expect(FileManager.default.fileExists(atPath: keepFile.path) == true)
         #expect(FileManager.default.fileExists(atPath: orphanFile.path) == false)
+
+        // 4. File shelf plugin IDs persist, deduplicate, reject unsafe IDs, and remove cleanly.
+        FloatingWindowSessionStore.upsertFileShelf(pluginID: "file-shelf", at: sessionURL)
+        FloatingWindowSessionStore.upsertFileShelf(pluginID: "file-shelf", at: sessionURL)
+        FloatingWindowSessionStore.upsertFileShelf(pluginID: "../escape", at: sessionURL)
+        #expect(FloatingWindowSessionStore.load(from: sessionURL).fileShelfPluginIDs == ["file-shelf"])
+        FloatingWindowSessionStore.removeFileShelf(pluginID: "file-shelf", at: sessionURL)
+        #expect(FloatingWindowSessionStore.load(from: sessionURL).fileShelfPluginIDs.isEmpty)
     }
 
     @Test("GeneralPreferences.restoreFloatingWindowsOnLaunch defaults true and decodes legacy JSON safely")

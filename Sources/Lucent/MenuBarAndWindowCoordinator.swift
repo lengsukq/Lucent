@@ -88,6 +88,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         for (_, ctrl) in pluginPanelControllers { ctrl.stop() }
         pluginPanelControllers.removeAll()
         PluginCustomWebWindowController.shared.closeAll(clearPersistedSession: false)
+        FileShelfPanels.shared.closeAll(clearPersistedSession: false)
         SearchAffinityStore.shared.flush()
         AppUsageTrackerController.shared.flushNow(); AppUsageTrackerController.shared.stopMonitoring()
         if GifCaptureController.shared.isActive { GifCaptureController.shared.cancelCapture() }

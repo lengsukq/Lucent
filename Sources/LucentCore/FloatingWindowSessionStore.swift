@@ -97,22 +97,30 @@ public struct PersistedFloatingWindowSession: Codable, Sendable, Equatable {
     public static let maxPluginCustomWindows = 12
     public static let maxPluginFloatingPanels = 8
     public static let maxPinnedImages = 16
+    public static let maxFileShelves = 4
 
     public var schemaVersion: Int
     public var pluginCustomWindows: [PersistedPluginCustomWindow]
     public var pluginFloatingPanels: [PluginFloatingPanelRequest]
     public var pinnedImages: [PersistedPinnedImageWindow]
+    public var fileShelfPluginIDs: [String]
 
     public init(
         schemaVersion: Int = 1,
         pluginCustomWindows: [PersistedPluginCustomWindow] = [],
         pluginFloatingPanels: [PluginFloatingPanelRequest] = [],
-        pinnedImages: [PersistedPinnedImageWindow] = []
+        pinnedImages: [PersistedPinnedImageWindow] = [],
+        fileShelfPluginIDs: [String] = []
     ) {
         self.schemaVersion = schemaVersion
         self.pluginCustomWindows = Array(pluginCustomWindows.filter(\.isPersistable).suffix(Self.maxPluginCustomWindows))
         self.pluginFloatingPanels = Array(pluginFloatingPanels.suffix(Self.maxPluginFloatingPanels))
         self.pinnedImages = Array(pinnedImages.suffix(Self.maxPinnedImages))
+        var seenShelves = Set<String>()
+        self.fileShelfPluginIDs = Array(
+            fileShelfPluginIDs.filter { PluginSystem.isSafePluginID($0) && seenShelves.insert($0).inserted }
+                .suffix(Self.maxFileShelves)
+        )
     }
 
     public init(from decoder: Decoder) throws {
@@ -121,7 +129,8 @@ public struct PersistedFloatingWindowSession: Codable, Sendable, Equatable {
             schemaVersion: (try? c.decodeIfPresent(Int.self, forKey: .schemaVersion)) ?? 1,
             pluginCustomWindows: (try? c.decodeIfPresent([PersistedPluginCustomWindow].self, forKey: .pluginCustomWindows)) ?? [],
             pluginFloatingPanels: (try? c.decodeIfPresent([PluginFloatingPanelRequest].self, forKey: .pluginFloatingPanels)) ?? [],
-            pinnedImages: (try? c.decodeIfPresent([PersistedPinnedImageWindow].self, forKey: .pinnedImages)) ?? []
+            pinnedImages: (try? c.decodeIfPresent([PersistedPinnedImageWindow].self, forKey: .pinnedImages)) ?? [],
+            fileShelfPluginIDs: (try? c.decodeIfPresent([String].self, forKey: .fileShelfPluginIDs)) ?? []
         )
     }
 }
@@ -165,7 +174,8 @@ public enum FloatingWindowSessionStore {
                 schemaVersion: current.schemaVersion,
                 pluginCustomWindows: current.pluginCustomWindows,
                 pluginFloatingPanels: current.pluginFloatingPanels,
-                pinnedImages: current.pinnedImages
+                pinnedImages: current.pinnedImages,
+                fileShelfPluginIDs: current.fileShelfPluginIDs
             )
             _ = AtomicJSONStore.save(normalized, to: url)
         }
@@ -199,6 +209,20 @@ public enum FloatingWindowSessionStore {
         at url: URL = defaultURL()
     ) {
         update(at: url) { $0.pinnedImages = pins }
+    }
+
+    public static func upsertFileShelf(pluginID: String, at url: URL = defaultURL()) {
+        guard PluginSystem.isSafePluginID(pluginID) else { return }
+        update(at: url) { session in
+            session.fileShelfPluginIDs.removeAll { $0 == pluginID }
+            session.fileShelfPluginIDs.append(pluginID)
+        }
+    }
+
+    public static func removeFileShelf(pluginID: String, at url: URL = defaultURL()) {
+        update(at: url) { session in
+            session.fileShelfPluginIDs.removeAll { $0 == pluginID }
+        }
     }
 
     public static func pruneOrphanPinnedFiles(

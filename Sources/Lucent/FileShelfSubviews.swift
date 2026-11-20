@@ -1,0 +1,193 @@
+import AppKit
+import LucentCore
+import QuickLookThumbnailing
+import SwiftUI
+
+struct FileShelfActions {
+    let togglePinOrAutoHide: () -> Void
+    let toggleCollapseOrTuck: () -> Void
+    let dockToEdge: (FileShelfDockEdge) -> Void
+    let toggleEdgeAutoHide: () -> Void
+    let toggleRemoveAfterDragOut: () -> Void
+    let onDragTargetedChanged: (Bool) -> Void
+    let onSearchFocusChanged: (Bool) -> Void
+    let onDraggedOut: (Set<UUID>) -> Void
+    let close: () -> Void
+    let preview: (FileShelfRowState) -> Void
+    let locate: (FileShelfRowState) -> Void
+    let clear: () -> Void
+}
+
+struct FileShelfEmptyStateView: View {
+    let symbol: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        VStack(spacing: 7) {
+            Image(systemName: symbol).font(.system(size: 28, weight: .light))
+                .foregroundStyle(Color.teal).padding(.bottom, 2).accessibilityHidden(true)
+            Text(title).font(.system(size: 13.5, weight: .semibold)).foregroundStyle(LiquidColors.textPrimary)
+            if !detail.isEmpty {
+                Text(detail).font(.system(size: 11.5)).foregroundStyle(LiquidColors.textSecondary)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(18).frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct FileShelfDropOverlayView: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: LiquidRadii.windowPanel, style: .continuous)
+            .fill(Color.teal.opacity(0.16))
+            .overlay {
+                Label(L10n.pick("松手放入中转站", "Drop to add to shelf"), systemImage: "arrow.down.to.line")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(LiquidColors.textPrimary)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(LiquidColors.solidCardSurface, in: Capsule(style: .continuous))
+                    .overlay { Capsule(style: .continuous).strokeBorder(Color.teal.opacity(0.45), lineWidth: 1) }
+            }
+            .allowsHitTesting(false)
+    }
+}
+
+struct FileShelfEdgeTabView: View {
+    let edge: FileShelfDockEdge
+    let itemCount: Int
+    let isDropTarget: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        VStack(spacing: 7) {
+            Capsule(style: .continuous)
+                .fill(LinearGradient(colors: [.teal, .cyan], startPoint: .top, endPoint: .bottom))
+                .frame(width: 3.5, height: 26)
+            Image(systemName: "tray.full.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(isDropTarget ? Color.cyan : Color.teal)
+            if itemCount > 0 {
+                Text(itemCount, format: .number)
+                    .font(.system(size: 10, weight: .bold).monospacedDigit())
+                    .foregroundStyle(LiquidColors.textPrimary)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1.5)
+                    .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
+            }
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(isDropTarget ? Color.teal.opacity(0.24) : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+        .accessibilityLabel(L10n.pick("展开文件中转站", "Expand File Shelf"))
+        .help(L10n.pick(
+            "悬停、点击或拖入文件以展开中转站（\(edge == .left ? "左侧" : "右侧")贴边）",
+            "Hover, click, or drag files to expand File Shelf"
+        ))
+    }
+}
+
+struct FileShelfCapsuleView: View {
+    let itemCount: Int
+    let isDropTarget: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 8) {
+                SquircleBadge(symbol: "tray.full.fill", topColor: .teal, bottomColor: .cyan, size: 26)
+                Text(itemCount, format: .number)
+                    .font(.system(size: 14, weight: .bold).monospacedDigit())
+                    .foregroundStyle(LiquidColors.textPrimary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(isDropTarget ? Color.teal.opacity(0.20) : .clear)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.pick("展开文件中转站", "Expand File Shelf"))
+        .accessibilityValue(Text(itemCount, format: .number))
+    }
+}
+
+struct FileShelfRowContent: View {
+    let row: FileShelfRowState
+    let activate: () -> Void
+    @State private var thumbnail: NSImage?
+    @State private var hovered = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(LiquidColors.pillSurface)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7)
+                    }
+                if let thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .padding(3)
+                } else {
+                    Image(systemName: row.url == nil ? "doc.badge.ellipsis" : "doc.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(row.url == nil ? LiquidColors.textSecondary : Color.teal)
+                }
+            }
+            .frame(width: 34, height: 34)
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2.5) {
+                Text(row.name)
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundStyle(row.url == nil ? LiquidColors.textSecondary : LiquidColors.textPrimary)
+                    .lineLimit(1).truncationMode(.middle)
+                Text(row.detail)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(row.url == nil ? Color.orange : LiquidColors.textSecondary)
+                    .lineLimit(1).truncationMode(.middle)
+            }
+            Spacer(minLength: 4)
+            if row.availability != nil {
+                let label = row.url == nil ? L10n.pick("重新定位", "Locate") : L10n.pick("快速查看", "Quick Look")
+                Button(action: activate) {
+                    Image(systemName: row.url == nil ? "link" : "eye")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(hovered ? LiquidColors.accentPrimary : LiquidColors.textSecondary)
+                        .frame(width: 26, height: 26)
+                        .background(hovered ? LiquidColors.pillSurface : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+                .buttonStyle(.plain).help(label).accessibilityLabel(label)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(hovered ? LiquidColors.pillSurface.opacity(0.85) : LiquidColors.cardSurface.opacity(0.42))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .strokeBorder(hovered ? LiquidColors.pillBorder : LiquidColors.subtleRim.opacity(0.45), lineWidth: 0.65)
+                }
+        }
+        .padding(.horizontal, 4)
+        .onHover { hovered = $0 }
+        .help("\(row.name) · \(row.detail)")
+        .task(id: row.url) {
+            thumbnail = nil
+            guard let url = row.url else { return }
+            let values = try? url.resourceValues(forKeys: [.isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey])
+            if values?.isUbiquitousItem == true && values?.ubiquitousItemDownloadingStatus != .current { return }
+            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 68, height: 68),
+                                                       scale: 2, representationTypes: [.icon, .thumbnail])
+            defer { QLThumbnailGenerator.shared.cancel(request) }
+            if let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request),
+               !Task.isCancelled { thumbnail = representation.nsImage }
+        }
+    }
+}

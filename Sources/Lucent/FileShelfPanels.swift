@@ -11,47 +11,80 @@ final class FileShelfPanels {
 
     var visibleCount: Int { panels.values.filter { $0.window?.isVisible == true }.count }
 
-    func open(pluginID: String, urls: [URL], takeFocus: Bool) -> Bool {
+    func open(pluginID: String, urls: [URL], takeFocus: Bool, expandIfTucked: Bool = true) -> Bool {
         guard let store = FileShelfStore.local(pluginID: pluginID) else { return false }
         let panel = panels[pluginID] ?? FileShelfPanelController(pluginID: pluginID, store: store)
         panels[pluginID] = panel
-        panel.open(takeFocus: takeFocus)
+        panel.open(takeFocus: takeFocus, expandIfTucked: expandIfTucked)
         if !urls.isEmpty { panel.model.add(urls) }
+        FloatingWindowSessionStore.upsertFileShelf(pluginID: pluginID)
         return true
+    }
+
+    func restorePersistedShelves(plugins: [PluginDescriptor]) {
+        let savedIDs = FloatingWindowSessionStore.load().fileShelfPluginIDs
+        guard !savedIDs.isEmpty else { return }
+        for id in savedIDs {
+            guard let plugin = plugins.first(where: {
+                $0.id == id && $0.isValid && ($0.isBuiltin || $0.isEnabled) && $0.isCapabilityGranted(.fileShelf)
+            }) else {
+                FloatingWindowSessionStore.removeFileShelf(pluginID: id)
+                continue
+            }
+            _ = open(pluginID: plugin.id, urls: [], takeFocus: false, expandIfTucked: false)
+        }
     }
 
     func synchronize(plugins: [PluginDescriptor]) {
         let allowed = Set(plugins.filter { $0.isEnabled && $0.isValid && $0.isCapabilityGranted(.fileShelf) }.map(\.id))
         for id in Array(panels.keys) where !allowed.contains(id) {
-            panels.removeValue(forKey: id)?.dispose()
+            panels.removeValue(forKey: id)?.dispose(clearSession: true)
         }
     }
 
-    func closeAll() {
-        for panel in panels.values { panel.window?.close() }
+    func closeAll(clearPersistedSession: Bool = true) {
+        for panel in panels.values {
+            panel.closeWindow(clearPersistedSession: clearPersistedSession)
+        }
     }
 }
 
 @MainActor
 final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @preconcurrency QLPreviewPanelDataSource {
-    private enum Metrics {
-        static let expanded = NSSize(width: 320, height: 408)
-        static let empty = NSSize(width: 320, height: 248)
-        static let compact = NSSize(width: 86, height: 46)
-        static let inset: CGFloat = 12
-    }
-
+    let pluginID: String
     let model: FileShelfModel
-    private let frameName: NSWindow.FrameAutosaveName
-    private var collapsed = false
+    let panelState: FileShelfPanelState
+    let frameName: NSWindow.FrameAutosaveName
+    let settingsKey: String
+
+    var glassView: RoundedGlassContainerView?
+    var hoverContainer: FileShelfHoverTrackingView?
+    var lastAppliedCornerRadius: CGFloat = 0
+    var isApplyingFrame = false
+    var isHovered = false
+    var isDraggingIntoShelf = false
+    var isSearchFocused = false
+    var isModalSheetActive = false
+    var skipSessionRemovalOnClose = false
+
+    var hoverExitTask: Task<Void, Never>?
+    var dragSettleTask: Task<Void, Never>?
     private var previewURL: URL?
     private var layoutSubscription: AnyCancellable?
 
     init(pluginID: String, store: FileShelfStore) {
-        model = FileShelfModel(store: store)
-        frameName = "FileShelf-\(pluginID)"
+        self.pluginID = pluginID
+        self.model = FileShelfModel(store: store)
+        self.frameName = "FileShelf-\(pluginID)"
+        self.settingsKey = "FileShelfSettings-\(pluginID)"
+        let savedSettings = Self.loadSettings(forKey: settingsKey)
+        let initialMode = FileShelfEdgeGeometry.resolveMode(
+            settings: savedSettings, isHovered: false, isDraggingIntoShelf: false, isModalOrInputActive: false
+        )
+        self.panelState = FileShelfPanelState(settings: savedSettings, mode: initialMode)
+
         let panel = PluginHUDCanvasPanel(
-            contentRect: NSRect(origin: .zero, size: Metrics.expanded),
+            contentRect: NSRect(origin: .zero, size: FileShelfEdgeGeometry.expandedSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered, defer: false
         )
@@ -67,19 +100,21 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         super.init(window: panel)
         panel.delegate = self
+
         if !panel.setFrameUsingName(frameName) {
             let visible = activeVisibleFrame
-            panel.setFrameOrigin(NSPoint(x: visible.maxX - Metrics.expanded.width - 18,
-                                        y: visible.midY - Metrics.expanded.height / 2))
+            panel.setFrameOrigin(NSPoint(
+                x: visible.maxX - FileShelfEdgeGeometry.expandedSize.width - FileShelfEdgeGeometry.screenInset,
+                y: visible.midY - FileShelfEdgeGeometry.expandedSize.height / 2
+            ))
         }
-        setCompact(UserDefaults.standard.bool(forKey: "\(frameName)-compact"), animate: false)
-        layoutSubscription = model.$rows.map(\.isEmpty).removeDuplicates().dropFirst().sink { [weak self] empty in
-            guard let self, !self.collapsed, self.window?.isVisible == true else { return }
-            self.position(empty ? Metrics.empty : Metrics.expanded,
-                          animated: !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+
+        layoutSubscription = model.$rows.map(\.isEmpty).removeDuplicates().dropFirst().sink { [weak self] _ in
+            guard let self, self.panelState.mode == .expanded, self.window?.isVisible == true else { return }
+            self.reconcilePresentation(animate: true)
         }
-        NotificationCenter.default.addObserver(self, selector: #selector(refreshLanguage),
-                                               name: .lucentLanguageDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshLanguage), name: .lucentLanguageDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshThemeCorner), name: .lucentThemeDidChange, object: nil)
         let workspace = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification, NSWorkspace.didRenameVolumeNotification] {
             workspace.addObserver(self, selector: #selector(refreshVolumes), name: name, object: nil)
@@ -88,27 +123,62 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
 
     required init?(coder: NSCoder) { nil }
 
-    func open(takeFocus: Bool) {
+    func open(takeFocus: Bool, expandIfTucked: Bool = true) {
         guard let window else { return }
-        if window.contentView == nil { renderContent() }
-        position(targetSize, animated: false)
+        if window.contentView == nil { mountGlassContent() }
+        if expandIfTucked && panelState.settings.dockEdge != .none {
+            isHovered = true
+            scheduleAutoCollapseIfPointerOutside()
+        }
+        let wasVisible = window.isVisible
+        reconcilePresentation(animate: wasVisible)
         model.refresh()
-        if takeFocus { window.makeKeyAndOrderFront(nil) } else { window.orderFrontRegardless() }
+        if !wasVisible {
+            WindowMotionAnimator.present(window, style: .pulseCapsule, makeKey: takeFocus)
+        } else if takeFocus {
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            window.orderFrontRegardless()
+        }
     }
 
-    func dispose() {
+    func closeWindow(clearPersistedSession: Bool) {
+        skipSessionRemovalOnClose = !clearPersistedSession
+        window?.close()
+        skipSessionRemovalOnClose = false
+    }
+
+    func dispose(clearSession: Bool) {
+        cancelTimers()
         model.stop()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
-        window?.close()
+        closeWindow(clearPersistedSession: clearSession)
     }
 
     func windowDidBecomeKey(_ notification: Notification) { model.refresh() }
 
-    func windowDidMove(_ notification: Notification) { window?.saveFrame(usingName: frameName) }
+    func windowDidMove(_ notification: Notification) {
+        guard !isApplyingFrame, (notification.object as? NSWindow) === window else { return }
+        dragSettleTask?.cancel()
+        dragSettleTask = Task { [weak self] in
+            for _ in 0..<40 {
+                try? await Task.sleep(for: .milliseconds(75))
+                guard !Task.isCancelled else { return }
+                if NSEvent.pressedMouseButtons == 0 {
+                    self?.handleDragFinished()
+                    return
+                }
+            }
+        }
+    }
 
     func windowWillClose(_ notification: Notification) {
+        cancelTimers()
         window?.saveFrame(usingName: frameName)
+        if !skipSessionRemovalOnClose {
+            FloatingWindowSessionStore.removeFileShelf(pluginID: pluginID)
+        }
         if QLPreviewPanel.sharedPreviewPanelExists(), let preview = QLPreviewPanel.shared(), preview.dataSource === self {
             preview.orderOut(nil)
             preview.dataSource = nil
@@ -116,9 +186,11 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
         previewURL = nil
         model.cancelRefresh()
         window?.contentView = nil
+        glassView = nil
+        hoverContainer = nil
+        lastAppliedCornerRadius = 0
+        MemoryStats.reclaimFreeHeapPages()
     }
-
-    func toggleCompact() { setCompact(!collapsed, animate: true) }
 
     func preview(_ row: FileShelfRowState) {
         guard let url = model.validatedURLs(for: [row]).first, let panel = QLPreviewPanel.shared() else { return }
@@ -129,24 +201,26 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     }
 
     func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { previewURL == nil ? 0 : 1 }
-
-    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> (any QLPreviewItem)! {
-        previewURL.map { $0 as NSURL }
-    }
+    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> (any QLPreviewItem)! { previewURL.map { $0 as NSURL } }
 
     func locate(_ row: FileShelfRowState) {
         guard let window else { return }
+        isModalSheetActive = true
         let picker = NSOpenPanel()
         picker.canChooseFiles = true
         picker.canChooseDirectories = true
         picker.prompt = L10n.pick("重新关联", "Relink")
         picker.beginSheetModal(for: window) { [weak self] response in
-            if response == .OK, let url = picker.url { self?.model.relink(row.item, to: url) }
+            guard let self else { return }
+            self.isModalSheetActive = false
+            if response == .OK, let url = picker.url { self.model.relink(row.item, to: url) }
+            self.scheduleAutoCollapseIfPointerOutside()
         }
     }
 
     func confirmClear() {
         guard let window else { return }
+        isModalSheetActive = true
         let alert = NSAlert()
         alert.messageText = L10n.pick("清空中转站？", "Clear the shelf?")
         alert.informativeText = L10n.pick("所有暂放条目都会移除。原文件保留在磁盘上。",
@@ -154,52 +228,25 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
         alert.addButton(withTitle: L10n.pick("取消", "Cancel"))
         alert.addButton(withTitle: L10n.pick("清空", "Clear"))
         alert.beginSheetModal(for: window) { [weak self] result in
-            if result == .alertSecondButtonReturn { self?.model.clear() }
+            guard let self else { return }
+            self.isModalSheetActive = false
+            if result == .alertSecondButtonReturn { self.model.clear() }
+            self.scheduleAutoCollapseIfPointerOutside()
         }
     }
 
-    private func setCompact(_ next: Bool, animate: Bool) {
-        collapsed = next
-        UserDefaults.standard.set(next, forKey: "\(frameName)-compact")
-        renderContent()
-        position(targetSize,
-                 animated: animate && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
-        window?.saveFrame(usingName: frameName)
-    }
-
-    private func renderContent() {
-        let view = FileShelfView(model: model, compact: collapsed, toggle: { [weak self] in self?.toggleCompact() },
-                                 close: { [weak self] in self?.window?.close() },
-                                 preview: { [weak self] in self?.preview($0) },
-                                 locate: { [weak self] in self?.locate($0) },
-                                 clear: { [weak self] in self?.confirmClear() })
-        let hosting = NSHostingView(rootView: LocalizedRootContainer { view })
-        hosting.sizingOptions = []
-        window?.contentView = hosting
-    }
-
-    private var targetSize: NSSize {
-        if collapsed { return Metrics.compact }
-        return model.rows.isEmpty ? Metrics.empty : Metrics.expanded
-    }
-
-    private var activeVisibleFrame: NSRect {
+    var activeVisibleFrame: NSRect {
         ScreenTopologyAndWindowMatcher.activeCursorScreen()?.visibleFrame
-            ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 960, height: 720)
-    }
-
-    private func position(_ size: NSSize, animated: Bool) {
-        guard let window else { return }
-        let visible = window.screen?.visibleFrame ?? activeVisibleFrame
-        let height = min(size.height, visible.height - Metrics.inset * 2)
-        let x = max(visible.minX + Metrics.inset, min(window.frame.maxX - size.width, visible.maxX - size.width - Metrics.inset))
-        let y = max(visible.minY + Metrics.inset, min(window.frame.maxY - height, visible.maxY - height - Metrics.inset))
-        window.setFrame(NSRect(x: x, y: y, width: size.width, height: height), display: true, animate: animated)
+            ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1280, height: 800)
     }
 
     @objc private func refreshLanguage(_ notification: Notification) {
         window?.title = L10n.pick("文件中转站", "File Shelf")
         model.refreshLabels()
+    }
+
+    @objc private func refreshThemeCorner(_ notification: Notification) {
+        glassView?.updateCornerRadius(currentShellCornerRadius, force: true)
     }
 
     @objc private func refreshVolumes(_ notification: Notification) {

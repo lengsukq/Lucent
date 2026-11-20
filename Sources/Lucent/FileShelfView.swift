@@ -5,174 +5,265 @@ import UniformTypeIdentifiers
 
 struct FileShelfView: View {
     @ObservedObject var model: FileShelfModel
+    @ObservedObject var panelState: FileShelfPanelState
     @ObservedObject private var theme = ThemeManager.shared
     @State private var isDropTarget = false
     @FocusState private var searchFocused: Bool
 
-    let compact: Bool
-    let toggle: () -> Void
-    let close: () -> Void
-    let preview: (FileShelfRowState) -> Void
-    let locate: (FileShelfRowState) -> Void
-    let clear: () -> Void
+    let actions: FileShelfActions
 
-    private let accent = Color(nsColor: .systemTeal)
-
-    var body: some View {
-        Group {
-            if compact { capsule } else { expanded }
+    private var cornerRadius: CGFloat {
+        switch panelState.mode {
+        case .edgeTucked: 12
+        case .capsule: 22
+        case .expanded: LiquidRadii.windowPanel
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { LiquidFluidBackdrop() }
-        .clipShape(RoundedRectangle(cornerRadius: compact ? 22 : LiquidRadii.windowPanel))
-        .overlay {
-            RoundedRectangle(cornerRadius: compact ? 22 : LiquidRadii.windowPanel)
-                .strokeBorder(isDropTarget ? accent : LiquidColors.inputFieldBorder, lineWidth: isDropTarget ? 2 : 1)
-                .allowsHitTesting(false)
-        }
-        .onDrop(of: [.fileURL], isTargeted: $isDropTarget, perform: accept)
-        .onExitCommand { if compact { close() } else { toggle() } }
-        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeOut(duration: 0.16),
-                   value: isDropTarget)
-        .id(theme.current)
     }
 
-    private var capsule: some View {
-        Button(action: toggle) {
-            HStack(spacing: 8) {
-                Image(systemName: "tray.full.fill").foregroundStyle(accent)
-                Text(model.rows.count, format: .number).monospacedDigit()
+    var body: some View {
+        let highContrast = SystemDisplayPreferences.shared.increaseContrast
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        Group {
+            switch panelState.mode {
+            case .edgeTucked(let edge):
+                FileShelfEdgeTabView(
+                    edge: edge,
+                    itemCount: model.rows.count,
+                    isDropTarget: isDropTarget,
+                    onTap: actions.toggleCollapseOrTuck
+                )
+            case .capsule:
+                FileShelfCapsuleView(
+                    itemCount: model.rows.count,
+                    isDropTarget: isDropTarget,
+                    onTap: actions.toggleCollapseOrTuck
+                )
+            case .expanded:
+                expanded
             }
-            .font(.system(size: 15, weight: .semibold))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(isDropTarget ? accent.opacity(0.20) : .clear)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(L10n.pick("展开文件中转站", "Expand File Shelf"))
-        .accessibilityValue(Text(model.rows.count, format: .number))
-        .contextMenu { Button(L10n.pick("关闭", "Close"), action: close) }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipShape(shape)
+        .overlay {
+            if isDropTarget {
+                shape.strokeBorder(Color.teal, lineWidth: 2.0).allowsHitTesting(false)
+            } else {
+                DoubleSpecularBorder(cornerRadius: cornerRadius, isShell: true, highContrast: highContrast)
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDropTarget, perform: accept)
+        .onChange(of: isDropTarget) { _, targeted in
+            actions.onDragTargetedChanged(targeted)
+        }
+        .onChange(of: searchFocused) { _, focused in
+            actions.onSearchFocusChanged(focused)
+        }
+        .onExitCommand {
+            if panelState.mode == .expanded { actions.toggleCollapseOrTuck() } else { actions.close() }
+        }
+        .contextMenu { shelfContextMenu }
+        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeOut(duration: 0.16), value: isDropTarget)
+        .id(theme.current)
     }
 
     private var expanded: some View {
         VStack(spacing: 0) {
+            dragGripBar
             header
             if model.loadFailed {
-                empty(symbol: "exclamationmark.folder", title: L10n.pick("中转站暂不可读", "Shelf unavailable"),
-                      detail: model.message ?? "")
-                Button(L10n.pick("重新读取", "Retry"), action: model.reload).padding(.bottom, 16)
+                FileShelfEmptyStateView(symbol: "exclamationmark.folder",
+                                        title: L10n.pick("中转站暂不可读", "Shelf unavailable"),
+                                        detail: model.message ?? "")
+                Button(L10n.pick("重新读取", "Retry"), action: model.reload)
+                    .buttonStyle(GlassPillButtonStyle(prominent: true, compact: true))
+                    .padding(.bottom, 16)
             } else {
                 if !model.rows.isEmpty { filter }
                 content
-                if !model.rows.isEmpty || model.message != nil { footer }
+                footer
             }
         }
         .overlay {
-            if isDropTarget {
-                RoundedRectangle(cornerRadius: LiquidRadii.windowPanel)
-                    .fill(accent.opacity(0.17))
-                    .overlay {
-                        Label(L10n.pick("松手放入", "Drop to add"), systemImage: "arrow.down.to.line")
-                            .font(.system(size: 14, weight: .semibold)).padding(12)
-                            .background(LiquidColors.solidCardSurface, in: Capsule())
-                    }
-                    .allowsHitTesting(false)
-            }
+            if isDropTarget { FileShelfDropOverlayView() }
+        }
+    }
+
+    private var dragGripBar: some View {
+        HStack {
+            Spacer()
+            Capsule(style: .continuous)
+                .fill(LiquidColors.textSecondary.opacity(0.28))
+                .frame(width: 34, height: 4)
+            Spacer()
+        }
+        .padding(.top, 7)
+        .padding(.bottom, 2)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            actions.dockToEdge(panelState.settings.dockEdge == .none ? .right : .none)
         }
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "tray.full.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(accent)
-                .frame(width: 34, height: 34)
-                .background(accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+        let isDocked = panelState.settings.dockEdge != .none
+        let isPinned = !panelState.settings.edgeAutoHide || panelState.settings.pinnedExpanded
+        return HStack(spacing: 10) {
+            SquircleBadge(symbol: "tray.full.fill", topColor: .teal, bottomColor: .cyan, size: 32)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(L10n.pick("文件中转站", "File Shelf")).font(.system(size: 16, weight: .semibold))
-                Text(L10n.pick("\(model.rows.count) 项", "\(model.rows.count) items"))
-                    .font(.system(size: 11)).foregroundStyle(.secondary).monospacedDigit()
+            VStack(alignment: .leading, spacing: 1.5) {
+                Text(L10n.pick("文件中转站", "File Shelf"))
+                    .font(.system(size: 14.5, weight: .bold))
+                    .foregroundStyle(LiquidColors.textPrimary)
+                HStack(spacing: 5) {
+                    Text(L10n.pick("\(model.rows.count) 项", "\(model.rows.count) items"))
+                        .monospacedDigit()
+                    if isDocked {
+                        Text("·")
+                        Text(panelState.settings.dockEdge == .left
+                             ? L10n.pick("左贴边", "Left Dock")
+                             : L10n.pick("右贴边", "Right Dock"))
+                            .foregroundStyle(Color.teal)
+                    }
+                }
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(LiquidColors.textSecondary)
             }
-            Spacer()
-            control("rectangle.compress.vertical", L10n.pick("收起", "Collapse"), action: toggle)
-            control("xmark", L10n.pick("关闭", "Close"), action: close)
+            Spacer(minLength: 4)
+            if isDocked {
+                headerButton(
+                    symbol: isPinned ? "pin.fill" : "sidebar.right",
+                    active: isPinned,
+                    label: isPinned
+                        ? L10n.pick("取消固定（恢复靠边自动隐藏）", "Unpin (enable edge auto-hide)")
+                        : L10n.pick("固定展开（暂停靠边自动隐藏）", "Pin open (pause auto-hide)"),
+                    action: actions.togglePinOrAutoHide
+                )
+            } else {
+                headerButton(
+                    symbol: "arrow.right.to.line",
+                    active: false,
+                    label: L10n.pick("贴靠屏幕右侧并自动隐藏", "Dock to right edge"),
+                    action: { actions.dockToEdge(.right) }
+                )
+            }
+            headerButton(
+                symbol: isDocked ? "chevron.compact.right" : "rectangle.compress.vertical",
+                active: false,
+                label: isDocked ? L10n.pick("贴边收起", "Tuck to edge") : L10n.pick("收起为胶囊", "Collapse"),
+                action: actions.toggleCollapseOrTuck
+            )
+            headerButton(symbol: "xmark", active: false, label: L10n.pick("关闭", "Close"), action: actions.close)
         }
-        .padding(.horizontal, 15).padding(.vertical, 13)
-        .accessibilityElement(children: .contain)
+        .padding(.horizontal, 14).padding(.top, 5).padding(.bottom, 10)
     }
 
     private var filter: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(LiquidColors.textSecondary)
+                .accessibilityHidden(true)
             TextField(L10n.pick("查找暂放文件", "Find on shelf"), text: $model.filter)
                 .textFieldStyle(.plain).focused($searchFocused)
                 .onChange(of: model.filter) { _, _ in
                     model.selection.formIntersection(model.filteredRows.map(\.id))
                 }
             if !model.filter.isEmpty {
-                control("xmark.circle.fill", L10n.pick("清除搜索", "Clear search")) { model.filter = "" }
+                Button { model.filter = "" } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(LiquidColors.textSecondary)
+                }
+                .buttonStyle(.plain)
             }
         }
-        .font(.system(size: 13))
-        .padding(.horizontal, 10).frame(height: 34)
-        .background(LiquidColors.inputFieldSurface, in: RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, 14).padding(.bottom, 10)
+        .font(.system(size: 12.5))
+        .padding(.horizontal, 10).frame(height: 32)
+        .background(LiquidColors.inputFieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(LiquidColors.inputFieldBorder, lineWidth: 0.7) }
+        .padding(.horizontal, 14).padding(.bottom, 9)
     }
 
     @ViewBuilder
     private var content: some View {
         if model.rows.isEmpty {
-            empty(symbol: "tray", title: L10n.pick("拖入文件", "Drop files here"),
-                  detail: L10n.pick("下次打开还在这里。", "They’ll be here when you return."))
+            FileShelfEmptyStateView(
+                symbol: "tray.and.arrow.down",
+                title: L10n.pick("拖入文件或文件夹", "Drop files or folders here"),
+                detail: L10n.pick("仅保存文件引用，不复制占用空间；拖到屏幕左右边可自动贴边隐藏。",
+                                  "Stores file references only. Drag to the screen edge to auto-tuck.")
+            )
         } else if model.filteredRows.isEmpty {
-            empty(symbol: "magnifyingglass", title: L10n.pick("没有匹配的文件", "No matching files"), detail: "")
+            FileShelfEmptyStateView(symbol: "magnifyingglass", title: L10n.pick("没有匹配的文件", "No matching files"), detail: "")
         } else {
-            FileShelfTable(model: model, focusSearch: { searchFocused = true }, preview: preview, locate: locate)
-                .padding(.horizontal, 8)
+            FileShelfTable(model: model, focusSearch: { searchFocused = true },
+                           preview: actions.preview, locate: actions.locate, onDraggedOut: actions.onDraggedOut)
+                .padding(.horizontal, 6)
         }
     }
 
     private var footer: some View {
-        HStack(spacing: 6) {
+        let autoRemove = panelState.settings.removeAfterDragOut
+        return HStack(spacing: 6) {
             Text(model.message ?? (model.selection.isEmpty
-                ? L10n.pick("拖入或拖出文件", "Drag files in or out")
+                ? L10n.pick("拖入或拖出文件 · 空格预览", "Drag in/out · Space to preview")
                 : L10n.pick("已选 \(model.selection.count) 项", "\(model.selection.count) selected")))
-                .font(.system(size: 11)).foregroundStyle(.secondary)
-                .lineLimit(2)
-                .accessibilityAddTraits(.updatesFrequently)
+                .font(.system(size: 10.5)).foregroundStyle(LiquidColors.textSecondary)
+                .lineLimit(1).truncationMode(.tail)
             Spacer(minLength: 4)
+            Button(action: actions.toggleRemoveAfterDragOut) {
+                HStack(spacing: 3.5) {
+                    Image(systemName: autoRemove ? "flame.fill" : "flame")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text(L10n.pick("拖出移出", "Pop"))
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(autoRemove ? Color.white : LiquidColors.textSecondary)
+                .padding(.horizontal, 7).padding(.vertical, 3.5)
+                .background(autoRemove ? Color.teal : LiquidColors.pillSurface, in: Capsule(style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .help(L10n.pick("拖出到其他应用后自动从中转站移出（不删原文件）",
+                            "Auto-remove items from shelf after dragging out (originals stay on disk)"))
             if !model.selectedRows.isEmpty {
-                control("minus.circle", L10n.pick("移除所选", "Remove selected"), action: model.removeSelected)
+                headerButton(symbol: "minus.circle", active: false, label: L10n.pick("移除所选", "Remove selected"), action: model.removeSelected)
             }
             if !model.rows.isEmpty {
-                control("tray.and.arrow.up", L10n.pick("清空中转站", "Clear the shelf"), action: clear)
+                headerButton(symbol: "trash", active: false, label: L10n.pick("清空中转站", "Clear the shelf"), action: actions.clear)
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 6)
-        .overlay(alignment: .top) { Divider().opacity(0.55) }
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .overlay(alignment: .top) { Divider().opacity(0.45) }
         .background {
             Button("", action: { searchFocused = true }).keyboardShortcut("f", modifiers: .command)
                 .frame(width: 0, height: 0).opacity(0).accessibilityHidden(true)
         }
     }
 
-    private func empty(symbol: String, title: String, detail: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: symbol).font(.system(size: 29, weight: .light))
-                .foregroundStyle(accent).padding(.bottom, 3).accessibilityHidden(true)
-            Text(title).font(.system(size: 14, weight: .semibold))
-            if !detail.isEmpty {
-                Text(detail).font(.system(size: 12)).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            }
-        }
-        .padding(16).frame(maxWidth: .infinity, maxHeight: .infinity)
+    @ViewBuilder
+    private var shelfContextMenu: some View {
+        Button(L10n.pick("贴靠屏幕左侧", "Dock to Left Edge")) { actions.dockToEdge(.left) }
+        Button(L10n.pick("贴靠屏幕右侧", "Dock to Right Edge")) { actions.dockToEdge(.right) }
+        Button(L10n.pick("自由浮窗（不贴边）", "Float Freely")) { actions.dockToEdge(.none) }
+        Divider()
+        Button(panelState.settings.edgeAutoHide
+               ? L10n.pick("✓ 靠边自动隐藏", "✓ Auto-Hide at Edge")
+               : L10n.pick("靠边自动隐藏", "Auto-Hide at Edge")) { actions.toggleEdgeAutoHide() }
+        Button(panelState.settings.removeAfterDragOut
+               ? L10n.pick("✓ 拖出后自动移出", "✓ Remove After Drag-Out")
+               : L10n.pick("拖出后自动移出", "Remove After Drag-Out")) { actions.toggleRemoveAfterDragOut() }
+        Divider()
+        Button(L10n.pick("关闭中转站", "Close File Shelf"), action: actions.close)
     }
 
-    private func control(_ symbol: String, _ label: String, action: @escaping () -> Void) -> some View {
+    private func headerButton(symbol: String, active: Bool, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 12, weight: .medium)).frame(width: 28, height: 28)
+            Image(systemName: symbol)
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(active ? Color.teal : LiquidColors.textSecondary)
+                .frame(width: 26, height: 26)
+                .background(active ? Color.teal.opacity(0.16) : LiquidColors.pillSurface.opacity(0.65),
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
-        .buttonStyle(.borderless).help(label).accessibilityLabel(label)
+        .buttonStyle(.plain).help(label).accessibilityLabel(label)
     }
 
     private func accept(_ providers: [NSItemProvider]) -> Bool {

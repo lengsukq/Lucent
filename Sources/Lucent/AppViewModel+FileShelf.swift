@@ -28,6 +28,8 @@ extension AppViewModel {
 
 extension PluginDescriptor {
     var fileContextActionTitle: String {
-        id == "file-shelf" ? L10n.pick("放入中转站", "Add to File Shelf") : displayName
+        declaredCapabilities.contains(.fileShelf)
+            ? L10n.pick("放入\(displayName)", "Add to \(displayName)")
+            : displayName
     }
 }

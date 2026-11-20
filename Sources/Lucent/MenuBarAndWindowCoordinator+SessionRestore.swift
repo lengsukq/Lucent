@@ -49,6 +49,7 @@ extension MenuBarAndWindowCoordinator {
         PluginCustomWebWindowController.shared.restorePersistedWindows(viewModel: viewModel)
         restorePersistedPluginFloatingPanels()
         PinWindowController.shared.restorePersistedPins()
+        FileShelfPanels.shared.restorePersistedShelves(plugins: viewModel.plugins)
     }
 
     private func restorePersistedPluginFloatingPanels() {

@@ -158,8 +158,46 @@ final class FileShelfModel: ObservableObject {
     }
 
     func removeSelected() {
-        guard !selection.isEmpty else { return }
-        if persist(items.filter { !selection.contains($0.id) }) { selection = [] }
+        remove(ids: selection)
+    }
+
+    func remove(ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        if persist(items.filter { !ids.contains($0.id) }) {
+            selection.subtract(ids)
+        }
+    }
+
+    func open(_ rowsToOpen: [FileShelfRowState]) {
+        let urls = validatedURLs(for: rowsToOpen)
+        for url in urls { NSWorkspace.shared.open(url) }
+    }
+
+    func revealInFinder(_ rowsToReveal: [FileShelfRowState]) {
+        let urls = validatedURLs(for: rowsToReveal)
+        guard !urls.isEmpty else { return }
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
+    }
+
+    func copyFiles(for targetRows: [FileShelfRowState]) {
+        let urls = validatedURLs(for: targetRows)
+        guard !urls.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        if NSPasteboard.general.writeObjects(urls as [NSURL]) {
+            message = L10n.pick("已复制 \(urls.count) 项", "\(urls.count) copied")
+        } else {
+            message = L10n.pick("无法写入剪贴板。", "Couldn’t write to the clipboard.")
+        }
+    }
+
+    func copyPaths(for targetRows: [FileShelfRowState]) {
+        let urls = validatedURLs(for: targetRows)
+        guard !urls.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        let text = urls.map(\.path).joined(separator: "\n")
+        if NSPasteboard.general.setString(text, forType: .string) {
+            message = L10n.pick("已复制 \(urls.count) 个路径", "Copied \(urls.count) path(s)")
+        }
     }
 
     func clear() {
@@ -190,14 +228,7 @@ final class FileShelfModel: ObservableObject {
     }
 
     func copySelected() {
-        let urls = validatedURLs(for: selectedRows)
-        guard !urls.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        if NSPasteboard.general.writeObjects(urls as [NSURL]) {
-            message = L10n.pick("已复制 \(urls.count) 项", "\(urls.count) copied")
-        } else {
-            message = L10n.pick("无法写入剪贴板。", "Couldn’t write to the clipboard.")
-        }
+        copyFiles(for: selectedRows)
     }
 
     private func persist(_ next: [FileShelfItem]) -> Bool {
