@@ -112,12 +112,41 @@ struct ClipboardPrivacySettingsCardView: View {
                 Spacer()
             }
 
-            Text(L10n.pick(
-                "收藏项永久保留且不受条数或过期时间影响；密码管理器隐私剪贴板已默认自动跳过，下方可额外排除终端、网银或私密聊天软件：",
-                "Pinned items never expire. Password managers are skipped automatically; add terminals, banking, or private chat apps below:"
-            ))
-            .font(.caption2)
-            .foregroundStyle(LiquidColors.textSecondary)
+            let unpinnedCount = viewModel.clipboardItems.filter { !$0.isPinned }.count
+            let pinnedCount = viewModel.clipboardItems.filter(\.isPinned).count
+            HStack(spacing: 8) {
+                Text(L10n.pick(
+                    "已跨重启持久化（0600 本地私有）：\(unpinnedCount) 条历史 · \(pinnedCount) 条收藏。密码管理器与高危私钥已自动跳过，下方可额外排除敏感应用：",
+                    "Persisted across restarts (0600 local): \(unpinnedCount) history · \(pinnedCount) pinned. Password managers & secrets are auto-skipped:"
+                ))
+                .font(.caption2)
+                .foregroundStyle(LiquidColors.textSecondary)
+                Spacer(minLength: 8)
+                Menu {
+                    Button(L10n.pick("清理 24 小时前（未收藏）", "Clean Older Than 24h (Unpinned)")) {
+                        viewModel.batchCleanClipboard(.olderThan24Hours)
+                    }
+                    Button(L10n.pick("清理 7 天前（未收藏）", "Clean Older Than 7 Days (Unpinned)")) {
+                        viewModel.batchCleanClipboard(.olderThan7Days)
+                    }
+                    Button(L10n.pick("仅清理图片与视频（未收藏）", "Clean Images & Videos Only (Unpinned)")) {
+                        viewModel.batchCleanClipboard(.unpinnedMediaOnly)
+                    }
+                    Divider()
+                    Button(L10n.pick("清空全部未收藏（保留收藏）", "Clear All Unpinned (Keep Pinned)")) {
+                        viewModel.batchCleanClipboard(.unpinnedAll)
+                    }
+                    Button(role: .destructive) {
+                        viewModel.batchCleanClipboard(.allIncludingPinned)
+                    } label: {
+                        Text(L10n.pick("清空全部剪贴板（含收藏）", "Clear All (Including Pinned)"))
+                    }
+                } label: {
+                    Label(L10n.pick("批量清理…", "Batch Clean…"), systemImage: "trash")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
 
             if !resolvedExcludedApps.isEmpty {
                 FlowWrapLayout(horizontalSpacing: 6, verticalSpacing: 6) {

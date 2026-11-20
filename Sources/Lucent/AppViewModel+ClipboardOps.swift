@@ -103,9 +103,32 @@ extension AppViewModel {
     }
 
     func clearUnpinnedClipboard() {
-        let removed = clipboardItems.filter { !$0.isPinned }
-        clipboardItems.removeAll { !$0.isPinned }
-        reclaimEvictedClipboardTempFiles(removed)
+        batchCleanClipboard(.unpinnedAll)
+    }
+
+    func batchCleanClipboard(_ kind: ClipboardBatchCleanupKind) {
+        let result = ClipboardBatchCleaner.apply(kind, to: clipboardItems)
+        guard !result.removed.isEmpty else {
+            serviceMessage = L10n.pick("没有符合清理条件的剪贴板记录", "No matching clipboard items to clean")
+            return
+        }
+        clipboardItems = result.remaining
+        reclaimEvictedClipboardTempFiles(result.removed)
+        let count = result.removed.count
+        switch kind {
+        case .allIncludingPinned:
+            serviceMessage = L10n.pick("已清空全部 \(count) 条剪贴板记录（含收藏）", "Cleared all \(count) clipboard items (including pinned)")
+        case .unpinnedAll:
+            serviceMessage = L10n.pick("已清空 \(count) 条未收藏剪贴板记录", "Cleared \(count) unpinned clipboard items")
+        case .olderThan24Hours:
+            serviceMessage = L10n.pick("已清理 \(count) 条 24 小时前的未收藏记录", "Cleaned \(count) unpinned items older than 24h")
+        case .olderThan7Days:
+            serviceMessage = L10n.pick("已清理 \(count) 条 7 天前的未收藏记录", "Cleaned \(count) unpinned items older than 7 days")
+        case .unpinnedMediaOnly:
+            serviceMessage = L10n.pick("已清理 \(count) 条未收藏图片/视频记录", "Cleaned \(count) unpinned image/video items")
+        case .unpinnedCategory(let cat):
+            serviceMessage = L10n.pick("已清理 \(count) 条未收藏「\(cat.localizedTitle)」记录", "Cleaned \(count) unpinned \(cat.localizedTitle) items")
+        }
     }
 
     private func reclaimEvictedClipboardTempFiles(_ candidates: [ClipboardEntry]) {
@@ -172,18 +195,32 @@ extension AppViewModel {
     }
 
     func loadPersistedPinnedClipboard() {
-        let saved = ClipboardPersistenceStore.loadPinnedEntries()
+        let saved = ClipboardHistoryStore.loadMergedEntries(
+            maxUnpinned: generalPreferences.clipboardMaxUnpinned,
+            ttl: generalPreferences.clipboardRetentionTTL
+        )
         guard !saved.isEmpty else { return }
         clipboardRuntime.isSyncingPinnedStore = true
         defer { clipboardRuntime.isSyncingPinnedStore = false }
         clipboardItems = saved
+        _ = ClipboardHistoryStore.saveHistoryEntries(saved)
     }
 
     func persistPinnedClipboardIfNeeded(previous: [ClipboardEntry]) {
-        guard !clipboardRuntime.isSyncingPinnedStore, clipboardItems.filter(\.isPinned) != previous.filter(\.isPinned) else { return }
+        guard !clipboardRuntime.isSyncingPinnedStore else { return }
+        let pinnedChanged = clipboardItems.filter(\.isPinned) != previous.filter(\.isPinned)
+        let unpinnedChanged = clipboardItems.filter { !$0.isPinned } != previous.filter { !$0.isPinned }
+        guard pinnedChanged || unpinnedChanged else { return }
         clipboardRuntime.isSyncingPinnedStore = true
         defer { clipboardRuntime.isSyncingPinnedStore = false }
-        let migrated = ClipboardPersistenceStore.savePinnedEntries(clipboardItems)
-        if migrated != clipboardItems { clipboardItems = migrated }
+        var current = clipboardItems
+        if pinnedChanged {
+            current = ClipboardPersistenceStore.savePinnedEntries(current)
+        }
+        if unpinnedChanged {
+            let undoPaths = Set(clipboardRuntime.deletedUndoStack.flatMap { $0.entry.fileURLs.map(\.path) })
+            current = ClipboardHistoryStore.saveHistoryEntries(current, protectedMediaPaths: undoPaths)
+        }
+        if current != clipboardItems { clipboardItems = current }
     }
 }
