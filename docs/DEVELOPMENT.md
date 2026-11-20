@@ -28,7 +28,7 @@ Lucent/
 ├── Tests/
 │   ├── LucentTests/                  # 标准 Swift Testing 单元测试与检索/内存延迟基准套件 (swift test)
 │   └── LucentCheck/                  # 全链路系统自检与 lucent-mcp 真实子进程联调
-├── plugin-demo/                       # 官方示例插件商店（9 款原生 Swift 旗舰插件源码、Starters/ 起始模板、package-store.sh 与 lucent-registry.json）
+├── plugin-demo/                       # 官方示例插件商店（11 款原生 Swift 官方插件源码、Starters/ 起始模板、package-store.sh 与 lucent-registry.json）
 ├── site/                              # 产品介绍页（3D WebGL2 体验主页 + 2D 图文详解实验台）
 ├── scripts/
 │   ├── check-docs.py                  # 文档索引覆盖与断链/锚点检查

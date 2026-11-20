@@ -114,12 +114,14 @@
 | `everythingSearch` | `search` (`{"query":"...","limit":20}`) | 复用 `EverythingIndex` 内存树按 DSL 检索文件 |
 | `displayInfo` | `list` (`{}`) | 返回活跃显示器 `displayID`、当前模式与可用分辨率 |
 | `systemControl` | `status`、`setVolume`、`setMute`、`setCaffeine`、`setStatusScreen`、`clearStatusScreen` | 查询与安全调节系统音量/静音/防休眠状态，以及多屏全屏状态屏告示遮罩（支持键鼠防误触拦截与长按 `Esc` 安全退出） |
+| `fileShelf` | `open`、`addContextItems`（均无参数） | 宿主原生文件托盘。仅 `addContextItems` 的当前用户文件操作可加入选中项。持久文件引用由宿主按插件隔离保存，缓存清理与卸载不移除条目 |
+| `audioDevices` | `list` / `status`、`apply`（`{inputUID,outputUID,showFeedback?}`） | 读取和切换默认输入及输出，返回回读结果 `applied` / `unavailable` / `restored` / `partial`。仅桌面宿主可用，无麦克风采集 |
 | `lumaLinkStatus` | `status`、`toggle`、`setEnabled`、`toggleRdp`、`regeneratePin`、`toggleCurtain`、`toggleCaffeine`、`setDisplayMode`、`restoreDisplays`、`revokeDevice` | 全闭环受控管理 LumaLink 监听、高清配对二维码生成、多屏 HiDPI 切换、物理防窥黑屏、防休眠及已配对设备解绑（绝不暴露设备 Token） |
 
 ## 三、独立脚本快捷库 (`Quick Scripts`)、权限审计矩阵与开发者套件
 
 - **独立脚本快捷库 (`ScriptLibraryStore` & `ScriptRunner`)**：面向免 `plugin.json` 的单文件轻量快捷操作，支持设置中心可视化编写与 `~/Library/Application Support/Lucent/Scripts/` 目录单文件双向热同步（解析首部 `@lucent.*` 魔术注释）；原生支持 `Zsh`、`Bash`、`Python 3`、`AppleScript (osascript)`、`Swift` 及任意 `#!` 自定义 Shebang（如 `node`、`deno`、`ruby`），支持 `Scripts/icons/<id>.svg` 专属矢量图标与中英双语标题、5 种输出动作（轻提示、浮窗预览、复制结果、原窗口回填粘贴、阅读窗）、独立全局热键、启动页磁贴/高频坞及默认关闭的快捷按钮与状态栏菜单挂载，全程经 `PluginSandboxProfileBuilder` 强制执行 Seatbelt 隔离并纳入 `.lucentbackup` 归档同步。
-- **权限全景清单 (`PluginPermissionAudit` & `PluginHostTCCBroker`)**：汇总系统 TCC（由宿主代申并在矩阵页提供实时状态与一键代申入口）、内核采样、容器/宿主桥接与 Seatbelt 资源作用域共 21 项细分权限，列出每项权限当前被哪些 `BUILTIN` / `EXT` 插件声明及授权状态，并在底部独立归集显式声明 `[]` 的纯沙盒插件。
+- **权限全景清单 (`PluginPermissionAudit` & `PluginHostTCCBroker`)**：汇总系统 TCC（由宿主代申并在矩阵页提供实时状态与一键代申入口）、内核采样、容器/宿主桥接与 Seatbelt 资源作用域共 23 项细分权限，列出每项权限当前被哪些 `BUILTIN` / `EXT` 插件声明及授权状态，并在底部独立归集显式声明 `[]` 的纯沙盒插件。
 - **内置工具与短语**：`LucentCore` 同时内置零子进程 `DevToolkitEngine` 与 `SnippetStore`。
 
 ## 四、原生 Stdio MCP 服务器 (`lucent-mcp` v0.3.3)
@@ -131,7 +133,7 @@
 | `lucent_list_plugins` | `includeBuiltin`（可选，默认 `true`） | 返回内置与外部插件的启用、包内图标/品牌色、多语言标题、已声明子功能 (`declaredCommands`)、子功能热键 (`commandHotKeys`)、已开启快捷按钮 (`quickButtonCommandIDs`)、运行态摘要 (`statusSummary`)、宿主能力与 Seatbelt 资源域 (`grantedResourceScopes`/`revokedResourceScopes`) 状态 |
 | `lucent_app_permissions` | `onlyUsed`（可选） | 返回全 App 权限审计矩阵及纯沙盒 (`[]`) 插件列表 |
 | `lucent_scaffold_plugin` | `id`, `name`, `keywords`, `capabilities`, `resourceScopes`（必选），`accepts`（可选） | 安全生成 `plugin.json` 与可执行 `run.sh` |
-| `lucent_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方原生 Swift 实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `antigravity-pulse`、`browser-hub`、`gold-monitor`、`lumalink-companion`、`notion-bookmarks`、`translate-hub`、`mac-pilot`、`quick-remind` 与 `screen-shield` 九款预编译原生 `arm64` Swift 旗舰插件，零 Python 运行时依赖） |
+| `lucent_install_starter_plugin` | `id`, `overwrite` | 一键安装与内置工具零重叠的 3 款官方原生 Swift 实用插件模板（`sys-ip-dns` 网络栈与代理诊断、`port-killer` 开发端口与监听进程管家、`shell-note` 结构化 Markdown 速记收件箱；仓库 `plugin-demo/` 商店另提供 `antigravity-pulse`、`browser-hub`、`gold-monitor`、`lumalink-companion`、`notion-bookmarks`、`translate-hub`、`mac-pilot`、`quick-remind`、`screen-shield`、`file-shelf` 与 `audio-presets` 十一款预编译原生 `arm64` Swift 旗舰插件，零 Python 运行时依赖） |
 | `lucent_validate_plugin` | `id` | 校验 `capabilities`、`resourceScopes`、包内图标安全边界、滑块数值范围、`commands`、`accepts` 与脚本权限 |
 | `lucent_run_plugin_test` | `id`, `query`, `arguments`, `context`, `clipboardText`（可选） | 执行内置或外部插件测试（自动注入 `locale`/`theme`、模拟子功能 `arguments`、跨模块 `context` 与临时 Host Bridge） |
 | `lucent_set_plugin_enabled` | `id`, `enabled` | 启停外部或 `BUILTIN` 插件 |

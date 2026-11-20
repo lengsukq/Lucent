@@ -3,7 +3,7 @@ import Foundation
 
 public enum PluginSystem {
     static let stateLock = NSLock()
-    public static let fallbackHostAppVersion = "0.9.9.1"
+    public static let fallbackHostAppVersion = "0.9.9.2"
 
     public static var currentHostAppVersion: String {
         if let bundled = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
