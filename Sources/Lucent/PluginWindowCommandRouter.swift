@@ -31,7 +31,7 @@ extension PluginWindowMotionSession {
             }
             let pinned = (body["pinned"] as? Bool) ?? true
             WindowLevelStore.shared.setPinned(pinned, forKey: windowKey)
-            PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
+            PluginCustomWebWindowController.shared.updateRuntimeAttributesAndPersist(forKey: windowKey, pinOnTop: pinned)
             return ["ok": true, "pinned": pinned]
         case "setShowInDock":
             let enabled = (body["enabled"] as? Bool) ?? false
@@ -43,6 +43,7 @@ extension PluginWindowMotionSession {
             }
             let enabled = (body["enabled"] as? Bool) ?? false
             win.ignoresMouseEvents = enabled
+            PluginCustomWebWindowController.shared.updateRuntimeAttributesAndPersist(forKey: windowKey, clickThrough: enabled)
             return ["ok": true, "clickThrough": enabled]
         case "setOpacity":
             return handleSetOpacity(body, window: win)
@@ -166,7 +167,7 @@ extension PluginWindowMotionSession {
         } else {
             win.alphaValue = clamped
         }
-        PluginCustomWebWindowController.shared.persistCanvasFrame(forKey: windowKey)
+        PluginCustomWebWindowController.shared.updateRuntimeAttributesAndPersist(forKey: windowKey, opacity: clamped)
         return ["ok": true, "opacity": clamped]
     }
 }

@@ -80,7 +80,9 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
             replyHandler(nil, "Invalid bridge message")
             return
         }
-        guard let vm = viewModel, let currentPlugin = vm.plugins.first(where: { $0.id == pluginID }) else {
+        guard let vm = viewModel, let currentPlugin = vm.plugins.first(where: {
+            $0.id == pluginID && $0.isValid && ($0.isBuiltin || $0.isEnabled)
+        }) else {
             replyHandler(nil, "Plugin '\(pluginID)' is unavailable")
             return
         }

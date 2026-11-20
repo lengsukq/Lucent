@@ -83,10 +83,24 @@ final class PluginFloatingPanelController: ObservableObject {
         isRefreshing = false
     }
 
+    func currentRequest(pinOnTop: Bool) -> PluginFloatingPanelRequest {
+        PluginFloatingPanelRequest(
+            pluginID: pluginID,
+            pinOnTop: pinOnTop,
+            refreshIntervalSeconds: refreshIntervalSeconds,
+            arguments: arguments,
+            query: query
+        )
+    }
+
     func setInterval(_ seconds: Int) {
         refreshIntervalSeconds = PluginFloatingPanelRequest.clampInterval(seconds)
         if refreshIntervalSeconds > 0 { isPaused = false }
         restartPeriodicLoop()
+        let key = "pluginPanel:\(pluginID)"
+        FloatingWindowSessionStore.upsertPluginFloatingPanel(
+            currentRequest(pinOnTop: WindowLevelStore.shared.isPinned(key))
+        )
     }
 
     func togglePaused() {

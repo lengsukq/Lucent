@@ -177,7 +177,7 @@ struct LaunchIntroOverlayView: View {
 
             sloganShimmerHeadline(isPrism: isPrism)
 
-            Text(L10n.pick("毫秒唤起 · 松手即净 · 零后台常驻", "One Touch of Light · Ephemeral by Design"))
+            Text(L10n.pick("越用越懂你 · 毫秒唤起 · 松手即净", "Smarter Every Click · Instant · Zero Trace"))
                 .font(.system(size: 11.5, weight: .medium)).foregroundStyle(LiquidColors.textSecondary)
 
             GeometryReader { geo in

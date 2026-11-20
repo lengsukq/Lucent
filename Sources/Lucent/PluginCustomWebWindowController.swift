@@ -8,7 +8,7 @@ import WebKit
 final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
     static let shared = PluginCustomWebWindowController()
 
-    private struct ManagedCanvas {
+    struct ManagedCanvas {
         let pluginID: String
         let windowID: String
         var spec: PluginCustomWindowSpec
@@ -17,7 +17,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         let coordinator: PluginWebBridgeCoordinator?
     }
 
-    private var activeCanvases: [String: ManagedCanvas] = [:]
+    var activeCanvases: [String: ManagedCanvas] = [:]
     private weak var boundViewModel: AppViewModel?
     var onWindowVisibilityChanged: (() -> Void)?
 
@@ -53,6 +53,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         guard var managed = activeCanvases[key], managed.spec.showInDock != enabled else { return }
         managed.spec = managed.spec.withShowInDock(enabled)
         activeCanvases[key] = managed
+        persistActiveSession()
         onWindowVisibilityChanged?()
         if let plug = boundViewModel?.plugins.first(where: { $0.id == managed.pluginID }) {
             let pinned = WindowLevelStore.shared.isPinned(key)
@@ -72,34 +73,13 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         }
     }
 
-    func persistCanvasFrame(forKey key: String) {
-        guard let managed = activeCanvases[key], managed.webView != nil else { return }
-        let frame = managed.window.frame
-        let saved = PluginSavedWindowFrame(
-            x: Int(frame.origin.x.rounded()),
-            y: Int(frame.origin.y.rounded()),
-            width: Int(frame.size.width.rounded()),
-            height: Int(frame.size.height.rounded()),
-            opacity: Double(managed.window.alphaValue),
-            pinOnTop: WindowLevelStore.shared.isPinned(key)
-        )
-        PluginWindowFrameStore.saveFrame(saved, pluginID: managed.pluginID, windowID: managed.windowID)
-    }
-
-    func resetCanvasToDefaults(forKey key: String, plugin: PluginDescriptor) {
-        guard let managed = activeCanvases[key] else { return }
-        let defSpec = PluginCustomWindowSpec.resolve(plugin: plugin, launch: PluginWindowLaunchEffect(windowID: managed.windowID))
-        managed.window.setContentSize(NSSize(width: CGFloat(defSpec.width), height: CGFloat(defSpec.height)))
-        PluginWebWindowBuilder.positionWindow(managed.window, spec: defSpec)
-        managed.window.alphaValue = defSpec.opacity
-        if plugin.grantedCapabilities.contains(.floatingWindow) || !defSpec.pinOnTop {
-            WindowLevelStore.shared.setPinned(defSpec.pinOnTop, forKey: key)
-        }
-        persistCanvasFrame(forKey: key)
-    }
-
     @discardableResult
-    func open(spec rawSpec: PluginCustomWindowSpec, viewModel: AppViewModel) -> Bool {
+    func open(
+        spec rawSpec: PluginCustomWindowSpec,
+        viewModel: AppViewModel,
+        activateApp: Bool = true,
+        allowPermissionPrompt: Bool = true
+    ) -> Bool {
         boundViewModel = viewModel
         guard let plugin = viewModel.plugins.first(where: { $0.id == rawSpec.pluginID }),
               plugin.isBuiltin || plugin.isEnabled else {
@@ -136,6 +116,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         }
 
         if !spec.isSatisfied(by: plugin.grantedCapabilities) {
+            guard allowPermissionPrompt else { return false }
             let gateWindow = PluginWebWindowBuilder.makePermissionGateWindow(
                 plugin: plugin, capability: reqCap, delegate: self,
                 onAllow: { [weak self] in
@@ -159,10 +140,15 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         }
 
         guard let contentSource = resolveHTMLSource(for: spec, plugin: plugin) else {
-            viewModel.serviceMessage = L10n.pick("插件自由窗口缺少有效 HTML 入口文件", "Plugin custom window is missing a valid HTML entry")
+            if allowPermissionPrompt {
+                viewModel.serviceMessage = L10n.pick("插件自由窗口缺少有效 HTML 入口文件", "Plugin custom window is missing a valid HTML entry")
+            }
             return false
         }
-        presentWebCanvas(key: key, plugin: plugin, spec: spec, source: contentSource, viewModel: viewModel)
+        presentWebCanvas(
+            key: key, plugin: plugin, spec: spec, source: contentSource,
+            viewModel: viewModel, activateApp: activateApp
+        )
         return true
     }
 
@@ -172,7 +158,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
     }
 
     @discardableResult
-    func closeByKey(_ key: String) -> Bool {
+    func closeByKey(_ key: String, updateSession: Bool = true) -> Bool {
         persistCanvasFrame(forKey: key)
         guard let managed = activeCanvases.removeValue(forKey: key) else { return false }
         WindowLevelStore.shared.detach(key: key)
@@ -180,13 +166,16 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         managed.window.delegate = nil
         managed.window.contentView = nil
         managed.window.close()
+        if updateSession { persistActiveSession() }
         onWindowVisibilityChanged?()
         MemoryStats.reclaimFreeHeapPages()
         return true
     }
 
-    func closeAll() {
-        for key in Array(activeCanvases.keys) { _ = closeByKey(key) }
+    func closeAll(clearPersistedSession: Bool = true) {
+        if !clearPersistedSession { persistActiveSession() }
+        for key in Array(activeCanvases.keys) { _ = closeByKey(key, updateSession: false) }
+        if clearPersistedSession { persistActiveSession() }
     }
 
     func windowDidMove(_ notification: Notification) {
@@ -212,6 +201,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         managed.coordinator?.tearDown(webView: managed.webView)
         closedWin.delegate = nil
         closedWin.contentView = nil
+        persistActiveSession()
         onWindowVisibilityChanged?()
         MemoryStats.reclaimFreeHeapPages()
     }
@@ -224,7 +214,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
     private func resolveHTMLSource(for spec: PluginCustomWindowSpec, plugin: PluginDescriptor) -> HTMLContentSource? {
         if let rel = spec.htmlPath, !rel.isEmpty,
            let fileURL = PluginCustomWindowSpec.resolveSafeHTMLFileURL(relativePath: rel, bundleDirectory: plugin.directoryURL) {
-            return .localFile(fileURL: fileURL, readAccessRoot: plugin.directoryURL)
+            return .localFile(fileURL: fileURL, readAccessRoot: plugin.directoryURL.resolvingSymlinksInPath().standardizedFileURL)
         }
         if let rawHTML = spec.html, !rawHTML.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return .inlineHTML(rawHTML, baseURL: plugin.directoryURL)
@@ -234,7 +224,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
 
     private func presentWebCanvas(
         key: String, plugin: PluginDescriptor, spec: PluginCustomWindowSpec,
-        source: HTMLContentSource, viewModel: AppViewModel
+        source: HTMLContentSource, viewModel: AppViewModel, activateApp: Bool
     ) {
         let win = PluginWebWindowBuilder.buildNativeWindow(for: spec, title: spec.title ?? plugin.displayName)
         win.delegate = self
@@ -266,7 +256,16 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
             webView.layer?.backgroundColor = NSColor.clear.cgColor
         }
 
-        win.contentView = webView
+        if spec.chrome == .standard && spec.transparent {
+            let material = NSVisualEffectView(frame: webView.frame)
+            material.material = .windowBackground
+            material.blendingMode = .behindWindow
+            material.state = .followsWindowActiveState
+            material.addSubview(webView)
+            win.contentView = material
+        } else {
+            win.contentView = webView
+        }
         WindowLevelStore.shared.attach(window: win, key: key, initialPinned: spec.pinOnTop)
         win.alphaValue = spec.opacity
         win.ignoresMouseEvents = spec.clickThrough
@@ -274,6 +273,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         activeCanvases[key] = ManagedCanvas(
             pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: win, webView: webView, coordinator: coordinator
         )
+        persistActiveSession()
         onWindowVisibilityChanged?()
 
         let allowNet = plugin.isResourceScopeGranted(.network)
@@ -288,7 +288,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
             }
         }
 
-        if spec.showInDock { NSApp.activate(ignoringOtherApps: true); win.makeKeyAndOrderFront(nil) }
+        if activateApp && spec.showInDock { NSApp.activate(ignoringOtherApps: true); win.makeKeyAndOrderFront(nil) }
         else { win.orderFrontRegardless() }
     }
 

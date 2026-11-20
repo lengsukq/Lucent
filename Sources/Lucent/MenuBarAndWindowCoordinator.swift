@@ -11,6 +11,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
     var windows: [String: NSWindow] = [:]
     var windowBaseTitles: [String: String] = [:]
     var pluginPanelControllers: [String: PluginFloatingPanelController] = [:]
+    var isShuttingDown = false
     private var docWindowOrder: [String] = []
     private var memoryPressureSource: DispatchSourceMemoryPressure?
 
@@ -70,25 +71,31 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             onMenuBarUpdate: { [weak self] text in self?.statusItem?.button?.title = text.map { " " + $0 } ?? "" },
             onOpenNetworkMonitor: { [weak self] in self?.open(route: .networkMonitor) }
         )
-        performInitialLaunchPresentation()
+        restoreFloatingWindowsIfNeeded()
+        DispatchQueue.main.async { [weak self] in
+            self?.performInitialLaunchPresentation()
+        }
     }
 
     func showLauncher(filter: OmniFilter = .all) { panelController.show(filter: filter) }
 
     func shutdown() {
+        isShuttingDown = true
+        persistActivePluginFloatingPanels()
         LaunchIntroController.shared.cancelImmediately()
         hotKeyManager.unregisterAll(); viewModel.shutdownAllServicesAndTasks()
         SelectionQuickBarController.shared.stopAll()
         for (_, ctrl) in pluginPanelControllers { ctrl.stop() }
         pluginPanelControllers.removeAll()
-        PluginCustomWebWindowController.shared.closeAll()
+        PluginCustomWebWindowController.shared.closeAll(clearPersistedSession: false)
+        SearchAffinityStore.shared.flush()
         AppUsageTrackerController.shared.flushNow(); AppUsageTrackerController.shared.stopMonitoring()
         if GifCaptureController.shared.isActive { GifCaptureController.shared.cancelCapture() }
         else { GifCaptureController.shared.dismissCompletedHUD(immediately: true) }
         MosEngine.shared.stopTapAndReleaseAll(); LumaLinkServer.shared.stopAll(waitUntilFinished: true)
         SystemPulseWindowController.shared.shutdown()
         ProcessSupervisor.shared.terminateAll(waitGracePeriodSeconds: 0.25)
-        PinWindowController.shared.closeAll(animated: false); VideoPlaybackCompat.cleanupTempDirectory()
+        PinWindowController.shared.closeAll(animated: false, clearPersistedSession: false); VideoPlaybackCompat.cleanupTempDirectory()
         for (_, win) in windows { win.delegate = nil; win.contentView = nil; win.close() }
         windows.removeAll(); windowBaseTitles.removeAll()
         memoryPressureSource?.cancel(); memoryPressureSource = nil
@@ -142,6 +149,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             .screenshotPin: { [weak self] in self?.viewModel.captureAndPinScreenshot() },
             .screenshotOCR: { [weak self] in self?.viewModel.captureAndAnalyzeOCR() },
             .gifRecord: { [weak self] in self?.viewModel.startGifRecording() },
+            .videoRecord: { [weak self] in self?.viewModel.startVideoRecording() },
             .workspace: { [weak self] in self?.open(route: .workspace) },
             .systemPulse: { SystemPulseWindowController.shared.toggleFloatingWidget() },
             .networkMonitor: { [weak self] in self?.open(route: .networkMonitor) },
@@ -179,24 +187,7 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         case .pluginSettings(let pluginID):
             viewModel.activePluginSettingsID = pluginID; viewModel.activeSettingsSection = .pluginDetail; presentSettingsWindow()
         case .pluginPanel(let req, let seedPayload):
-            let key = "pluginPanel:\(req.pluginID)"
-            let ctrl: PluginFloatingPanelController
-            if let existingCtrl = pluginPanelControllers[key] {
-                existingCtrl.applyUpdatedRequest(req, seedPayload: seedPayload)
-                ctrl = existingCtrl
-            } else {
-                let created = PluginFloatingPanelController(request: req, viewModel: viewModel, seedPayload: seedPayload)
-                pluginPanelControllers[key] = created
-                ctrl = created
-            }
-            let plugName = viewModel.plugins.first(where: { $0.id == req.pluginID })?.displayName ?? req.pluginID
-            presentWindow(
-                key: key, title: "\(plugName) · 悬浮面板",
-                size: NSSize(width: 520, height: 600), minSize: NSSize(width: 420, height: 360),
-                pinOnTop: req.pinOnTop
-            ) {
-                PluginFloatingPanelWindowView(controller: ctrl, windowKey: key)
-            }
+            openPluginFloatingPanel(request: req, seedPayload: seedPayload, activateApp: true)
         case .documentReader(let url, let siblings):
             let key = "doc:\(url.standardizedFileURL.path)"
             presentWindow(key: key, title: "文档阅读 · \(url.lastPathComponent)", size: NSSize(width: 920, height: 660), isDocumentSlot: true) {
@@ -226,9 +217,10 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         ) { SettingsCenterView(viewModel: viewModel) }
     }
 
-    private func presentWindow<Content: View>(
+    func presentWindow<Content: View>(
         key: String, title: String, size: NSSize, minSize: NSSize? = nil,
-        isDocumentSlot: Bool = false, darkCinema: Bool = false, pinOnTop: Bool = false, @ViewBuilder content: () -> Content
+        isDocumentSlot: Bool = false, darkCinema: Bool = false, pinOnTop: Bool = false,
+        activateApp: Bool = true, @ViewBuilder content: () -> Content
     ) {
         let hosting = NSHostingView(rootView: LocalizedRootContainer { content() })
         windowBaseTitles[key] = title
@@ -240,9 +232,11 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
             WindowLevelStore.shared.attach(window: existing, key: key, initialPinned: pinOnTop)
             if existing.isMiniaturized { existing.deminiaturize(nil) }
             syncDockPolicy()
-            if !existing.isVisible { WindowMotionAnimator.present(existing, style: .standardWindow, makeKey: true) }
-            else { existing.makeKeyAndOrderFront(nil) }
-            NSApp.activate(ignoringOtherApps: true); return
+            if !existing.isVisible { WindowMotionAnimator.present(existing, style: .standardWindow, makeKey: activateApp) }
+            else if activateApp { existing.makeKeyAndOrderFront(nil) }
+            else { existing.orderFrontRegardless() }
+            if activateApp { NSApp.activate(ignoringOtherApps: true) }
+            return
         }
         if isDocumentSlot {
             docWindowOrder.append(key)
@@ -269,8 +263,8 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
         }
         window.contentView = hosting; windows[key] = window
         WindowLevelStore.shared.attach(window: window, key: key, initialPinned: pinOnTop)
-        syncDockPolicy(); WindowMotionAnimator.present(window, style: .standardWindow, makeKey: true)
-        NSApp.activate(ignoringOtherApps: true)
+        syncDockPolicy(); WindowMotionAnimator.present(window, style: .standardWindow, makeKey: activateApp)
+        if activateApp { NSApp.activate(ignoringOtherApps: true) }
     }
 
     private func applyAppearance(to window: NSWindow, darkCinema: Bool) {
@@ -287,6 +281,9 @@ final class MenuBarAndWindowCoordinator: NSObject, NSWindowDelegate {
               let key = windows.first(where: { $0.value === closedWindow })?.key else { return }
         if let panelCtrl = pluginPanelControllers.removeValue(forKey: key) {
             panelCtrl.stop()
+            if !isShuttingDown {
+                FloatingWindowSessionStore.removePluginFloatingPanel(pluginID: panelCtrl.pluginID)
+            }
         }
         windows.removeValue(forKey: key); windowBaseTitles.removeValue(forKey: key)
         docWindowOrder.removeAll { $0 == key }

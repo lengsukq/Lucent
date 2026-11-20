@@ -24,25 +24,34 @@ final class LaunchIntroController {
     private var panel: KeyableIntroPanel?
     private var animState: LaunchIntroAnimationState?
     private var sequenceTask: Task<Void, Never>?
-    private var pendingLauncherCallback: (() -> Void)?
+    private var pendingLauncherCallback: (@MainActor () -> Void)?
     private var hasTriggeredLauncher = false
+    private var shouldOpenLauncherOnFinish = true
 
     private init() {}
 
     var isPlaying: Bool { panel != nil }
 
-    func play(targetFrame: NSRect, onTriggerLauncher: @escaping @MainActor () -> Void) {
+    func play(
+        targetFrame: NSRect,
+        openLauncherOnFinish: Bool = true,
+        onTriggerLauncher: (@MainActor () -> Void)? = nil
+    ) {
         cancelImmediately()
 
         guard !SystemDisplayPreferences.shared.reduceMotion,
               !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
-            onTriggerLauncher()
+            if openLauncherOnFinish { onTriggerLauncher?() }
             return
         }
 
         let state = LaunchIntroAnimationState()
         self.animState = state
-        self.pendingLauncherCallback = onTriggerLauncher
+        self.shouldOpenLauncherOnFinish = openLauncherOnFinish
+        self.pendingLauncherCallback = nil
+        if openLauncherOnFinish {
+            self.pendingLauncherCallback = onTriggerLauncher
+        }
         self.hasTriggeredLauncher = false
 
         let introPanel = KeyableIntroPanel(
@@ -52,7 +61,7 @@ final class LaunchIntroController {
             defer: false
         )
         introPanel.becomesKeyOnlyIfNeeded = false
-        introPanel.level = .floating
+        introPanel.level = .popUpMenu
         introPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         introPanel.isOpaque = false
         introPanel.backgroundColor = .clear
@@ -76,9 +85,11 @@ final class LaunchIntroController {
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
         introPanel.contentView = hosting
         introPanel.setFrame(targetFrame, display: true)
-        if !NSApp.isActive {
+        hosting.layoutSubtreeIfNeeded()
+        if openLauncherOnFinish && !NSApp.isActive {
             NSApp.activate(ignoringOtherApps: true)
         }
+        introPanel.orderFrontRegardless()
         introPanel.makeKeyAndOrderFront(nil)
         self.panel = introPanel
 
@@ -90,7 +101,9 @@ final class LaunchIntroController {
     func skipAndOpenLauncherNow() {
         sequenceTask?.cancel()
         sequenceTask = nil
-        fireLauncherOnce()
+        if shouldOpenLauncherOnFinish {
+            fireLauncherOnce()
+        }
         teardownPanelAndReclaim()
     }
 
@@ -103,6 +116,10 @@ final class LaunchIntroController {
     }
 
     private func runChoreography(state: LaunchIntroAnimationState) async {
+        // Allow frame 0 to commit resting state before triggering Beat 1 spring on cold launch.
+        try? await Task.sleep(for: .milliseconds(32))
+        guard !Task.isCancelled else { return }
+
         // Beat 1 (0.00s): Materialize 3D Prism Keycap & Ambient Aurora
         withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
             state.auraVisible = true
@@ -151,7 +168,7 @@ final class LaunchIntroController {
 
         // Beat 4 (1.16s): "用完即焚 -> 跃出悬浮框" Morph Silhouette Outward & Dissolve Stage
         withAnimation(.timingCurve(0.18, 0.96, 0.30, 1.0, duration: 0.25)) {
-            state.morphWaveActive = true
+            state.morphWaveActive = shouldOpenLauncherOnFinish
             state.stageDissolving = true
         }
 
@@ -159,7 +176,9 @@ final class LaunchIntroController {
         guard !Task.isCancelled else { return }
 
         // Overlap Floating Panel spring pop-out seamlessly out of the dissolving light core!
-        fireLauncherOnce()
+        if shouldOpenLauncherOnFinish {
+            fireLauncherOnce()
+        }
 
         try? await Task.sleep(for: .milliseconds(190))
         guard !Task.isCancelled else { return }
@@ -191,13 +210,26 @@ final class LaunchIntroController {
 
 extension MenuBarAndWindowCoordinator {
     func performInitialLaunchPresentation() {
-        guard !viewModel.generalPreferences.launchSilentlyInMenuBar else { return }
-        if viewModel.generalPreferences.showLaunchIntroAnimation {
+        let prefs = viewModel.generalPreferences
+        let reduceMotion = SystemDisplayPreferences.shared.reduceMotion
+            || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let action = LaunchPresentationPolicy.resolve(
+            launchSilentlyInMenuBar: prefs.launchSilentlyInMenuBar,
+            showLaunchIntroAnimation: prefs.showLaunchIntroAnimation,
+            reduceMotion: reduceMotion
+        )
+        switch action {
+        case .silent:
+            return
+        case .playIntroThenShowLauncher:
             let frame = panelController.resolvedLaunchTargetFrame()
-            LaunchIntroController.shared.play(targetFrame: frame) { [weak self] in
+            LaunchIntroController.shared.play(targetFrame: frame, openLauncherOnFinish: true) { [weak self] in
                 self?.panelController.showFromLaunchIntro(filter: .all)
             }
-        } else {
+        case .playIntroThenStaySilent:
+            let frame = panelController.resolvedLaunchTargetFrame()
+            LaunchIntroController.shared.play(targetFrame: frame, openLauncherOnFinish: false)
+        case .showLauncherImmediately:
             panelController.show(filter: .all)
         }
     }
@@ -208,7 +240,7 @@ extension MenuBarAndWindowCoordinator {
             win.orderBack(nil)
         }
         let frame = panelController.resolvedLaunchTargetFrame()
-        LaunchIntroController.shared.play(targetFrame: frame) { [weak self] in
+        LaunchIntroController.shared.play(targetFrame: frame, openLauncherOnFinish: true) { [weak self] in
             self?.panelController.showFromLaunchIntro(filter: .all)
         }
     }
