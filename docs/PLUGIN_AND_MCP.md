@@ -114,8 +114,8 @@
 | `everythingSearch` | `search` (`{"query":"...","limit":20}`) | 复用 `EverythingIndex` 内存树按 DSL 检索文件 |
 | `displayInfo` | `list` (`{}`) | 返回活跃显示器 `displayID`、当前模式与可用分辨率 |
 | `systemControl` | `status`、`setVolume`、`setMute`、`setCaffeine`、`setStatusScreen`、`clearStatusScreen` | 查询与安全调节系统音量/静音/防休眠状态，以及多屏全屏状态屏告示遮罩（支持键鼠防误触拦截与长按 `Esc` 安全退出） |
-| `fileShelf` | `open`、`addContextItems`（均无参数） | 宿主原生文件托盘。仅 `addContextItems` 的当前用户文件操作可加入选中项。持久文件引用由宿主按插件隔离保存，缓存清理与卸载不移除条目 |
-| `audioDevices` | `list` / `status`、`apply`（`{inputUID,outputUID,showFeedback?}`） | 读取和切换默认输入及输出，返回回读结果 `applied` / `unavailable` / `restored` / `partial`。仅桌面宿主可用，无麦克风采集 |
+| `fileShelf` | `open`、`addContextItems`（均无参数） | 宿主原生液态玻璃文件托盘（支持左右贴边自动隐藏、悬停/拖入滑出、右键操作、可选拖出移出与跨重启恢复）。仅 `addContextItems` 的当前用户文件操作可加入选中项，持久引用按插件隔离保存 |
+| `audioDevices` | `list` / `status`、`apply`（`{inputUID,outputUID,showFeedback?}`）、`setDevice`（`{direction,uid}`） | 读取和切换默认输入/输出（支持组合切换或单向直切），返回回读结果 `applied` / `unavailable` / `restored` / `partial`。仅桌面宿主可用，无麦克风采集 |
 | `lumaLinkStatus` | `status`、`toggle`、`setEnabled`、`toggleRdp`、`regeneratePin`、`toggleCurtain`、`toggleCaffeine`、`setDisplayMode`、`restoreDisplays`、`revokeDevice` | 全闭环受控管理 LumaLink 监听、高清配对二维码生成、多屏 HiDPI 切换、物理防窥黑屏、防休眠及已配对设备解绑（绝不暴露设备 Token） |
 
 ## 三、独立脚本快捷库 (`Quick Scripts`)、权限审计矩阵与开发者套件

@@ -10,14 +10,22 @@ final class AudioPresetHUD {
 
     func present(input: String, output: String) {
         hideTask?.cancel()
-        window?.close()
+        if let existing = window {
+            existing.contentView = nil
+            existing.orderOut(nil)
+            window = nil
+        }
         let frame = ScreenTopologyAndWindowMatcher.activeCursorScreen()?.visibleFrame
-            ?? NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 920, height: 720)
-        let width: CGFloat = 344
-        let viewHeight: CGFloat = 112
+            ?? NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1280, height: 800)
+        let width: CGFloat = 352
+        let height: CGFloat = 104
+        let rect = CGRect(x: frame.midX - width / 2, y: frame.minY + 64, width: width, height: height)
+
         let panel = PluginHUDCanvasPanel(
-            contentRect: CGRect(x: frame.midX - width / 2, y: frame.minY + 62, width: width, height: viewHeight),
-            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false
+            contentRect: rect,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
         )
         panel.isReleasedWhenClosed = false
         panel.isOpaque = false
@@ -26,41 +34,75 @@ final class AudioPresetHUD {
         panel.ignoresMouseEvents = true
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        let hosting = NSHostingView(rootView: statusView(input: input, output: output))
+
+        let glass = RoundedGlassContainerView(cornerRadius: LiquidRadii.windowPanel)
+        glass.frame = NSRect(origin: .zero, size: rect.size)
+        glass.autoresizingMask = [.width, .height]
+        let hosting = NSHostingView(rootView: LocalizedRootContainer {
+            AudioPresetHUDView(input: input, output: output)
+        })
         hosting.sizingOptions = []
-        panel.contentView = hosting
-        panel.orderFrontRegardless()
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        hosting.frame = glass.bounds
+        hosting.autoresizingMask = [.width, .height]
+        glass.addSubview(hosting)
+        panel.contentView = glass
+
+        WindowMotionAnimator.present(panel, style: .pulseCapsule, makeKey: false)
         window = panel
+
         hideTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(2400))
-            guard !Task.isCancelled else { return }
-            self?.window?.close()
-            self?.window = nil
-            self?.hideTask = nil
+            try? await Task.sleep(for: .milliseconds(2300))
+            guard !Task.isCancelled, let self, let activePanel = self.window else { return }
+            WindowMotionAnimator.dismiss(activePanel, style: .pulseCapsule) { [weak self, weak activePanel] in
+                guard let self, self.window === activePanel else { return }
+                activePanel?.contentView = nil
+                self.window = nil
+                self.hideTask = nil
+            }
         }
     }
+}
 
-    private func statusView(input: String, output: String) -> some View {
+private struct AudioPresetHUDView: View {
+    let input: String
+    let output: String
+    @ObservedObject private var theme = ThemeManager.shared
+
+    var body: some View {
+        let highContrast = SystemDisplayPreferences.shared.increaseContrast
+        let shape = RoundedRectangle(cornerRadius: LiquidRadii.windowPanel, style: .continuous)
         HStack(spacing: 14) {
-            Image(systemName: "checkmark")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Color.indigo)
-                .frame(width: 38, height: 38)
-                .background(Color.indigo.opacity(0.15), in: Circle())
+            SquircleBadge(symbol: "waveform", topColor: .indigo, bottomColor: .cyan, size: 40)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 5) {
-                Text(L10n.pick("已切换音频组合", "Audio preset applied"))
-                    .font(.system(size: 14, weight: .semibold))
-                Label(output, systemImage: "speaker.wave.2.fill").lineLimit(1).truncationMode(.middle)
-                Label(input, systemImage: "mic.fill").lineLimit(1).truncationMode(.middle)
+            VStack(alignment: .leading, spacing: 4.5) {
+                HStack(spacing: 6) {
+                    Text(L10n.pick("已切换音频组合", "Audio Preset Applied"))
+                        .font(.system(size: 13.5, weight: .bold))
+                        .foregroundStyle(LiquidColors.textPrimary)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.mint)
+                }
+                Label(output, systemImage: "speaker.wave.2.fill")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(LiquidColors.textSecondary)
+                    .lineLimit(1).truncationMode(.middle)
+                Label(input, systemImage: "mic.fill")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(LiquidColors.textSecondary)
+                    .lineLimit(1).truncationMode(.middle)
             }
-            .font(.system(size: 12))
             .accessibilityElement(children: .combine)
             Spacer(minLength: 0)
         }
-        .padding(16).frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { LiquidFluidBackdrop() }
-        .clipShape(RoundedRectangle(cornerRadius: LiquidRadii.windowPanel))
-        .overlay { RoundedRectangle(cornerRadius: LiquidRadii.windowPanel).strokeBorder(LiquidColors.inputFieldBorder) }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipShape(shape)
+        .overlay {
+            DoubleSpecularBorder(cornerRadius: LiquidRadii.windowPanel, isShell: true, highContrast: highContrast)
+        }
+        .id(theme.current)
     }
 }

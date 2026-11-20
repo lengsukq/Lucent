@@ -139,3 +139,56 @@ private final class MockAudioHardware: AudioDeviceHardware, @unchecked Sendable 
     #expect(partial.status == .partial)
     #expect(partial.actual == AudioDevicePair(input: "old-mic", output: "new-speakers"))
 }
+
+@Test func audioPresetSingleDeviceSwitchAndBridgeDispatch() {
+    let hardware = MockAudioHardware()
+    let router = PluginAudioDeviceRouter(hardware: hardware)
+    let switched = router.setSingle(uid: "new-mic", direction: .input)
+    #expect(switched.status == .applied)
+    #expect(switched.actual == AudioDevicePair(input: "new-mic", output: "old-speakers"))
+
+    let missing = router.setSingle(uid: "ghost-mic", direction: .input)
+    #expect(missing.status == .unavailable)
+    #expect(missing.missing == [.input])
+
+    let failHardware = MockAudioHardware(failing: ["new-speakers"])
+    let failRouter = PluginAudioDeviceRouter(hardware: failHardware)
+    let restored = failRouter.setSingle(uid: "new-speakers", direction: .output)
+    #expect(restored.status == .restored)
+    #expect(restored.actual == AudioDevicePair(input: "old-mic", output: "old-speakers"))
+}
+
+@Test func fileShelfEdgeDockingGeometryAndModeResolution() {
+    let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+    let nearLeft = CGRect(x: 8, y: 300, width: 320, height: 420)
+    let nearRight = CGRect(x: 1110, y: 300, width: 320, height: 420)
+    let middle = CGRect(x: 520, y: 260, width: 320, height: 420)
+
+    #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: nearLeft, visibleFrame: screen) == .left)
+    #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: nearRight, visibleFrame: screen) == .right)
+    #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: middle, visibleFrame: screen) == .none)
+
+    let dockedAutoHide = FileShelfWindowSettings(dockEdge: .right, edgeAutoHide: true, pinnedExpanded: false)
+    #expect(FileShelfEdgeGeometry.resolveMode(
+        settings: dockedAutoHide, isHovered: false, isDraggingIntoShelf: false, isModalOrInputActive: false
+    ) == .edgeTucked(.right))
+    #expect(FileShelfEdgeGeometry.resolveMode(
+        settings: dockedAutoHide, isHovered: true, isDraggingIntoShelf: false, isModalOrInputActive: false
+    ) == .expanded)
+    #expect(FileShelfEdgeGeometry.resolveMode(
+        settings: dockedAutoHide, isHovered: false, isDraggingIntoShelf: true, isModalOrInputActive: false
+    ) == .expanded)
+
+    let tuckedRect = FileShelfEdgeGeometry.frame(
+        for: .edgeTucked(.right), dockEdge: .right, size: FileShelfEdgeGeometry.tuckedTabSize,
+        currentFrame: nearRight, anchorMidY: 450, visibleFrame: screen
+    )
+    #expect(tuckedRect.maxX == screen.maxX)
+    #expect(tuckedRect.width == FileShelfEdgeGeometry.tuckedTabSize.width)
+
+    let expandedRect = FileShelfEdgeGeometry.frame(
+        for: .expanded, dockEdge: .left, size: FileShelfEdgeGeometry.expandedSize,
+        currentFrame: nearLeft, anchorMidY: 450, visibleFrame: screen
+    )
+    #expect(expandedRect.minX == screen.minX + FileShelfEdgeGeometry.screenInset)
+}

@@ -1,13 +1,15 @@
 {
   "schemaVersion": 3,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minAppVersion": "0.9.9.2",
   "mode": "view",
   "author": "Lucent Official",
   "resourceScopes": [],
+  "includeInGlobalSearch": true,
+  "searchIndexInGlobalSearch": true,
   "id": "audio-presets",
   "name": "一键音频组合",
-  "description": "保存常用扬声器与麦克风，一次切换并核对系统实际设备。",
+  "description": "液态玻璃悬浮音频控制台：支持单点直切设备、保存常用组合、靠边贴边收起与全局秒搜切换。",
   "entry": "bin/audio-presets",
   "icon": "icon.png",
   "accentColor": "indigo",
@@ -25,20 +27,21 @@
   ],
   "window": {
     "entryHtml": "ui/index.html",
-    "chrome": "standard",
-    "width": 420,
-    "height": 440,
-    "minWidth": 350,
-    "minHeight": 360,
+    "chrome": "frameless",
+    "width": 396,
+    "height": 456,
+    "minWidth": 168,
+    "minHeight": 50,
+    "resizable": false,
     "transparent": true,
-    "showInDock": true,
-    "pinOnTop": false
+    "showInDock": false,
+    "pinOnTop": true
   },
   "commands": [
     {
       "id": "open",
       "title": "打开音频组合",
-      "subtitle": "查看系统音频设备与已保存的组合",
+      "subtitle": "查看并直切系统音频设备与已保存组合",
       "keywords": [
         "声音",
         "audio presets"
@@ -67,12 +70,12 @@
   "locales": {
     "en": {
       "name": "Audio Presets",
-      "description": "Save a speaker and microphone together. Switch both and verify the active devices.",
+      "description": "Liquid Glass floating audio console: switch speakers/mics directly, save presets, and dock to screen edge.",
       "categoryTag": "Audio",
       "commands": {
         "open": {
           "title": "Open Audio Presets",
-          "subtitle": "View your devices and saved presets"
+          "subtitle": "View and switch audio devices and saved presets"
         },
         "apply-favorite": {
           "title": "Apply Favorite Audio Preset",

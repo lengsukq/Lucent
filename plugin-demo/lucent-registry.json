@@ -12,6 +12,7 @@
       "categoryTag" : "开发监控",
       "description" : "零侵入缩边悬浮窗监控 Antigravity 上下文占用、缓存命中率、5h/7d 净用量与活跃项目状态：悬停自动展开大窗、滚轮切换项目、一键直达对应对话",
       "downloadURL" : "./dist/antigravity-pulse.zip",
+      "icon" : "sidebar.right",
       "id" : "antigravity-pulse",
       "keywords" : [
         "agpulse",
@@ -82,7 +83,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "3af628eed9edfdde9b3d631dc9f550beff7d2564d606cb131b4d9e5cc3edfc9a",
+      "sha256" : "20d6a0cce950b378548d97c388afa2fefba68fd5b6b20f53e833505fe1685861",
       "sizeBytes" : 271676,
       "version" : "1.3.0"
     },
@@ -94,7 +95,7 @@
         "audioDevices"
       ],
       "categoryTag" : "声音",
-      "description" : "保存常用扬声器与麦克风，一次切换并核对系统实际设备。",
+      "description" : "液态玻璃悬浮音频控制台：支持单点直切设备、保存常用组合、靠边贴边收起与全局秒搜切换。",
       "downloadURL" : "./dist/audio-presets.zip",
       "icon" : "waveform",
       "id" : "audio-presets",
@@ -114,11 +115,11 @@
               "title" : "Apply Favorite Audio Preset"
             },
             "open" : {
-              "subtitle" : "View your devices and saved presets",
+              "subtitle" : "View and switch audio devices and saved presets",
               "title" : "Open Audio Presets"
             }
           },
-          "description" : "Save a speaker and microphone together. Switch both and verify the active devices.",
+          "description" : "Liquid Glass floating audio console: switch speakers/mics directly, save presets, and dock to screen edge.",
           "name" : "Audio Presets"
         }
       },
@@ -128,9 +129,9 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "e830fb3aed335866669bbadbb1edb9bbf10d14711a49577a5dcd571f687f1ce8",
-      "sizeBytes" : 156122,
-      "version" : "1.0.0"
+      "sha256" : "e93701ccf7c57b7284885e0f2acd036e2a55a1835afa4e3d6b48a1ef94334a14",
+      "sizeBytes" : 158651,
+      "version" : "1.1.0"
     },
     {
       "accentColor" : "indigo",
@@ -141,6 +142,7 @@
       "categoryTag" : "浏览器中枢",
       "description" : "直连 Microsoft Edge、Google Chrome（支持多配置档）与 Safari 的本地书签、阅读列表和历史记录，无锁拷贝秒搜并同步 ⌥Space 免前缀检索索引",
       "downloadURL" : "./dist/browser-hub.zip",
+      "icon" : "book.fill",
       "id" : "browser-hub",
       "keywords" : [
         "bh",
@@ -216,7 +218,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "a4e6742f8a32233e355a92fb0ad492fa8043ac419a1211d0fac47827f72fe17b",
+      "sha256" : "35103579b601c47cbefb95be9132e5d2a047eeb79841ab4f7f485d8fe3a39862",
       "sizeBytes" : 180841,
       "version" : "1.0.0"
     },
@@ -232,7 +234,7 @@
         "fileShelf"
       ],
       "categoryTag" : "文件",
-      "description" : "暂放文件与文件夹，跨重启保留，随手拖给网页和邮件。",
+      "description" : "液态玻璃原生文件托盘：支持左右靠边磁吸隐藏、悬停/拖入自动展开、拖出即移出与跨重启恢复。",
       "downloadURL" : "./dist/file-shelf.zip",
       "icon" : "tray.full",
       "id" : "file-shelf",
@@ -251,7 +253,7 @@
               "title" : "Open File Shelf"
             }
           },
-          "description" : "Keep files ready to drag into another app, even after a restart.",
+          "description" : "Liquid Glass file shelf with edge auto-dock, hover/drop reveal, optional pop-on-drag, and session restore.",
           "name" : "File Shelf"
         }
       },
@@ -261,9 +263,9 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "cf6717922ae69ce329858f93d2da437ec3b8b80f2ac54c9197413836a561ba35",
-      "sizeBytes" : 125483,
-      "version" : "1.0.0"
+      "sha256" : "59ca42dfcc9cb5ebef266e499db1c9ce287619c14624ac00adaa05666f352afd",
+      "sizeBytes" : 122204,
+      "version" : "1.1.0"
     },
     {
       "accentColor" : "orange",
@@ -275,6 +277,7 @@
       "categoryTag" : "金融行情",
       "description" : "实时监控国内黄金（上海金 Au99.99 / Au(T+D)）人民币元/克行情，支持标准图表悬浮窗与 Mini 极简悬浮条一键切换",
       "downloadURL" : "./dist/gold-monitor.zip",
+      "icon" : "macwindow.on.rectangle",
       "id" : "gold-monitor",
       "keywords" : [
         "gold",
@@ -351,7 +354,7 @@
       "resourceScopes" : [
         "network"
       ],
-      "sha256" : "6b176a5170d2a0789908166b56ea4fd53c715241fd61ee08922dc51c3a9dcac9",
+      "sha256" : "5ef5113e67b9cc34c05cf72bc5e23acd68396922e3a67c4d91fbb8380b033876",
       "sizeBytes" : 207674,
       "version" : "1.1.0"
     },
@@ -364,6 +367,7 @@
       "categoryTag" : "远控伴侣",
       "description" : "免开设置窗的全功能手机远控台：支持物理局域网与内网穿透网卡一键切换、6 位配对码与手动连接参数复制、扫码二维码、HiDPI 分辨率切换、物理隐私黑屏与已配对手机管理",
       "downloadURL" : "./dist/lumalink-companion.zip",
+      "icon" : "power",
       "id" : "lumalink-companion",
       "keywords" : [
         "lumalink",
@@ -432,7 +436,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "8cf97ec2e5552739daefc7a1685ae40fa229c410e175a913fd43c6a65aaead2e",
+      "sha256" : "74ead56112b7e62ac1d080fdc3c9591507141b2fabb5531796295bf34e854912",
       "sizeBytes" : 141122,
       "version" : "2.2.0"
     },
@@ -450,6 +454,7 @@
       "categoryTag" : "系统控制",
       "description" : "一站式补齐音量与静音调节、防休眠常亮、16 项系统设置分栏免前缀秒达、外置磁盘一键安全推出、访达当前目录新建文件与运行应用退出管理",
       "downloadURL" : "./dist/mac-pilot.zip",
+      "icon" : "speaker.wave.3.fill",
       "id" : "mac-pilot",
       "keywords" : [
         "mac",
@@ -520,7 +525,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "bd9d6cf294fe57c5e26f5ea39f14e920a471ffcae34b568a85c748913c81b530",
+      "sha256" : "a3368f2737306ee1bdba204e6d9ad838a4916339eba94b5a405ee6ab18847e8b",
       "sizeBytes" : 156038,
       "version" : "1.0.0"
     },
@@ -537,6 +542,7 @@
       "categoryTag" : "书签",
       "description" : "支持包内图标、中英双语、子功能独立快捷键、滑块缓存配置与免前缀检索",
       "downloadURL" : "./dist/notion-bookmarks.zip",
+      "icon" : "plus.circle.fill",
       "id" : "notion-bookmarks",
       "keywords" : [
         "bm",
@@ -601,7 +607,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "256b697cac4342fd1e331d50cddc873bc200f020495028184353b394814454db",
+      "sha256" : "33c00ba77bf7f1b68b1549e7b299d2c6e347fe46d57ea952e4f43ed1eae65383",
       "sizeBytes" : 202224,
       "version" : "1.4.0"
     },
@@ -617,6 +623,7 @@
       "categoryTag" : "提醒事项",
       "description" : "输入「10m 喝水」「18:30 拿快递」「明天 9:00 交周报」秒建提醒，零常驻桥接 macOS 原生提醒事项准点弹窗，支持推迟 10 分钟、周期重复与语音播报",
       "downloadURL" : "./dist/quick-remind.zip",
+      "icon" : "bell.badge.fill",
       "id" : "quick-remind",
       "keywords" : [
         "rem",
@@ -674,7 +681,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "ff24be1e6ed09e878e66c6196bd9db04cbc49984cdf5b80ea9b7a7090d235097",
+      "sha256" : "808e7184f97914b8b21331c5b805b6dbbdb03e920b4690638be43763d7ff2cb5",
       "sizeBytes" : 144053,
       "version" : "1.0.0"
     },
@@ -687,6 +694,7 @@
       "categoryTag" : "状态屏",
       "description" : "一键盖住全部显示器展示「清洁屏幕」「任务运行中 · 请勿触碰」「马上回来」或自定义告示，同时临时拦截键盘与滚轮防误触，按住 Esc 2 秒安全退出",
       "downloadURL" : "./dist/screen-shield.zip",
+      "icon" : "sparkles",
       "id" : "screen-shield",
       "keywords" : [
         "shield",
@@ -763,7 +771,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "cb0b46ea02ebf20c3385419fdbbf92864e6b9c1b9c5a8bb9bb9ac409e6dde9fd",
+      "sha256" : "5ace7e750aa463c3dadecad4168fb2133b9915e7a34a9eecaff3e796716b1340",
       "sizeBytes" : 115366,
       "version" : "1.0.0"
     },
@@ -783,6 +791,7 @@
       "categoryTag" : "翻译词典",
       "description" : "支持跨应用划词即译、截图/图片离线 OCR 翻译、网易有道翻译（默认优先）、苹果自带翻译、OpenAI / Google Gemini 通用协议大模型、本地 Ollama 与公共通道并行对比及生词本导出",
       "downloadURL" : "./dist/translate-hub.zip",
+      "icon" : "text.cursor",
       "id" : "translate-hub",
       "keywords" : [
         "tr",
@@ -939,7 +948,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "f0d94148aef4ae9a11d39743bfeb00e39e0102595140258ff363b735c9e71a9a",
+      "sha256" : "924b985776aed5338bf42cd6d0397a3e3120c6b46ea46322dbcd8372932e5c39",
       "sizeBytes" : 205026,
       "version" : "1.1.0"
     }
@@ -947,5 +956,5 @@
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-20T15:12:57Z"
+  "updatedAt" : "2026-11-20T15:30:49Z"
 }

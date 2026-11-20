@@ -68,6 +68,31 @@ public final class PluginAudioDeviceRouter: Sendable {
         }
     }
 
+    public func setSingle(uid: String, direction: SystemAudioDirection) -> AudioDeviceSwitchResult {
+        lock.withLock {
+            let devices = hardware.availableDevices()
+            let available = devices.contains {
+                $0.uid == uid && (direction == .input ? $0.input : $0.output)
+            }
+            guard available else {
+                return AudioDeviceSwitchResult(status: .unavailable, actual: current(), missing: [direction])
+            }
+            let before = current()
+            let didSet = setIfNeeded(uid, direction: direction)
+            let after = didSet ? waitFor(direction, uid: uid) : current()
+            let matched = (direction == .input ? after.input : after.output) == uid
+            if didSet && matched {
+                return AudioDeviceSwitchResult(status: .applied, actual: after, missing: [])
+            }
+            if let prev = (direction == .input ? before.input : before.output),
+               (direction == .input ? after.input : after.output) != prev {
+                _ = setIfNeeded(prev, direction: direction)
+            }
+            let finalPair = waitForPair(before)
+            return AudioDeviceSwitchResult(status: finalPair == before ? .restored : .partial, actual: finalPair, missing: [])
+        }
+    }
+
     private func current() -> AudioDevicePair {
         AudioDevicePair(input: hardware.defaultDevice(.input), output: hardware.defaultDevice(.output))
     }
@@ -120,8 +145,17 @@ extension PluginAudioDeviceRouter {
             }
             data = ["status": result.status.rawValue, "actual": Self.payload(result.actual),
                     "missing": result.missing.map(\.rawValue)]
+        case "setDevice":
+            guard let dirRaw = params["direction"] as? String,
+                  let direction = SystemAudioDirection(rawValue: dirRaw),
+                  let uid = params["uid"] as? String, !uid.isEmpty, uid.utf8.count <= 2048 else {
+                return PluginHostBridgeHandlers.errorJSON("invalid_params", "Expected direction (input|output) and uid", capability: capability)
+            }
+            let result = setSingle(uid: uid, direction: direction)
+            data = ["status": result.status.rawValue, "actual": Self.payload(result.actual),
+                    "missing": result.missing.map(\.rawValue)]
         default:
-            return PluginHostBridgeHandlers.errorJSON("invalid_action", "Expected list, status or apply", capability: capability)
+            return PluginHostBridgeHandlers.errorJSON("invalid_action", "Expected list, status, apply or setDevice", capability: capability)
         }
         return PluginHostBridgeHandlers.okJSON(capability, action, data)
     }

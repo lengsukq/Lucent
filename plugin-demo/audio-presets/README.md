@@ -1,12 +1,12 @@
 # 一键音频组合 · Audio Presets
 
-从 `⌥Space` 搜索「打开音频组合」，允许访问默认音频设备。可以存下当前设备，也可以手动选择一对扬声器和麦克风。
+从 `⌥Space` 搜索「打开音频组合」，允许访问默认音频设备。无边框液态玻璃悬浮控制台同时支持**单点直切扬声器/麦克风**与**组合一键切换**。
 
-- 点一套组合即可切换。面板同时显示系统实际使用的输入和输出。
-- 可直接从 Lucent 搜组合名，也可将一套设为常用，在插件设置给「切到常用音频组合」录制热键。
-- 设备断开时会标注具体设备。可重连后再试，或编辑组合。
-- 适用于使用 macOS 系统默认设备的应用。权限仅用于查看和切换默认设备。
+- **点击设备卡直切**：直接点顶部「扬声器」或「麦克风」卡片即可下拉单切当前默认设备，无需先建组合。
+- **组合切换与热键直达**：保存常用输入/输出组合后，可直接从 Lucent `⌥Space` 搜索组合名切换，或给「切到常用音频组合」绑定独立全局热键，切换成功弹出液态玻璃 HUD 反馈。
+- **轻量化悬浮与贴边**：支持双主题（凝霜留白 / 霓彩流光）同步、窗口置顶开关、拖至屏幕边缘自动贴靠或收起为紧凑悬浮胶囊，按 `Esc` 即用即关。
+- **实测回读与异常回滚**：切换后由 Core Audio 实测回读默认设备，蓝牙抢占或部分失败时自动尝试恢复原设备并诚实提示状态。
 
-需要 Lucent 0.9.9.2 或更新版本。插件数据保存在本机，没有后台自动切换。
+需要 Lucent 0.9.9.2 或更新版本。插件数据保存在本机，关闭窗口即释放 Web 进程，无后台常驻消耗。
 
-Open **Audio Presets** from Lucent search and grant device access. Save your current audio setup or pair connected speakers with a microphone. Apply a preset from the panel or search, and give your favorite one a hotkey. The panel reports the active system devices after every switch.
+Open **Audio Presets** from Lucent search and grant audio device access. Switch speakers or microphones directly from the top cards, save presets for instant `⌥Space` switching, or dock the Liquid Glass floating console as a compact edge pill.

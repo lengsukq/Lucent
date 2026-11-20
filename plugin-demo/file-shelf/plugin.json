@@ -1,13 +1,13 @@
 {
   "schemaVersion": 3,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minAppVersion": "0.9.9.2",
   "mode": "view",
   "author": "Lucent Official",
   "resourceScopes": [],
   "id": "file-shelf",
   "name": "文件中转站",
-  "description": "暂放文件与文件夹，跨重启保留，随手拖给网页和邮件。",
+  "description": "液态玻璃原生文件托盘：支持左右靠边磁吸隐藏、悬停/拖入自动展开、拖出即移出与跨重启恢复。",
   "entry": "bin/file-shelf",
   "icon": "icon.png",
   "accentColor": "teal",
@@ -45,7 +45,7 @@
   "locales": {
     "en": {
       "name": "File Shelf",
-      "description": "Keep files ready to drag into another app, even after a restart.",
+      "description": "Liquid Glass file shelf with edge auto-dock, hover/drop reveal, optional pop-on-drag, and session restore.",
       "categoryTag": "Files",
       "commands": {
         "open": {
