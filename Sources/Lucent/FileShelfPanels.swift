@@ -126,7 +126,7 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
 
     func open(takeFocus: Bool, expandIfTucked: Bool = true) {
         guard let window else { return }
-        if window.contentView == nil { mountGlassContent() }
+        if glassView == nil || window.contentView !== glassView { mountGlassContent() }
         hoverExitTask?.cancel(); hoverExitTask = nil
         if expandIfTucked {
             isManuallyRevealed = true
