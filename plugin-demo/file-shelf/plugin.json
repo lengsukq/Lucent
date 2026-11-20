@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 3,
+  "version": "1.0.0",
+  "minAppVersion": "0.9.9.2",
+  "mode": "view",
+  "author": "Lucent Official",
+  "resourceScopes": [],
+  "id": "file-shelf",
+  "name": "文件中转站",
+  "description": "暂放文件与文件夹，跨重启保留，随手拖给网页和邮件。",
+  "entry": "bin/file-shelf",
+  "icon": "icon.png",
+  "accentColor": "teal",
+  "categoryTag": "文件",
+  "keywords": [
+    "中转站",
+    "暂放",
+    "文件托盘",
+    "file shelf"
+  ],
+  "capabilities": [
+    "fileShelf"
+  ],
+  "accepts": [
+    "file",
+    "directory",
+    "image"
+  ],
+  "commands": [
+    {
+      "id": "open",
+      "title": "打开文件中转站",
+      "subtitle": "打开长期保留的文件托盘",
+      "keywords": [
+        "中转站",
+        "file shelf"
+      ],
+      "icon": "tray.full",
+      "arguments": [
+        "--open"
+      ],
+      "silentWhenHotKeyTriggered": true
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "File Shelf",
+      "description": "Keep files ready to drag into another app, even after a restart.",
+      "categoryTag": "Files",
+      "commands": {
+        "open": {
+          "title": "Open File Shelf",
+          "subtitle": "Show your persistent file shelf"
+        }
+      }
+    }
+  }
+}

@@ -161,7 +161,7 @@ func translateGemini(
     isEn: Bool
 ) -> Result<EngineTranslation, EngineDiagnostic> {
     let cleanModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
-    let resolvedModel = cleanModel.isEmpty ? "gemini-2.5-flash" : cleanModel
+    let resolvedModel = cleanModel.isEmpty ? "gemini-3.5-flash-lite" : cleanModel
     let providerLabel = "Gemini · \(resolvedModel)"
     guard let url = resolveGeminiEndpoint(baseUrl: baseUrl, model: resolvedModel) else {
         return .failure(EngineDiagnostic(engineID: "gemini", provider: providerLabel, message: isEn ? "Invalid Gemini Base URL" : "Gemini Base URL 格式无效"))

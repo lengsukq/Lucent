@@ -118,7 +118,7 @@ if rawText.isEmpty {
     if input.cfgBool("enableGemini", default: false) { activeEngines.append("Gemini") }
     let legacyOllama = input.cfgString("llmProvider", default: "none").lowercased() == "ollama"
     if input.cfgBool("enableOllama", default: legacyOllama) { activeEngines.append("Ollama") }
-    if input.cfgBool("enableFreeEngine", default: true) { activeEngines.append("Free") }
+    if input.cfgBool("enableFreeEngine", default: false) { activeEngines.append("Free") }
     let enginesLabel = activeEngines.isEmpty ? (isEn ? "None" : "未启用") : activeEngines.joined(separator: " · ")
 
     PluginOutput.emit(ViewPayload(

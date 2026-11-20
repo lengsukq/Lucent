@@ -10,7 +10,7 @@ func runParallelTranslation(
     let isEn = input.isEnglish
     let enableYoudao = input.cfgBool("enableYoudaoTranslate", default: true)
     let enableApple = input.cfgBool("enableAppleTranslate", default: false)
-    let enableFree = input.cfgBool("enableFreeEngine", default: true)
+    let enableFree = input.cfgBool("enableFreeEngine", default: false)
     let enableOpenAI = input.cfgBool("enableOpenAI", default: false)
     let enableGemini = input.cfgBool("enableGemini", default: false)
     let legacyOllama = input.cfgString("llmProvider", default: "none").lowercased() == "ollama"
@@ -25,7 +25,7 @@ func runParallelTranslation(
 
     let geminiBase = input.cfgString("geminiBaseUrl", default: defaultGeminiBase)
     let geminiKey = input.cfgString("geminiApiKey", default: "")
-    let geminiModel = input.cfgString("geminiModel", default: "gemini-2.5-flash")
+    let geminiModel = input.cfgString("geminiModel", default: "gemini-3.5-flash-lite")
     let geminiPrompt = input.cfgString("geminiPrompt", default: "")
 
     let ollamaBase = input.cfgString("ollamaBaseUrl", default: defaultLocalOllamaBase)
@@ -63,7 +63,7 @@ func runParallelTranslation(
     if enableYoudao {
         group.enter()
         DispatchQueue.global(qos: .userInitiated).async {
-            box.record(translateYoudao(text: text, src: src, target: target, isEn: isEn))
+            box.record(translateYoudao(text: text, src: src, target: target, dataDir: input.dataDir, isEn: isEn))
             group.leave()
         }
     }
@@ -141,8 +141,19 @@ func runParallelTranslation(
             out.append(item)
         }
     }
+
+    var finalDiagnostics = snapshotDiagnostics
+    if out.isEmpty && !enableFree {
+        switch translateZeroConfig(text: text, src: src, target: target, isEn: isEn) {
+        case .success(let fallbackItem):
+            out.append(fallbackItem)
+        case .failure(let diag):
+            finalDiagnostics.append(diag)
+        }
+    }
+
     if out.isEmpty, showDict, let d = snapshotDict, !d.explain.isEmpty {
         out.append(EngineTranslation(engineID: "dictionary", provider: "Dictionary", text: d.explain))
     }
-    return (out, snapshotDict, snapshotDiagnostics.sorted { $0.engineID < $1.engineID })
+    return (out, snapshotDict, finalDiagnostics.sorted { $0.engineID < $1.engineID })
 }

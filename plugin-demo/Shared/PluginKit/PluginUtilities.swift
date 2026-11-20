@@ -156,6 +156,13 @@ public struct SyncHTTPResponse: Sendable {
 }
 
 public enum SyncHTTPClient {
+    private static let sharedSession: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.httpMaximumConnectionsPerHost = 8
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: config)
+    }()
+
     public static func request(
         url: URL,
         method: String = "GET",
@@ -176,12 +183,7 @@ public enum SyncHTTPClient {
         let box = ResultBox()
         let sem = DispatchSemaphore(value: 0)
 
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = timeoutSeconds
-        config.timeoutIntervalForResource = timeoutSeconds + 1.0
-        let session = URLSession(configuration: config)
-
-        let task = session.dataTask(with: req) { data, resp, err in
+        let task = sharedSession.dataTask(with: req) { data, resp, err in
             let http = resp as? HTTPURLResponse
             var hdrs: [String: String] = [:]
             for (k, v) in http?.allHeaderFields ?? [:] {
@@ -199,7 +201,6 @@ public enum SyncHTTPClient {
         if sem.wait(timeout: .now() + timeoutSeconds + 1.5) == .timedOut {
             task.cancel()
         }
-        session.finishTasksAndInvalidate()
         return box.response
     }
 }

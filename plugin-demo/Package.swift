@@ -3,6 +3,8 @@ import PackageDescription
 
 let demoPlugins = [
     "antigravity-pulse",
+    "audio-presets",
+    "file-shelf",
     "browser-hub",
     "gold-monitor",
     "lumalink-companion",

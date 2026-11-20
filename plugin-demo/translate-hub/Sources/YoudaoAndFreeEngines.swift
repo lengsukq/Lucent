@@ -10,7 +10,7 @@ func fetchWordDictionary(_ word: String) -> WordDictionaryResult? {
     let q = clean.addingPercentEncoding(withAllowedCharacters: allowed) ?? clean
     let ydHost = "dict." + "youdao.com"
     if let ydURL = URL(string: "\(httpsScheme)\(ydHost)/suggest?num=3&ver=3.0&doctype=json&cache=false&le=en&q=\(q)") {
-        let resp = SyncHTTPClient.request(url: ydURL, headers: ["User-Agent": "LucentTranslateHub/1.1"], timeoutSeconds: 2.8)
+        let resp = SyncHTTPClient.request(url: ydURL, headers: ["User-Agent": "LucentTranslateHub/1.1"], timeoutSeconds: 1.8)
         if resp.isSuccess,
            let root = resp.jsonObject(),
            let dataObj = root["data"] as? [String: Any],
@@ -32,7 +32,7 @@ func fetchWordDictionary(_ word: String) -> WordDictionaryResult? {
     if enRe.firstMatch(in: clean, range: nsRange) != nil {
         let dictHost = "api." + "dictionaryapi.dev"
         if let dictURL = URL(string: "\(httpsScheme)\(dictHost)/api/v2/entries/en/\(q)") {
-            let resp = SyncHTTPClient.request(url: dictURL, headers: ["User-Agent": "LucentTranslateHub/1.1"], timeoutSeconds: 2.8)
+            let resp = SyncHTTPClient.request(url: dictURL, headers: ["User-Agent": "LucentTranslateHub/1.1"], timeoutSeconds: 1.2)
             if resp.isSuccess,
                let arr = (try? JSONSerialization.jsonObject(with: resp.data)) as? [[String: Any]],
                let item = arr.first {
@@ -84,146 +84,151 @@ func translateZeroConfig(text: String, src: String, target: String, isEn: Bool) 
     return .success(EngineTranslation(engineID: "free", provider: "Built-in Free", text: translated))
 }
 
-private func formURLEncode(_ params: [(String, String)]) -> Data? {
-    var allowed = CharacterSet.alphanumerics
-    allowed.insert(charactersIn: "-._~")
-    let encoded = params.map { key, value in
-        let k = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
-        let v = value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
-        return "\(k)=\(v)"
-    }.joined(separator: "&")
-    return encoded.data(using: .utf8)
+private struct YoudaoCachedKey: Codable {
+    var secretKey: String
+    var aesKey: String
+    var aesIv: String
+    var cachedAtEpoch: Double
 }
 
-private func decryptYoudaoAES128CBC(encryptedText: String, aesKey: String, aesIv: String) -> Data? {
-    var b64 = encryptedText
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-        .replacingOccurrences(of: "-", with: "+")
-        .replacingOccurrences(of: "_", with: "/")
-    let rem = b64.count % 4
-    if rem != 0 {
-        b64 += String(repeating: "=", count: 4 - rem)
-    }
-    guard let cipherData = Data(base64Encoded: b64) else { return nil }
-
-    let keyBytes = Array(Insecure.MD5.hash(data: Data(aesKey.utf8)))
-    let ivBytes = Array(Insecure.MD5.hash(data: Data(aesIv.utf8)))
-
-    let outSize = cipherData.count + kCCBlockSizeAES128
-    var outBytes = [UInt8](repeating: 0, count: outSize)
-    var numBytesDecrypted = 0
-
-    let status = cipherData.withUnsafeBytes { cipherPtr in
-        CCCrypt(
-            CCOperation(kCCDecrypt),
-            CCAlgorithm(kCCAlgorithmAES),
-            CCOptions(kCCOptionPKCS7Padding),
-            keyBytes,
-            kCCKeySizeAES128,
-            ivBytes,
-            cipherPtr.baseAddress,
-            cipherData.count,
-            &outBytes,
-            outSize,
-            &numBytesDecrypted
-        )
-    }
-    guard status == kCCSuccess else { return nil }
-    return Data(outBytes.prefix(numBytesDecrypted))
+private func youdaoKeyCacheURL(dataDir: String) -> URL? {
+    guard !dataDir.isEmpty else { return nil }
+    return URL(fileURLWithPath: dataDir, isDirectory: true).appendingPathComponent("youdao-key.json")
 }
 
-private func youdaoLangCode(_ code: String) -> String {
-    switch code {
-    case "zh-Hans": return "zh-CHS"
-    case "zh-Hant": return "zh-CHT"
-    default: return code
+private func loadCachedYoudaoKey(dataDir: String) -> YoudaoCachedKey? {
+    guard let url = youdaoKeyCacheURL(dataDir: dataDir),
+          let data = try? Data(contentsOf: url),
+          let cached = try? JSONDecoder().decode(YoudaoCachedKey.self, from: data),
+          !cached.secretKey.isEmpty, !cached.aesKey.isEmpty, !cached.aesIv.isEmpty,
+          Date().timeIntervalSince1970 - cached.cachedAtEpoch < 21600 else {
+        return nil
+    }
+    return cached
+}
+
+private func saveCachedYoudaoKey(_ key: YoudaoCachedKey, dataDir: String) {
+    guard let url = youdaoKeyCacheURL(dataDir: dataDir) else { return }
+    try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+    if let data = try? JSONEncoder().encode(key) {
+        try? data.write(to: url, options: .atomic)
     }
 }
 
-func translateYoudao(text: String, src: String, target: String, isEn: Bool) -> Result<EngineTranslation, EngineDiagnostic> {
-    let providerLabel = isEn ? "Youdao Translate" : "网易有道翻译"
+private func fetchYoudaoKey(headers: [String: String], providerLabel: String, isEn: Bool) -> Result<YoudaoCachedKey, EngineDiagnostic> {
     let ydDictHost = "dict." + "youdao.com"
-    let ydFanyiHost = "fanyi." + "youdao.com"
-    let commonHeaders = [
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Referer": "\(httpsScheme)\(ydFanyiHost)",
-        "Cookie": "OUTFOX_SEARCH_USER_ID=1796239350@10.110.96.157;"
-    ]
-
     let ts1 = String(Int(Date().timeIntervalSince1970 * 1000))
     let keySign = md5Hex("client=fanyideskweb&mysticTime=\(ts1)&product=webfanyi&key=asdjnjfenknafdfsdfsd")
-
     guard var keyComps = URLComponents(string: "\(httpsScheme)\(ydDictHost)/webtranslate/key") else {
         return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: "Invalid Youdao key URL"))
     }
     keyComps.queryItems = [
-        URLQueryItem(name: "client", value: "fanyideskweb"),
-        URLQueryItem(name: "product", value: "webfanyi"),
-        URLQueryItem(name: "appVersion", value: "1.0.0"),
-        URLQueryItem(name: "vendor", value: "web"),
-        URLQueryItem(name: "pointParam", value: "client,mysticTime,product"),
-        URLQueryItem(name: "keyfrom", value: "fanyi.web"),
-        URLQueryItem(name: "keyid", value: "webfanyi-key-getter"),
-        URLQueryItem(name: "sign", value: keySign),
+        URLQueryItem(name: "client", value: "fanyideskweb"), URLQueryItem(name: "product", value: "webfanyi"),
+        URLQueryItem(name: "appVersion", value: "1.0.0"), URLQueryItem(name: "vendor", value: "web"),
+        URLQueryItem(name: "pointParam", value: "client,mysticTime,product"), URLQueryItem(name: "keyfrom", value: "fanyi.web"),
+        URLQueryItem(name: "keyid", value: "webfanyi-key-getter"), URLQueryItem(name: "sign", value: keySign),
         URLQueryItem(name: "mysticTime", value: ts1)
     ]
     guard let keyURL = keyComps.url else {
         return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: "Failed to build Youdao key URL"))
     }
-
-    let keyResp = SyncHTTPClient.request(url: keyURL, headers: commonHeaders, timeoutSeconds: 4.0)
-    guard keyResp.isSuccess,
-          let keyJSON = keyResp.jsonObject(),
-          let keyData = keyJSON["data"] as? [String: Any],
-          let secretKey = keyData["secretKey"] as? String,
-          let aesKey = keyData["aesKey"] as? String,
-          let aesIv = keyData["aesIv"] as? String,
-          !secretKey.isEmpty, !aesKey.isEmpty, !aesIv.isEmpty else {
-        return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: extractHTTPFailureMessage(keyResp, isEn: isEn)))
+    let resp = SyncHTTPClient.request(url: keyURL, headers: headers, timeoutSeconds: 3.5)
+    guard resp.isSuccess, let json = resp.jsonObject(),
+          let d = json["data"] as? [String: Any],
+          let sk = d["secretKey"] as? String, let ak = d["aesKey"] as? String, let iv = d["aesIv"] as? String,
+          !sk.isEmpty, !ak.isEmpty, !iv.isEmpty else {
+        return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: extractHTTPFailureMessage(resp, isEn: isEn)))
     }
+    return .success(YoudaoCachedKey(secretKey: sk, aesKey: ak, aesIv: iv, cachedAtEpoch: Date().timeIntervalSince1970))
+}
 
-    let ts2 = String(Int(Date().timeIntervalSince1970 * 1000))
-    let transSign = md5Hex("client=fanyideskweb&mysticTime=\(ts2)&product=webfanyi&key=\(secretKey)")
+private func formURLEncode(_ params: [(String, String)]) -> Data? {
+    var allowed = CharacterSet.alphanumerics
+    allowed.insert(charactersIn: "-._~")
+    return params.map { key, value in
+        let k = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
+        let v = value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+        return "\(k)=\(v)"
+    }.joined(separator: "&").data(using: .utf8)
+}
+
+private func decryptYoudaoAES128CBC(encryptedText: String, aesKey: String, aesIv: String) -> Data? {
+    var b64 = encryptedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        .replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+    let rem = b64.count % 4
+    if rem != 0 { b64 += String(repeating: "=", count: 4 - rem) }
+    guard let cipherData = Data(base64Encoded: b64) else { return nil }
+    let keyBytes = Array(Insecure.MD5.hash(data: Data(aesKey.utf8)))
+    let ivBytes = Array(Insecure.MD5.hash(data: Data(aesIv.utf8)))
+    let outSize = cipherData.count + kCCBlockSizeAES128
+    var outBytes = [UInt8](repeating: 0, count: outSize)
+    var numBytesDecrypted = 0
+    let status = cipherData.withUnsafeBytes { ptr in
+        CCCrypt(CCOperation(kCCDecrypt), CCAlgorithm(kCCAlgorithmAES), CCOptions(kCCOptionPKCS7Padding),
+                keyBytes, kCCKeySizeAES128, ivBytes, ptr.baseAddress, cipherData.count, &outBytes, outSize, &numBytesDecrypted)
+    }
+    return status == kCCSuccess ? Data(outBytes.prefix(numBytesDecrypted)) : nil
+}
+
+private func youdaoLangCode(_ code: String) -> String {
+    code == "zh-Hans" ? "zh-CHS" : (code == "zh-Hant" ? "zh-CHT" : code)
+}
+
+private func postYoudaoTranslate(
+    text: String, src: String, target: String, key: YoudaoCachedKey,
+    commonHeaders: [String: String], providerLabel: String, isEn: Bool
+) -> Result<EngineTranslation, EngineDiagnostic> {
+    let ydDictHost = "dict." + "youdao.com"
+    let ts = String(Int(Date().timeIntervalSince1970 * 1000))
+    let sign = md5Hex("client=fanyideskweb&mysticTime=\(ts)&product=webfanyi&key=\(key.secretKey)")
     let formParams: [(String, String)] = [
-        ("i", text),
-        ("from", youdaoLangCode(src)),
-        ("to", youdaoLangCode(target)),
-        ("dictResult", "false"),
-        ("keyid", "webfanyi"),
-        ("sign", transSign),
-        ("mysticTime", ts2),
-        ("client", "fanyideskweb"),
-        ("product", "webfanyi"),
-        ("appVersion", "1.0.0"),
-        ("vendor", "web"),
-        ("pointParam", "client,mysticTime,product"),
-        ("keyfrom", "fanyi.web")
+        ("i", text), ("from", youdaoLangCode(src)), ("to", youdaoLangCode(target)),
+        ("dictResult", "false"), ("keyid", "webfanyi"), ("sign", sign), ("mysticTime", ts),
+        ("client", "fanyideskweb"), ("product", "webfanyi"), ("appVersion", "1.0.0"),
+        ("vendor", "web"), ("pointParam", "client,mysticTime,product"), ("keyfrom", "fanyi.web")
     ]
     guard let transURL = URL(string: "\(httpsScheme)\(ydDictHost)/webtranslate"),
           let body = formURLEncode(formParams) else {
         return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: "Failed to build Youdao translate request"))
     }
-
     var postHeaders = commonHeaders
     postHeaders["Content-Type"] = "application/x-www-form-urlencoded"
-    let transResp = SyncHTTPClient.request(url: transURL, method: "POST", headers: postHeaders, body: body, timeoutSeconds: 5.0)
-    guard transResp.isSuccess,
-          let decrypted = decryptYoudaoAES128CBC(encryptedText: transResp.text, aesKey: aesKey, aesIv: aesIv),
+    let resp = SyncHTTPClient.request(url: transURL, method: "POST", headers: postHeaders, body: body, timeoutSeconds: 4.5)
+    guard resp.isSuccess,
+          let decrypted = decryptYoudaoAES128CBC(encryptedText: resp.text, aesKey: key.aesKey, aesIv: key.aesIv),
           let resultJSON = try? JSONSerialization.jsonObject(with: decrypted) as? [String: Any] else {
-        return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: extractHTTPFailureMessage(transResp, isEn: isEn)))
+        return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: extractHTTPFailureMessage(resp, isEn: isEn)))
     }
-
     if let code = resultJSON["code"] as? Int, code != 0 {
         return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: "Youdao API code \(code)"))
     }
     guard let groups = resultJSON["translateResult"] as? [[[String: Any]]] else {
         return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: isEn ? "Invalid Youdao response" : "有道返回格式异常"))
     }
-    let translated = groups.map { $0.compactMap { $0["tgt"] as? String }.joined() }
-        .joined(separator: "\n")
-        .trimmingCharacters(in: .whitespacesAndNewlines)
+    let translated = groups.map { $0.compactMap { $0["tgt"] as? String }.joined() }.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     guard !translated.isEmpty else {
         return .failure(EngineDiagnostic(engineID: "youdao", provider: providerLabel, message: isEn ? "Empty Youdao translation" : "有道返回译文为空"))
     }
     return .success(EngineTranslation(engineID: "youdao", provider: providerLabel, text: translated))
+}
+
+func translateYoudao(text: String, src: String, target: String, dataDir: String, isEn: Bool) -> Result<EngineTranslation, EngineDiagnostic> {
+    let providerLabel = isEn ? "Youdao Translate" : "网易有道翻译"
+    let commonHeaders = [
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Referer": "\(httpsScheme)fanyi." + "youdao.com",
+        "Cookie": "OUTFOX_SEARCH_USER_ID=1796239350@10.110.96.157;"
+    ]
+    if let cached = loadCachedYoudaoKey(dataDir: dataDir) {
+        let res = postYoudaoTranslate(text: text, src: src, target: target, key: cached, commonHeaders: commonHeaders, providerLabel: providerLabel, isEn: isEn)
+        if case .success = res { return res }
+        if let url = youdaoKeyCacheURL(dataDir: dataDir) { try? FileManager.default.removeItem(at: url) }
+    }
+    switch fetchYoudaoKey(headers: commonHeaders, providerLabel: providerLabel, isEn: isEn) {
+    case .failure(let err):
+        return .failure(err)
+    case .success(let freshKey):
+        saveCachedYoudaoKey(freshKey, dataDir: dataDir)
+        return postYoudaoTranslate(text: text, src: src, target: target, key: freshKey, commonHeaders: commonHeaders, providerLabel: providerLabel, isEn: isEn)
+    }
 }

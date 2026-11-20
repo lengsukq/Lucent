@@ -82,9 +82,55 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "6d4df35ff9ddea7f4eb9aa49cffce470203f21855ec0fd88c068d984ef66a224",
-      "sizeBytes" : 271619,
+      "sha256" : "3af628eed9edfdde9b3d631dc9f550beff7d2564d606cb131b4d9e5cc3edfc9a",
+      "sizeBytes" : 271676,
       "version" : "1.3.0"
+    },
+    {
+      "accentColor" : "indigo",
+      "author" : "Lucent Official",
+      "capabilities" : [
+        "floatingWindow",
+        "audioDevices"
+      ],
+      "categoryTag" : "声音",
+      "description" : "保存常用扬声器与麦克风，一次切换并核对系统实际设备。",
+      "downloadURL" : "./dist/audio-presets.zip",
+      "icon" : "waveform",
+      "id" : "audio-presets",
+      "keywords" : [
+        "音频组合",
+        "麦克风",
+        "扬声器",
+        "耳机",
+        "audio presets"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Audio",
+          "commands" : {
+            "apply-favorite" : {
+              "subtitle" : "Switch to your favorite speakers and microphone",
+              "title" : "Apply Favorite Audio Preset"
+            },
+            "open" : {
+              "subtitle" : "View your devices and saved presets",
+              "title" : "Open Audio Presets"
+            }
+          },
+          "description" : "Save a speaker and microphone together. Switch both and verify the active devices.",
+          "name" : "Audio Presets"
+        }
+      },
+      "minAppVersion" : "0.9.9.2",
+      "mode" : "view",
+      "name" : "一键音频组合",
+      "resourceScopes" : [
+
+      ],
+      "sha256" : "e830fb3aed335866669bbadbb1edb9bbf10d14711a49577a5dcd571f687f1ce8",
+      "sizeBytes" : 156122,
+      "version" : "1.0.0"
     },
     {
       "accentColor" : "indigo",
@@ -170,8 +216,53 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "0a3a43ee8e48a0a63660058c340f0e28794abbae710a9d8e5ba7e358945328ed",
-      "sizeBytes" : 180823,
+      "sha256" : "a4e6742f8a32233e355a92fb0ad492fa8043ac419a1211d0fac47827f72fe17b",
+      "sizeBytes" : 180841,
+      "version" : "1.0.0"
+    },
+    {
+      "accentColor" : "teal",
+      "accepts" : [
+        "file",
+        "directory",
+        "image"
+      ],
+      "author" : "Lucent Official",
+      "capabilities" : [
+        "fileShelf"
+      ],
+      "categoryTag" : "文件",
+      "description" : "暂放文件与文件夹，跨重启保留，随手拖给网页和邮件。",
+      "downloadURL" : "./dist/file-shelf.zip",
+      "icon" : "tray.full",
+      "id" : "file-shelf",
+      "keywords" : [
+        "中转站",
+        "暂放",
+        "文件托盘",
+        "file shelf"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Files",
+          "commands" : {
+            "open" : {
+              "subtitle" : "Show your persistent file shelf",
+              "title" : "Open File Shelf"
+            }
+          },
+          "description" : "Keep files ready to drag into another app, even after a restart.",
+          "name" : "File Shelf"
+        }
+      },
+      "minAppVersion" : "0.9.9.2",
+      "mode" : "view",
+      "name" : "文件中转站",
+      "resourceScopes" : [
+
+      ],
+      "sha256" : "cf6717922ae69ce329858f93d2da437ec3b8b80f2ac54c9197413836a561ba35",
+      "sizeBytes" : 125483,
       "version" : "1.0.0"
     },
     {
@@ -260,8 +351,8 @@
       "resourceScopes" : [
         "network"
       ],
-      "sha256" : "11458d1034974a69b37a3960fdd17529fe80e949162a1507ba3999650089a016",
-      "sizeBytes" : 207658,
+      "sha256" : "6b176a5170d2a0789908166b56ea4fd53c715241fd61ee08922dc51c3a9dcac9",
+      "sizeBytes" : 207674,
       "version" : "1.1.0"
     },
     {
@@ -341,8 +432,8 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "dd912e5f84448a16cd9d22517dce8e0f52cbdff3357ca162b238776f3a9cced3",
-      "sizeBytes" : 141026,
+      "sha256" : "8cf97ec2e5552739daefc7a1685ae40fa229c410e175a913fd43c6a65aaead2e",
+      "sizeBytes" : 141122,
       "version" : "2.2.0"
     },
     {
@@ -429,8 +520,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "9ae3ee5ef400dac3a147a743f915e3bf0e328b3acb5614f7a675cca742ca0902",
-      "sizeBytes" : 155987,
+      "sha256" : "bd9d6cf294fe57c5e26f5ea39f14e920a471ffcae34b568a85c748913c81b530",
+      "sizeBytes" : 156038,
       "version" : "1.0.0"
     },
     {
@@ -510,8 +601,8 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "45da56ffd91054a7a56359b9ebdd1dcd82c7d40d83f34e8592d1ca6f25378a10",
-      "sizeBytes" : 202175,
+      "sha256" : "256b697cac4342fd1e331d50cddc873bc200f020495028184353b394814454db",
+      "sizeBytes" : 202224,
       "version" : "1.4.0"
     },
     {
@@ -583,8 +674,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "bec39b6ea0dbef7750643cb5651e5c11fbed5386a21d5f1bb0e85a0ea537ea46",
-      "sizeBytes" : 144002,
+      "sha256" : "ff24be1e6ed09e878e66c6196bd9db04cbc49984cdf5b80ea9b7a7090d235097",
+      "sizeBytes" : 144053,
       "version" : "1.0.0"
     },
     {
@@ -672,8 +763,8 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "b5be95737c87fe5c832e8d74d1debd9e532ba3ebef3285492659cc07ca12838e",
-      "sizeBytes" : 115285,
+      "sha256" : "cb0b46ea02ebf20c3385419fdbbf92864e6b9c1b9c5a8bb9bb9ac409e6dde9fd",
+      "sizeBytes" : 115366,
       "version" : "1.0.0"
     },
     {
@@ -744,7 +835,8 @@
               "section" : "Translation Engines"
             },
             "enableFreeEngine" : {
-              "label" : "Enable built-in zero-config dictionary & translation",
+              "helpText" : "Public channel takes ~2-3s; when OFF it still acts as automatic fallback if primary engines fail",
+              "label" : "Always run built-in public fallback channel",
               "section" : "Translation Engines"
             },
             "enableGemini" : {
@@ -847,13 +939,13 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "ff8661dac18de502578d496b023b0463a7bf360a43ba431411b4606a8bb9dbb6",
-      "sizeBytes" : 200714,
+      "sha256" : "f0d94148aef4ae9a11d39743bfeb00e39e0102595140258ff363b735c9e71a9a",
+      "sizeBytes" : 205026,
       "version" : "1.1.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-20T02:37:42Z"
+  "updatedAt" : "2026-11-20T15:12:57Z"
 }

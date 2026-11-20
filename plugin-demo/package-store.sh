@@ -10,6 +10,8 @@ SIGN_ID="${LUCENT_SIGN_IDENTITY:--}"
 
 PLUGINS=(
   "antigravity-pulse"
+  "audio-presets"
+  "file-shelf"
   "browser-hub"
   "gold-monitor"
   "lumalink-companion"

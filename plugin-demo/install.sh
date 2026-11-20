@@ -8,6 +8,8 @@ DATA_ROOT="$HOME/Library/Application Support/Lucent/PluginData"
 
 ALL_PLUGINS=(
   "antigravity-pulse"
+  "audio-presets"
+  "file-shelf"
   "browser-hub"
   "gold-monitor"
   "lumalink-companion"

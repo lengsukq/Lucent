@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 3,
+  "version": "1.0.0",
+  "minAppVersion": "0.9.9.2",
+  "mode": "view",
+  "author": "Lucent Official",
+  "resourceScopes": [],
+  "id": "audio-presets",
+  "name": "一键音频组合",
+  "description": "保存常用扬声器与麦克风，一次切换并核对系统实际设备。",
+  "entry": "bin/audio-presets",
+  "icon": "icon.png",
+  "accentColor": "indigo",
+  "categoryTag": "声音",
+  "keywords": [
+    "音频组合",
+    "麦克风",
+    "扬声器",
+    "耳机",
+    "audio presets"
+  ],
+  "capabilities": [
+    "floatingWindow",
+    "audioDevices"
+  ],
+  "window": {
+    "entryHtml": "ui/index.html",
+    "chrome": "standard",
+    "width": 420,
+    "height": 440,
+    "minWidth": 350,
+    "minHeight": 360,
+    "transparent": true,
+    "showInDock": true,
+    "pinOnTop": false
+  },
+  "commands": [
+    {
+      "id": "open",
+      "title": "打开音频组合",
+      "subtitle": "查看系统音频设备与已保存的组合",
+      "keywords": [
+        "声音",
+        "audio presets"
+      ],
+      "icon": "waveform",
+      "arguments": [
+        "--open"
+      ],
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "apply-favorite",
+      "title": "切到常用音频组合",
+      "subtitle": "使用已设为常用的麦克风和扬声器",
+      "keywords": [
+        "开会",
+        "favorite audio"
+      ],
+      "icon": "star.fill",
+      "arguments": [
+        "--favorite"
+      ],
+      "silentWhenHotKeyTriggered": true
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "Audio Presets",
+      "description": "Save a speaker and microphone together. Switch both and verify the active devices.",
+      "categoryTag": "Audio",
+      "commands": {
+        "open": {
+          "title": "Open Audio Presets",
+          "subtitle": "View your devices and saved presets"
+        },
+        "apply-favorite": {
+          "title": "Apply Favorite Audio Preset",
+          "subtitle": "Switch to your favorite speakers and microphone"
+        }
+      }
+    }
+  }
+}

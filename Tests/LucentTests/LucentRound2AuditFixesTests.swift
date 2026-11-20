@@ -55,7 +55,8 @@ struct LucentRound2AuditFixesTests {
         let storeIDs = Set(demoStore.manifest.plugins.map(\.id))
         #expect(storeIDs == [
             "antigravity-pulse", "browser-hub", "gold-monitor", "lumalink-companion",
-            "mac-pilot", "notion-bookmarks", "quick-remind", "screen-shield", "translate-hub"
+            "mac-pilot", "notion-bookmarks", "quick-remind", "screen-shield", "translate-hub",
+            "audio-presets", "file-shelf"
         ])
 
         let browserItem = try #require(demoStore.manifest.plugins.first { $0.id == "browser-hub" })

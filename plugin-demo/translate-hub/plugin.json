@@ -151,9 +151,10 @@
     },
     {
       "key": "enableFreeEngine",
-      "label": "启用内置免配置公共词典与翻译通道",
+      "label": "常驻并行内置公共翻译通道（慢速兜底源）",
       "type": "boolean",
-      "defaultValue": "true",
+      "defaultValue": "false",
+      "helpText": "公共通道约需 2~3 秒；关闭时仅在主引擎全部失败后自动兜底，日常翻译速度更快",
       "section": "翻译引擎开关"
     },
     {
@@ -233,8 +234,8 @@
       "key": "geminiModel",
       "label": "Google Gemini 模型名称",
       "type": "text",
-      "defaultValue": "gemini-2.5-flash",
-      "placeholder": "gemini-2.5-flash / gemini-2.5-pro",
+      "defaultValue": "gemini-3.5-flash-lite",
+      "placeholder": "gemini-3.5-flash-lite / gemini-3.5-flash / gemini-3.6-flash",
       "section": "Google Gemini 协议配置"
     },
     {
@@ -344,7 +345,8 @@
           "section": "Translation Engines"
         },
         "enableFreeEngine": {
-          "label": "Enable built-in zero-config dictionary & translation",
+          "label": "Always run built-in public fallback channel",
+          "helpText": "Public channel takes ~2-3s; when OFF it still acts as automatic fallback if primary engines fail",
           "section": "Translation Engines"
         },
         "enableOpenAI": {
