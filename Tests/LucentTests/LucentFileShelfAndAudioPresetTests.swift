@@ -178,6 +178,9 @@ private final class MockAudioHardware: AudioDeviceHardware, @unchecked Sendable 
     #expect(FileShelfEdgeGeometry.resolveMode(
         settings: dockedAutoHide, isHovered: false, isDraggingIntoShelf: true, isModalOrInputActive: false
     ) == .expanded)
+    #expect(FileShelfEdgeGeometry.resolveMode(
+        settings: dockedAutoHide, isHovered: false, isDraggingIntoShelf: false, isModalOrInputActive: false, isManuallyRevealed: true
+    ) == .expanded)
 
     let tuckedRect = FileShelfEdgeGeometry.frame(
         for: .edgeTucked(.right), dockEdge: .right, size: FileShelfEdgeGeometry.tuckedTabSize,

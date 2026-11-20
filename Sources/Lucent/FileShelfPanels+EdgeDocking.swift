@@ -90,18 +90,19 @@ extension FileShelfPanelController {
         window.contentView = glass
     }
 
-    func reconcilePresentation(animate: Bool) {
+    func reconcilePresentation(animate: Bool, preferCursorScreen: Bool = false) {
         guard let window else { return }
         let nextMode = FileShelfEdgeGeometry.resolveMode(
             settings: panelState.settings,
             isHovered: isHovered,
             isDraggingIntoShelf: isDraggingIntoShelf,
-            isModalOrInputActive: isSearchFocused || isModalSheetActive
+            isModalOrInputActive: isSearchFocused || isModalSheetActive,
+            isManuallyRevealed: isManuallyRevealed
         )
         if panelState.mode != nextMode {
             panelState.mode = nextMode
         }
-        let visible = window.screen?.visibleFrame ?? activeVisibleFrame
+        let visible = preferCursorScreen ? activeVisibleFrame : (window.screen?.visibleFrame ?? activeVisibleFrame)
         let size = FileShelfEdgeGeometry.targetSize(for: nextMode, isEmpty: model.rows.isEmpty, visibleFrame: visible)
         let anchorY = panelState.settings.anchorMidY.map { CGFloat($0) }
         let targetFrame = FileShelfEdgeGeometry.frame(
@@ -140,6 +141,7 @@ extension FileShelfPanelController {
         let snapped = FileShelfEdgeGeometry.detectSnapEdge(frame: window.frame, visibleFrame: visible)
         panelState.settings.dockEdge = snapped
         panelState.settings.anchorMidY = Double(window.frame.midY)
+        isManuallyRevealed = false
         if snapped != .none {
             panelState.settings.collapsedCapsule = false
             isHovered = window.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation)
@@ -154,25 +156,28 @@ extension FileShelfPanelController {
     func setHovered(_ hovered: Bool) {
         hoverExitTask?.cancel(); hoverExitTask = nil
         if hovered {
+            isManuallyRevealed = false
             guard !isHovered else { return }
             isHovered = true
             reconcilePresentation(animate: true)
             return
         }
+        isManuallyRevealed = false
         scheduleAutoCollapseIfPointerOutside()
     }
 
     func scheduleAutoCollapseIfPointerOutside() {
         hoverExitTask?.cancel()
         hoverExitTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(320))
+            try? await Task.sleep(for: .milliseconds(360))
             guard !Task.isCancelled, let self else { return }
             if let win = self.window, win.isVisible,
                win.frame.insetBy(dx: -6, dy: -6).contains(NSEvent.mouseLocation) {
                 return
             }
-            if self.isHovered {
+            if self.isHovered || self.isManuallyRevealed {
                 self.isHovered = false
+                self.isManuallyRevealed = false
                 self.reconcilePresentation(animate: true)
             }
         }
@@ -212,10 +217,13 @@ extension FileShelfPanelController {
                 panelState.settings.edgeAutoHide = true
                 panelState.settings.pinnedExpanded = false
                 isHovered = false
+                isManuallyRevealed = false
             } else {
+                isManuallyRevealed = true
                 isHovered = true
             }
         } else {
+            isManuallyRevealed = false
             panelState.settings.collapsedCapsule.toggle()
         }
         saveSettings()

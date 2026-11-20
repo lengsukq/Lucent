@@ -42,7 +42,7 @@ public enum FileShelfEdgeGeometry {
     public static let expandedSize = CGSize(width: 320, height: 420)
     public static let emptySize = CGSize(width: 320, height: 260)
     public static let capsuleSize = CGSize(width: 96, height: 46)
-    public static let tuckedTabSize = CGSize(width: 24, height: 108)
+    public static let tuckedTabSize = CGSize(width: 32, height: 116)
     public static let screenInset: CGFloat = 10
     public static let snapThreshold: CGFloat = 28
 
@@ -66,15 +66,17 @@ public enum FileShelfEdgeGeometry {
         settings: FileShelfWindowSettings,
         isHovered: Bool,
         isDraggingIntoShelf: Bool,
-        isModalOrInputActive: Bool
+        isModalOrInputActive: Bool,
+        isManuallyRevealed: Bool = false
     ) -> FileShelfPresentationMode {
         if settings.dockEdge != .none {
-            if settings.edgeAutoHide && !settings.pinnedExpanded && !isHovered && !isDraggingIntoShelf && !isModalOrInputActive {
+            if settings.edgeAutoHide && !settings.pinnedExpanded && !isHovered
+                && !isDraggingIntoShelf && !isModalOrInputActive && !isManuallyRevealed {
                 return .edgeTucked(settings.dockEdge)
             }
             return .expanded
         }
-        if settings.collapsedCapsule && !isDraggingIntoShelf {
+        if settings.collapsedCapsule && !isDraggingIntoShelf && !isManuallyRevealed {
             return .capsule
         }
         return .expanded

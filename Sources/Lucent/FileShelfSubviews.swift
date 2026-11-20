@@ -60,25 +60,30 @@ struct FileShelfEdgeTabView: View {
     let onTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 7) {
+        VStack(spacing: 8) {
             Capsule(style: .continuous)
                 .fill(LinearGradient(colors: [.teal, .cyan], startPoint: .top, endPoint: .bottom))
-                .frame(width: 3.5, height: 26)
+                .frame(width: 4, height: 28)
             Image(systemName: "tray.full.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(isDropTarget ? Color.cyan : Color.teal)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(isDropTarget ? Color.white : Color.teal)
+                .frame(width: 22, height: 22)
+                .background(
+                    isDropTarget ? Color.teal : Color.teal.opacity(0.14),
+                    in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+                )
             if itemCount > 0 {
                 Text(itemCount, format: .number)
-                    .font(.system(size: 10, weight: .bold).monospacedDigit())
+                    .font(.system(size: 10.5, weight: .bold).monospacedDigit())
                     .foregroundStyle(LiquidColors.textPrimary)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1.5)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
                     .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
             }
         }
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(isDropTarget ? Color.teal.opacity(0.24) : Color.clear)
+        .background(isDropTarget ? Color.teal.opacity(0.28) : Color.teal.opacity(0.06))
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .accessibilityLabel(L10n.pick("展开文件中转站", "Expand File Shelf"))

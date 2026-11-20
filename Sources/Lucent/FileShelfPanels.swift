@@ -65,6 +65,7 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     var isDraggingIntoShelf = false
     var isSearchFocused = false
     var isModalSheetActive = false
+    var isManuallyRevealed = false
     var skipSessionRemovalOnClose = false
 
     var hoverExitTask: Task<Void, Never>?
@@ -126,19 +127,26 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     func open(takeFocus: Bool, expandIfTucked: Bool = true) {
         guard let window else { return }
         if window.contentView == nil { mountGlassContent() }
-        if expandIfTucked && panelState.settings.dockEdge != .none {
-            isHovered = true
-            scheduleAutoCollapseIfPointerOutside()
+        hoverExitTask?.cancel(); hoverExitTask = nil
+        if expandIfTucked {
+            isManuallyRevealed = true
+            panelState.settings.collapsedCapsule = false
+            let cursorVis = activeVisibleFrame
+            if !cursorVis.intersects(window.frame) {
+                panelState.settings.anchorMidY = Double(cursorVis.midY)
+            }
+        } else {
+            isManuallyRevealed = false
         }
         let wasVisible = window.isVisible
-        reconcilePresentation(animate: wasVisible)
+        reconcilePresentation(animate: wasVisible, preferCursorScreen: expandIfTucked)
         model.refresh()
         if !wasVisible {
-            WindowMotionAnimator.present(window, style: .pulseCapsule, makeKey: takeFocus)
-        } else if takeFocus {
-            window.makeKeyAndOrderFront(nil)
+            WindowMotionAnimator.present(window, style: .pulseCapsule, makeKey: false)
+            if takeFocus { window.makeKeyAndOrderFront(nil) }
         } else {
             window.orderFrontRegardless()
+            if takeFocus { window.makeKeyAndOrderFront(nil) }
         }
     }
 
