@@ -63,7 +63,8 @@ public enum ScriptRunner {
             dataDirectory: nil,
             isolatedTmpDirectory: isolatedTmp,
             stateRoot: scriptsDir,
-            allowSwiftToolchain: script.runtime == .swift
+            allowSwiftToolchain: script.runtime == .swift,
+            allowAppleScriptRuntime: script.runtime == .appleScript
         )
 
         let runResult: ProcessRunResult

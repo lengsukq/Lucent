@@ -49,6 +49,18 @@ public enum PluginSandboxProfileBuilder {
         return vaults
     }
 
+    private static let sensitiveHomeReadSubpaths: [String] = [
+        ".ssh", ".gnupg", ".aws", ".kube", ".docker", ".npmrc", ".netrc", ".pypirc"
+    ]
+    private static let protectedHostAppSupportEntries: [String] = [
+        FileShelfStore.directoryName,
+        "ClipboardHistory",
+        "plugin-state.json",
+        "scripts-state.json",
+        "webdav-config.json",
+        "floating-window-session.json"
+    ]
+
     public static func buildProfile(
         pluginDirectory: URL,
         dataDirectory: URL?,
@@ -57,6 +69,7 @@ public enum PluginSandboxProfileBuilder {
         bridgeSocketPath: String?,
         allowedScopes: Set<PluginResourceScope>,
         allowSwiftToolchain: Bool = false,
+        allowAppleScriptRuntime: Bool = false,
         userHomeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> String {
         let home = canonicalPath(userHomeDirectory)
@@ -87,12 +100,21 @@ public enum PluginSandboxProfileBuilder {
             if let dataPath {
                 lines.append("(allow file-write* (subpath \"\(escapeSBPL(dataPath))\"))")
             }
-            lines.append("(deny file-read* (subpath \"\(escapeSBPL(home))/.ssh\") (subpath \"\(escapeSBPL(home))/.gnupg\") (subpath \"\(escapeSBPL(home))/.aws\"))")
+            let deniedReads = sensitiveHomeReadSubpaths
+                .map { "(subpath \"\(escapeSBPL(home))/\($0)\")" }
+                .joined(separator: " ")
+            lines.append("(deny file-read* \(deniedReads))")
         }
 
         if !allowedScopes.contains(.subprocess) {
             lines.append("(deny process-exec* (subpath \"/opt/homebrew\") (subpath \"/usr/local\") (subpath \"/Applications\") (subpath \"/usr/sbin\"))")
-            lines.append("(deny process-exec* (literal \"/usr/bin/curl\") (literal \"/usr/bin/ssh\") (literal \"/usr/bin/scp\") (literal \"/usr/bin/git\") (literal \"/usr/bin/sftp\"))")
+            var deniedBins = [
+                "/usr/bin/curl", "/usr/bin/ssh", "/usr/bin/scp", "/usr/bin/git", "/usr/bin/sftp",
+                "/usr/bin/open", "/usr/bin/nc", "/usr/bin/telnet", "/usr/bin/ftp", "/usr/bin/sqlite3"
+            ]
+            if !allowAppleScriptRuntime { deniedBins.append("/usr/bin/osascript") }
+            let deniedLiterals = deniedBins.map { "(literal \"\($0)\")" }.joined(separator: " ")
+            lines.append("(deny process-exec* \(deniedLiterals))")
             for devDir in discoverXcodeDeveloperDirectories() {
                 let pyBin = "\(devDir)/usr/bin/python3"
                 let pyFw = "\(devDir)/Library/Frameworks/Python3.framework"
@@ -105,10 +127,26 @@ public enum PluginSandboxProfileBuilder {
             }
         }
 
-        // 不可覆盖底线（置于末尾，在 SBPL 后规则优先语义下拥有最高优先级）：严禁读取宿主密钥库或系统钥匙串
-        let shelfRoot = URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/Lucent")
-            .appendingPathComponent(FileShelfStore.directoryName, isDirectory: true)
-        lines.append("(deny file-read* file-write* (subpath \"\(escapeSBPL(canonicalPath(shelfRoot)))\"))")
+        // Cross-plugin data isolation: deny sibling PluginData directories and re-allow only this plugin's own data/tmp dirs.
+        let appSupportRoot = URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/Lucent", isDirectory: true)
+        var dataRoots = [canonicalPath(appSupportRoot.appendingPathComponent("PluginData", isDirectory: true))]
+        if let parent = dataDirectory?.deletingLastPathComponent() {
+            let scopedRoot = canonicalPath(parent)
+            if !dataRoots.contains(scopedRoot) { dataRoots.append(scopedRoot) }
+        }
+        for root in dataRoots {
+            lines.append("(deny file-read* file-write* (subpath \"\(escapeSBPL(root))\"))")
+        }
+        if let dataPath {
+            lines.append("(allow file-read* file-write* (subpath \"\(escapeSBPL(dataPath))\"))")
+        }
+        lines.append("(allow file-read* file-write* (subpath \"\(escapeSBPL(tmpPath))\"))")
+
+        // Unconditional host privacy boundary (SBPL last-rule-wins): block host private stores, Keychains & vaults.
+        for entry in protectedHostAppSupportEntries {
+            let entryPath = canonicalPath(appSupportRoot.appendingPathComponent(entry))
+            lines.append("(deny file-read* file-write* (subpath \"\(escapeSBPL(entryPath))\"))")
+        }
         let keychainsPath = "\(home)/Library/Keychains"
         lines.append("(deny file-read* file-write* (subpath \"\(escapeSBPL(keychainsPath))\"))")
         var seenVaults = Set<String>()
@@ -133,6 +171,7 @@ public enum PluginSandboxProfileBuilder {
         stateRoot: URL,
         bridgeSocketPath: String? = nil,
         allowSwiftToolchain: Bool = false,
+        allowAppleScriptRuntime: Bool = false,
         forceSeatbelt: Bool = false
     ) -> (executableURL: URL, arguments: [String], profile: String) {
         let profile = buildProfile(
@@ -142,7 +181,8 @@ public enum PluginSandboxProfileBuilder {
             vaultDirectories: protectedVaultDirectories(forStateRoot: stateRoot),
             bridgeSocketPath: bridgeSocketPath,
             allowedScopes: grantedScopes,
-            allowSwiftToolchain: allowSwiftToolchain
+            allowSwiftToolchain: allowSwiftToolchain,
+            allowAppleScriptRuntime: allowAppleScriptRuntime
         )
         if forceSeatbelt || isSeatbeltAvailable {
             return (

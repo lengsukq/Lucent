@@ -17,18 +17,30 @@ public struct PluginSelectionSnapshot: Sendable, Hashable {
 }
 
 public enum PluginSelectionReader {
+    /// Bound AX IPC latency so unresponsive or Chromium apps cannot stall the main thread.
+    public static let defaultAXMessagingTimeoutSeconds: Float = 0.15
+
     public static func captureFrontmostSelection(
         excludingPID: pid_t = ProcessInfo.processInfo.processIdentifier,
-        allowCopyFallback: Bool = false
+        allowCopyFallback: Bool = false,
+        enableManualAccessibility: Bool = false
     ) -> PluginSelectionSnapshot {
         if Thread.isMainThread {
             return MainActor.assumeIsolated {
-                readFrontmostSelectionOnMain(excludingPID: excludingPID, allowCopyFallback: allowCopyFallback)
+                readFrontmostSelectionOnMain(
+                    excludingPID: excludingPID,
+                    allowCopyFallback: allowCopyFallback,
+                    enableManualAccessibility: enableManualAccessibility
+                )
             }
         }
         return DispatchQueue.main.sync {
             MainActor.assumeIsolated {
-                readFrontmostSelectionOnMain(excludingPID: excludingPID, allowCopyFallback: allowCopyFallback)
+                readFrontmostSelectionOnMain(
+                    excludingPID: excludingPID,
+                    allowCopyFallback: allowCopyFallback,
+                    enableManualAccessibility: enableManualAccessibility
+                )
             }
         }
     }
@@ -36,7 +48,8 @@ public enum PluginSelectionReader {
     @MainActor
     private static func readFrontmostSelectionOnMain(
         excludingPID: pid_t,
-        allowCopyFallback: Bool
+        allowCopyFallback: Bool,
+        enableManualAccessibility: Bool
     ) -> PluginSelectionSnapshot {
         guard let app = NSWorkspace.shared.frontmostApplication else {
             return PluginSelectionSnapshot()
@@ -48,14 +61,18 @@ public enum PluginSelectionReader {
         }
 
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(appElement, defaultAXMessagingTimeoutSeconds)
         if let direct = readSelectionFromAX(appElement: appElement), !direct.isEmpty {
             return PluginSelectionSnapshot(text: direct, sourceApp: appName, bundleIdentifier: bundleID)
         }
 
-        // Chromium / Electron apps lazily expose AX nodes only after AXManualAccessibility is enabled.
-        AXUIElementSetAttributeValue(appElement, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-        if let manualText = readSelectionFromAX(appElement: appElement), !manualText.isEmpty {
-            return PluginSelectionSnapshot(text: manualText, sourceApp: appName, bundleIdentifier: bundleID)
+        // Only opt Chromium/Electron apps into AXManualAccessibility when explicitly requested
+        // (avoids triggering heavyweight AX tree construction on casual overlay opens).
+        if enableManualAccessibility || allowCopyFallback {
+            AXUIElementSetAttributeValue(appElement, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+            if let manualText = readSelectionFromAX(appElement: appElement), !manualText.isEmpty {
+                return PluginSelectionSnapshot(text: manualText, sourceApp: appName, bundleIdentifier: bundleID)
+            }
         }
 
         if allowCopyFallback {
@@ -111,7 +128,9 @@ public enum PluginSelectionReader {
               CFGetTypeID(obj) == AXUIElementGetTypeID() else {
             return nil
         }
-        return unsafeDowncast(obj, to: AXUIElement.self)
+        let child = unsafeDowncast(obj, to: AXUIElement.self)
+        AXUIElementSetMessagingTimeout(child, defaultAXMessagingTimeoutSeconds)
+        return child
     }
 
     private static func extractSelectedText(from element: AXUIElement) -> String? {

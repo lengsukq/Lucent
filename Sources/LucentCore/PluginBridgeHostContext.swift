@@ -50,7 +50,9 @@ public struct PluginBridgeHostContext: Sendable {
                 return NSPasteboard.general.setString(text, forType: .string)
             }
         }
-        self.selectionReader = selectionReader ?? { PluginSelectionReader.captureFrontmostSelection() }
+        self.selectionReader = selectionReader ?? {
+            PluginSelectionReader.captureFrontmostSelection(enableManualAccessibility: true)
+        }
         self.preCapturedSelection = preCapturedSelection
         self.pluginID = pluginID
         self.pluginName = pluginName

@@ -32,6 +32,10 @@ public final class LumaLinkDisplayService: @unchecked Sendable {
         var count: UInt32 = 0
         var ids = [CGDirectDisplayID](repeating: 0, count: 16)
         guard CGGetActiveDisplayList(16, &ids, &count) == .success else { return [] }
+        if count == 0 {
+            // Fall back to online displays so remote control still enumerates displays while screen is asleep.
+            _ = CGGetOnlineDisplayList(16, &ids, &count)
+        }
         let mainID = CGMainDisplayID()
         let activeIDs = ids.prefix(Int(count))
 

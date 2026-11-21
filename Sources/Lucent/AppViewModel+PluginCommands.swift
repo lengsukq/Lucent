@@ -44,7 +44,10 @@ extension AppViewModel {
             return
         }
         let allowFallback = plugin.grantedCapabilities.contains(.selection)
-        let captured = PluginSelectionReader.captureFrontmostSelection(allowCopyFallback: allowFallback)
+        let captured = PluginSelectionReader.captureFrontmostSelection(
+            allowCopyFallback: allowFallback,
+            enableManualAccessibility: allowFallback
+        )
         if allowFallback { lastPasteboardChangeCount = NSPasteboard.general.changeCount }
         lastCapturedSelection = captured
         skipNextSelectionCapture = true
@@ -61,7 +64,10 @@ extension AppViewModel {
               let spec = plugin.declaredCommands.first(where: { $0.id == commandID })
         else { return }
         let allowFallback = plugin.grantedCapabilities.contains(.selection)
-        let captured = PluginSelectionReader.captureFrontmostSelection(allowCopyFallback: allowFallback)
+        let captured = PluginSelectionReader.captureFrontmostSelection(
+            allowCopyFallback: allowFallback,
+            enableManualAccessibility: allowFallback
+        )
         if allowFallback { lastPasteboardChangeCount = NSPasteboard.general.changeCount }
         lastCapturedSelection = captured
         let query = spec.passQuery == true ? captured.text : ""
