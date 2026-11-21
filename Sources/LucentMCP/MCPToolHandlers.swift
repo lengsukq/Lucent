@@ -24,6 +24,7 @@ extension MCPServer {
         case "lucent_upsert_script": return handleUpsertScript(arguments: arguments)
         case "lucent_run_script_test": return handleRunScriptTest(arguments: arguments)
         case "lucent_remove_script": return handleRemoveScript(arguments: arguments)
+        case "lucent_search_files": return handleSearchFiles(arguments: arguments)
         default: return textResult("Unknown tool: \(name)", isError: true)
         }
     }
@@ -103,7 +104,7 @@ extension MCPServer {
             schema("lucent_remove_plugin",
                    "Remove an external plugin directory. Builtin plugins (`builtin-*`) cannot be deleted.",
                    ["id": ["type": "string"]], ["id"])
-        ] + storeToolSchemas() + homeLayoutToolSchemas() + scriptToolSchemas()
+        ] + storeToolSchemas() + homeLayoutToolSchemas() + scriptToolSchemas() + fileSearchToolSchemas()
     }
 
     private func handleListPlugins(arguments: [String: Any]) -> [String: Any] {

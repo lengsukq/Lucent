@@ -116,6 +116,39 @@ public enum EverythingSnapshotStore {
         cacheDirectory: URL? = nil
     ) -> EverythingIndex? {
         let fileURL = snapshotFileURL(scopeKey: scopeKey, cacheDirectory: cacheDirectory)
+        return loadFile(at: fileURL, expectedRoots: expectedRoots, maxAgeSeconds: maxAgeSeconds)
+    }
+
+    public static func loadNewestValid(
+        cacheDirectory: URL? = nil,
+        maxAgeSeconds: TimeInterval = 86_400
+    ) -> EverythingIndex? {
+        let dir = cacheDirectory ?? defaultCacheDirectory()
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: dir,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+        let candidates = urls
+            .filter { $0.pathExtension == "lcntidx" }
+            .sorted { lhs, rhs in
+                let d1 = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                let d2 = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                return d1 > d2
+            }
+        for url in candidates {
+            if let loaded = loadFile(at: url, expectedRoots: nil, maxAgeSeconds: maxAgeSeconds) {
+                return loaded
+            }
+        }
+        return nil
+    }
+
+    public static func loadFile(
+        at fileURL: URL,
+        expectedRoots: [URL]? = nil,
+        maxAgeSeconds: TimeInterval = 43_200
+    ) -> EverythingIndex? {
         guard let data = try? Data(contentsOf: fileURL, options: .mappedIfSafe),
               data.count >= magic.count + 17 + sha256ByteCount else { return nil }
         return data.withUnsafeBytes { raw -> EverythingIndex? in
@@ -176,7 +209,7 @@ public enum EverythingSnapshotStore {
         _ raw: UnsafeRawBufferPointer,
         limit: Int,
         offset: inout Int,
-        expectedRoots: [URL],
+        expectedRoots: [URL]?,
         maxAgeSeconds: TimeInterval
     ) -> ParsedHeader? {
         guard limit >= magic.count + 17 else { return nil }
@@ -201,8 +234,12 @@ public enum EverythingSnapshotStore {
             else { return nil }
             rootURLs.append(URL(fileURLWithPath: path))
         }
-        let expectedPaths = expectedRoots.map { $0.standardizedFileURL.path }
-        guard rootURLs.map(\.path) == expectedPaths else { return nil }
+        if let expectedRoots {
+            let expectedPaths = expectedRoots.map { $0.standardizedFileURL.path }
+            guard rootURLs.map(\.path) == expectedPaths else { return nil }
+        } else {
+            guard !rootURLs.isEmpty else { return nil }
+        }
 
         guard let nodeCount = readLE(raw, limit: limit, offset: &offset, as: UInt32.self) else { return nil }
         return ParsedHeader(builtAt: builtAt, reachedNodeLimit: reachedByte != 0, rootURLs: rootURLs, nodeCount: nodeCount)

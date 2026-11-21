@@ -119,5 +119,53 @@ func testV099ScriptLibraryAndMCP() throws {
     check(toolResult(at: 6).text.contains("标题转 URL 别名") && !toolResult(at: 6).text.contains("旧注释标题") && toolResult(at: 6).text.contains("#14B8A6"), "lucent_list_scripts syncs magic header directive to match MCP title and preserves SVG markup")
     check(toolResult(at: 7).text.contains("\"removed\" : true"), "lucent_remove_script deletes script and custom SVG")
 
+    try verifyMCPReadOnlyFileSearchGate(mcpBinary: mcpURL)
     print("[ok] v0.9.9 Standalone Script Library, Custom SVG Icon Crafting, Custom Shebang & lucent-mcp")
+}
+
+private func verifyMCPReadOnlyFileSearchGate(mcpBinary: URL) throws {
+    let tmp = try makeTempDir("mcp-file-search")
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let pluginsDir = tmp.appendingPathComponent("Plugins", isDirectory: true)
+    let scanDir = tmp.appendingPathComponent("Notes", isDirectory: true)
+    let privateDir = scanDir.appendingPathComponent("Private", isDirectory: true)
+    let cacheDir = tmp.appendingPathComponent("IndexCache", isDirectory: true)
+    for d in [pluginsDir, scanDir, privateDir, cacheDir] {
+        try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+    }
+    try Data("public".utf8).write(to: scanDir.appendingPathComponent("Roadmap.md"))
+    try Data("secret".utf8).write(to: privateDir.appendingPathComponent("Secret.md"))
+
+    let idx = try EverythingIndex.build(rootURLs: [scanDir], maxNodes: 100)
+    check(EverythingSnapshotStore.save(idx, scopeKey: "mcp-check", cacheDirectory: cacheDir) != nil, "saved LCNTIDX3 snapshot for MCP search")
+
+    let prefsURL = tmp.appendingPathComponent("general-preferences.json")
+    func runSearchCall() throws -> String {
+        let p = Process()
+        p.executableURL = mcpBinary
+        p.arguments = ["--plugins-dir", pluginsDir.path, "--general-prefs", prefsURL.path, "--index-cache", cacheDir.path]
+        let inPipe = Pipe(); let outPipe = Pipe()
+        p.standardInput = inPipe; p.standardOutput = outPipe
+        try p.run()
+        let req = #"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"lucent_search_files","arguments":{"query":"ext:md","limit":10}}}"# + "\n"
+        try inPipe.fileHandleForWriting.write(contentsOf: Data(req.utf8))
+        try inPipe.fileHandleForWriting.close()
+        p.waitUntilExit()
+        check(p.terminationStatus == 0, "lucent-mcp file search exited 0")
+        return String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    }
+
+    // 1. Disabled by default (opt-in privacy gate)
+    var prefs = GeneralPreferences(excludedIndexPaths: [privateDir.path], enableMcpFileSearch: false)
+    prefs.save(to: prefsURL, notify: false)
+    let deniedResp = try runSearchCall()
+    check(deniedResp.contains("mcp_file_search_disabled") && deniedResp.contains(#""isError":true"#),
+          "lucent_search_files blocked by default until opted in")
+
+    // 2. Enabled -> returns matching .md file while filtering excluded private directory
+    prefs.enableMcpFileSearch = true
+    prefs.save(to: prefsURL, notify: false)
+    let allowedResp = try runSearchCall()
+    check(allowedResp.contains("Roadmap.md") && !allowedResp.contains("Secret.md") && allowedResp.contains(#""isError":false"#),
+          "lucent_search_files queries LCNTIDX3 snapshot and respects excludedIndexPaths")
 }

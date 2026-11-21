@@ -50,6 +50,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public var lastUpdateCheckTimestamp: Double
     public var enableSelectionQuickBar: Bool
     public var enableSmartSearchRanking: Bool
+    public var enableMcpFileSearch: Bool
 
     public init(
         schemaVersion: Int = 1,
@@ -87,7 +88,8 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         autoInstallSafePluginUpdates: Bool = false,
         lastUpdateCheckTimestamp: Double = 0,
         enableSelectionQuickBar: Bool = true,
-        enableSmartSearchRanking: Bool = true
+        enableSmartSearchRanking: Bool = true,
+        enableMcpFileSearch: Bool = false
     ) {
         self.schemaVersion = schemaVersion
         self.launchSilentlyInMenuBar = launchSilentlyInMenuBar
@@ -126,6 +128,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.lastUpdateCheckTimestamp = max(0, lastUpdateCheckTimestamp)
         self.enableSelectionQuickBar = enableSelectionQuickBar
         self.enableSmartSearchRanking = enableSmartSearchRanking
+        self.enableMcpFileSearch = enableMcpFileSearch
     }
 
     public init(from decoder: Decoder) throws {
@@ -166,7 +169,8 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
             autoInstallSafePluginUpdates: (try? c.decodeIfPresent(Bool.self, forKey: .autoInstallSafePluginUpdates)) ?? false,
             lastUpdateCheckTimestamp: (try? c.decodeIfPresent(Double.self, forKey: .lastUpdateCheckTimestamp)) ?? 0,
             enableSelectionQuickBar: (try? c.decodeIfPresent(Bool.self, forKey: .enableSelectionQuickBar)) ?? true,
-            enableSmartSearchRanking: (try? c.decodeIfPresent(Bool.self, forKey: .enableSmartSearchRanking)) ?? true
+            enableSmartSearchRanking: (try? c.decodeIfPresent(Bool.self, forKey: .enableSmartSearchRanking)) ?? true,
+            enableMcpFileSearch: (try? c.decodeIfPresent(Bool.self, forKey: .enableMcpFileSearch)) ?? false
         )
     }
 

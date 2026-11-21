@@ -4,10 +4,19 @@ import LucentCore
 final class MCPServer {
     let pluginsDirectory: URL
     let customHomeLayoutURL: URL?
+    let customGeneralPrefsURL: URL?
+    let customIndexCacheDirectory: URL?
 
-    init(pluginsDirectory: URL, customHomeLayoutURL: URL? = nil) {
+    init(
+        pluginsDirectory: URL,
+        customHomeLayoutURL: URL? = nil,
+        customGeneralPrefsURL: URL? = nil,
+        customIndexCacheDirectory: URL? = nil
+    ) {
         self.pluginsDirectory = pluginsDirectory
         self.customHomeLayoutURL = customHomeLayoutURL
+        self.customGeneralPrefsURL = customGeneralPrefsURL
+        self.customIndexCacheDirectory = customIndexCacheDirectory
     }
 
     func runStdioLoop() {
@@ -36,7 +45,7 @@ final class MCPServer {
                 Lucent is a lightweight macOS productivity hub (NOT a resident server, daemon runner, or cron gateway).
                 Follow these mandatory rules when creating Quick Scripts, plugins, or customizing the Launcher Home Page:
                 1. For lightweight single-file quick actions, text/clipboard utilities, AppleScript automations, or custom Shebang scripts (Zsh, Bash, Python 3, AppleScript, Swift, Node, Deno, Ruby), read `lucent://specs/scripts-v1` and use `lucent_upsert_script`. Always give scripts clear bilingual names (`title` / `englishTitle`), draw a bespoke 64x64 vector `<svg>` icon via `iconSvg` (or pair an SF Symbol with `accentColor`), and verify execution with `lucent_run_script_test`.
-                2. Before authoring any multi-view plugin, read `lucent://specs/plugin-v3` and call `lucent_list_plugins` (to check BUILTIN native plugins like SmoothScroll/LumaLink/SystemPulse so you do not duplicate them) and `lucent_app_permissions`.
+                2. Before authoring any multi-view plugin, read `lucent://specs/plugin-v3` and call `lucent_list_plugins` (to check BUILTIN native plugins like SmoothScroll/SystemPulse so you do not duplicate them) and `lucent_app_permissions`.
                 3. Every plugin MUST explicitly declare its required permissions via `capabilities` (Host Bridge) AND `resourceScopes` (`network`, `filesystem`, `subprocess`, or `[]` if none) in `plugin.json` at registration time. Never write `launchd` plists, resident HTTP servers, or infinite `while true` loops.
                 4. Prefer `mode: "view"` outputting `PluginViewPayload` JSON for native Liquid Glass cards, and always run `lucent_validate_plugin` and `lucent_run_plugin_test` after scaffolding or editing a plugin.
                 5. When sharing a plugin or building a custom plugin store (`lucent-registry.json`), read `lucent://specs/plugin-store-v1` and call `lucent_package_plugin_for_store`.
