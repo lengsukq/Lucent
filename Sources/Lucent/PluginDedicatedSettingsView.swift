@@ -99,6 +99,17 @@ struct PluginDedicatedSettingsView: View {
                     .toggleStyle(.switch).labelsHidden()
             }
 
+            if !plugin.validationIssues.isEmpty {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(.red)
+                    Text(plugin.validationIssues.joined(separator: "；"))
+                        .font(.caption2.weight(.medium)).foregroundStyle(.red)
+                    Spacer()
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: LiquidRadii.control, style: .continuous))
+            }
+
             if !missingSecrets.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "key.slash.fill").foregroundStyle(.orange)

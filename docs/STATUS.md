@@ -29,11 +29,11 @@
 ## 4. 插件生态 (`Plugin v3.7`)、快捷脚本库与 AI 协议桥 (`lucent-mcp`)
 
 - **纵深沙箱与高熵密钥保险箱 (`LCNTVLT2`)**：外部插件与快捷脚本统一经 `/usr/bin/sandbox-exec` 动态生成 Apple Seatbelt 策略隔离运行（净化宿主环境变量，无条件封锁系统钥匙串与宿主 `.vault`），通过 `ProcessSupervisor` 无死锁双管道与进程组精确取消监管；敏感凭据由 `LocalSecretVault` 采用 256-bit `AES-GCM` 双轨密封落盘；系统 TCC 权限遵循「宿主统一代申、单次 `0700` UDS 令牌桥接」并纳入全景权限审计矩阵。
-- **原生卡片、置顶面板与自由画布挂件**：支持零前端自动生成原生设置表单、结构化交互卡片、`lucent://panel/<id>` 独立置顶轮询面板，以及授权 `window` / `floatingWindow` 后的沙盒化 `WKWebView` 透明桌面挂件（含网络规则拦截、坐标记忆与环境变更实时广播）。
+- **原生卡片、置顶面板、自由画布会话与跨插件上下文联动**：支持零前端自动生成原生设置表单、结构化交互卡片、`lucent://panel/<id>` 独立置顶轮询面板，以及授权 `window` / `floatingWindow` 后的沙盒化 `WKWebView` 透明桌面挂件（含网络规则拦截、坐标记忆、原生 `.fileURL` 拖拽透传 `onFilesDropped`、窗口复用推送 `reuseIfOpen`、窗口绑定沙盒 NDJSON 会话 `lucent.session` 与环境变更实时广播）；新增 `contextRouter` 受控跨插件路由，并补齐 `FileShelf`（右键与底栏）及 GIF/MP4 录屏完成条到扩展插件的上下文出站链路。
 - **单文件双向同步快捷脚本库 (`Quick Scripts`)**：支持 Zsh、Bash、Python 3、AppleScript、Swift 及任意 `#!` 自定义 Shebang 脚本，与 `@lucent.*` 头部注释双向同步，支持专属安全 SVG 图标、独立热键与 5 种输出反馈。
 - **智能商店订阅、备份同步与内置 MCP 服务**：
-  - 单输入框自动嗅探 GitHub 仓库、商店 `lucent-registry.json` 或 `.zip` 包，强制校验 `SHA-256` 与权限升级差异，附带 `plugin-demo/` 11 款原生 Swift 官方插件（含 `antigravity-pulse` 与 `gold-monitor` 自由画布悬浮窗）与 3 款内置精选模板；
-  - **文件中转站与一键音频组合**：中转站采用原生液态玻璃浮窗（`RoundedGlassContainerView` + `DoubleSpecularBorder`），支持左右边缘磁吸贴边隐藏、悬停/拖入自动滑出、右键菜单与可选「拖出即移出」及跨重启会话恢复，条目由宿主长期保留并校验源文件身份；音频组合采用无边框双主题液态玻璃悬浮控制台（支持靠边胶囊收起与点击设备卡直切单个扬声器/麦克风），通过 Core Audio 回读核验并在部分失败时自动恢复，配合原生液态玻璃 HUD 反馈；
+  - 单输入框自动嗅探 GitHub 仓库、商店 `lucent-registry.json` 或 `.zip` 包，强制校验 `SHA-256` 与权限升级差异，附带 `plugin-demo/` 12 款原生 Swift 官方插件（含 `local-send` 零常驻 LocalSend v2.1 局域网快传、`antigravity-pulse` 与 `gold-monitor` 自由画布悬浮窗）与 3 款内置精选模板；
+  - **文件中转站与一键音频组合**：中转站采用原生液态玻璃浮窗（`RoundedGlassContainerView` + `DoubleSpecularBorder`），支持左/右/顶部三向边缘磁吸贴边隐藏、120fps 夹紧拖拽与磁吸流光预览、悬停/拖入自动滑出、右键菜单与可选「拖出即移出」及跨重启会话恢复，条目由宿主长期保留并校验源文件身份；音频组合采用无边框双主题液态玻璃悬浮控制台（支持靠边胶囊收起与点击设备卡直切单个扬声器/麦克风），通过 Core Audio 回读核验并在部分失败时自动恢复，配合原生液态玻璃 HUD 反馈；
   - 支持应用与插件更新检查、含 `LZFSE` 压缩与可选口令密钥迁移的 `.lucentbackup` v2 归档及 HTTPS WebDAV 云端自动轮转同步；
   - 安装包内置零外部依赖 `lucent-mcp` 二进制，暴露 4 份规范资源与 21 项工具供 AI 客户端直接创建脚本、脚手架开发插件、编排启动面板，并在用户显式开启「设置 › 通用 › 允许 `lucent-mcp` 离线检索」后只读检索本地 `LCNTIDX3` 文件快照。
 

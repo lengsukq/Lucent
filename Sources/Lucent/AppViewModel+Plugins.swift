@@ -7,6 +7,7 @@ extension AppViewModel {
         let loaded = PluginSystem.listPlugins(includeBuiltin: true, includeSecrets: false)
         plugins = loaded
         FileShelfPanels.shared.synchronize(plugins: loaded)
+        PluginCustomWebWindowController.shared.synchronize(plugins: loaded)
         pluginCommands = PluginCommandRegistry.registeredCommands(for: loaded)
         enabledQuickButtons = PluginCommandRegistry.enabledQuickButtons(for: loaded)
         pluginSearchEntries = PluginSearchIndex.loadEntries(for: loaded)
@@ -162,6 +163,10 @@ extension AppViewModel {
     }
 
     func runPluginWithContext(_ plugin: PluginDescriptor, context: PluginContextPayload) {
+        if plugin.manifest.window != nil {
+            runPlugin(plugin, query: context.primaryQuery, contextPayload: context, showInline: false)
+            return
+        }
         onShowOverlayRequest?(.plugins)
         scopedPluginID = plugin.id
         overlayQuery = ""

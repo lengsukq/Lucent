@@ -158,7 +158,8 @@ public extension PluginCustomWindowSpec {
             opacity: resolvedOpacity,
             x: resolvedX,
             y: resolvedY,
-            initialStateJSON: initialStateJSON
+            initialStateJSON: initialStateJSON,
+            reuseIfOpen: reuseIfOpen
         )
     }
 }

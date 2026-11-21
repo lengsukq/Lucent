@@ -58,6 +58,8 @@ struct FileShelfTable: NSViewRepresentable {
     let preview: (FileShelfRowState) -> Void
     let locate: (FileShelfRowState) -> Void
     let onDraggedOut: (Set<UUID>) -> Void
+    let matchingPlugins: ([FileShelfRowState]) -> [(PluginDescriptor, PluginContextPayload)]
+    let sendToPlugin: (PluginDescriptor, PluginContextPayload) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(table: self) }
 
@@ -191,6 +193,17 @@ struct FileShelfTable: NSViewRepresentable {
                 menu.addItem(.separator())
                 menu.addItem(makeItem(L10n.pick("复制文件", "Copy Files")) { [weak self] in self?.table.model.copyFiles(for: targets) })
                 menu.addItem(makeItem(L10n.pick("复制路径", "Copy Paths")) { [weak self] in self?.table.model.copyPaths(for: targets) })
+                let pluginMatches = table.matchingPlugins(targets)
+                if !pluginMatches.isEmpty {
+                    let sub = NSMenu()
+                    for (plugin, ctx) in pluginMatches {
+                        sub.addItem(makeItem(plugin.displayName) { [weak self] in self?.table.sendToPlugin(plugin, ctx) })
+                    }
+                    let parent = NSMenuItem(title: L10n.pick("发送到扩展插件", "Send to Plugin"), action: nil, keyEquivalent: "")
+                    parent.submenu = sub
+                    menu.addItem(.separator())
+                    menu.addItem(parent)
+                }
             } else {
                 menu.addItem(makeItem(L10n.pick("重新定位源文件…", "Locate Original…")) { [weak self] in self?.table.locate(primary) })
             }

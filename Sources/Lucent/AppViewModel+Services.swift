@@ -54,6 +54,14 @@ extension AppViewModel {
             self.capturePasteboardOnceIfChanged()
             self.serviceMessage = msg
         }
+        FileShelfPanels.shared.availablePluginsProvider = { [weak self] in self?.plugins ?? [] }
+        FileShelfPanels.shared.onRouteToPlugin = { [weak self] plugin, ctx in
+            self?.runPluginWithContext(plugin, context: ctx)
+        }
+        GifCapturePluginBridge.availablePluginsProvider = { [weak self] in self?.plugins ?? [] }
+        GifCapturePluginBridge.onRouteToPlugin = { [weak self] plugin, ctx in
+            self?.runPluginWithContext(plugin, context: ctx)
+        }
     }
 
     func performStartupOrphanCleanup() {

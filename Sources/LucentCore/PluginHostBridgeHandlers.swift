@@ -126,7 +126,67 @@ public enum PluginHostBridgeHandlers {
 
         case .lumaLinkStatus:
             return handleLumaLinkBridge(action: action, params: params)
+
+        case .contextRouter:
+            return handleContextRouter(action: action, params: params, hostContext: hostContext)
         }
+    }
+
+    private static func handleContextRouter(
+        action: String,
+        params: [String: Any],
+        hostContext: PluginBridgeHostContext
+    ) -> [String: Any] {
+        guard let payload = parseContextPayload(params: params, sourcePluginID: hostContext.pluginID) else {
+            return errorJSON("invalid_params", "需要有效的 kind 与对应 text / url / filePaths 参数", capability: .contextRouter)
+        }
+        switch action {
+        case "match":
+            let candidates = hostContext.contextMatcher?(hostContext.pluginID, payload) ?? []
+            return okJSON(.contextRouter, action, ["plugins": candidates.map { $0.toJSONObject() }])
+        case "route":
+            guard let rawTarget = params["targetPluginId"] as? String ?? params["pluginId"] as? String,
+                  PluginSystem.isSafePluginID(rawTarget),
+                  rawTarget != hostContext.pluginID else {
+                return errorJSON("invalid_params", "缺少合法的目标插件 targetPluginId", capability: .contextRouter)
+            }
+            guard let router = hostContext.contextRouter else {
+                return errorJSON("unsupported_context", "当前上下文不支持跨插件路由", capability: .contextRouter)
+            }
+            let routed = router(rawTarget, payload)
+            guard routed else {
+                return errorJSON("route_failed", "目标插件不可用或拒绝接收该上下文：\(rawTarget)", capability: .contextRouter)
+            }
+            return okJSON(.contextRouter, action, ["routed": true, "targetPluginId": rawTarget])
+        default:
+            return errorJSON("invalid_action", "contextRouter 支持 match / route", capability: .contextRouter)
+        }
+    }
+
+    private static func parseContextPayload(params: [String: Any], sourcePluginID: String?) -> PluginContextPayload? {
+        let source = (params["source"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedSource = (source?.isEmpty == false ? source! : nil) ?? sourcePluginID ?? "plugin"
+        if let rawPaths = params["filePaths"] as? [String], !rawPaths.isEmpty {
+            let validURLs = rawPaths
+                .map { URL(fileURLWithPath: $0).standardizedFileURL }
+                .filter { FileManager.default.fileExists(atPath: $0.path) }
+            guard !validURLs.isEmpty else { return nil }
+            if let rawKind = params["kind"] as? String, let explicitKind = PluginContextKind(rawValue: rawKind),
+               [.file, .image, .directory].contains(explicitKind) {
+                return PluginContextPayload(kind: explicitKind, filePaths: validURLs.map(\.path), source: resolvedSource)
+            }
+            return PluginContextMatcher.payloadFromFiles(validURLs, source: resolvedSource)
+        }
+        if let rawURL = (params["url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !rawURL.isEmpty {
+            return PluginContextPayload(kind: .url, text: rawURL, url: rawURL, source: resolvedSource)
+        }
+        if let rawText = (params["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !rawText.isEmpty {
+            if let rawKind = params["kind"] as? String, rawKind == PluginContextKind.text.rawValue {
+                return PluginContextPayload(kind: .text, text: rawText, source: resolvedSource)
+            }
+            return PluginContextMatcher.payloadFromText(rawText, source: resolvedSource)
+        }
+        return nil
     }
 
     private static func handleAudio(action: String, params: [String: Any]) -> [String: Any] {

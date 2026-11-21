@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 3,
+  "id": "local-send",
+  "name": "LocalSend 局域网快传",
+  "version": "1.0.0",
+  "minAppVersion": "0.9.9.3",
+  "description": "零常驻局域网跨端文件与文本快传（兼容 iOS / Android / Windows / macOS / Linux 官方 LocalSend v2.1 协议）：开窗即启、关窗即毁，支持文件拖入、大文件流式收发，并与文件中转站、流光译站、Notion 书签、闪电提醒和流光随行深度联动。",
+  "mode": "view",
+  "keywords": [
+    "localsend",
+    "ls",
+    "send",
+    "drop",
+    "airdrop",
+    "局域网",
+    "快传",
+    "传文件",
+    "互传",
+    "手机传文件"
+  ],
+  "entry": "bin/local-send",
+  "author": "Lucent Official",
+  "icon": "icon.svg",
+  "accentColor": "teal",
+  "categoryTag": "局域网快传",
+  "capabilities": [
+    "floatingWindow",
+    "contextRouter",
+    "notifications",
+    "clipboard",
+    "lumaLinkStatus"
+  ],
+  "resourceScopes": [
+    "network",
+    "filesystem"
+  ],
+  "accepts": [
+    "file",
+    "directory",
+    "image",
+    "text",
+    "url"
+  ],
+  "window": {
+    "entryHtml": "ui/index.html",
+    "chrome": "frameless",
+    "width": 436,
+    "height": 560,
+    "minWidth": 160,
+    "minHeight": 52,
+    "resizable": false,
+    "transparent": true,
+    "showInDock": false,
+    "pinOnTop": true,
+    "persistSession": false
+  },
+  "commands": [
+    {
+      "id": "open",
+      "title": "打开 LocalSend 局域网快传",
+      "subtitle": "启动按需会话发现附近手机/电脑并收发文件（关窗即停，零常驻）",
+      "keywords": [
+        "localsend",
+        "局域网快传",
+        "传文件",
+        "收文件"
+      ],
+      "icon": "paperplane.circle.fill",
+      "arguments": [
+        "--open"
+      ],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    },
+    {
+      "id": "send-clipboard",
+      "title": "用 LocalSend 发送当前剪贴板",
+      "subtitle": "读取当前剪贴板文字或链接并直接载入快传浮窗发给附近设备",
+      "keywords": [
+        "发剪贴板",
+        "传手机",
+        "send clipboard",
+        "localsend clip"
+      ],
+      "icon": "doc.on.clipboard.fill",
+      "arguments": [
+        "--send-clipboard"
+      ],
+      "passQuery": false,
+      "silentWhenHotKeyTriggered": true
+    }
+  ],
+  "config": [
+    {
+      "key": "deviceAlias",
+      "label": "本机显示名称（留空使用 Mac 名称）",
+      "type": "text",
+      "defaultValue": "",
+      "placeholder": "例如：Leo 的 MacBook Pro",
+      "section": "设备与协议"
+    },
+    {
+      "key": "port",
+      "label": "协议监听端口（官方默认 53317）",
+      "type": "number",
+      "defaultValue": "53317",
+      "minValue": 1024,
+      "maxValue": 65535,
+      "stepValue": 1,
+      "section": "设备与协议"
+    },
+    {
+      "key": "useHttps",
+      "label": "启用 HTTPS 自签名加密传输（推荐，与官方端默认一致）",
+      "type": "boolean",
+      "defaultValue": "true",
+      "section": "设备与协议"
+    },
+    {
+      "key": "receiveMode",
+      "label": "开窗时的接收策略",
+      "type": "select",
+      "options": [
+        "prompt",
+        "quickSave",
+        "sendOnly"
+      ],
+      "defaultValue": "prompt",
+      "helpText": "prompt=每次接收弹窗确认；quickSave=自动快速保存；sendOnly=仅发送不监听接收端口。",
+      "section": "接收与安全"
+    },
+    {
+      "key": "receivePin",
+      "label": "接收 PIN 口令（留空表示无需口令）",
+      "type": "secret",
+      "defaultValue": "",
+      "placeholder": "可选 4~8 位数字或短口令",
+      "helpText": "加密保存在本机保险箱中；启用后发送端需提供一致 PIN 才可传入文件。",
+      "section": "接收与安全"
+    },
+    {
+      "key": "saveDirectory",
+      "label": "接收文件保存目录",
+      "type": "directory",
+      "defaultValue": "~/Downloads",
+      "section": "接收与安全"
+    },
+    {
+      "key": "autoRouteFilesToShelf",
+      "label": "收到文件后自动放入「文件中转站」",
+      "type": "boolean",
+      "defaultValue": "false",
+      "helpText": "需已安装并授权 file-shelf 插件与本插件的跨插件联动路由权限。",
+      "section": "插件生态联动"
+    },
+    {
+      "key": "autoCopyReceivedText",
+      "label": "收到纯文本/链接后自动写入剪贴板",
+      "type": "boolean",
+      "defaultValue": "false",
+      "section": "插件生态联动"
+    }
+  ],
+  "locales": {
+    "en": {
+      "name": "LocalSend LAN Transfer",
+      "description": "Zero-daemon LocalSend v2.1 client & receiver for macOS: starts only while the floating window is open, supports drag-drop streaming transfers, and links seamlessly with File Shelf, Translate Hub, Notion Bookmarks, Quick Remind, and LumaLink.",
+      "categoryTag": "LAN Transfer",
+      "commands": {
+        "open": {
+          "title": "Open LocalSend Transfer HUD",
+          "subtitle": "Start on-demand LAN discovery & receiver (stops immediately on close)"
+        },
+        "send-clipboard": {
+          "title": "Send Current Clipboard via LocalSend",
+          "subtitle": "Load clipboard text/URL into LocalSend HUD to beam to nearby devices"
+        }
+      },
+      "config": {
+        "deviceAlias": {
+          "label": "Device Alias (blank = Mac name)",
+          "placeholder": "e.g. Leo's MacBook Pro",
+          "section": "Device & Protocol"
+        },
+        "port": {
+          "label": "Protocol Port (default 53317)",
+          "section": "Device & Protocol"
+        },
+        "useHttps": {
+          "label": "Enable HTTPS self-signed encryption (recommended)",
+          "section": "Device & Protocol"
+        },
+        "receiveMode": {
+          "label": "Receive Mode while Window is Open",
+          "helpText": "prompt = confirm every incoming transfer; quickSave = auto-save; sendOnly = disable local listener.",
+          "section": "Receive & Security"
+        },
+        "receivePin": {
+          "label": "Receive PIN (blank = no PIN)",
+          "placeholder": "Optional PIN code",
+          "section": "Receive & Security"
+        },
+        "saveDirectory": {
+          "label": "Incoming Save Folder",
+          "section": "Receive & Security"
+        },
+        "autoRouteFilesToShelf": {
+          "label": "Auto-add received files to File Shelf",
+          "section": "Plugin Ecosystem Linkage"
+        },
+        "autoCopyReceivedText": {
+          "label": "Auto-copy received text/URLs to clipboard",
+          "section": "Plugin Ecosystem Linkage"
+        }
+      }
+    }
+  }
+}

@@ -33,6 +33,8 @@
     <string>流光 Lucent 需要音频访问权限以在远程控制期间路由虚拟麦克风与音频通道。</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>流光 Lucent 需要发送 Apple Events 以执行锁屏与访达清空废纸篓等系统快捷命令。</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>流光 Lucent 需要本地网络权限，以支持局域网设备发现、流光随行远控及 LocalSend 插件在局域网内收发文件。</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSUIElement</key>

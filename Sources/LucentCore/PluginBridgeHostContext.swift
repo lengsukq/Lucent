@@ -2,6 +2,32 @@ import AppKit
 import Foundation
 import LucentSearch
 
+public struct PluginContextRouteCandidate: Codable, Sendable, Equatable, Hashable {
+    public let id: String
+    public let name: String
+    public let categoryTag: String
+    public let symbolName: String
+    public let accentColor: String
+
+    public init(id: String, name: String, categoryTag: String, symbolName: String, accentColor: String) {
+        self.id = id
+        self.name = name
+        self.categoryTag = categoryTag
+        self.symbolName = symbolName
+        self.accentColor = accentColor
+    }
+
+    public func toJSONObject() -> [String: Any] {
+        [
+            "id": id,
+            "name": name,
+            "categoryTag": categoryTag,
+            "symbolName": symbolName,
+            "accentColor": accentColor
+        ]
+    }
+}
+
 public struct PluginBridgeHostContext: Sendable {
     public let everythingIndex: EverythingIndex?
     public let clipboardReader: @Sendable () -> String
@@ -20,6 +46,8 @@ public struct PluginBridgeHostContext: Sendable {
     public let allowsAudioDevices: Bool
     public let audioFeedback: (@Sendable (String, String) -> Void)?
     public let progressReporter: (@Sendable (PluginExecutionProgress) -> Void)?
+    public let contextMatcher: (@Sendable (String?, PluginContextPayload) -> [PluginContextRouteCandidate])?
+    public let contextRouter: (@Sendable (String, PluginContextPayload) -> Bool)?
 
     public init(
         everythingIndex: EverythingIndex? = nil,
@@ -38,7 +66,9 @@ public struct PluginBridgeHostContext: Sendable {
         fileShelfAction: (@Sendable (String, Bool) -> Bool)? = nil,
         allowsAudioDevices: Bool = false,
         audioFeedback: (@Sendable (String, String) -> Void)? = nil,
-        progressReporter: (@Sendable (PluginExecutionProgress) -> Void)? = nil
+        progressReporter: (@Sendable (PluginExecutionProgress) -> Void)? = nil,
+        contextMatcher: (@Sendable (String?, PluginContextPayload) -> [PluginContextRouteCandidate])? = nil,
+        contextRouter: (@Sendable (String, PluginContextPayload) -> Bool)? = nil
     ) {
         self.everythingIndex = everythingIndex
         self.clipboardReader = clipboardReader ?? {
@@ -66,6 +96,8 @@ public struct PluginBridgeHostContext: Sendable {
         self.allowsAudioDevices = allowsAudioDevices
         self.audioFeedback = audioFeedback
         self.progressReporter = progressReporter
+        self.contextMatcher = contextMatcher
+        self.contextRouter = contextRouter
     }
 
     public func scoped(to descriptor: PluginDescriptor) -> PluginBridgeHostContext {
@@ -86,7 +118,9 @@ public struct PluginBridgeHostContext: Sendable {
             fileShelfAction: fileShelfAction,
             allowsAudioDevices: allowsAudioDevices,
             audioFeedback: audioFeedback,
-            progressReporter: progressReporter
+            progressReporter: progressReporter,
+            contextMatcher: contextMatcher,
+            contextRouter: contextRouter
         )
     }
 

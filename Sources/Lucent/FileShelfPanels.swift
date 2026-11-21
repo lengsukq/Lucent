@@ -7,9 +7,18 @@ import SwiftUI
 @MainActor
 final class FileShelfPanels {
     static let shared = FileShelfPanels()
+    var availablePluginsProvider: () -> [PluginDescriptor] = { [] }
+    var onRouteToPlugin: ((PluginDescriptor, PluginContextPayload) -> Void)?
     private var panels: [String: FileShelfPanelController] = [:]
 
     var visibleCount: Int { panels.values.filter { $0.window?.isVisible == true }.count }
+
+    func matchingPlugins(for urls: [URL], excludingPluginID: String) -> [(PluginDescriptor, PluginContextPayload)] {
+        guard let ctx = PluginContextMatcher.payloadFromFiles(urls, source: "file-shelf") else { return [] }
+        return PluginContextMatcher.matchingPlugins(in: availablePluginsProvider(), for: ctx)
+            .filter { $0.id != excludingPluginID }
+            .map { ($0, ctx) }
+    }
 
     func open(pluginID: String, urls: [URL], takeFocus: Bool, expandIfTucked: Bool = true) -> Bool {
         guard let store = FileShelfStore.local(pluginID: pluginID) else { return false }
@@ -61,13 +70,13 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     var hoverContainer: FileShelfHoverTrackingView?
     var lastAppliedCornerRadius: CGFloat = 0
     var isApplyingFrame = false
-    var isUserDraggingWindow = false
-    var wasExpandedBeforeDrag = true
     var isHovered = false
     var isDraggingIntoShelf = false
     var isSearchFocused = false
     var isModalSheetActive = false
     var isManuallyRevealed = false
+    var isUserDragging = false
+    var ignoreHoverUntil: CFTimeInterval = 0
     var skipSessionRemovalOnClose = false
 
     var hoverEnterTask: Task<Void, Never>?
@@ -136,6 +145,7 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
             panelState.settings.collapsedCapsule = false
             let cursorVis = activeVisibleFrame
             if !cursorVis.intersects(window.frame) {
+                panelState.settings.anchorMidX = Double(cursorVis.midX)
                 panelState.settings.anchorMidY = Double(cursorVis.midY)
             }
             saveSettings()
@@ -171,8 +181,8 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     func windowDidBecomeKey(_ notification: Notification) { model.refresh() }
 
     func windowDidMove(_ notification: Notification) {
-        guard !isApplyingFrame, !isUserDraggingWindow, (notification.object as? NSWindow) === window else { return }
-        hoverEnterTask?.cancel(); hoverEnterTask = nil
+        guard !isApplyingFrame, !isUserDragging, (notification.object as? NSWindow) === window else { return }
+        cancelHoverTimers()
         dragSettleTask?.cancel()
         dragSettleTask = Task { [weak self] in
             for _ in 0..<40 {

@@ -136,19 +136,33 @@ struct LiquidGlassCardModifier: ViewModifier {
 
 final class DragRegionNSView: NSView {
     var onDoubleClick: (() -> Void)?
+    var onDragWillStart: (() -> Void)?
+    var onDragEnded: (() -> Void)?
     override var intrinsicContentSize: NSSize { NSSize(width: 1, height: 1) }
     override var mouseDownCanMoveWindow: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func mouseDown(with event: NSEvent) {
         if event.clickCount == 2, let onDoubleClick { onDoubleClick(); return }
-        window?.performDrag(with: event)
+        guard let window else { return }
+        let startOrigin = window.frame.origin
+        onDragWillStart?()
+        window.performDrag(with: event)
+        if window.frame.origin != startOrigin { onDragEnded?() }
     }
 }
 
 struct WindowDragRegion: NSViewRepresentable {
     var onDoubleClick: (() -> Void)? = nil
-    func makeNSView(context: Context) -> DragRegionNSView { let v = DragRegionNSView(); v.onDoubleClick = onDoubleClick; return v }
-    func updateNSView(_ nsView: DragRegionNSView, context: Context) { nsView.onDoubleClick = onDoubleClick }
+    var onDragWillStart: (() -> Void)? = nil
+    var onDragEnded: (() -> Void)? = nil
+    func makeNSView(context: Context) -> DragRegionNSView {
+        let v = DragRegionNSView()
+        v.onDoubleClick = onDoubleClick; v.onDragWillStart = onDragWillStart; v.onDragEnded = onDragEnded
+        return v
+    }
+    func updateNSView(_ nsView: DragRegionNSView, context: Context) {
+        nsView.onDoubleClick = onDoubleClick; nsView.onDragWillStart = onDragWillStart; nsView.onDragEnded = onDragEnded
+    }
 }
 
 extension View {

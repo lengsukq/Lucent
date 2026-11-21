@@ -14,6 +14,7 @@ PLUGINS=(
   "file-shelf"
   "browser-hub"
   "gold-monitor"
+  "local-send"
   "lumalink-companion"
   "notion-bookmarks"
   "translate-hub"

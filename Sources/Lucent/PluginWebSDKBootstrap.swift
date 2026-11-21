@@ -49,6 +49,11 @@ enum PluginWebSDKBootstrap {
               window.dispatchEvent(new CustomEvent(eventName, { detail: detail || {} }));
             } catch (_) {}
           };
+          window.__lucentApplyPayload = function(rawJSON) {
+            env.initialStateJSON = typeof rawJSON === "string" ? rawJSON : "";
+            try { env.initialState = env.initialStateJSON ? JSON.parse(env.initialStateJSON) : null; } catch (_) { env.initialState = env.initialStateJSON; }
+            window.__lucentDispatchWindowEvent("lucent:windowPayload", env.initialState || {});
+          };
           function listenWindowEvent(eventName, listener) {
             if (typeof listener !== "function") return () => {};
             const h = (ev) => listener(ev.detail || {});
@@ -67,9 +72,21 @@ enum PluginWebSDKBootstrap {
             onEnvChanged: (listener) => listenWindowEvent("lucent:envChanged", listener),
             run: (args = [], query = "") => send("run", { args: Array.isArray(args) ? args : [], query: String(query || "") }),
             bridge: (capability, action, params = {}) => send("bridge", { capability: String(capability), action: String(action), params: params || {} }),
+            session: Object.freeze({
+              start: (args = ["--session"]) => send("sessionStart", { args: Array.isArray(args) ? args : ["--session"] }),
+              send: (message) => send("sessionSend", { message: message }),
+              stop: () => send("sessionStop", {}),
+              onEvent: (listener) => listenWindowEvent("lucent:sessionEvent", listener),
+              onExit: (listener) => listenWindowEvent("lucent:sessionExit", listener)
+            }),
             permissions: Object.freeze({
               status: () => send("permStatus", {}),
               request: (capability) => send("permRequest", { capability: String(capability) })
+            }),
+            files: Object.freeze({
+              open: (paths) => send("files", { action: "open", paths: Array.isArray(paths) ? paths : [String(paths || "")] }),
+              quickLook: (paths) => send("files", { action: "quickLook", paths: Array.isArray(paths) ? paths : [String(paths || "")] }),
+              reveal: (paths) => send("files", { action: "reveal", paths: Array.isArray(paths) ? paths : [String(paths || "")] })
             }),
             window: Object.freeze({
               getFrame: () => send("win", { cmd: "getFrame" }),
@@ -87,6 +104,9 @@ enum PluginWebSDKBootstrap {
               resetFrame: () => send("win", { cmd: "resetFrame" }),
               minimize: () => send("win", { cmd: "minimize" }),
               close: () => send("win", { cmd: "close" }),
+              onPayload: (listener) => listenWindowEvent("lucent:windowPayload", listener),
+              onFilesDropped: (listener) => listenWindowEvent("lucent:filesDropped", listener),
+              onFileDragState: (listener) => listenWindowEvent("lucent:fileDragState", listener),
               onFrameChanged: (listener) => listenWindowEvent("lucent:frameChanged", listener),
               onDragStart: (listener) => listenWindowEvent("lucent:dragStart", listener),
               onDragMove: (listener) => listenWindowEvent("lucent:dragMove", listener),

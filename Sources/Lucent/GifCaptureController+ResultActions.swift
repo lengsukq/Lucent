@@ -1,7 +1,51 @@
 import AppKit
 import Foundation
 import LucentCore
+import SwiftUI
 import UniformTypeIdentifiers
+
+@MainActor
+enum GifCapturePluginBridge {
+    static var availablePluginsProvider: () -> [PluginDescriptor] = { [] }
+    static var onRouteToPlugin: ((PluginDescriptor, PluginContextPayload) -> Void)?
+
+    static func matchingPlugins(for fileURL: URL) -> [(PluginDescriptor, PluginContextPayload)] {
+        guard let ctx = PluginContextMatcher.payloadFromFiles([fileURL], source: "gif-capture") else { return [] }
+        return PluginContextMatcher.matchingPlugins(in: availablePluginsProvider(), for: ctx).map { ($0, ctx) }
+    }
+}
+
+struct GifCompletedPluginSendMenu: View {
+    let fileURL: URL
+    let onDismissHUD: () -> Void
+
+    var body: some View {
+        let matches = GifCapturePluginBridge.matchingPlugins(for: fileURL)
+        if !matches.isEmpty {
+            Menu {
+                ForEach(matches, id: \.0.id) { plugin, ctx in
+                    Button(plugin.fileContextActionTitle) {
+                        onDismissHUD()
+                        GifCapturePluginBridge.onRouteToPlugin?(plugin, ctx)
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "paperplane.fill").font(.system(size: 10, weight: .semibold))
+                    Text(L10n.pick("发送", "Send")).font(.system(size: 11, weight: .semibold))
+                }
+                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                .foregroundStyle(.white.opacity(0.94))
+                .padding(.horizontal, 9.5).padding(.vertical, 5.5)
+                .background(.white.opacity(0.14), in: Capsule())
+                .overlay(Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.7))
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+    }
+}
 
 extension GifCaptureController {
     func recordAgain() {

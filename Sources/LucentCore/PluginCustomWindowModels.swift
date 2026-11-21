@@ -18,17 +18,20 @@ public struct PluginManifestWindowDefaults: Codable, Sendable, Hashable, Equatab
     public let clickThrough: Bool?
     public let showInDock: Bool?
     public let opacity: Double?
+    public let persistSession: Bool?
 
     public init(
         entryHtml: String? = nil, title: String? = nil, width: Int? = nil, height: Int? = nil,
         minWidth: Int? = nil, minHeight: Int? = nil, resizable: Bool? = nil,
         chrome: PluginWindowChromeStyle? = nil, transparent: Bool? = nil,
-        pinOnTop: Bool? = nil, clickThrough: Bool? = nil, showInDock: Bool? = nil, opacity: Double? = nil
+        pinOnTop: Bool? = nil, clickThrough: Bool? = nil, showInDock: Bool? = nil,
+        opacity: Double? = nil, persistSession: Bool? = nil
     ) {
         self.entryHtml = entryHtml; self.title = title; self.width = width; self.height = height
         self.minWidth = minWidth; self.minHeight = minHeight; self.resizable = resizable
         self.chrome = chrome; self.transparent = transparent; self.pinOnTop = pinOnTop
-        self.clickThrough = clickThrough; self.showInDock = showInDock; self.opacity = opacity
+        self.clickThrough = clickThrough; self.showInDock = showInDock
+        self.opacity = opacity; self.persistSession = persistSession
     }
 }
 
@@ -51,19 +54,21 @@ public struct PluginWindowLaunchEffect: Codable, Sendable, Hashable, Equatable {
     public let x: Int?
     public let y: Int?
     public let initialStateJSON: String?
+    public let reuseIfOpen: Bool?
 
     public init(
         windowID: String? = nil, title: String? = nil, htmlPath: String? = nil, html: String? = nil,
         width: Int? = nil, height: Int? = nil, minWidth: Int? = nil, minHeight: Int? = nil,
         resizable: Bool? = nil, chrome: PluginWindowChromeStyle? = nil, transparent: Bool? = nil,
         pinOnTop: Bool? = nil, clickThrough: Bool? = nil, showInDock: Bool? = nil, opacity: Double? = nil,
-        x: Int? = nil, y: Int? = nil, initialStateJSON: String? = nil
+        x: Int? = nil, y: Int? = nil, initialStateJSON: String? = nil, reuseIfOpen: Bool? = nil
     ) {
         self.windowID = windowID; self.title = title; self.htmlPath = htmlPath; self.html = html
         self.width = width; self.height = height; self.minWidth = minWidth; self.minHeight = minHeight
         self.resizable = resizable; self.chrome = chrome; self.transparent = transparent
         self.pinOnTop = pinOnTop; self.clickThrough = clickThrough; self.showInDock = showInDock
-        self.opacity = opacity; self.x = x; self.y = y; self.initialStateJSON = initialStateJSON
+        self.opacity = opacity; self.x = x; self.y = y
+        self.initialStateJSON = initialStateJSON; self.reuseIfOpen = reuseIfOpen
     }
 }
 
@@ -91,6 +96,9 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
     public let x: Int?
     public let y: Int?
     public let initialStateJSON: String?
+    public let reuseIfOpen: Bool?
+
+    public var shouldReuseIfOpen: Bool { reuseIfOpen == true }
 
     public init(
         pluginID: String, windowID: String = "main", title: String? = nil,
@@ -99,7 +107,7 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
         resizable: Bool = true, chrome: PluginWindowChromeStyle = .standard,
         transparent: Bool = false, pinOnTop: Bool = false, clickThrough: Bool = false,
         showInDock: Bool? = nil, opacity: Double = 1.0, x: Int? = nil, y: Int? = nil,
-        initialStateJSON: String? = nil
+        initialStateJSON: String? = nil, reuseIfOpen: Bool? = nil
     ) {
         self.pluginID = pluginID
         self.windowID = Self.sanitizeWindowID(windowID)
@@ -115,7 +123,7 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
         self.clickThrough = clickThrough
         self.showInDock = showInDock ?? (chrome == .standard)
         self.opacity = min(max(opacity, Self.minOpacity), 1.0)
-        self.x = x; self.y = y; self.initialStateJSON = initialStateJSON
+        self.x = x; self.y = y; self.initialStateJSON = initialStateJSON; self.reuseIfOpen = reuseIfOpen
     }
 
     public func withShowInDock(_ enabled: Bool) -> PluginCustomWindowSpec {
@@ -124,7 +132,7 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
             width: width, height: height, minWidth: minWidth, minHeight: minHeight,
             resizable: resizable, chrome: chrome, transparent: transparent, pinOnTop: pinOnTop,
             clickThrough: clickThrough, showInDock: enabled, opacity: opacity, x: x, y: y,
-            initialStateJSON: initialStateJSON
+            initialStateJSON: initialStateJSON, reuseIfOpen: reuseIfOpen
         )
     }
 
@@ -168,7 +176,8 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
             opacity: launch?.opacity ?? baseSpec?.opacity ?? def?.opacity ?? 1.0,
             x: launch?.x ?? baseSpec?.x,
             y: launch?.y ?? baseSpec?.y,
-            initialStateJSON: launch?.initialStateJSON ?? baseSpec?.initialStateJSON
+            initialStateJSON: launch?.initialStateJSON ?? baseSpec?.initialStateJSON,
+            reuseIfOpen: launch?.reuseIfOpen ?? baseSpec?.reuseIfOpen
         )
     }
 
@@ -195,7 +204,8 @@ public struct PluginCustomWindowSpec: Codable, Sendable, Hashable, Equatable {
             opacity: (params["opacity"] as? NSNumber)?.doubleValue ?? defaults?.opacity ?? 1.0,
             x: (params["x"] as? NSNumber)?.intValue,
             y: (params["y"] as? NSNumber)?.intValue,
-            initialStateJSON: params["initialStateJSON"] as? String
+            initialStateJSON: params["initialStateJSON"] as? String,
+            reuseIfOpen: params["reuseIfOpen"] as? Bool
         )
     }
 

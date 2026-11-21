@@ -21,7 +21,7 @@ public enum LucentPermissionCategory: String, Codable, Sendable, Hashable, CaseI
 public enum LucentPermission: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
     case accessibility, screenRecording, systemNotifications, localNetwork, microphoneAndAudio
     case telemetrySampling
-    case clipboard, selection, window, floatingWindow, screenCapture, notifications, audio, ocr, everythingSearch, displayInfo, systemControl, lumaLinkStatus, fileShelf, audioDevices
+    case clipboard, selection, window, floatingWindow, screenCapture, notifications, audio, ocr, everythingSearch, displayInfo, systemControl, lumaLinkStatus, fileShelf, audioDevices, contextRouter
     case networkAccess, filesystemWrite, subprocessExec
 
     public var id: String { rawValue }
@@ -30,7 +30,7 @@ public enum LucentPermission: String, Codable, Sendable, Hashable, CaseIterable,
         switch self {
         case .accessibility, .screenRecording, .systemNotifications, .localNetwork, .microphoneAndAudio: .systemTCC
         case .telemetrySampling: .systemKernel
-        case .clipboard, .selection, .window, .floatingWindow, .screenCapture, .notifications, .audio, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus, .fileShelf, .audioDevices: .hostBridge
+        case .clipboard, .selection, .window, .floatingWindow, .screenCapture, .notifications, .audio, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus, .fileShelf, .audioDevices, .contextRouter: .hostBridge
         case .networkAccess, .filesystemWrite, .subprocessExec: .resourceScope
         }
     }
@@ -72,6 +72,7 @@ public enum LucentPermission: String, Codable, Sendable, Hashable, CaseIterable,
         case .lumaLinkStatus: self = .lumaLinkStatus
         case .fileShelf: self = .fileShelf
         case .audioDevices: self = .audioDevices
+        case .contextRouter: self = .contextRouter
         }
     }
 

@@ -62,8 +62,47 @@ extension AppViewModel {
                         self.serviceMessage = progress.message
                     }
                 }
+            },
+            contextMatcher: { [weak self] sourcePluginID, payload in
+                guard let self else { return [] }
+                return Self.runOnMainActorSync {
+                    PluginContextMatcher.matchingPlugins(in: self.plugins, for: payload)
+                        .filter { $0.id != sourcePluginID }
+                        .map { plugin in
+                            PluginContextRouteCandidate(
+                                id: plugin.id,
+                                name: plugin.displayName,
+                                categoryTag: plugin.manifest.localizedCategoryTag(isBuiltin: plugin.isBuiltin),
+                                symbolName: plugin.symbolIconName,
+                                accentColor: plugin.manifest.accentColor ?? "cyan"
+                            )
+                        }
+                }
+            },
+            contextRouter: { [weak self] targetPluginID, payload in
+                guard let self else { return false }
+                return Self.runOnMainActorSync {
+                    self.routePluginContextToTarget(targetPluginID: targetPluginID, payload: payload)
+                }
             }
         )
+    }
+
+    func routePluginContextToTarget(targetPluginID: String, payload: PluginContextPayload) -> Bool {
+        guard let target = plugins.first(where: {
+            $0.id == targetPluginID && !$0.isBuiltin && $0.isValid && $0.isEnabled
+        }) else { return false }
+        let matched = PluginContextMatcher.matchingPlugins(in: [target], for: payload)
+        guard !matched.isEmpty else { return false }
+        if target.declaredCapabilities.contains(.fileShelf),
+           let paths = payload.filePaths, !paths.isEmpty {
+            guard let authorized = authorizeFileShelfIfNeeded(target) else { return false }
+            let urls = paths.map { URL(fileURLWithPath: $0) }
+            PluginSystem.recordPluginUsage(id: authorized.id)
+            return FileShelfPanels.shared.open(pluginID: authorized.id, urls: urls, takeFocus: false, expandIfTucked: true)
+        }
+        runPluginWithContext(target, context: payload)
+        return true
     }
 
     @discardableResult

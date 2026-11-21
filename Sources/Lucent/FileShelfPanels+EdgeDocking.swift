@@ -1,46 +1,13 @@
 import AppKit
 import LucentCore
+import QuartzCore
 import SwiftUI
-
-@MainActor
-final class FileShelfPanelState: ObservableObject {
-    @Published var settings: FileShelfWindowSettings
-    @Published var mode: FileShelfPresentationMode
-
-    init(settings: FileShelfWindowSettings, mode: FileShelfPresentationMode) {
-        self.settings = settings
-        self.mode = mode
-    }
-}
-
-@MainActor
-final class FileShelfHoverTrackingView: NSView {
-    var onHoverChanged: ((Bool) -> Void)?
-    private var trackingArea: NSTrackingArea?
-    override var mouseDownCanMoveWindow: Bool { true }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        if let trackingArea { removeTrackingArea(trackingArea) }
-        let area = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
-        addTrackingArea(area)
-        trackingArea = area
-    }
-
-    override func mouseEntered(with event: NSEvent) { onHoverChanged?(true) }
-    override func mouseExited(with event: NSEvent) { onHoverChanged?(false) }
-}
-
-private final class UnconstrainedFileShelfHostingView<Content: View>: NSHostingView<Content> {
-    override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
-    }
-}
 
 @MainActor
 extension FileShelfPanelController {
     var currentShellCornerRadius: CGFloat {
         switch panelState.mode {
+        case .edgeTucked(.top): 14
         case .edgeTucked: 12
         case .capsule: 22
         case .expanded: LiquidRadii.windowPanel
@@ -61,15 +28,20 @@ extension FileShelfPanelController {
             toggleEdgeAutoHide: { [weak self] in self?.toggleEdgeAutoHide() },
             toggleRemoveAfterDragOut: { [weak self] in self?.toggleRemoveAfterDragOut() },
             onDragTargetedChanged: { [weak self] targeted in self?.setDraggingIntoShelf(targeted) },
-            onDragWillStart: { [weak self] in self?.beginUserWindowDrag() },
-            onDragEnded: { [weak self] in self?.endUserWindowDrag(didMove: true) },
-            onDragCancelled: { [weak self] in self?.endUserWindowDrag(didMove: false) },
+            onDragWillStart: { [weak self] in self?.handleDragWillStart() },
+            onDragMoved: { [weak self] frame, visible in self?.handleDragMoved(frame: frame, visibleFrame: visible) },
+            onDragEnded: { [weak self] visible in self?.handleDragFinished(explicitVisibleFrame: visible) },
             onSearchFocusChanged: { [weak self] focused in self?.setSearchFocused(focused) },
             onDraggedOut: { [weak self] ids in self?.handleDraggedOut(ids: ids) },
             close: { [weak self] in self?.closeWindow(clearPersistedSession: true) },
             preview: { [weak self] row in self?.preview(row) },
             locate: { [weak self] row in self?.locate(row) },
-            clear: { [weak self] in self?.confirmClear() }
+            clear: { [weak self] in self?.confirmClear() },
+            matchingPlugins: { [weak self] rows in
+                guard let self else { return [] }
+                return FileShelfPanels.shared.matchingPlugins(for: rows.compactMap(\.url), excludingPluginID: self.pluginID)
+            },
+            sendToPlugin: { plugin, ctx in FileShelfPanels.shared.onRouteToPlugin?(plugin, ctx) }
         )
         let root = FileShelfView(model: model, panelState: panelState, actions: actions)
         let hosting = UnconstrainedFileShelfHostingView(rootView: LocalizedRootContainer { root })
@@ -93,7 +65,7 @@ extension FileShelfPanelController {
         window.contentView = glass
     }
 
-    func reconcilePresentation(animate: Bool, preferCursorScreen: Bool = false) {
+    func reconcilePresentation(animate: Bool, preferCursorScreen: Bool = false, explicitVisibleFrame: CGRect? = nil) {
         guard let window else { return }
         let nextMode = FileShelfEdgeGeometry.resolveMode(
             settings: panelState.settings, isHovered: isHovered, isDraggingIntoShelf: isDraggingIntoShelf,
@@ -103,11 +75,14 @@ extension FileShelfPanelController {
         let targetScreen = preferCursorScreen
             ? (ScreenTopologyAndWindowMatcher.activeCursorScreen() ?? NSScreen.main)
             : (window.screen ?? ScreenTopologyAndWindowMatcher.activeCursorScreen() ?? NSScreen.main)
-        let visible = targetScreen?.visibleFrame ?? activeVisibleFrame
+        let visible = explicitVisibleFrame ?? targetScreen?.visibleFrame ?? activeVisibleFrame
         let size = FileShelfEdgeGeometry.targetSize(for: nextMode, isEmpty: model.rows.isEmpty, visibleFrame: visible)
         let targetFrame = FileShelfEdgeGeometry.frame(
             for: nextMode, dockEdge: panelState.settings.dockEdge, size: size,
-            currentFrame: window.frame, anchorMidY: panelState.settings.anchorMidY.map { CGFloat($0) }, visibleFrame: visible
+            currentFrame: window.frame,
+            anchorMidX: panelState.settings.anchorMidX.map { CGFloat($0) },
+            anchorMidY: panelState.settings.anchorMidY.map { CGFloat($0) },
+            visibleFrame: visible
         )
         let radius = currentShellCornerRadius
         if abs(radius - lastAppliedCornerRadius) > 0.1 {
@@ -115,11 +90,12 @@ extension FileShelfPanelController {
             glassView?.updateCornerRadius(radius, force: true)
         }
         guard !NSEqualRects(window.frame, targetFrame) else { return }
-        let movingAcrossDisplays = window.screen != nil && targetScreen != nil && window.screen !== targetScreen
+        let movingAcrossDisplays = explicitVisibleFrame == nil && window.screen != nil && targetScreen != nil && window.screen !== targetScreen
         isApplyingFrame = true
         let allowAnimate = animate && !movingAcrossDisplays && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         if allowAnimate {
-            WindowMotionAnimator.animateFrame(window, to: targetFrame, duration: 0.34) { [weak self] in
+            let duration: TimeInterval = nextMode == .expanded ? 0.18 : 0.20
+            WindowMotionAnimator.animateFrame(window, to: targetFrame, duration: duration) { [weak self] in
                 self?.isApplyingFrame = false
                 self?.window?.saveFrame(usingName: self?.frameName ?? "")
             }
@@ -131,46 +107,57 @@ extension FileShelfPanelController {
         }
     }
 
-    func beginUserWindowDrag() {
-        isUserDraggingWindow = true
-        wasExpandedBeforeDrag = (panelState.mode == .expanded)
-        cancelTimers()
+    func handleDragWillStart() {
+        isUserDragging = true
+        cancelHoverTimers()
+        dragSettleTask?.cancel(); dragSettleTask = nil
     }
 
-    func endUserWindowDrag(didMove: Bool) {
-        isUserDraggingWindow = false
-        if didMove { handleDragFinished() }
+    func handleDragMoved(frame: CGRect, visibleFrame: CGRect) {
+        let near = FileShelfEdgeGeometry.detectSnapEdge(frame: frame, visibleFrame: visibleFrame)
+        if panelState.nearDockEdge != near { panelState.nearDockEdge = near }
     }
 
-    func handleDragFinished() {
+    func handleDragFinished(explicitVisibleFrame: CGRect? = nil) {
+        isUserDragging = false
+        if panelState.nearDockEdge != .none { panelState.nearDockEdge = .none }
         dragSettleTask?.cancel(); dragSettleTask = nil
         guard let window else { return }
-        let visible = window.screen?.visibleFrame ?? activeVisibleFrame
+        let visible = explicitVisibleFrame
+            ?? ScreenTopologyAndWindowMatcher.activeCursorScreen()?.visibleFrame
+            ?? window.screen?.visibleFrame ?? activeVisibleFrame
         let snapped = FileShelfEdgeGeometry.detectSnapEdge(frame: window.frame, visibleFrame: visible)
         panelState.settings.dockEdge = snapped
+        panelState.settings.anchorMidX = Double(window.frame.midX)
         panelState.settings.anchorMidY = Double(window.frame.midY)
-        panelState.settings.collapsedCapsule = false
         isManuallyRevealed = false
         if snapped != .none {
-            isHovered = wasExpandedBeforeDrag && window.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation)
+            panelState.settings.collapsedCapsule = false
+            if panelState.settings.edgeAutoHide && !panelState.settings.pinnedExpanded {
+                isHovered = false
+                ignoreHoverUntil = CACurrentMediaTime() + 0.32
+            } else {
+                isHovered = window.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation)
+            }
+        } else {
+            isHovered = false
         }
         saveSettings()
-        reconcilePresentation(animate: true)
-        if snapped != .none && !isHovered { scheduleAutoCollapseIfPointerOutside() }
+        reconcilePresentation(animate: true, explicitVisibleFrame: visible)
     }
 
     func setHovered(_ hovered: Bool) {
-        hoverEnterTask?.cancel(); hoverEnterTask = nil
-        hoverExitTask?.cancel(); hoverExitTask = nil
-        guard !isUserDraggingWindow else { return }
+        guard !isUserDragging else { return }
+        cancelHoverTimers()
         if hovered {
             guard NSEvent.pressedMouseButtons == 0 else { return }
+            if panelState.mode != .expanded && CACurrentMediaTime() < ignoreHoverUntil { return }
             isManuallyRevealed = false
             guard !isHovered else { return }
             if panelState.mode != .expanded && !isDraggingIntoShelf {
                 hoverEnterTask = Task { [weak self] in
-                    try? await Task.sleep(for: .milliseconds(180))
-                    guard !Task.isCancelled, let self, !self.isUserDraggingWindow, NSEvent.pressedMouseButtons == 0 else { return }
+                    try? await Task.sleep(for: .milliseconds(110))
+                    guard !Task.isCancelled, let self, !self.isUserDragging, NSEvent.pressedMouseButtons == 0 else { return }
                     self.isHovered = true
                     self.reconcilePresentation(animate: true)
                 }
@@ -185,11 +172,10 @@ extension FileShelfPanelController {
     }
 
     func scheduleAutoCollapseIfPointerOutside() {
-        guard !isUserDraggingWindow else { return }
         hoverExitTask?.cancel()
         hoverExitTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(360))
-            guard !Task.isCancelled, let self, !self.isUserDraggingWindow else { return }
+            try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled, let self, !self.isUserDragging, NSEvent.pressedMouseButtons == 0 else { return }
             if let win = self.window, win.isVisible,
                win.frame.insetBy(dx: -6, dy: -6).contains(NSEvent.mouseLocation) {
                 return
@@ -237,7 +223,9 @@ extension FileShelfPanelController {
                 panelState.settings.pinnedExpanded = false
                 isHovered = false
                 isManuallyRevealed = false
+                ignoreHoverUntil = CACurrentMediaTime() + 0.32
             } else {
+                ignoreHoverUntil = 0
                 isManuallyRevealed = true
                 isHovered = true
             }
@@ -253,7 +241,15 @@ extension FileShelfPanelController {
         panelState.settings.dockEdge = edge
         if edge != .none {
             panelState.settings.collapsedCapsule = false
+            panelState.settings.anchorMidX = Double(window?.frame.midX ?? activeVisibleFrame.midX)
             panelState.settings.anchorMidY = Double(window?.frame.midY ?? activeVisibleFrame.midY)
+            if panelState.settings.edgeAutoHide && !panelState.settings.pinnedExpanded {
+                isHovered = false
+                isManuallyRevealed = false
+                ignoreHoverUntil = CACurrentMediaTime() + 0.32
+            }
+        } else {
+            ignoreHoverUntil = 0
         }
         saveSettings()
         reconcilePresentation(animate: true)
@@ -261,7 +257,9 @@ extension FileShelfPanelController {
 
     func toggleEdgeAutoHide() {
         panelState.settings.edgeAutoHide.toggle()
-        if panelState.settings.edgeAutoHide { panelState.settings.pinnedExpanded = false }
+        if panelState.settings.edgeAutoHide {
+            panelState.settings.pinnedExpanded = false
+        }
         saveSettings()
         reconcilePresentation(animate: true)
     }
@@ -276,8 +274,13 @@ extension FileShelfPanelController {
         model.remove(ids: ids)
     }
 
+    func cancelHoverTimers() {
+        hoverEnterTask?.cancel(); hoverEnterTask = nil
+        hoverExitTask?.cancel(); hoverExitTask = nil
+    }
+
     func cancelTimers() {
-        hoverEnterTask?.cancel(); hoverEnterTask = nil; hoverExitTask?.cancel(); hoverExitTask = nil
+        cancelHoverTimers()
         dragSettleTask?.cancel(); dragSettleTask = nil
     }
 

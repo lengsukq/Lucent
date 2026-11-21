@@ -19,6 +19,7 @@ struct FileShelfView: View {
 
     private var cornerRadius: CGFloat {
         switch panelState.mode {
+        case .edgeTucked(.top): 14
         case .edgeTucked: 12
         case .capsule: 22
         case .expanded: LiquidRadii.windowPanel
@@ -34,13 +35,13 @@ struct FileShelfView: View {
                 FileShelfEdgeTabView(
                     edge: edge, itemCount: model.rows.count, isDropTarget: dropState.isDropTarget,
                     onTap: actions.toggleCollapseOrTuck, onDragWillStart: actions.onDragWillStart,
-                    onDragEnded: actions.onDragEnded, onDragCancelled: actions.onDragCancelled
+                    onDragMoved: actions.onDragMoved, onDragEnded: actions.onDragEnded
                 )
             case .capsule:
                 FileShelfCapsuleView(
                     itemCount: model.rows.count, isDropTarget: dropState.isDropTarget,
                     onTap: actions.toggleCollapseOrTuck, onDragWillStart: actions.onDragWillStart,
-                    onDragEnded: actions.onDragEnded, onDragCancelled: actions.onDragCancelled
+                    onDragMoved: actions.onDragMoved, onDragEnded: actions.onDragEnded
                 )
             case .expanded:
                 expanded
@@ -48,6 +49,13 @@ struct FileShelfView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.shellTint.opacity(0.84)))
+        .overlay {
+            FileShelfEdgeAccentOverlay(
+                dockedEdge: panelState.settings.dockEdge,
+                nearDockEdge: panelState.nearDockEdge,
+                isExpanded: panelState.mode == .expanded
+            )
+        }
         .clipShape(shape)
         .overlay {
             if dropState.isDropTarget {
@@ -57,17 +65,12 @@ struct FileShelfView: View {
             }
         }
         .onDrop(of: [.fileURL], isTargeted: $dropState.isDropTarget, perform: accept)
-        .onChange(of: dropState.isDropTarget) { _, targeted in
-            actions.onDragTargetedChanged(targeted)
-        }
-        .onChange(of: searchFocused) { _, focused in
-            actions.onSearchFocusChanged(focused)
-        }
-        .onExitCommand {
-            if panelState.mode == .expanded { actions.toggleCollapseOrTuck() } else { actions.close() }
-        }
+        .onChange(of: dropState.isDropTarget) { _, targeted in actions.onDragTargetedChanged(targeted) }
+        .onChange(of: searchFocused) { _, focused in actions.onSearchFocusChanged(focused) }
+        .onExitCommand { if panelState.mode == .expanded { actions.toggleCollapseOrTuck() } else { actions.close() } }
         .contextMenu { shelfContextMenu }
         .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeOut(duration: 0.16), value: dropState.isDropTarget)
+        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeOut(duration: 0.16), value: panelState.nearDockEdge)
         .id("\(theme.current.rawValue)-\(theme.resolvedIsDark)")
     }
 
@@ -94,76 +97,89 @@ struct FileShelfView: View {
     }
 
     private var dragGripBar: some View {
-        HStack {
-            Spacer()
-            Capsule(style: .continuous).fill(LiquidColors.textSecondary.opacity(0.28)).frame(width: 34, height: 4)
-            Spacer()
+        ZStack {
+            shelfWindowDragRegion
+            Capsule(style: .continuous)
+                .fill(LiquidColors.textSecondary.opacity(0.32))
+                .frame(width: 36, height: 4)
+                .allowsHitTesting(false)
         }
-        .padding(.top, 7).padding(.bottom, 2).contentShape(Rectangle())
-        .overlay { dragOverlay(onDoubleClick: { actions.dockToEdge(panelState.settings.dockEdge == .none ? .right : .none) }) }
+        .frame(height: 16)
+        .help(L10n.pick("拖拽移动中转站；双击切换贴边或自由浮窗", "Drag to move shelf; double-click to toggle edge dock"))
     }
 
-    private func dragOverlay(onDoubleClick: (() -> Void)? = nil) -> FileShelfDragOverlay {
-        FileShelfDragOverlay(onDoubleClick: onDoubleClick, onDragWillStart: actions.onDragWillStart,
-                             onDragEnded: actions.onDragEnded, onDragCancelled: actions.onDragCancelled)
+    private var shelfWindowDragRegion: some View {
+        FileShelfDragOverlay(
+            onDoubleClick: { actions.dockToEdge(panelState.settings.dockEdge == .none ? .right : .none) },
+            onDragWillStart: actions.onDragWillStart,
+            onDragMoved: actions.onDragMoved,
+            onDragEnded: actions.onDragEnded
+        )
     }
 
     private var header: some View {
         let isDocked = panelState.settings.dockEdge != .none
         let isPinned = !panelState.settings.edgeAutoHide || panelState.settings.pinnedExpanded
         return HStack(spacing: 10) {
-            HStack(spacing: 10) {
-                SquircleBadge(symbol: "tray.full.fill", topColor: LiquidColors.accentPrimary, bottomColor: .teal, size: 32)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1.5) {
-                    Text(L10n.pick("文件中转站", "File Shelf"))
-                        .font(.system(size: 14.5, weight: .bold))
-                        .foregroundStyle(LiquidColors.textPrimary)
-                    HStack(spacing: 5) {
-                        Text(L10n.pick("\(model.rows.count) 项", "\(model.rows.count) items")).monospacedDigit()
-                        if isDocked {
-                            Text("·")
-                            Text(panelState.settings.dockEdge == .left ? L10n.pick("左贴边", "Left Dock") : L10n.pick("右贴边", "Right Dock"))
-                                .foregroundStyle(Color.teal)
-                        }
+            SquircleBadge(symbol: "tray.full.fill", topColor: LiquidColors.accentPrimary, bottomColor: .teal, size: 32)
+                .accessibilityHidden(true).allowsHitTesting(false)
+            VStack(alignment: .leading, spacing: 1.5) {
+                Text(L10n.pick("文件中转站", "File Shelf"))
+                    .font(.system(size: 14.5, weight: .bold))
+                    .foregroundStyle(LiquidColors.textPrimary)
+                HStack(spacing: 5) {
+                    Text(L10n.pick("\(model.rows.count) 项", "\(model.rows.count) items"))
+                        .monospacedDigit()
+                    if isDocked {
+                        Text("·")
+                        Text(panelState.settings.dockEdge.dockBadgeTitle).foregroundStyle(Color.teal)
                     }
-                    .font(.system(size: 10.5, weight: .medium)).foregroundStyle(LiquidColors.textSecondary)
                 }
-                Spacer(minLength: 4)
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(LiquidColors.textSecondary)
             }
-            .contentShape(Rectangle())
-            .overlay { dragOverlay() }
+            .allowsHitTesting(false)
+            Spacer(minLength: 4)
             if isDocked {
                 headerButton(
-                    symbol: isPinned ? "pin.fill" : "sidebar.right", active: isPinned,
-                    label: isPinned ? L10n.pick("取消固定（恢复靠边自动隐藏）", "Unpin (enable edge auto-hide)")
-                                    : L10n.pick("固定展开（暂停靠边自动隐藏）", "Pin open (pause auto-hide)"),
+                    symbol: isPinned ? "pin.fill" : "sidebar.right",
+                    active: isPinned,
+                    label: isPinned
+                        ? L10n.pick("取消固定（恢复靠边自动隐藏）", "Unpin (enable edge auto-hide)")
+                        : L10n.pick("固定展开（暂停靠边自动隐藏）", "Pin open (pause auto-hide)"),
                     action: actions.togglePinOrAutoHide
                 )
             } else {
                 headerButton(
-                    symbol: "arrow.right.to.line", active: false,
+                    symbol: "arrow.right.to.line",
+                    active: false,
                     label: L10n.pick("贴靠屏幕右侧并自动隐藏", "Dock to right edge"),
                     action: { actions.dockToEdge(.right) }
                 )
             }
             headerButton(
-                symbol: isDocked ? "chevron.compact.right" : "rectangle.compress.vertical", active: false,
+                symbol: panelState.settings.dockEdge.tuckButtonSymbol,
+                active: false,
                 label: isDocked ? L10n.pick("贴边收起", "Tuck to edge") : L10n.pick("收起为胶囊", "Collapse"),
                 action: actions.toggleCollapseOrTuck
             )
             headerButton(symbol: "xmark", active: false, label: L10n.pick("关闭", "Close"), action: actions.close)
         }
-        .padding(.horizontal, 14).padding(.top, 5).padding(.bottom, 10)
+        .padding(.horizontal, 14).padding(.top, 2).padding(.bottom, 10)
+        .background { shelfWindowDragRegion }
     }
 
     private var filter: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").font(.system(size: 12, weight: .medium))
-                .foregroundStyle(LiquidColors.textSecondary).accessibilityHidden(true)
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(LiquidColors.textSecondary)
+                .accessibilityHidden(true)
             TextField(L10n.pick("查找暂放文件", "Find on shelf"), text: $model.filter)
                 .textFieldStyle(.plain).focused($searchFocused)
-                .onChange(of: model.filter) { _, _ in model.selection.formIntersection(model.filteredRows.map(\.id)) }
+                .onChange(of: model.filter) { _, _ in
+                    model.selection.formIntersection(model.filteredRows.map(\.id))
+                }
             if !model.filter.isEmpty {
                 Button { model.filter = "" } label: {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(LiquidColors.textSecondary)
@@ -171,7 +187,8 @@ struct FileShelfView: View {
                 .buttonStyle(.plain)
             }
         }
-        .font(.system(size: 12.5)).padding(.horizontal, 10).frame(height: 32)
+        .font(.system(size: 12.5))
+        .padding(.horizontal, 10).frame(height: 32)
         .background(LiquidColors.inputFieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(LiquidColors.inputFieldBorder, lineWidth: 0.7) }
         .padding(.horizontal, 14).padding(.bottom, 9)
@@ -183,18 +200,15 @@ struct FileShelfView: View {
             FileShelfEmptyStateView(
                 symbol: "tray.and.arrow.down",
                 title: L10n.pick("拖入文件或文件夹", "Drop files or folders here"),
-                detail: L10n.pick("仅保存文件引用，不复制占用空间；拖到屏幕左右边可自动贴边隐藏。",
-                                  "Stores file references only. Drag to the screen edge to auto-tuck."),
-                onDragWillStart: actions.onDragWillStart, onDragEnded: actions.onDragEnded, onDragCancelled: actions.onDragCancelled
+                detail: L10n.pick("仅保存文件引用，不复制占用空间；拖到屏幕左/右/顶部可自动贴边隐藏。",
+                                  "Stores file references only. Drag to the left, right, or top screen edge to auto-tuck.")
             )
         } else if model.filteredRows.isEmpty {
-            FileShelfEmptyStateView(
-                symbol: "magnifyingglass", title: L10n.pick("没有匹配的文件", "No matching files"), detail: "",
-                onDragWillStart: actions.onDragWillStart, onDragEnded: actions.onDragEnded, onDragCancelled: actions.onDragCancelled
-            )
+            FileShelfEmptyStateView(symbol: "magnifyingglass", title: L10n.pick("没有匹配的文件", "No matching files"), detail: "")
         } else {
             FileShelfTable(model: model, focusSearch: { searchFocused = true },
-                           preview: actions.preview, locate: actions.locate, onDraggedOut: actions.onDraggedOut)
+                           preview: actions.preview, locate: actions.locate, onDraggedOut: actions.onDraggedOut,
+                           matchingPlugins: actions.matchingPlugins, sendToPlugin: actions.sendToPlugin)
                 .padding(.horizontal, 6)
         }
     }
@@ -202,16 +216,12 @@ struct FileShelfView: View {
     private var footer: some View {
         let autoRemove = panelState.settings.removeAfterDragOut
         return HStack(spacing: 6) {
-            HStack(spacing: 0) {
-                Text(model.message ?? (model.selection.isEmpty
-                    ? L10n.pick("拖入或拖出文件 · 空格预览", "Drag in/out · Space to preview")
-                    : L10n.pick("已选 \(model.selection.count) 项", "\(model.selection.count) selected")))
-                    .font(.system(size: 10.5)).foregroundStyle(LiquidColors.textSecondary)
-                    .lineLimit(1).truncationMode(.tail)
-                Spacer(minLength: 4)
-            }
-            .contentShape(Rectangle())
-            .overlay { dragOverlay() }
+            Text(model.message ?? (model.selection.isEmpty
+                ? L10n.pick("拖入或拖出文件 · 空格预览", "Drag in/out · Space to preview")
+                : L10n.pick("已选 \(model.selection.count) 项", "\(model.selection.count) selected")))
+                .font(.system(size: 10.5)).foregroundStyle(LiquidColors.textSecondary)
+                .lineLimit(1).truncationMode(.tail)
+            Spacer(minLength: 4)
             Button(action: actions.toggleRemoveAfterDragOut) {
                 HStack(spacing: 3.5) {
                     Image(systemName: autoRemove ? "flame.fill" : "flame")
@@ -226,6 +236,10 @@ struct FileShelfView: View {
             .buttonStyle(LiquidBentoTileStyle(cornerRadius: 12))
             .help(L10n.pick("拖出到其他应用后自动从中转站移出（不删原文件）",
                             "Auto-remove items from shelf after dragging out (originals stay on disk)"))
+            if !model.rows.isEmpty {
+                let targetRows = model.selectedRows.isEmpty ? model.filteredRows : model.selectedRows
+                FileShelfPluginSendMenuButton(matches: actions.matchingPlugins(targetRows), onSend: actions.sendToPlugin)
+            }
             if !model.selectedRows.isEmpty {
                 headerButton(symbol: "minus.circle", active: false, label: L10n.pick("移除所选", "Remove selected"), action: model.removeSelected)
             }
@@ -243,6 +257,7 @@ struct FileShelfView: View {
 
     @ViewBuilder
     private var shelfContextMenu: some View {
+        Button(L10n.pick("贴靠屏幕顶部", "Dock to Top Edge")) { actions.dockToEdge(.top) }
         Button(L10n.pick("贴靠屏幕左侧", "Dock to Left Edge")) { actions.dockToEdge(.left) }
         Button(L10n.pick("贴靠屏幕右侧", "Dock to Right Edge")) { actions.dockToEdge(.right) }
         Button(L10n.pick("自由浮窗（不贴边）", "Float Freely")) { actions.dockToEdge(.none) }
@@ -258,15 +273,7 @@ struct FileShelfView: View {
     }
 
     private func headerButton(symbol: String, active: Bool, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 11.5, weight: .semibold))
-                .foregroundStyle(active ? LiquidColors.accentPrimary : LiquidColors.textSecondary)
-                .frame(width: 26, height: 26)
-                .background(active ? LiquidColors.accentPrimary.opacity(0.16) : LiquidColors.pillSurface.opacity(0.65),
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .buttonStyle(LiquidBentoTileStyle(cornerRadius: 8)).help(label).accessibilityLabel(label)
+        FileShelfHeaderButton(symbol: symbol, active: active, label: label, action: action)
     }
 
     private func accept(_ providers: [NSItemProvider]) -> Bool {

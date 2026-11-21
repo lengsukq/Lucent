@@ -33,6 +33,7 @@ public struct WindowLaunchSpec: Codable, Sendable, Equatable {
     public var x: Int?
     public var y: Int?
     public var initialStateJSON: String?
+    public var reuseIfOpen: Bool?
 
     public init(
         windowID: String? = nil,
@@ -52,7 +53,8 @@ public struct WindowLaunchSpec: Codable, Sendable, Equatable {
         opacity: Double? = nil,
         x: Int? = nil,
         y: Int? = nil,
-        initialStateJSON: String? = nil
+        initialStateJSON: String? = nil,
+        reuseIfOpen: Bool? = nil
     ) {
         self.windowID = windowID
         self.title = title
@@ -72,6 +74,7 @@ public struct WindowLaunchSpec: Codable, Sendable, Equatable {
         self.x = x
         self.y = y
         self.initialStateJSON = initialStateJSON
+        self.reuseIfOpen = reuseIfOpen
     }
 }
 

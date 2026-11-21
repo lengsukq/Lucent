@@ -32,6 +32,16 @@ public final class ProcessSupervisor: @unchecked Sendable {
         lock.withLock { activeGroups.count }
     }
 
+    public func registerExternalGroup(pid: Int32, pgid: pid_t) {
+        guard pid > 0 else { return }
+        lock.withLock { activeGroups[pid] = pgid > 1 ? pgid : pid }
+    }
+
+    public func unregisterExternalGroup(pid: Int32) {
+        guard pid > 0 else { return }
+        lock.withLock { _ = activeGroups.removeValue(forKey: pid) }
+    }
+
     public func run(
         executableURL: URL,
         arguments: [String] = [],

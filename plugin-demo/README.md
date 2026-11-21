@@ -8,6 +8,7 @@
 - [`antigravity-pulse/`](antigravity-pulse/README.md)：**Antigravity Pulse · 上下文与会话监控**（零侵入只读增量扫描本地 `transcript.jsonl`，简洁 iOS 风格三形态置顶悬浮窗且默认不占程序坞，支持双段式上下文进度条、缓存命中掉线预警、5h/今日/7天统计、最近会话完成状态监测与一键回到对应会话）。
 - [`browser-hub/`](browser-hub/README.md)：**三端浏览器书签与历史中枢**（原生 `SQLite3` WAL 无锁快照与 `PropertyListSerialization` 直连 Microsoft Edge、Google Chrome 多 Profile 与 Apple Safari 书签、阅读列表及历史记录，自动同步 `⌥Space` 免前缀索引并支持按来源浏览器打开）。
 - [`gold-monitor/`](gold-monitor/README.md)：**黄金大盘悬浮窗 · Au99.99**（实时监控上海金 `Au99.99` / `Au(T+D)` 人民币元/克行情，支持标准分时图卡片、Mini 悬浮条与贴边极简挂件丝滑原地变形及滞回防抖价格预警）。
+- [`local-send/`](local-send/README.md)：**LocalSend 局域网快传**（零常驻窗口绑定会话实现完整 LocalSend Protocol v2.1：开窗启动 UDP 组播发现与自签名 HTTPS 收发、关窗立即销毁进程释放 `53317` 端口，支持 Finder/中转站文件拖入与流式大文件传输，并经 `contextRouter` 与 `file-shelf`、`translate-hub`、`notion-bookmarks`、`quick-remind`、`lumalink-companion` 双向联动）。
 - [`lumalink-companion/`](lumalink-companion/README.md)：**流光随行 · LumaLink 远控伴侣**（纯外部沙盒 `resourceScopes: []` + 受控宿主桥接 `capabilities: ["lumaLinkStatus"]` 全功能远控台，支持置顶配对二维码、多屏 HiDPI 切换、防窥黑屏、防休眠与设备解绑）。
 - [`notion-bookmarks/`](notion-bookmarks/README.md)：**Notion 书签收藏插件**（云端 REST API + 本地免前缀检索索引示例，声明 `capabilities: ["clipboard"]`、`resourceScopes: ["network", "filesystem"]`）。
 - [`translate-hub/`](translate-hub/README.md)：**流光译站 · 划词/截图多源翻译与生词本**（联动 `selection`、`ocr`、`audio`、`clipboard` 桥接，支持跨应用划词即译、截图离线识字翻译、免配置词典与本地 Ollama 并行、原声朗读及导出 Anki `.tsv` / `.csv` 生词卡片）。

@@ -10,6 +10,8 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
     let pluginID: String
     let windowKey: String
     let motionSession: PluginWindowMotionSession
+    weak var boundWebView: WKWebView?
+    var sessionProcess: PluginWindowSessionProcess?
     private weak var viewModel: AppViewModel?
     private var activeTasks: [UUID: Task<Void, Never>] = [:]
     private var activeRunCount: Int = 0
@@ -34,11 +36,15 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
     }
 
     func bind(webView: WKWebView) {
+        boundWebView = webView
         motionSession.bind(webView: webView)
     }
 
     func tearDown(webView: WKWebView?) {
+        stopWindowSession()
+        PluginQuickLookController.shared.closeIfOwned(by: windowKey)
         motionSession.tearDown()
+        boundWebView = nil
         for (_, task) in activeTasks { task.cancel() }
         activeTasks.removeAll()
         activeRunCount = 0
@@ -110,6 +116,14 @@ final class PluginWebBridgeCoordinator: NSObject, WKScriptMessageHandlerWithRepl
             runPluginBackend(body: body, plugin: currentPlugin, vm: vm, replyHandler: replyHandler)
         case "bridge":
             dispatchBridgeCall(body: body, plugin: currentPlugin, vm: vm, replyHandler: replyHandler)
+        case "sessionStart":
+            replyHandler(handleSessionStart(body: body, plugin: currentPlugin, vm: vm), nil)
+        case "sessionSend":
+            replyHandler(handleSessionSend(body: body), nil)
+        case "sessionStop":
+            replyHandler(handleSessionStop(), nil)
+        case "files":
+            replyHandler(handleFileAction(body: body, plugin: currentPlugin), nil)
         default:
             replyHandler(nil, "Unsupported op '\(op)'")
         }

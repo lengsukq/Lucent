@@ -49,6 +49,20 @@ public struct CodeSigningStatus: Sendable, Equatable {
         self.badgeTitle = badgeTitle
         self.explanation = explanation
     }
+
+    /// macOS 登录钥匙串 (`login.keychain-db`) 的 `partition_id` 仅在携带 Apple `TeamIdentifier` 时跨重编稳定；
+    /// 无 Team ID 的本机自签名证书会退化为 `cdhash:` 绑定，每次重装都会触发钥匙串密码弹窗。
+    public var isStableForKeychain: Bool {
+        guard let team = teamIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines), !team.isEmpty else {
+            return false
+        }
+        switch mode {
+        case .developerID, .appleDevelopment:
+            return true
+        case .customCertificate, .adHoc, .unsigned:
+            return false
+        }
+    }
 }
 
 public enum CodeSigningInspector {

@@ -76,6 +76,7 @@ extension PluginSystem {
             case .everythingSearch: "search"
             case .displayInfo, .audioDevices: "list"
             case .fileShelf: "open"
+            case .contextRouter: "match"
             }
             return """
             #!/bin/zsh

@@ -81,6 +81,7 @@ struct SquircleBadge: View {
 struct GlassPillButtonStyle: ButtonStyle {
     var prominent: Bool = false
     var compact: Bool = false
+    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         let highContrast = SystemDisplayPreferences.shared.increaseContrast
@@ -123,6 +124,7 @@ struct GlassPillButtonStyle: ButtonStyle {
                 pressedScale: 0.978,
                 tint: prominent ? .white : LiquidColors.accentPrimary
             )
+            .opacity(isEnabled ? 1 : 0.45)
     }
 }
 

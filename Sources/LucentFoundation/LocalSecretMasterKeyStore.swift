@@ -6,9 +6,9 @@ import LocalAuthentication
 import Security
 
 /// 双轨高熵主密钥管理器：
-/// 1. 稳定签名 `.app` 构建：优先将 256-bit CSPRNG 随机主密钥存入系统 Keychain（签名固定零弹窗）；
-/// 2. Ad-hoc 社区构建 / CLI / 自定义测试库：采用 `SecRandomCopyBytes` 生成 32 字节真随机种子（`0600` + `UF_HIDDEN` + 排除备份），
-///    再结合硬件平台标识进行 HKDF 信封派生，彻底消除纯 `IOPlatformUUID + uid` 低熵可被同机推算的风险。
+/// 1. 具备 Apple `TeamIdentifier` 的稳定签名 `.app` 构建（Developer ID / Apple Development）：优先将 256-bit CSPRNG 随机主密钥存入系统 Keychain（`teamid:` 分区跨重编零弹窗）；
+/// 2. 本机自签名证书（无 Team ID）/ Ad-hoc 社区构建 / CLI / 自定义测试库：采用 `SecRandomCopyBytes` 生成 32 字节真随机种子（`0600` + `UF_HIDDEN` + 排除备份），
+///    再结合硬件平台标识进行 HKDF 信封派生，避免无 Team ID 触发 `cdhash:` 钥匙串反复弹窗，并支持历史 Keychain 种子单次无损迁移落盘。
 public enum LocalSecretMasterKeyStore {
     public static let masterKeyFileName = "master.v2.key"
     public static let keychainService = "app.lucent.macos.vault.master-key"
@@ -38,17 +38,29 @@ public enum LocalSecretMasterKeyStore {
 
     // MARK: - Internal Seed Resolution
 
+    private enum BundleKeychainPolicy {
+        case stableKeychain
+        case migrateLegacyKeychainToLocalFile
+        case localFileOnly
+    }
+
     private static func resolveRawSeed(
         forVaultDirectory vaultDir: URL,
         allowSystemKeychain: Bool?
     ) throws -> Data {
         let defaultVaultDir = LocalSecretVault.defaultVaultFileURL().deletingLastPathComponent().standardizedFileURL.path
         let isDefaultVault = (vaultDir.standardizedFileURL.path == defaultVaultDir)
-        let shouldTryKeychain = allowSystemKeychain ?? (isDefaultVault && isStableSignedAppBundle())
+        let bundlePolicy = signingKeychainPolicy()
+        let shouldUseKeychain = allowSystemKeychain ?? (isDefaultVault && bundlePolicy == .stableKeychain)
+        let seedURL = vaultDir.appendingPathComponent(masterKeyFileName, isDirectory: false)
 
-        if shouldTryKeychain {
+        if shouldUseKeychain {
             if let existingKC = loadKeychainSeedSilently(), existingKC.count == 32 {
                 return existingKC
+            }
+            if let existingLocal = try? Data(contentsOf: seedURL), existingLocal.count == 32 {
+                _ = saveKeychainSeedSilently(existingLocal)
+                return existingLocal
             }
             let fresh = try generateCSPRNGBytes(count: 32)
             if saveKeychainSeedSilently(fresh) {
@@ -63,10 +75,22 @@ public enum LocalSecretMasterKeyStore {
         _ = Darwin.chmod(vaultDir.path, mode_t(0o700))
         markHiddenAndExcludedFromBackup(vaultDir, isDirectory: true, fileManager: &fm)
 
-        let seedURL = vaultDir.appendingPathComponent(masterKeyFileName, isDirectory: false)
         if let existing = try? Data(contentsOf: seedURL), existing.count == 32 {
             _ = Darwin.chmod(seedURL.path, mode_t(0o600))
             return existing
+        }
+
+        if allowSystemKeychain == nil,
+           isDefaultVault,
+           bundlePolicy == .migrateLegacyKeychainToLocalFile,
+           hasExistingEncryptedVault(in: vaultDir),
+           hasKeychainSeedMetadata() {
+            guard let migrated = loadKeychainSeedSilently(), migrated.count == 32 else {
+                throw LocalSecretVaultError.ioFailed("keychain master key migration denied or unavailable")
+            }
+            try writeAtomicSeed0600(migrated, to: seedURL, in: vaultDir)
+            markHiddenAndExcludedFromBackup(seedURL, isDirectory: false, fileManager: &fm)
+            return migrated
         }
 
         let fresh = try generateCSPRNGBytes(count: 32)
@@ -139,10 +163,35 @@ public enum LocalSecretMasterKeyStore {
         try? mutableURL.setResourceValues(values)
     }
 
-    private static func isStableSignedAppBundle() -> Bool {
+    private static func signingKeychainPolicy() -> BundleKeychainPolicy {
         let bundleURL = Bundle.main.bundleURL
-        guard bundleURL.pathExtension == "app" else { return false }
-        return CodeSigningInspector.inspect(bundleURL: bundleURL).isStableForTCC
+        guard bundleURL.pathExtension == "app" else { return .localFileOnly }
+        let status = CodeSigningInspector.inspect(bundleURL: bundleURL)
+        if status.isStableForKeychain { return .stableKeychain }
+        if status.isStableForTCC { return .migrateLegacyKeychainToLocalFile }
+        return .localFileOnly
+    }
+
+    private static func hasExistingEncryptedVault(in vaultDir: URL) -> Bool {
+        let fm = FileManager.default
+        if fm.fileExists(atPath: vaultDir.appendingPathComponent(LocalSecretVault.vaultFileName, isDirectory: false).path) {
+            return true
+        }
+        let servicesDir = vaultDir.appendingPathComponent("services", isDirectory: true)
+        guard let entries = try? fm.contentsOfDirectory(atPath: servicesDir.path) else { return false }
+        return entries.contains { $0.hasSuffix(".v2.enc") }
+    }
+
+    private static func hasKeychainSeedMetadata() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        return SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess
     }
 
     private static func loadKeychainSeedSilently() -> Data? {

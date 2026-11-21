@@ -24,6 +24,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
     case fileShelf
     case audioDevices
     case lumaLinkStatus
+    case contextRouter
 
     public var id: String { rawValue }
 
@@ -43,6 +44,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .fileShelf: L10n.pick("文件中转站", "File Shelf")
         case .audioDevices: L10n.pick("切换默认音频设备", "Switch Default Audio Devices")
         case .lumaLinkStatus: L10n.pick("读取远程控制状态", "LumaLink Remote Status")
+        case .contextRouter: L10n.pick("跨插件联动路由", "Cross-Plugin Routing")
         }
     }
 
@@ -62,6 +64,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .fileShelf: L10n.pick("打开中转站并放入用户选中的文件", "Open the shelf and add files selected by the user")
         case .audioDevices: L10n.pick("查看并切换系统默认麦克风与扬声器", "Read and switch the system default microphone and speakers")
         case .lumaLinkStatus: L10n.pick("查看 LumaLink 局域网远程服务状态（不含敏感凭证）", "Read redacted LumaLink remote-control connection status")
+        case .contextRouter: L10n.pick("查询支持当前文件/链接/文本的其他已装插件，并经宿主安全转交上下文（不读取其他插件私有数据）", "Discover installed plugins matching files, links, or text and route context through the host without exposing private plugin data")
         }
     }
 
@@ -81,6 +84,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .fileShelf: "tray.full"
         case .audioDevices: "headphones"
         case .lumaLinkStatus: "ipad.and.iphone"
+        case .contextRouter: "arrow.triangle.branch"
         }
     }
 

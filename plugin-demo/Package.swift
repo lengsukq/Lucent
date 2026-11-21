@@ -7,6 +7,7 @@ let demoPlugins = [
     "file-shelf",
     "browser-hub",
     "gold-monitor",
+    "local-send",
     "lumalink-companion",
     "mac-pilot",
     "notion-bookmarks",

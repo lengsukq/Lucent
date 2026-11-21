@@ -15,10 +15,11 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         let window: NSWindow
         let webView: WKWebView?
         let coordinator: PluginWebBridgeCoordinator?
+        let contentStamp: TimeInterval
     }
 
     var activeCanvases: [String: ManagedCanvas] = [:]
-    private weak var boundViewModel: AppViewModel?
+    weak var boundViewModel: AppViewModel?
     var onWindowVisibilityChanged: (() -> Void)?
 
     private override init() {
@@ -63,16 +64,6 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         }
     }
 
-    func syncPluginState(for pluginID: String, plugins: [PluginDescriptor]) {
-        guard let plug = plugins.first(where: { $0.id == pluginID }) else { return }
-        for (key, managed) in activeCanvases where managed.pluginID == pluginID {
-            let pinned = WindowLevelStore.shared.isPinned(key)
-            PluginWebEnvBroadcaster.pushEnvUpdate(
-                to: managed.webView, plugin: plug, pinOnTop: pinned, showInDock: managed.spec.showInDock, opacity: Double(managed.window.alphaValue)
-            )
-        }
-    }
-
     @discardableResult
     func open(
         spec rawSpec: PluginCustomWindowSpec,
@@ -105,6 +96,10 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         }
 
         let key = canvasKey(pluginID: spec.pluginID, windowID: spec.windowID)
+        if activeCanvases[key] != nil, spec.shouldReuseIfOpen,
+           reuseExistingCanvas(key: key, spec: spec, activateApp: activateApp) {
+            return true
+        }
         if activeCanvases[key] == nil {
             let countForPlugin = activeCanvases.values.filter { $0.pluginID == spec.pluginID }.count
             if countForPlugin >= PluginCustomWindowSpec.maxConcurrentWindowsPerPlugin,
@@ -131,7 +126,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
                 onCancel: { [weak self] in _ = self?.closeByKey(key) }
             )
             activeCanvases[key] = ManagedCanvas(
-                pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: gateWindow, webView: nil, coordinator: nil
+                pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: gateWindow, webView: nil, coordinator: nil, contentStamp: 0
             )
             onWindowVisibilityChanged?()
             NSApp.activate(ignoringOtherApps: true)
@@ -231,6 +226,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         PluginWebWindowBuilder.positionWindow(win, spec: spec)
 
         let config = WKWebViewConfiguration()
+        config.websiteDataStore = .nonPersistent()
         let coordinator = PluginWebBridgeCoordinator(
             pluginID: plugin.id,
             windowKey: key,
@@ -246,7 +242,7 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         uc.addScriptMessageHandler(coordinator, contentWorld: .page, name: PluginWebSDKBootstrap.handlerName)
         config.userContentController = uc
 
-        let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: spec.width, height: spec.height), configuration: config)
+        let webView = PluginDroppableWebView(frame: NSRect(x: 0, y: 0, width: spec.width, height: spec.height), configuration: config)
         coordinator.bind(webView: webView)
         webView.navigationDelegate = coordinator
         webView.autoresizingMask = [.width, .height]
@@ -271,7 +267,8 @@ final class PluginCustomWebWindowController: NSObject, NSWindowDelegate {
         win.ignoresMouseEvents = spec.clickThrough
 
         activeCanvases[key] = ManagedCanvas(
-            pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: win, webView: webView, coordinator: coordinator
+            pluginID: plugin.id, windowID: spec.windowID, spec: spec, window: win, webView: webView, coordinator: coordinator,
+            contentStamp: Self.bundleAssetStamp(for: plugin, spec: spec)
         )
         persistActiveSession()
         onWindowVisibilityChanged?()

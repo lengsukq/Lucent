@@ -159,6 +159,7 @@ struct GifRecordingHUDView: View {
         return completedCapsuleShell(
             title: "已复制 GIF 动图",
             subtitle: "\(sizeText) · \(w)×\(h) · \(result.frameCount)帧",
+            fileURL: result.fileURL,
             onCopy: { controller.copyResultAgain(result) },
             onSave: { controller.saveResultAs(result) },
             onReveal: { controller.revealResultInFinder(result.fileURL) },
@@ -173,6 +174,7 @@ struct GifRecordingHUDView: View {
         return completedCapsuleShell(
             title: L10n.pick("已复制 MP4 录像", "MP4 Recording Copied"),
             subtitle: "\(sizeText) · \(w)×\(h) · \(durText)",
+            fileURL: result.fileURL,
             onCopy: { controller.copyVideoResultAgain(result) },
             onSave: { controller.saveVideoResultAs(result) },
             onReveal: { controller.revealResultInFinder(result.fileURL) },
@@ -183,6 +185,7 @@ struct GifRecordingHUDView: View {
     private func completedCapsuleShell(
         title: String,
         subtitle: String,
+        fileURL: URL,
         onCopy: @escaping () -> Void,
         onSave: @escaping () -> Void,
         onReveal: @escaping () -> Void,
@@ -208,6 +211,7 @@ struct GifRecordingHUDView: View {
                 hudButton(title: "另存为", symbol: "square.and.arrow.down", tint: .white.opacity(0.14), action: onSave)
                 hudButton(title: "访达定位", symbol: "folder", tint: .white.opacity(0.14), action: onReveal)
                 hudButton(title: "预览", symbol: "eye", tint: .white.opacity(0.14), action: onPreview)
+                GifCompletedPluginSendMenu(fileURL: fileURL) { controller.dismissCompletedHUD() }
                 hudButton(title: "再来一段", symbol: "arrow.clockwise", tint: .cyan.opacity(0.28)) { controller.recordAgain() }
                 Button(action: { controller.dismissCompletedHUD() }) {
                     Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.78))

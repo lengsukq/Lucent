@@ -1,5 +1,6 @@
 import Foundation
 import LucentCore
+import LucentFoundation
 import LucentSystem
 import Testing
 
@@ -162,16 +163,28 @@ private final class MockAudioHardware: AudioDeviceHardware, @unchecked Sendable 
     let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
     let nearLeft = CGRect(x: 8, y: 300, width: 320, height: 420)
     let nearRight = CGRect(x: 1110, y: 300, width: 320, height: 420)
+    let nearTop = CGRect(x: 560, y: 472, width: 320, height: 420)
+    let pushedPastLeft = CGRect(x: -160, y: 300, width: 320, height: 420)
+    let pushedPastRight = CGRect(x: 1280, y: 300, width: 320, height: 420)
+    let pushedPastTop = CGRect(x: 560, y: 550, width: 320, height: 420)
     let middle = CGRect(x: 520, y: 260, width: 320, height: 420)
 
     #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: nearLeft, visibleFrame: screen) == .left)
     #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: nearRight, visibleFrame: screen) == .right)
+    #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: nearTop, visibleFrame: screen) == .top)
+    #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: pushedPastLeft, visibleFrame: screen) == .left)
+    #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: pushedPastRight, visibleFrame: screen) == .right)
+    #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: pushedPastTop, visibleFrame: screen) == .top)
     #expect(FileShelfEdgeGeometry.detectSnapEdge(frame: middle, visibleFrame: screen) == .none)
 
     let dockedAutoHide = FileShelfWindowSettings(dockEdge: .right, edgeAutoHide: true, pinnedExpanded: false)
     #expect(FileShelfEdgeGeometry.resolveMode(
         settings: dockedAutoHide, isHovered: false, isDraggingIntoShelf: false, isModalOrInputActive: false
     ) == .edgeTucked(.right))
+    let dockedTop = FileShelfWindowSettings(dockEdge: .top, edgeAutoHide: true, pinnedExpanded: false)
+    #expect(FileShelfEdgeGeometry.resolveMode(
+        settings: dockedTop, isHovered: false, isDraggingIntoShelf: false, isModalOrInputActive: false
+    ) == .edgeTucked(.top))
     #expect(FileShelfEdgeGeometry.resolveMode(
         settings: dockedAutoHide, isHovered: true, isDraggingIntoShelf: false, isModalOrInputActive: false
     ) == .expanded)
@@ -189,9 +202,61 @@ private final class MockAudioHardware: AudioDeviceHardware, @unchecked Sendable 
     #expect(tuckedRect.maxX == screen.maxX)
     #expect(tuckedRect.width == FileShelfEdgeGeometry.tuckedTabSize.width)
 
-    let expandedRect = FileShelfEdgeGeometry.frame(
+    let tuckedTopRect = FileShelfEdgeGeometry.frame(
+        for: .edgeTucked(.top), dockEdge: .top, size: FileShelfEdgeGeometry.tuckedTopTabSize,
+        currentFrame: nearTop, anchorMidX: 720, anchorMidY: 682, visibleFrame: screen
+    )
+    #expect(tuckedTopRect.maxY == screen.maxY)
+    #expect(tuckedTopRect.size == FileShelfEdgeGeometry.tuckedTopTabSize)
+    #expect(tuckedTopRect.midX == 720)
+
+    let expandedTop = FileShelfEdgeGeometry.frame(
+        for: .expanded, dockEdge: .top, size: FileShelfEdgeGeometry.expandedSize,
+        currentFrame: tuckedTopRect, anchorMidX: 720, anchorMidY: 682, visibleFrame: screen
+    )
+    #expect(expandedTop.maxY == screen.maxY - FileShelfEdgeGeometry.dockEdgeInset)
+    #expect(expandedTop.midX == 720)
+
+    let expandedLeft = FileShelfEdgeGeometry.frame(
         for: .expanded, dockEdge: .left, size: FileShelfEdgeGeometry.expandedSize,
         currentFrame: nearLeft, anchorMidY: 450, visibleFrame: screen
     )
-    #expect(expandedRect.minX == screen.minX + FileShelfEdgeGeometry.screenInset)
+    #expect(expandedLeft.minX == screen.minX + FileShelfEdgeGeometry.dockEdgeInset)
+
+    let expandedRight = FileShelfEdgeGeometry.frame(
+        for: .expanded, dockEdge: .right, size: FileShelfEdgeGeometry.expandedSize,
+        currentFrame: nearRight, anchorMidY: 450, visibleFrame: screen
+    )
+    #expect(expandedRight.maxX == screen.maxX - FileShelfEdgeGeometry.dockEdgeInset)
+}
+
+@Test func codeSigningKeychainStabilityRequiresAppleTeamIdentifier() {
+    let selfSigned = CodeSigningStatus(
+        mode: .customCertificate(commonName: "Lucent Local Signer"),
+        bundleIdentifier: "app.lucent.macos", teamIdentifier: nil, isStableForTCC: true,
+        badgeTitle: "Local", explanation: ""
+    )
+    #expect(selfSigned.isStableForTCC == true)
+    #expect(selfSigned.isStableForKeychain == false)
+
+    let devID = CodeSigningStatus(
+        mode: .developerID(commonName: "Developer ID Application: Test", teamID: "TEAM123456", hardenedRuntime: true),
+        bundleIdentifier: "app.lucent.macos", teamIdentifier: "TEAM123456", isStableForTCC: true,
+        badgeTitle: "DevID", explanation: ""
+    )
+    #expect(devID.isStableForKeychain == true)
+
+    let appleDev = CodeSigningStatus(
+        mode: .appleDevelopment(commonName: "Apple Development: Test", teamID: "9339HT279W"),
+        bundleIdentifier: "app.lucent.macos", teamIdentifier: "9339HT279W", isStableForTCC: true,
+        badgeTitle: "AppleDev", explanation: ""
+    )
+    #expect(appleDev.isStableForKeychain == true)
+
+    let adHoc = CodeSigningStatus(
+        mode: .adHoc(hardenedRuntime: false),
+        bundleIdentifier: "app.lucent.macos", teamIdentifier: nil, isStableForTCC: false,
+        badgeTitle: "AdHoc", explanation: ""
+    )
+    #expect(adHoc.isStableForKeychain == false)
 }
