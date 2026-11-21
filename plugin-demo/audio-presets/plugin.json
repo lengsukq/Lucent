@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "minAppVersion": "0.9.9.2",
   "mode": "view",
   "author": "Lucent Official",
@@ -28,10 +28,10 @@
   "window": {
     "entryHtml": "ui/index.html",
     "chrome": "frameless",
-    "width": 396,
-    "height": 456,
-    "minWidth": 168,
-    "minHeight": 50,
+    "width": 424,
+    "height": 482,
+    "minWidth": 208,
+    "minHeight": 74,
     "resizable": false,
     "transparent": true,
     "showInDock": false,

@@ -5,7 +5,7 @@
 ## 1. 核心架构与工程门禁
 
 - **纯原生 Swift 6 无环模块分层**：全仓采用 `macOS 14.0+` / `arm64` 编译（`.swiftLanguageMode(.v6)`），**零第三方依赖**，划分为 `LucentFoundation` → `LucentSearch` / `LucentMedia` / `LucentSystem` → `LucentCore` → `Lucent` / `lucent-mcp` 单向无环（DAG）架构，由 `scripts/verify-macos.sh` 静态拦截越界反向导入与单文件 `≤ 300` 行上限。
-- **双生液态玻璃与实时双语**：内置浅色「凝霜留白 (`Pure Frost`)」与深色「霓彩流光 (`Prism Pulse`)」两套动态令牌主题，配合简体中文 / English 免重启全局热切换；品牌视觉由 `LucentFoundation.BrandIconRenderer` 单一真源统一驱动运行时矢量位图与构建期 `AppIcon.icns`。
+- **双生液态玻璃与实时双语**：内置「晴霜浅色 (`Light Frost`)」与「曜石暗色 (`Obsidian Dark`)」两套原生 macOS 液态折射毛玻璃主题（支持跟随系统深浅色外观与 `NSApp.appearance` KVO 联动、统一大圆角双层镜面高光与专属光学点击波纹/物理弹簧回弹），配合简体中文 / English 免重启全局热切换；品牌视觉由 `LucentFoundation.BrandIconRenderer` 单一真源统一驱动运行时矢量位图与构建期 `AppIcon.icns`。
 - **空闲内存自洁与悬浮窗跨重启恢复**：主悬浮窗恒定锁定 `880 × 544` 零跳动尺寸，收起 `30s` 后自动释放视图树；全盘索引冷启动仅执行 `O(1)` 4 KB 快照头探测，空闲 `90s` 或收到系统内存压力信号时自动卸载内存节点与缩略图缓存；全部二级窗口关闭时置空 `contentView` 并回收堆页；桌面悬浮窗（插件自由画布 HUD、插件原生悬浮面板、屏幕贴图与系统脉搏）支持通过 `floating-window-session.json` 与持久 `PinnedSession/` 目录跨退出/关机重启自动恢复（区分用户主动关窗与系统关机退出）；退出重开冷启动独立遵循「开场动画」开关与「静默驻留状态栏」开关（后台驻留唤起时不重复播放）。
 
 ## 2. 统一快捷中枢 (`⌥Space`) 与可定制启动面板

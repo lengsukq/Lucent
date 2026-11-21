@@ -10,14 +10,27 @@ struct DoubleSpecularBorder: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let isDark = themeManager.resolvedIsDark
         Group {
             if highContrast {
                 shape.strokeBorder(LiquidColors.subtleRim, lineWidth: isShell ? 1.5 : 1.35)
             } else {
-                shape.strokeBorder(
-                    isShell ? LiquidColors.specularRimGradient : LiquidColors.softCardRimGradient,
-                    lineWidth: isShell ? 1.0 : 0.85
-                )
+                ZStack {
+                    shape.strokeBorder(
+                        isShell ? LiquidColors.specularRimGradient : LiquidColors.softCardRimGradient,
+                        lineWidth: isShell ? 1.0 : 0.85
+                    )
+                    shape
+                        .inset(by: 0.9)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color.white.opacity(isDark ? (isShell ? 0.18 : 0.12) : (isShell ? 0.72 : 0.56)), .clear],
+                                startPoint: .top,
+                                endPoint: UnitPoint(x: 0.5, y: 0.45)
+                            ),
+                            lineWidth: 0.65
+                        )
+                }
             }
         }
         .allowsHitTesting(false)
@@ -32,20 +45,19 @@ struct SquircleBadge: View {
     @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
-        let isPrism = themeManager.current == .prismPulse
-        let ratio: CGFloat = isPrism ? 0.31 : 0.25
-        let shape = RoundedRectangle(cornerRadius: size * ratio, style: .continuous)
+        let isDark = themeManager.resolvedIsDark
+        let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
         ZStack {
             shape.fill(
                 LinearGradient(
-                    colors: isPrism ? [topColor, bottomColor] : [topColor.opacity(0.90), topColor.opacity(0.78)],
+                    colors: [topColor, bottomColor],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             shape.fill(
                 LinearGradient(
-                    colors: [.white.opacity(isPrism ? 0.40 : 0.16), .white.opacity(0.0)],
+                    colors: [.white.opacity(isDark ? 0.28 : 0.34), .white.opacity(0.0)],
                     startPoint: .top,
                     endPoint: .center
                 )
@@ -53,20 +65,16 @@ struct SquircleBadge: View {
             Image(systemName: symbol)
                 .font(.system(size: size * 0.43, weight: .semibold))
                 .foregroundStyle(.white)
-                .shadow(color: .black.opacity(isPrism ? 0.16 : 0.08), radius: 2, y: 1)
+                .shadow(color: .black.opacity(0.14), radius: 1.5, y: 0.8)
         }
         .frame(width: size, height: size)
         .overlay {
             shape.strokeBorder(
-                LinearGradient(
-                    colors: [.white.opacity(isPrism ? 0.42 : 0.28), .white.opacity(0.15)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ),
+                LinearGradient(colors: [.white.opacity(isDark ? 0.34 : 0.48), .white.opacity(0.12)], startPoint: .top, endPoint: .bottom),
                 lineWidth: 0.8
             )
         }
-        .shadow(color: bottomColor.opacity(isPrism ? 0.26 : 0.10), radius: isPrism ? 6 : 3, y: isPrism ? 3 : 1)
+        .shadow(color: bottomColor.opacity(isDark ? 0.24 : 0.16), radius: 4, y: 2)
     }
 }
 
@@ -85,28 +93,22 @@ struct GlassPillButtonStyle: ButtonStyle {
             .padding(.vertical, compact ? 4.5 : 6)
             .background {
                 if prominent {
-                    Capsule(style: .continuous)
-                        .fill(LiquidColors.accentGradient)
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .fill(LinearGradient(colors: [.white.opacity(LiquidColors.isPrism ? 0.28 : 0.14), .clear], startPoint: .top, endPoint: .center))
-                        }
+                    Capsule(style: .continuous).fill(LiquidColors.accentGradient).overlay {
+                        Capsule(style: .continuous).fill(LinearGradient(colors: [.white.opacity(0.24), .clear], startPoint: .top, endPoint: .center))
+                    }
                 } else {
-                    Capsule(style: .continuous)
-                        .fill(LiquidColors.pillSurface)
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .fill(Color.white.opacity(configuration.isPressed ? 0.14 : 0.03))
-                        }
+                    Capsule(style: .continuous).fill(LiquidColors.pillSurface).overlay {
+                        Capsule(style: .continuous).fill(Color.white.opacity(configuration.isPressed ? 0.06 : 0.02))
+                    }
                 }
             }
             .overlay {
                 Capsule(style: .continuous)
                     .strokeBorder(
                         prominent
-                            ? LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.16)], startPoint: .top, endPoint: .bottom)
+                            ? LinearGradient(colors: [.white.opacity(0.46), .white.opacity(0.16)], startPoint: .top, endPoint: .bottom)
                             : LinearGradient(
-                                colors: [highContrast ? LiquidColors.subtleRim : LiquidColors.pillBorder, LiquidColors.pillBorder.opacity(0.75)],
+                                colors: [highContrast ? LiquidColors.subtleRim : LiquidColors.pillBorder, LiquidColors.pillBorder.opacity(0.72)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             ),
@@ -114,23 +116,35 @@ struct GlassPillButtonStyle: ButtonStyle {
                     )
             }
             .shadow(color: prominent ? LiquidColors.accentShadowColor : .clear, radius: 6, y: 2)
-            .scaleEffect(configuration.isPressed ? 0.965 : 1.0)
-            .opacity(configuration.isPressed ? 0.90 : 1.0)
-            .animation(LiquidMotion.pressSpring, value: configuration.isPressed)
+            .liquidPressEffect(
+                isPressed: configuration.isPressed,
+                cornerRadius: 999,
+                isCapsule: true,
+                pressedScale: 0.978,
+                tint: prominent ? .white : LiquidColors.accentPrimary
+            )
     }
 }
 
 struct LiquidBentoTileStyle: ButtonStyle {
     var cornerRadius: CGFloat = LiquidRadii.bento
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.white.opacity(configuration.isPressed ? 0.10 : 0.0))
+                    .fill(Color.primary.opacity(configuration.isPressed ? 0.035 : 0.0))
                     .allowsHitTesting(false)
             }
-            .scaleEffect(configuration.isPressed ? 0.972 : 1.0)
+            .liquidPressEffect(isPressed: configuration.isPressed, cornerRadius: cornerRadius, isCapsule: false, pressedScale: 0.985)
+    }
+}
+
+struct LiquidSidebarRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        let reduce = LiquidMotion.reduceMotion
+        configuration.label
+            .scaleEffect(reduce ? 1.0 : (configuration.isPressed ? 0.988 : 1.0))
+            .opacity(configuration.isPressed ? 0.88 : 1.0)
             .animation(LiquidMotion.pressSpring, value: configuration.isPressed)
     }
 }
@@ -143,6 +157,7 @@ struct KeycapPill: View {
     @ObservedObject private var languageManager = LanguageManager.shared
 
     var body: some View {
+        let _ = themeManager.resolvedIsDark
         HStack(spacing: 5) {
             Text(L10n.translate(title, for: languageManager.current))
                 .font(.caption2.weight(.medium))
@@ -154,14 +169,19 @@ struct KeycapPill: View {
                 .padding(.vertical, 2.5)
                 .background {
                     if prominent {
-                        Capsule(style: .continuous).fill(LiquidColors.accentGradient)
+                        Capsule(style: .continuous)
+                            .fill(LiquidColors.accentGradient)
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .fill(LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .center))
+                            }
                     } else {
                         Capsule(style: .continuous).fill(LiquidColors.pillSurface)
                     }
                 }
                 .overlay {
                     Capsule(style: .continuous).strokeBorder(
-                        prominent ? Color.white.opacity(0.35) : LiquidColors.pillBorder,
+                        prominent ? Color.white.opacity(0.36) : LiquidColors.pillBorder,
                         lineWidth: 0.75
                     )
                 }
@@ -175,6 +195,7 @@ struct LiquidKeyHintBadge: View {
     @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
+        let _ = themeManager.resolvedIsDark
         Text(keyText)
             .font(.system(size: 10, weight: .semibold, design: .rounded).monospacedDigit())
             .foregroundStyle(highlighted ? LiquidColors.textPrimary : LiquidColors.textSecondary.opacity(0.88))
@@ -211,13 +232,14 @@ struct LiquidSectionDivider: View {
 struct LiquidStatusPill: View {
     let title: String
     var symbol: String? = nil
-    var tint: Color = .cyan
+    var tint: Color = LiquidColors.accentPrimary
     var showDot: Bool = false
     var prominent: Bool = false
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var languageManager = LanguageManager.shared
 
     var body: some View {
+        let _ = themeManager.resolvedIsDark
         HStack(spacing: 5) {
             if showDot {
                 Circle().fill(tint).frame(width: 6, height: 6)
@@ -257,14 +279,12 @@ struct GlassDropdownMenu<MenuContent: View>: View {
                     Text(value).lineLimit(1)
                     Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
                 }
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(LiquidColors.textPrimary)
+                .font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
                 .padding(.horizontal, 9).padding(.vertical, 4.5)
                 .background(LiquidColors.pillSurface, in: Capsule())
                 .overlay { Capsule().strokeBorder(LiquidColors.pillBorder, lineWidth: 0.85) }
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
+            .menuStyle(.borderlessButton).fixedSize()
         }
     }
 }

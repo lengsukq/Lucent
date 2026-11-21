@@ -52,8 +52,10 @@ const ICONS = {
 
 const host = window.lucent;
 const element = id => document.getElementById(id);
-const EXPANDED = { width: 396, height: 456 };
-const PILL = { width: 178, height: 50 };
+const EXPANDED = { width: 424, height: 482 };
+const PILL = { width: 208, height: 74 };
+const darkMedia = window.matchMedia?.("(prefers-color-scheme: dark)") || null;
+const reducedMotionMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)") || null;
 
 const state = {
   language: "zh",
@@ -85,17 +87,31 @@ function makeSvg(pathData, filled = false) {
   return svg;
 }
 
-function translate() {
-  state.language = (host?.env?.locale || navigator.language).startsWith("en") ? "en" : "zh";
-  document.documentElement.lang = state.language === "en" ? "en" : "zh-Hans";
-  const hostTheme = host?.env?.theme;
-  if (hostTheme === "prism-pulse" || hostTheme === "pure-frost") {
-    document.documentElement.dataset.theme = hostTheme;
-  } else {
-    document.documentElement.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "prism-pulse" : "pure-frost";
+function resolveTheme(env) {
+  const queryTheme = new URLSearchParams(window.location.search).get("theme")?.toLowerCase();
+  if (queryTheme === "dark" || queryTheme === "prism-pulse") return "prism-pulse";
+  if (queryTheme === "light" || queryTheme === "pure-frost" || queryTheme === "white" || queryTheme === "champagne") {
+    return "pure-frost";
   }
-  state.pinned = host?.env?.pinOnTop ?? state.pinned;
+  if (env && (env.appearance || env.theme)) {
+    const isDark = env.appearance === "dark" || env.theme === "dark" || env.theme === "prism-pulse";
+    return isDark ? "prism-pulse" : "pure-frost";
+  }
+  return darkMedia?.matches ? "prism-pulse" : "pure-frost";
+}
+
+function applyTheme(env = host?.env) {
+  const next = resolveTheme(env);
+  if (document.documentElement.dataset.theme !== next) {
+    document.documentElement.dataset.theme = next;
+  }
+}
+
+function translate(env = host?.env) {
+  state.language = (env?.locale || navigator.language).startsWith("en") ? "en" : "zh";
+  document.documentElement.lang = state.language === "en" ? "en" : "zh-Hans";
+  applyTheme(env);
+  state.pinned = env?.pinOnTop ?? state.pinned;
   element("pin-toggle")?.setAttribute("aria-pressed", String(Boolean(state.pinned)));
   for (const node of document.querySelectorAll("[data-text]")) node.textContent = text(node.dataset.text);
   for (const node of document.querySelectorAll("[data-label]")) {
@@ -104,11 +120,111 @@ function translate() {
   }
 }
 
-function showStatus(message, warning = false) {
+function syncModalScrim() {
+  const scrim = element("modal-scrim");
+  if (!scrim) return;
+  scrim.hidden = !(element("editor")?.open || element("remove-dialog")?.open);
+}
+
+function showStatus(message, warning = false, ok = false) {
   const node = element("status");
   node.textContent = message || "";
   node.hidden = !message;
   node.classList.toggle("warning", warning);
+  node.classList.toggle("ok", ok && !warning);
+}
+
+function pulseSuccess(node) {
+  if (!node || reducedMotionMedia?.matches) return;
+  node.classList.remove("is-success");
+  void node.offsetWidth;
+  node.classList.add("is-success");
+  setTimeout(() => node.classList.remove("is-success"), 680);
+}
+
+function spawnRippleAndBounce(target, ev) {
+  if (!target || target.disabled || reducedMotionMedia?.matches) return;
+  const rect = target.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+  const x = (ev && Number.isFinite(ev.clientX) && ev.clientX !== 0) ? ev.clientX - rect.left : rect.width * 0.5;
+  const y = (ev && Number.isFinite(ev.clientY) && ev.clientY !== 0) ? ev.clientY - rect.top : rect.height * 0.5;
+  const size = Math.max(rect.width, rect.height) * 1.15;
+
+  const ripple = document.createElement("span");
+  ripple.className = "lg-ripple";
+  ripple.style.setProperty("--rx", `${x.toFixed(1)}px`);
+  ripple.style.setProperty("--ry", `${y.toFixed(1)}px`);
+  ripple.style.setProperty("--rs", `${size.toFixed(1)}px`);
+  target.append(ripple);
+  setTimeout(() => ripple.remove(), 520);
+
+  if (target.matches(".primary, .subtle, .danger, .pill-action")) {
+    const gleam = document.createElement("span");
+    gleam.className = "lg-gleam";
+    target.append(gleam);
+    setTimeout(() => gleam.remove(), 460);
+  }
+
+  target.classList.remove("is-bouncing");
+  void target.offsetWidth;
+  target.classList.add("is-bouncing");
+  setTimeout(() => target.classList.remove("is-bouncing"), 360);
+}
+
+function triggerCardPress(card, ev) {
+  if (!card || card.disabled || reducedMotionMedia?.matches) return;
+  const rect = card.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+  const nx = ev && Number.isFinite(ev.clientX) ? ((ev.clientX - rect.left) / rect.width - 0.5) * 2 : 0;
+  const ny = ev && Number.isFinite(ev.clientY) ? ((ev.clientY - rect.top) / rect.height - 0.5) * 2 : 0;
+  card.style.setProperty("--press-rx", `${(-ny * 3.2).toFixed(2)}deg`);
+  card.style.setProperty("--press-ry", `${(nx * 3.6).toFixed(2)}deg`);
+  card.classList.add("is-pressing");
+  setTimeout(() => card.classList.remove("is-pressing"), 150);
+
+  card.classList.remove("is-glinting");
+  void card.offsetWidth;
+  card.classList.add("is-glinting");
+  setTimeout(() => card.classList.remove("is-glinting"), 600);
+}
+
+function bindLiquidInteractions() {
+  const shell = element("shell");
+  if (shell) {
+    let rafId = 0;
+    let lastX = 0;
+    let lastY = 0;
+    shell.addEventListener("pointermove", ev => {
+      if (reducedMotionMedia?.matches) return;
+      lastX = ev.clientX;
+      lastY = ev.clientY;
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        const rect = shell.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const px = ((lastX - rect.left) / rect.width) * 100;
+        const py = ((lastY - rect.top) / rect.height) * 100;
+        shell.style.setProperty("--mx", `${px.toFixed(1)}%`);
+        shell.style.setProperty("--my", `${py.toFixed(1)}%`);
+        shell.style.setProperty("--sheen-op", "1");
+      });
+    });
+    shell.addEventListener("pointerleave", () => {
+      shell.style.setProperty("--sheen-op", "0");
+    });
+  }
+
+  document.addEventListener("pointerdown", ev => {
+    const card = ev.target?.closest?.(".device, .preset");
+    if (card && !ev.target.closest(".preset-tools")) {
+      triggerCardPress(card, ev);
+    }
+    const btn = ev.target?.closest?.(".primary, .subtle, .danger, .pill-action, .icon-btn, .pill-main, .picker-item");
+    if (btn) {
+      spawnRippleAndBounce(btn, ev);
+    }
+  });
 }
 
 function deviceFor(uid, direction) {
@@ -134,7 +250,9 @@ function showActual() {
     element(direction).textContent = state.permission ? name : "—";
     element(direction).title = state.permission ? name : "";
     element(direction + "-card").disabled = state.busy;
-    element(direction + "-card").classList.toggle("open", state.pickerDirection === direction);
+    const isOpen = state.pickerDirection === direction;
+    element(direction + "-card").classList.toggle("open", isOpen);
+    element(direction + "-card").setAttribute("aria-expanded", String(isOpen));
   }
   const active = activePreset();
   const outName = state.devices.find(d => d.uid === state.actual.outputUID)?.name;
@@ -213,7 +331,10 @@ function render() {
       dot.className = "active-dot";
       title.append(dot);
     }
-    title.append(document.createTextNode(preset.name));
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "preset-name-text";
+    nameSpan.textContent = preset.name;
+    title.append(nameSpan);
 
     const subtitle = document.createElement("span");
     subtitle.className = "preset-detail" + (missing.length ? " warning" : "");
@@ -238,6 +359,7 @@ function render() {
       state.removing = preset.id;
       element("remove-name").textContent = preset.name;
       element("remove-dialog").showModal();
+      syncModalScrim();
     }, { extraClass: "danger-btn" });
 
     [star, edit, remove].forEach((control, index) => {
@@ -300,6 +422,7 @@ async function grant() {
 function flashCard(direction) {
   const card = element(direction + "-card");
   card.classList.add("flash");
+  pulseSuccess(card);
   setTimeout(() => card.classList.remove("flash"), 650);
 }
 
@@ -316,7 +439,7 @@ async function applySingleDevice(direction, device) {
     state.actual = data.actual || {};
     await refresh();
     if (data.status === "applied") {
-      showStatus("✓ " + text("applied") + " · " + device.name);
+      showStatus("✓ " + text("applied") + " · " + device.name, false, true);
       flashCard(direction);
     } else if (data.status === "unavailable") {
       showStatus(text("disconnected") + ": " + device.name, true);
@@ -346,7 +469,8 @@ async function applyPreset(preset) {
     state.actual = data.actual || {};
     await refresh();
     if (data.status === "applied") {
-      showStatus("✓ " + text("applied") + " · " + preset.name);
+      showStatus("✓ " + text("applied") + " · " + preset.name, false, true);
+      pulseSuccess(element("preset-" + preset.id)?.closest(".preset"));
       for (const dir of ["input", "output"]) {
         if (before[dir + "UID"] !== state.actual[dir + "UID"]) flashCard(dir);
       }
@@ -399,6 +523,7 @@ function openEditor(preset = null) {
   }
   element("form-error").hidden = true;
   element("editor").showModal();
+  syncModalScrim();
   element("name").focus();
 }
 
@@ -429,8 +554,9 @@ async function save(event) {
   try {
     acceptDocument(await host.run(["--save"], JSON.stringify(preset)));
     element("editor").close();
+    syncModalScrim();
     state.focusPreset = preset.id;
-    showStatus("✓ " + text("saved"));
+    showStatus("✓ " + text("saved"), false, true);
   } catch (error) {
     element("form-error").textContent = error.message || text("failed");
     element("form-error").hidden = false;
@@ -461,19 +587,63 @@ function report(operation) {
 }
 
 translate();
+bindLiquidInteractions();
+if (darkMedia) {
+  const onColorSchemeChange = () => applyTheme(host?.env);
+  if (typeof darkMedia.addEventListener === "function") darkMedia.addEventListener("change", onColorSchemeChange);
+  else if (typeof darkMedia.addListener === "function") darkMedia.addListener(onColorSchemeChange);
+}
 for (const dir of ["output", "input"]) element(dir).textContent = text("pending");
 
 if (host) {
-  element("refresh").addEventListener("click", () => report(refresh()));
+  element("refresh").addEventListener("click", () => {
+    const btn = element("refresh");
+    btn.classList.remove("is-spinning");
+    void btn.offsetWidth;
+    btn.classList.add("is-spinning");
+    setTimeout(() => btn.classList.remove("is-spinning"), 560);
+    report(refresh().then(() => pulseSuccess(btn)));
+  });
   element("grant").addEventListener("click", () => report(grant()));
   element("new").addEventListener("click", () => openEditor());
   element("save-current").addEventListener("click", () => openEditor());
-  element("cancel").addEventListener("click", () => element("editor").close());
+  element("cancel").addEventListener("click", () => { element("editor").close(); syncModalScrim(); });
+  element("editor").addEventListener("close", syncModalScrim);
+  element("editor").addEventListener("cancel", syncModalScrim);
   element("preset-form").addEventListener("submit", save);
   element("picker-close").addEventListener("click", () => { state.pickerDirection = null; renderPicker(); showActual(); });
   element("close-win").addEventListener("click", () => host.window.close());
   element("pill-close").addEventListener("click", () => host.window.close());
-  element("expand-pill").addEventListener("click", () => setPillMode(false));
+  {
+    const expandPill = element("expand-pill");
+    let pillDragged = false;
+    expandPill.addEventListener("mousedown", ev => {
+      if (ev.button !== 0) return;
+      pillDragged = false;
+      const sx = ev.clientX;
+      const sy = ev.clientY;
+      const cleanup = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", cleanup);
+      };
+      const onMove = mv => {
+        if (Math.hypot(mv.clientX - sx, mv.clientY - sy) >= 4) {
+          pillDragged = true;
+          cleanup();
+          host.window.startDrag();
+        }
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", cleanup);
+    });
+    expandPill.addEventListener("click", () => {
+      if (pillDragged) {
+        pillDragged = false;
+        return;
+      }
+      setPillMode(false);
+    });
+  }
   element("dock-toggle").addEventListener("click", async () => {
     const frame = await host.window.getFrame();
     const edge = frame?.nearestEdge === "left" ? "left" : "right";
@@ -498,10 +668,12 @@ if (host) {
   }
 
   element("remove-dialog").addEventListener("close", () => {
+    syncModalScrim();
     if (element("remove-dialog").returnValue === "remove" && state.removing) modify("--delete", state.removing);
     element("remove-dialog").returnValue = "";
     state.removing = null;
   });
+  element("remove-dialog").addEventListener("cancel", syncModalScrim);
 
   document.addEventListener("keydown", ev => {
     if (ev.key !== "Escape") return;
@@ -522,7 +694,7 @@ if (host) {
     if (!state.busy && !element("editor").open && !element("remove-dialog").open) report(refresh());
   };
   window.addEventListener("focus", activeRefresh);
-  host.onEnvChanged(() => { translate(); activeRefresh(); });
+  host.onEnvChanged(env => { translate(env || host.env); activeRefresh(); });
   setInterval(() => { if (!document.hidden) activeRefresh(); }, 4000);
 
   if (host.env.initialState?.message) showStatus(host.env.initialState.message, true);

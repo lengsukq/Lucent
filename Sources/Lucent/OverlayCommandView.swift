@@ -5,6 +5,7 @@ import SwiftUI
 struct OverlayCommandView: View {
     @ObservedObject var viewModel: AppViewModel
     @ObservedObject private var themeManager = ThemeManager.shared
+    @Namespace private var filterTabNamespace
 
     private var showsBentoHome: Bool {
         viewModel.omniFilter == .all
@@ -74,7 +75,7 @@ struct OverlayCommandView: View {
         return HStack(alignment: .center, spacing: 10) {
             Group {
                 if viewModel.activeScopedPlugin == nil && viewModel.omniFilter == .all {
-                    LucentBrandIconView(size: 36, showAmbientGlow: themeManager.current == .prismPulse)
+                    LucentBrandIconView(size: 36, showAmbientGlow: themeManager.resolvedIsDark)
                 } else {
                     SquircleBadge(
                         symbol: viewModel.activeScopedPlugin?.manifest.icon ?? viewModel.omniFilter.symbolName,
@@ -170,30 +171,37 @@ struct OverlayCommandView: View {
                 let active = viewModel.omniFilter == filter
                 let segShape = RoundedRectangle(cornerRadius: max(7, LiquidRadii.control - 2.5), style: .continuous)
                 Button {
-                    var tx = Transaction()
-                    tx.disablesAnimations = true
-                    withTransaction(tx) {
-                        if filter != .plugins { viewModel.scopedPluginID = nil }
-                        viewModel.setOmniFilter(filter)
-                    }
+                    if filter != .plugins { viewModel.scopedPluginID = nil }
+                    viewModel.setOmniFilter(filter)
                 } label: {
                     Text(filter.title)
                         .font(.caption.weight(active ? .semibold : .medium))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .foregroundStyle(active ? Color.white : LiquidColors.textPrimary.opacity(0.78))
+                        .foregroundStyle(active ? Color.white : LiquidColors.textPrimary.opacity(0.80))
                         .background {
                             if active {
-                                segShape.fill(LiquidColors.accentGradient)
+                                segShape
+                                    .fill(LiquidColors.accentGradient)
+                                    .overlay {
+                                        segShape.fill(LinearGradient(colors: [.white.opacity(0.24), .clear], startPoint: .top, endPoint: .center))
+                                    }
+                                    .overlay {
+                                        segShape.strokeBorder(Color.white.opacity(0.32), lineWidth: 0.7)
+                                    }
+                                    .shadow(color: LiquidColors.accentShadowColor.opacity(0.75), radius: 5, y: 1.5)
+                                    .matchedGeometryEffect(id: "omniFilterIndicator", in: filterTabNamespace)
                             }
                         }
+                        .contentShape(segShape)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(LiquidBentoTileStyle(cornerRadius: max(7, LiquidRadii.control - 2.5)))
             }
         }
         .padding(3)
         .background(LiquidColors.pillSurface, in: pillShape)
         .overlay { pillShape.strokeBorder(LiquidColors.pillBorder, lineWidth: 0.8) }
+        .animation(LiquidMotion.capsuleSlideSpring, value: viewModel.omniFilter)
     }
 
     @ViewBuilder
@@ -236,12 +244,11 @@ struct OverlayCommandView: View {
     }
 
     private var filterBadgeColors: (Color, Color) {
-        let isPrism = themeManager.current == .prismPulse
         switch viewModel.omniFilter {
-        case .all: return isPrism ? (.cyan, .purple) : (.blue, .indigo)
-        case .files: return isPrism ? (.teal, .indigo) : (.blue, .teal)
-        case .clipboard: return (.orange, .pink)
-        case .plugins: return (.purple, .indigo)
+        case .all: return (Color(red: 0.04, green: 0.52, blue: 1.0), Color(red: 0.0, green: 0.39, blue: 0.88))
+        case .files: return (Color(red: 0.06, green: 0.58, blue: 0.88), Color(red: 0.0, green: 0.44, blue: 0.78))
+        case .clipboard: return (.orange, Color(red: 0.92, green: 0.38, blue: 0.14))
+        case .plugins: return (.indigo, Color(red: 0.24, green: 0.32, blue: 0.84))
         }
     }
 }

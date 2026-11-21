@@ -21,6 +21,28 @@ private final class CrispSearchTextField: NSTextField {
     override var allowsVibrancy: Bool { false }
     override var acceptsFirstResponder: Bool { true }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshThemeTypography(placeholder: placeholderAttributedString?.string)
+    }
+
+    func refreshThemeTypography(placeholder: String?) {
+        textColor = LiquidColors.primaryNSColor
+        if let editor = currentEditor() as? NSTextView {
+            editor.textColor = LiquidColors.primaryNSColor
+            editor.insertionPointColor = LiquidColors.primaryNSColor
+        }
+        if let placeholder {
+            placeholderAttributedString = NSAttributedString(
+                string: placeholder,
+                attributes: [
+                    .foregroundColor: LiquidColors.placeholderNSColor,
+                    .font: NSFont.systemFont(ofSize: 16, weight: .medium)
+                ]
+            )
+        }
+    }
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         guard let panel = window as? KeyableFloatingPanel else { return }
@@ -49,18 +71,15 @@ struct AutoFocusSearchField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSTextField {
         let field = CrispSearchTextField(string: text)
-        field.isBordered = false
-        field.drawsBackground = false
-        field.focusRingType = .none
+        field.isBordered = false; field.drawsBackground = false; field.focusRingType = .none
         field.font = .systemFont(ofSize: 18, weight: .medium)
-        field.textColor = LiquidColors.primaryNSColor
         field.lineBreakMode = .byTruncatingTail
-        field.cell?.usesSingleLineMode = true
-        field.cell?.wraps = false
-        field.cell?.isScrollable = true
+        field.cell?.usesSingleLineMode = true; field.cell?.wraps = false; field.cell?.isScrollable = true
         field.delegate = context.coordinator
-        applyPlaceholder(L10n.translate(placeholder), to: field)
-        context.coordinator.lastPlaceholder = L10n.translate(placeholder)
+        let localized = L10n.translate(placeholder)
+        field.refreshThemeTypography(placeholder: localized)
+        context.coordinator.lastPlaceholder = localized
+        context.coordinator.lastThemeSignature = Self.currentThemeSignature()
         context.coordinator.installMonitor(for: field)
         return field
     }
@@ -72,9 +91,19 @@ struct AutoFocusSearchField: NSViewRepresentable {
             nsView.stringValue = text
         }
         let localizedPlaceholder = L10n.translate(placeholder)
-        if context.coordinator.lastPlaceholder != localizedPlaceholder {
-            applyPlaceholder(localizedPlaceholder, to: nsView)
+        let themeSignature = Self.currentThemeSignature()
+        if context.coordinator.lastPlaceholder != localizedPlaceholder || context.coordinator.lastThemeSignature != themeSignature {
+            if let crisp = nsView as? CrispSearchTextField {
+                crisp.refreshThemeTypography(placeholder: localizedPlaceholder)
+            } else {
+                nsView.textColor = LiquidColors.primaryNSColor
+                nsView.placeholderAttributedString = NSAttributedString(
+                    string: localizedPlaceholder,
+                    attributes: [.foregroundColor: LiquidColors.placeholderNSColor, .font: NSFont.systemFont(ofSize: 16, weight: .medium)]
+                )
+            }
             context.coordinator.lastPlaceholder = localizedPlaceholder
+            context.coordinator.lastThemeSignature = themeSignature
         }
         if context.coordinator.lastFocusToken != focusToken {
             context.coordinator.scheduleFocus(for: nsView, token: focusToken)
@@ -85,14 +114,8 @@ struct AutoFocusSearchField: NSViewRepresentable {
         coordinator.removeMonitor()
     }
 
-    private func applyPlaceholder(_ text: String, to field: NSTextField) {
-        field.placeholderAttributedString = NSAttributedString(
-            string: text,
-            attributes: [
-                .foregroundColor: LiquidColors.placeholderNSColor,
-                .font: NSFont.systemFont(ofSize: 16, weight: .medium)
-            ]
-        )
+    private static func currentThemeSignature() -> String {
+        "\(ThemeManager.currentSnapshot.rawValue):\(ThemeManager.resolvedIsDarkSnapshot)"
     }
 
     @MainActor
@@ -100,6 +123,7 @@ struct AutoFocusSearchField: NSViewRepresentable {
         var parent: AutoFocusSearchField
         var lastFocusToken: Int = -1
         var lastPlaceholder: String = ""
+        var lastThemeSignature: String = ""
         private var keyMonitor: Any?
 
         init(parent: AutoFocusSearchField) {
@@ -193,91 +217,47 @@ struct AutoFocusSearchField: NSViewRepresentable {
             guard cleanFlags == .command else { return event }
             switch key {
             case "v":
-                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView {
-                    activeEditor.paste(nil)
-                    return nil
-                }
+                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView { activeEditor.paste(nil); return nil }
             case "a":
-                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView {
-                    activeEditor.selectAll(nil)
-                    return nil
-                }
+                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView { activeEditor.selectAll(nil); return nil }
             case "x":
-                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView {
-                    activeEditor.cut(nil)
-                    return nil
-                }
+                if let activeEditor = window.fieldEditor(true, for: field) as? NSTextView { activeEditor.cut(nil); return nil }
             case "c":
                 let hasSelection = (editor?.selectedRange().length ?? 0) > 0
-                if !hasSelection, let onCopyCandidate = parent.onCopyCandidate {
-                    onCopyCandidate()
-                    return nil
-                }
+                if !hasSelection, let onCopyCandidate = parent.onCopyCandidate { onCopyCandidate(); return nil }
             case "z":
                 let canTextUndo = !field.stringValue.isEmpty && (editor?.undoManager?.canUndo == true)
-                if !canTextUndo, parent.onUndoCandidateDelete?() == true {
-                    return nil
-                }
-            case "y":
-                parent.onAction(.togglePreview)
-                return nil
-            case "k":
-                parent.onAction(.toggleActionMenu)
-                return nil
-            case "r":
-                parent.onAction(.revealInFinder)
-                return nil
-            case ",":
-                parent.onAction(.openSettings)
-                return nil
-            default:
-                break
+                if !canTextUndo, parent.onUndoCandidateDelete?() == true { return nil }
+            case "y": parent.onAction(.togglePreview); return nil
+            case "k": parent.onAction(.toggleActionMenu); return nil
+            case "r": parent.onAction(.revealInFinder); return nil
+            case ",": parent.onAction(.openSettings); return nil
+            default: break
             }
             return event
         }
 
         func removeMonitor() {
-            if let keyMonitor {
-                NSEvent.removeMonitor(keyMonitor)
-                self.keyMonitor = nil
-            }
+            if let keyMonitor { NSEvent.removeMonitor(keyMonitor); self.keyMonitor = nil }
         }
 
         func controlTextDidChange(_ obj: Notification) {
             guard let field = obj.object as? NSTextField else { return }
-            if parent.text != field.stringValue {
-                parent.text = field.stringValue
-            }
+            if parent.text != field.stringValue { parent.text = field.stringValue }
         }
 
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-            if textView.hasMarkedText() {
-                return false
-            }
+            guard !textView.hasMarkedText() else { return false }
             switch commandSelector {
-            case #selector(NSResponder.moveUp(_:)):
-                parent.onAction(.moveUp)
-                return true
-            case #selector(NSResponder.moveDown(_:)):
-                parent.onAction(.moveDown)
-                return true
-            case #selector(NSResponder.insertNewline(_:)):
-                parent.onAction(.submit)
-                return true
-            case #selector(NSResponder.cancelOperation(_:)):
-                parent.onAction(.escape)
-                return true
-            case #selector(NSResponder.insertTab(_:)):
-                parent.onAction(.cycleMode)
-                return true
+            case #selector(NSResponder.moveUp(_:)): parent.onAction(.moveUp); return true
+            case #selector(NSResponder.moveDown(_:)): parent.onAction(.moveDown); return true
+            case #selector(NSResponder.insertNewline(_:)): parent.onAction(.submit); return true
+            case #selector(NSResponder.cancelOperation(_:)): parent.onAction(.escape); return true
+            case #selector(NSResponder.insertTab(_:)): parent.onAction(.cycleMode); return true
             case #selector(NSResponder.deleteBackward(_:)):
-                if textView.string.isEmpty {
-                    parent.onAction(.deleteBackwardWhenEmpty)
-                    return true
-                }
-                return false
-            default:
-                return false
+                guard textView.string.isEmpty else { return false }
+                parent.onAction(.deleteBackwardWhenEmpty); return true
+            default: return false
             }
         }
     }

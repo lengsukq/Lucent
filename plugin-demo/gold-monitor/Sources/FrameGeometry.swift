@@ -191,7 +191,7 @@ func checkWindowEdgeState(dataDir: String, windowId: String, mode: String, retur
     var snapX: Double? = nil
     var snapY: Double? = nil
     if let edge = detected {
-        let origin = computeSnapOrigin(edge: edge, sourceFrame: f, targetW: 212, targetH: 96)
+        let origin = computeSnapOrigin(edge: edge, sourceFrame: f, targetW: 236, targetH: 106)
         snapX = origin.x
         snapY = origin.y
     }
@@ -199,8 +199,8 @@ func checkWindowEdgeState(dataDir: String, windowId: String, mode: String, retur
     var restoreX: Double? = nil
     var restoreY: Double? = nil
     if shouldUndock {
-        let targetW: Double = (returnMode == "mini") ? 280 : 352
-        let targetH: Double = (returnMode == "mini") ? 112 : 240
+        let targetW: Double = (returnMode == "mini") ? 304 : 376
+        let targetH: Double = (returnMode == "mini") ? 134 : 262
         restoreX = max(s.visibleMinX + 44, min(f.x + (f.width - targetW) * 0.5, s.visibleMaxX - targetW - 44)).rounded()
         restoreY = max(s.visibleMinY + 32, min(f.y + (f.height - targetH) * 0.5, s.visibleMaxY - targetH - 36)).rounded()
     }

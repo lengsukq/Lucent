@@ -61,6 +61,8 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     var hoverContainer: FileShelfHoverTrackingView?
     var lastAppliedCornerRadius: CGFloat = 0
     var isApplyingFrame = false
+    var isUserDraggingWindow = false
+    var wasExpandedBeforeDrag = true
     var isHovered = false
     var isDraggingIntoShelf = false
     var isSearchFocused = false
@@ -68,6 +70,7 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     var isManuallyRevealed = false
     var skipSessionRemovalOnClose = false
 
+    var hoverEnterTask: Task<Void, Never>?
     var hoverExitTask: Task<Void, Never>?
     var dragSettleTask: Task<Void, Never>?
     private var previewURL: URL?
@@ -168,7 +171,8 @@ final class FileShelfPanelController: NSWindowController, NSWindowDelegate, @pre
     func windowDidBecomeKey(_ notification: Notification) { model.refresh() }
 
     func windowDidMove(_ notification: Notification) {
-        guard !isApplyingFrame, (notification.object as? NSWindow) === window else { return }
+        guard !isApplyingFrame, !isUserDraggingWindow, (notification.object as? NSWindow) === window else { return }
+        hoverEnterTask?.cancel(); hoverEnterTask = nil
         dragSettleTask?.cancel()
         dragSettleTask = Task { [weak self] in
             for _ in 0..<40 {

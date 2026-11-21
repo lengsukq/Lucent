@@ -38,7 +38,7 @@ if flag == "--snap-dock" {
     let edge = input.arguments.count >= 2 ? input.arguments[1] : "right"
     let winId = input.arguments.count >= 3 ? input.arguments[2] : PulseConstants.windowID
     let frames = loadAllWindowFrames(dataDir: input.dataDir)
-    let fallback = WindowFrameRecord(x: 900, y: 400, width: 352, height: 334, opacity: 1.0, pinOnTop: true, updatedAtEpoch: nil)
+    let fallback = WindowFrameRecord(x: 900, y: 400, width: 376, height: 356, opacity: 1.0, pinOnTop: true, updatedAtEpoch: nil)
     let src = frames[winId] ?? frames[PulseConstants.windowID] ?? fallback
     let dsz = dockTargetSize(for: edge)
     let origin = computeSnapOrigin(edge: edge, sourceFrame: src, targetW: dsz.w, targetH: dsz.h)

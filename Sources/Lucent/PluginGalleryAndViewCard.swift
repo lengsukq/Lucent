@@ -17,8 +17,10 @@ struct PluginStructuredViewCard: View {
     var onRunCommandArgs: (([String]) -> Void)? = nil
 
     @StateObject private var dialogState = PluginCardDialogState()
+    @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
+        let _ = themeManager.resolvedIsDark
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -35,7 +37,7 @@ struct PluginStructuredViewCard: View {
                 if let badge = payload.badge, !badge.isEmpty {
                     Text(badge)
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(LiquidColors.accentPrimary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
@@ -64,7 +66,7 @@ struct PluginStructuredViewCard: View {
                                     .strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7)
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.control))
                     }
                 }
             }
@@ -160,7 +162,7 @@ struct PluginStructuredViewCard: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.control))
             .disabled(!isTappable)
 
             if showActionStrip {

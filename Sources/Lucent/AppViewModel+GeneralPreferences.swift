@@ -163,8 +163,16 @@ extension AppViewModel {
 
     func setAppTheme(_ theme: AppThemeID) {
         ThemeManager.shared.apply(theme, persist: true)
-        appTheme = theme
+        appTheme = ThemeManager.shared.effectiveTheme
         serviceMessage = L10n.pick("已切换至「\(theme.title)」(\(theme.englishBadge)) 主题", "Theme switched to \(theme.localizedTitle)")
+    }
+
+    func setFollowSystemAppearance(_ enabled: Bool) {
+        ThemeManager.shared.setFollowSystemAppearance(enabled, persist: true)
+        appTheme = ThemeManager.shared.effectiveTheme
+        serviceMessage = enabled
+            ? L10n.pick("外观已开启跟随 macOS 系统深浅色", "Appearance now follows macOS system mode")
+            : L10n.pick("已固定为「\(ThemeManager.shared.current.title)」主题", "Appearance locked to \(ThemeManager.shared.current.localizedTitle)")
     }
 
     func cycleAppTheme() {
@@ -175,7 +183,7 @@ extension AppViewModel {
 
     func reloadThemeFromDisk() {
         ThemeManager.shared.reloadFromDisk()
-        appTheme = ThemeManager.shared.current
+        appTheme = ThemeManager.shared.effectiveTheme
     }
 
     func setAppLanguage(_ language: AppLanguageID) {

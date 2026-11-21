@@ -8,43 +8,43 @@ public enum AppThemeID: String, Codable, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .pureFrost: "凝霜留白"
-        case .prismPulse: "霓彩流光"
+        case .pureFrost: "晴霜浅色"
+        case .prismPulse: "曜石暗色"
         }
     }
 
     public var englishBadge: String {
         switch self {
-        case .pureFrost: "PURE FROST"
-        case .prismPulse: "PRISM PULSE"
+        case .pureFrost: "LIGHT FROST"
+        case .prismPulse: "OBSIDIAN DARK"
         }
     }
 
     public var subtitle: String {
         switch self {
-        case .pureFrost: "纯净磨砂与克制留白，零弥散杂光，清爽耐看"
-        case .prismPulse: "活力光谱渐变与通透棱镜高光，灵动鲜明"
+        case .pureFrost: "通透瓷白毛玻璃与柔和镜面高光，明晰纯粹"
+        case .prismPulse: "深邃石墨液态玻璃与冷银折射边缘，沉静专注"
         }
     }
 
     public var localizedTitle: String {
         switch self {
-        case .pureFrost: L10n.pick("凝霜留白", "Pure Frost")
-        case .prismPulse: L10n.pick("霓彩流光", "Prism Pulse")
+        case .pureFrost: L10n.pick("晴霜浅色", "Light Frost")
+        case .prismPulse: L10n.pick("曜石暗色", "Obsidian Dark")
         }
     }
 
     public var localizedSubtitle: String {
         switch self {
-        case .pureFrost: L10n.pick("纯净磨砂与克制留白，零弥散杂光，清爽耐看", "Clean frosted surface with crisp contrast and zero ambient glow")
-        case .prismPulse: L10n.pick("活力光谱渐变与通透棱镜高光，灵动鲜明", "Vibrant prism gradients with specular glass highlights")
+        case .pureFrost: L10n.pick("通透瓷白毛玻璃与柔和镜面高光，明晰纯粹", "Luminous porcelain glass with crisp specular highlights")
+        case .prismPulse: L10n.pick("深邃石墨液态玻璃与冷银折射边缘，沉静专注", "Deep graphite liquid glass with cool silver refraction")
         }
     }
 
     public var symbolName: String {
         switch self {
-        case .pureFrost: "circle.lefthalf.filled"
-        case .prismPulse: "sparkles"
+        case .pureFrost: "sun.max.fill"
+        case .prismPulse: "moon.stars.fill"
         }
     }
 
@@ -58,18 +58,22 @@ public enum AppThemeID: String, Codable, CaseIterable, Identifiable, Sendable {
 
 public struct AppThemeConfig: Codable, Sendable, Hashable, Equatable {
     public var selectedTheme: AppThemeID
+    public var followSystemAppearance: Bool
 
     enum CodingKeys: String, CodingKey {
         case selectedTheme
+        case followSystemAppearance
     }
 
-    public init(selectedTheme: AppThemeID = .pureFrost) {
+    public init(selectedTheme: AppThemeID = .pureFrost, followSystemAppearance: Bool = false) {
         self.selectedTheme = selectedTheme
+        self.followSystemAppearance = followSystemAppearance
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.selectedTheme = (try? c.decode(AppThemeID.self, forKey: .selectedTheme)) ?? .pureFrost
+        self.followSystemAppearance = (try? c.decode(Bool.self, forKey: .followSystemAppearance)) ?? false
     }
 
     public static func defaultConfigURL() -> URL {

@@ -78,7 +78,7 @@ struct SettingsSectionHeroHeader<Trailing: View>: View {
     }
 
     var body: some View {
-        let isPrism = themeManager.current == .prismPulse
+        let _ = themeManager.resolvedIsDark
         let lang = languageManager.current
         HStack(alignment: .center, spacing: 15) {
             SquircleBadge(symbol: symbol, topColor: topColor, bottomColor: bottomColor, size: 46)
@@ -91,12 +91,6 @@ struct SettingsSectionHeroHeader<Trailing: View>: View {
         }
         .padding(.horizontal, 18).padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            if isPrism {
-                RadialGradient(colors: [topColor.opacity(0.14), .clear], center: .topLeading, startRadius: 8, endRadius: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: LiquidRadii.bento, style: .continuous))
-            }
-        }
         .liquidGlassCard(cornerRadius: LiquidRadii.bento)
     }
 }
@@ -118,7 +112,7 @@ struct SettingsToggleCardRow: View {
     @ObservedObject private var languageManager = LanguageManager.shared
 
     var body: some View {
-        let isPrism = themeManager.current == .prismPulse
+        let _ = themeManager.resolvedIsDark
         let lang = languageManager.current
         HStack(alignment: .center, spacing: 14) {
             SquircleBadge(symbol: symbol, topColor: topColor, bottomColor: bottomColor, size: 38)
@@ -130,12 +124,6 @@ struct SettingsToggleCardRow: View {
             Toggle("", isOn: $isOn).toggleStyle(.switch).labelsHidden().tint(LiquidColors.accentPrimary)
         }
         .padding(.horizontal, 16).padding(.vertical, 13)
-        .background {
-            if isOn && isPrism {
-                RoundedRectangle(cornerRadius: LiquidRadii.card, style: .continuous)
-                    .fill(RadialGradient(colors: [topColor.opacity(0.10), .clear], center: .leading, startRadius: 6, endRadius: 240))
-            }
-        }
         .liquidGlassCard(cornerRadius: LiquidRadii.card)
     }
 }

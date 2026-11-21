@@ -51,11 +51,13 @@ enum PluginVisualPalette {
                 }
             }
         }
-        if isBuiltin { return (.cyan, .blue) }
-        return mode == .view ? (.teal, .indigo) : (.indigo, .blue)
+        if isBuiltin {
+            return (Color(red: 0.04, green: 0.52, blue: 1.0), Color(red: 0.0, green: 0.39, blue: 0.88))
+        }
+        return mode == .view ? (.teal, .blue) : (.blue, .indigo)
     }
 
-    static func tint(from raw: String?, fallback: Color = .cyan) -> Color {
+    static func tint(from raw: String?, fallback: Color = LiquidColors.accentPrimary) -> Color {
         guard let cleaned = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !cleaned.isEmpty else {
             return fallback
         }
@@ -98,11 +100,12 @@ struct PluginIconBadge: View {
     }
 
     var body: some View {
+        let _ = themeManager.resolvedIsDark
         if let url = customIconURL, let nsImg = IconCache.shared.pluginIcon(for: url, pointSize: size) {
-            let ratio: CGFloat = themeManager.current == .prismPulse ? 0.31 : 0.25
-            let shape = RoundedRectangle(cornerRadius: size * ratio, style: .continuous)
+            let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
             ZStack {
                 shape.fill(LiquidColors.elevatedSurface)
+                shape.fill(LiquidColors.specularTopSheen)
                 Image(nsImage: nsImg)
                     .resizable()
                     .interpolation(.high)
@@ -131,7 +134,7 @@ struct PluginItemLeadingBadge: View {
         let resolvedURL = PluginIconResolver.resolveItemIconURL(
             rawIcon: rawIcon, bundleDirectory: bundleDirectory, dataDirectory: dataDirectory
         )
-        let tint = PluginVisualPalette.tint(from: tintColor, fallback: .cyan)
+        let tint = PluginVisualPalette.tint(from: tintColor, fallback: LiquidColors.accentPrimary)
         let shape = RoundedRectangle(cornerRadius: max(7, size * 0.28), style: .continuous)
 
         if let url = resolvedURL, let nsImg = IconCache.shared.pluginIcon(for: url, pointSize: size) {

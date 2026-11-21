@@ -128,8 +128,8 @@ if flag == "--snap-dock" {
     let winId = input.arguments.count >= 3 ? input.arguments[2] : "gold-monitor-hud"
     let frames = loadAllWindowFrames(dataDir: input.dataDir)
     let cur = frames[winId] ?? frames["gold-monitor-hud"]
-        ?? WindowFrameRecord(x: 1300, y: 760, width: 212, height: 96, opacity: 1.0, pinOnTop: true, updatedAtEpoch: nil)
-    let origin = computeSnapOrigin(edge: edge, sourceFrame: cur, targetW: 212, targetH: 96)
+        ?? WindowFrameRecord(x: 1300, y: 760, width: 236, height: 106, opacity: 1.0, pinOnTop: true, updatedAtEpoch: nil)
+    let origin = computeSnapOrigin(edge: edge, sourceFrame: cur, targetW: 236, targetH: 106)
     emitEncodableJSON(SnapDockResult(ok: true, edge: edge, x: origin.x, y: origin.y))
     exit(0)
 }

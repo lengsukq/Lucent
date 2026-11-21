@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "id": "gold-monitor",
   "name": "黄金大盘悬浮窗 · Au99.99",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "实时监控国内黄金（上海金 Au99.99 / Au(T+D)）人民币元/克行情，支持标准图表悬浮窗与 Mini 极简悬浮条一键切换",
   "mode": "view",
   "keywords": [
@@ -33,10 +33,10 @@
   "timeoutSeconds": 10,
   "window": {
     "entryHtml": "ui/widget.html",
-    "width": 352,
-    "height": 240,
-    "minWidth": 212,
-    "minHeight": 96,
+    "width": 376,
+    "height": 262,
+    "minWidth": 236,
+    "minHeight": 106,
     "resizable": false,
     "chrome": "frameless",
     "transparent": true,

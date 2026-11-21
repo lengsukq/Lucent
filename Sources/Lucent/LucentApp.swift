@@ -11,6 +11,7 @@ final class LucentAppDelegate: NSObject, NSApplicationDelegate {
     private var hasShutdown = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ThemeManager.shared.bootstrapAppearance()
         NSApp.applicationIconImage = LucentBrandIcon.appIconImage()
         installStandardEditMainMenu()
         installTerminationSignals()

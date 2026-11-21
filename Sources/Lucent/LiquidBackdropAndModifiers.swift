@@ -7,7 +7,9 @@ struct FrostedWindowVisualEffectView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = material; view.blendingMode = .behindWindow; view.state = .active
+        view.material = material
+        view.blendingMode = .behindWindow
+        view.state = .active
         return view
     }
 
@@ -22,17 +24,19 @@ struct LiquidFluidBackdrop: View {
 
     var body: some View {
         let reduceTransparency = SystemDisplayPreferences.shared.reduceTransparency
-        let isPrism = themeManager.current == .prismPulse
+        let isDark = themeManager.resolvedIsDark
         ZStack {
             if !reduceTransparency {
-                FrostedWindowVisualEffectView(material: isPrism ? .underWindowBackground : .windowBackground)
+                FrostedWindowVisualEffectView(material: .underWindowBackground)
                     .ignoresSafeArea()
             }
-            LiquidColors.canvasBase.opacity(reduceTransparency ? 1.0 : (isPrism ? 0.42 : 0.76))
-            if !reduceTransparency && isPrism {
-                RadialGradient(colors: [Color.cyan.opacity(0.20), .clear], center: .topLeading, startRadius: 16, endRadius: 540)
-                RadialGradient(colors: [Color.orange.opacity(0.13), .clear], center: .topTrailing, startRadius: 20, endRadius: 460)
-                RadialGradient(colors: [Color.pink.opacity(0.16), Color.indigo.opacity(0.14), .clear], center: .bottomTrailing, startRadius: 24, endRadius: 620)
+            LiquidColors.canvasBase.opacity(reduceTransparency ? 1.0 : (isDark ? 0.56 : 0.68))
+            if !reduceTransparency {
+                LinearGradient(
+                    colors: [Color.white.opacity(isDark ? 0.045 : 0.24), .clear],
+                    startPoint: .top,
+                    endPoint: UnitPoint(x: 0.5, y: 0.34)
+                )
             }
         }
         .ignoresSafeArea()
@@ -45,18 +49,23 @@ struct LiquidGlassShellModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let prefs = SystemDisplayPreferences.shared.snapshot
-        let isPrism = themeManager.current == .prismPulse
+        let isDark = themeManager.resolvedIsDark
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         content
             .background {
                 ZStack {
-                    if !prefs.reduceTransparency { shape.fill(isPrism ? .ultraThinMaterial : .regularMaterial) }
+                    if !prefs.reduceTransparency {
+                        shape.fill(.ultraThinMaterial)
+                    }
                     shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.shellTint)
-                    if !prefs.reduceTransparency && isPrism {
-                        RadialGradient(colors: [Color.cyan.opacity(0.15), .clear], center: .topLeading, startRadius: 8, endRadius: 380)
-                        RadialGradient(colors: [Color.pink.opacity(0.12), .clear], center: .topTrailing, startRadius: 10, endRadius: 340)
-                        RadialGradient(colors: [Color.purple.opacity(0.12), .clear], center: .bottomLeading, startRadius: 14, endRadius: 380)
-                        LinearGradient(colors: [.white.opacity(0.16), .clear], startPoint: .top, endPoint: .center)
+                    if !prefs.reduceTransparency {
+                        shape.fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(isDark ? 0.08 : 0.30), .clear],
+                                startPoint: .top,
+                                endPoint: UnitPoint(x: 0.5, y: 0.28)
+                            )
+                        )
                     }
                 }
             }
@@ -96,20 +105,24 @@ struct LiquidGlassCardModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let prefs = SystemDisplayPreferences.shared.snapshot
-        let isPrism = themeManager.current == .prismPulse
+        let isDark = themeManager.resolvedIsDark
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        let shadowColor = Color.black.opacity(prefs.reduceTransparency ? 0.07 : (isPrism ? 0.065 : 0.035))
-        let shadowRadius: CGFloat = isPrism ? 10 : 5
-        let shadowY: CGFloat = isPrism ? 4 : 2
+        let shadowColor = Color.black.opacity(prefs.reduceTransparency ? 0.08 : (isDark ? 0.22 : 0.06))
+        let shadowRadius: CGFloat = isDark ? 10 : 7
+        let shadowY: CGFloat = isDark ? 4 : 2.5
         content
             .background {
                 ZStack {
                     if !prefs.reduceTransparency {
-                        shape.fill((solidReadable || !isPrism) ? .regularMaterial : .ultraThinMaterial)
+                        shape.fill(solidReadable ? .regularMaterial : .ultraThinMaterial)
                     }
-                    shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : (solidReadable ? LiquidColors.elevatedSurface : LiquidColors.cardSurface))
-                    if !prefs.reduceTransparency && isPrism {
-                        shape.fill(LinearGradient(colors: [.white.opacity(0.08), .clear], startPoint: .top, endPoint: .center))
+                    shape.fill(
+                        prefs.reduceTransparency
+                            ? LiquidColors.solidCardSurface
+                            : (solidReadable ? LiquidColors.elevatedSurface : LiquidColors.cardSurface)
+                    )
+                    if !prefs.reduceTransparency {
+                        shape.fill(LiquidColors.specularTopSheen)
                     }
                 }
             }

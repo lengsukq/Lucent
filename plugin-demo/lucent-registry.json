@@ -83,9 +83,9 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "20d6a0cce950b378548d97c388afa2fefba68fd5b6b20f53e833505fe1685861",
-      "sizeBytes" : 271676,
-      "version" : "1.3.0"
+      "sha256" : "640142c405f7f3d08021647dbe4254a7438666fa2fcac7d4afc407d38a81ced2",
+      "sizeBytes" : 275318,
+      "version" : "1.3.1"
     },
     {
       "accentColor" : "indigo",
@@ -129,9 +129,9 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "e93701ccf7c57b7284885e0f2acd036e2a55a1835afa4e3d6b48a1ef94334a14",
-      "sizeBytes" : 158651,
-      "version" : "1.1.0"
+      "sha256" : "ddd9545f842e543a4fe422d9ca85306c08bed9eebf612ea9850fd83e60f2a8a2",
+      "sizeBytes" : 162104,
+      "version" : "1.1.1"
     },
     {
       "accentColor" : "indigo",
@@ -218,8 +218,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "35103579b601c47cbefb95be9132e5d2a047eeb79841ab4f7f485d8fe3a39862",
-      "sizeBytes" : 180841,
+      "sha256" : "6604b7b3e846a4d30c62e65d30390b0ca7a7679359ca9e9fd5724475051d6a5c",
+      "sizeBytes" : 180839,
       "version" : "1.0.0"
     },
     {
@@ -263,7 +263,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "59ca42dfcc9cb5ebef266e499db1c9ce287619c14624ac00adaa05666f352afd",
+      "sha256" : "619bb31520eb905265ac411359d0faa1229c6d302ed99a9e2400c671fef300dc",
       "sizeBytes" : 122204,
       "version" : "1.1.0"
     },
@@ -354,9 +354,9 @@
       "resourceScopes" : [
         "network"
       ],
-      "sha256" : "5ef5113e67b9cc34c05cf72bc5e23acd68396922e3a67c4d91fbb8380b033876",
-      "sizeBytes" : 207674,
-      "version" : "1.1.0"
+      "sha256" : "19e4a9be9c5f5dcca00663fe0e7ea556968b854f8da088a11232400cf36af35c",
+      "sizeBytes" : 210927,
+      "version" : "1.1.1"
     },
     {
       "accentColor" : "cyan",
@@ -436,8 +436,8 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "74ead56112b7e62ac1d080fdc3c9591507141b2fabb5531796295bf34e854912",
-      "sizeBytes" : 141122,
+      "sha256" : "d085c844204bebfa18862fc6a2a9d05c2fb47edde3126c3ca1519a1973757573",
+      "sizeBytes" : 141121,
       "version" : "2.2.0"
     },
     {
@@ -525,8 +525,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "a3368f2737306ee1bdba204e6d9ad838a4916339eba94b5a405ee6ab18847e8b",
-      "sizeBytes" : 156038,
+      "sha256" : "4c9ccceeaf272793bb2a90a98c7a41466fba012ac4af49fd1b8e5769364c9b1b",
+      "sizeBytes" : 156040,
       "version" : "1.0.0"
     },
     {
@@ -607,8 +607,8 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "33c00ba77bf7f1b68b1549e7b299d2c6e347fe46d57ea952e4f43ed1eae65383",
-      "sizeBytes" : 202224,
+      "sha256" : "4cdbc668ae9ea0ae7aa4858d2db6d173b1bfc3b54226bfb09925ad1144209c40",
+      "sizeBytes" : 202226,
       "version" : "1.4.0"
     },
     {
@@ -681,7 +681,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "808e7184f97914b8b21331c5b805b6dbbdb03e920b4690638be43763d7ff2cb5",
+      "sha256" : "1f95de748bc4ae9e30eb3fa13288b69b3a65e0fa8565b4ba91ab014b268a6147",
       "sizeBytes" : 144053,
       "version" : "1.0.0"
     },
@@ -771,8 +771,8 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "5ace7e750aa463c3dadecad4168fb2133b9915e7a34a9eecaff3e796716b1340",
-      "sizeBytes" : 115366,
+      "sha256" : "0162ff4084318c916de9668672388931788356b7c3e6e2080503a5fbe875ee74",
+      "sizeBytes" : 115365,
       "version" : "1.0.0"
     },
     {
@@ -948,13 +948,13 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "924b985776aed5338bf42cd6d0397a3e3120c6b46ea46322dbcd8372932e5c39",
-      "sizeBytes" : 205026,
+      "sha256" : "dee020312f65dec0cfc64c92a25325e4d199218aefeff1a89c88181cefa99b7f",
+      "sizeBytes" : 205027,
       "version" : "1.1.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-20T15:30:49Z"
+  "updatedAt" : "2026-11-21T07:21:13Z"
 }

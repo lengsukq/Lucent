@@ -45,7 +45,7 @@ struct OverlayUnifiedRowsView: View {
 
     private var emptyStateCard: some View {
         VStack(spacing: 10) {
-            SquircleBadge(symbol: viewModel.omniFilter.symbolName, topColor: .cyan.opacity(0.85), bottomColor: .blue.opacity(0.85), size: 42)
+            SquircleBadge(symbol: viewModel.omniFilter.symbolName, topColor: LiquidColors.accentPrimary, bottomColor: Color(red: 0.0, green: 0.39, blue: 0.88), size: 42)
             Text(L10n.translate(emptyTitle)).font(.callout.weight(.semibold)).foregroundStyle(LiquidColors.textPrimary)
             Text("试试调整关键词，或按 Tab 切换搜索维度 / 进入插件专属列表").font(.caption2).foregroundStyle(LiquidColors.textSecondary)
         }
@@ -83,7 +83,7 @@ struct OverlayUnifiedRowsView: View {
             PluginIconBadge(symbol: cmd.symbolName, customIconURL: cmd.pluginCustomIconURL, accentColor: cmd.isQuickButtonEnabled ? "orange" : cmd.pluginAccentColor, isBuiltin: cmd.isBuiltin, size: 32)
         case .pluginItem(let entry):
             PluginIconBadge(symbol: entry.symbolIconName, customIconURL: entry.customIconURL, accentColor: entry.pinned ? "orange" : (entry.tintColor ?? "teal"), size: 32)
-        case .command(let cmd): SquircleBadge(symbol: cmd.symbol, topColor: .cyan, bottomColor: .blue, size: 32)
+        case .command(let cmd): SquircleBadge(symbol: cmd.symbol, topColor: LiquidColors.accentPrimary, bottomColor: Color(red: 0.0, green: 0.39, blue: 0.88), size: 32)
         }
     }
 
@@ -239,9 +239,14 @@ struct OverlayUnifiedRowsView: View {
 
 private struct LiquidResultRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.scaleEffect(configuration.isPressed ? 0.985 : 1.0)
-            .opacity(configuration.isPressed ? 0.92 : 1.0)
-            .animation(LiquidMotion.pressSpring, value: configuration.isPressed)
+        configuration.label
+            .liquidPressEffect(
+                isPressed: configuration.isPressed,
+                cornerRadius: LiquidRadii.row,
+                isCapsule: false,
+                pressedScale: 0.990,
+                tint: LiquidColors.accentPrimary
+            )
     }
 }
 
@@ -254,8 +259,8 @@ private extension View {
                 ZStack {
                     if !prefs.reduceTransparency { shape.fill(.ultraThinMaterial) }
                     shape.fill(prefs.reduceTransparency ? LiquidColors.highlightGlow : LiquidColors.selectedRowFill)
-                    if !prefs.reduceTransparency && LiquidColors.isPrism {
-                        shape.fill(LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .center))
+                    if !prefs.reduceTransparency {
+                        shape.fill(LiquidColors.specularTopSheen)
                     }
                 }
             }
@@ -265,7 +270,7 @@ private extension View {
                 shape.strokeBorder(prefs.increaseContrast ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(LiquidColors.selectedRowRimGradient), lineWidth: prefs.increaseContrast ? 1.4 : 1.0)
             }
         }
-        .shadow(color: selected && !prefs.reduceTransparency ? LiquidColors.accentShadowColor.opacity(0.55) : .clear, radius: 8, y: 2)
+        .shadow(color: selected && !prefs.reduceTransparency ? LiquidColors.accentShadowColor.opacity(0.42) : .clear, radius: 7, y: 2)
         .contentShape(shape)
     }
 }

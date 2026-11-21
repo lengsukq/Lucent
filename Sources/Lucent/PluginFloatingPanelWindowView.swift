@@ -5,9 +5,11 @@ import SwiftUI
 struct PluginFloatingPanelWindowView: View {
     @ObservedObject var controller: PluginFloatingPanelController
     let windowKey: String
+    @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var languageManager = LanguageManager.shared
 
     var body: some View {
+        let _ = themeManager.resolvedIsDark
         let plugin = controller.plugin
         let title = plugin?.displayName ?? controller.pluginID
         SecondaryWindowScaffold(
@@ -38,7 +40,7 @@ struct PluginFloatingPanelWindowView: View {
             if let plugin {
                 PluginIconBadge(plugin: plugin, size: 28)
             } else {
-                SquircleBadge(symbol: "puzzlepiece.extension.fill", topColor: .emeraldCompat, bottomColor: .cyan, size: 28)
+                SquircleBadge(symbol: "puzzlepiece.extension.fill", topColor: LiquidColors.accentPrimary, bottomColor: .teal, size: 28)
             }
 
             VStack(alignment: .leading, spacing: 1.5) {
@@ -232,8 +234,4 @@ struct PluginFloatingPanelWindowView: View {
         if sec <= 0 { return L10n.pick("手动", "Manual") }
         return "\(sec)s"
     }
-}
-
-private extension Color {
-    static var emeraldCompat: Color { Color(red: 0.06, green: 0.73, blue: 0.51) }
 }

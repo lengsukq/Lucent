@@ -36,11 +36,11 @@ public enum AppUpdateService {
            !ver.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return ver
         }
-        return "0.9.9.2"
+        return "0.9.9.3"
     }
 
     public static func currentBuildNumber(bundle: Bundle = .main) -> String {
-        (bundle.infoDictionary?["CFBundleVersion"] as? String) ?? "38"
+        (bundle.infoDictionary?["CFBundleVersion"] as? String) ?? "39"
     }
 
     private struct GitHubAssetDTO: Decodable {

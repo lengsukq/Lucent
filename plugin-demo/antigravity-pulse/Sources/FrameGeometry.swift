@@ -138,7 +138,7 @@ func updateSavedWindowFrame(
 }
 
 func dockTargetSize(for edge: String) -> (w: Double, h: Double) {
-    return edge == "top" ? (228, 44) : (136, 74)
+    return edge == "top" ? (260, 60) : (164, 104)
 }
 
 func computeSnapOrigin(edge: String, sourceFrame: WindowFrameRecord, targetW: Double, targetH: Double) -> (x: Double, y: Double) {
@@ -208,8 +208,8 @@ func checkWindowEdgeState(dataDir: String, windowId: String, mode: String, retur
     var restoreX: Double? = nil
     var restoreY: Double? = nil
     if shouldUndock {
-        let targetW: Double = 352
-        let targetH: Double = 334
+        let targetW: Double = 376
+        let targetH: Double = 356
         restoreX = max(s.visibleMinX + 40, min(f.x + (f.width - targetW) * 0.5, s.visibleMaxX - targetW - 40)).rounded()
         restoreY = max(s.visibleMinY + 32, min(f.y + (f.height - targetH) * 0.5, s.visibleMaxY - targetH - 36)).rounded()
     }

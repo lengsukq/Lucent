@@ -4,32 +4,48 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>流光 Lucent — 2D 图文详解与启动面板定制实验台</title>
-  <meta name="description" content="普通人秒上手、极客可深度折腾的 Apple Silicon Mac 原生快捷中枢：支持启动面板四分区自由定制、单文件快捷脚本库、顶部菜单栏编排、全盘秒搜、多屏截图标注与离线识字、Plugin v3.7 透明悬浮挂件及内置 20 项 lucent-mcp AI 工具。" />
+  <meta name="description" content="专为 Apple Silicon Mac 打造的纯原生 Swift 6 快捷效率中枢：支持启动面板四分区自由定制、⌘K 上下文动作抽屉、单文件快捷脚本库、全盘秒搜、多屏截图标注与离线识字、11 款官方原生 Swift 插件及内置 21 项 lucent-mcp AI 工具。" />
   <meta property="og:title" content="流光 Lucent — 轻巧顺手、从启动面板到插件皆可定制的 Mac 效率中枢" />
-  <meta property="og:description" content="启动面板四分区自由编排 · 单文件快捷脚本库 · 7 款官方原生 Swift 扩展 + Plugin v3.7 透明桌面挂件 · 内置 20 项 lucent-mcp AI 工具 · 纯 Swift 6 零依赖。" />
+  <meta property="og:description" content="启动面板四分区自由编排 · ⌘K 上下文动作抽屉 · 11 款官方原生 Swift 扩展 + Plugin v3.7 透明桌面挂件 · 内置 21 项 lucent-mcp AI 工具 · 纯 Swift 6 零依赖。" />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="./assets/icon.svg" />
+  <script>
+    (function () {
+      try {
+        var saved = window.localStorage.getItem('lucent-showcase-theme-v2');
+        var theme = saved === 'pure-frost' || saved === 'prism-pulse'
+          ? saved
+          : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'prism-pulse' : 'pure-frost');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (_) {}
+    })();
+  </script>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="scroll-beam" id="scrollBeam" aria-hidden="true"></div>
 
-  <!-- Dual-Theme Volumetric Liquid-Glass Atmosphere -->
-  <div class="studio-daylight" aria-hidden="true"></div>
-  <div class="ambient-backdrop" aria-hidden="true">
-    <div class="aurora-orb orb-1" id="orb1"></div>
-    <div class="aurora-orb orb-2" id="orb2"></div>
-    <div class="aurora-orb orb-3" id="orb3"></div>
+  <!-- Subtle Flowing Liquid Silk Light Wave Backdrop (Zero Grid / Zero Neon Orbs) -->
+  <div class="liquid-ambient-field" aria-hidden="true">
+    <div class="silk-wave silk-wave-a"></div>
+    <div class="silk-wave silk-wave-b"></div>
   </div>
-  <div class="ambient-grid" aria-hidden="true"></div>
-  <div class="optical-grain" aria-hidden="true"></div>
 
+  <!-- Floating Liquid Glass Toast Island -->
+  <div class="glass-toast-island" id="glassToastIsland" role="status" aria-live="polite" aria-atomic="true">
+    <span class="toast-icon" id="glassToastIcon" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </span>
+    <span class="toast-text" id="glassToastText"></span>
+  </div>
+
+  <!-- Floating Liquid Glass Navbar + Responsive Mobile Section Strip -->
   <header class="site-header">
-    <nav class="nav-capsule" aria-label="主导航">
+    <nav class="nav-capsule liquid-glass-layer" aria-label="主导航">
       <a href="#hero" class="brand-link">
         <img src="./assets/icon.svg" alt="Lucent Icon" class="brand-icon" width="28" height="28" />
         <span>Lucent <span data-i18n="brand_cn">流光</span></span>
-        <span class="brand-tag mono">Plugin v3.7 · 20 MCP</span>
+        <span class="brand-tag mono">Plugin v3.7 · 21 MCP</span>
       </a>
 
       <div class="nav-links" id="navLinks">
@@ -43,91 +59,118 @@
       </div>
 
       <div class="nav-actions">
-        <a href="./index.html" class="nav-3d-pill" title="返回 Three.js 3D 主介绍页">
-          <span class="nav-3d-spark">←</span>
-          <span data-i18n="nav_3d_exp">返回 3D 主页</span>
+        <a href="./index.html" class="nav-3d-pill" title="前往 3D 舞台主页">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 3.5 7.25v9.5L12 21.5l8.5-4.75v-9.5L12 2.5Z"/><path d="M3.5 7.25 12 12l8.5-4.75"/><path d="M12 21.5V12"/></svg>
+          <span data-i18n="nav_3d_exp">3D 舞台</span>
         </a>
-        <button type="button" class="pill-btn" id="themeToggleBtn" title="切换凝霜留白 / 霓彩流光主题">
-          <span class="theme-dot"></span>
-          <span id="themeToggleLabel" data-i18n="theme_frost">凝霜留白</span>
+        <button type="button" class="pill-btn theme-pill-btn" id="themeToggleBtn" title="切换晴霜浅色 / 曜石暗色主题">
+          <span class="theme-icon-wrap" id="themeToggleIcon" aria-hidden="true">
+            <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77"/></svg>
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z"/><path d="M17.5 3.5v3M16 5h3"/></svg>
+          </span>
+          <span id="themeToggleLabel" data-i18n="theme_frost">晴霜浅色</span>
         </button>
         <button type="button" class="pill-btn mono" id="langToggleBtn" title="切换语言 / Switch Language">
           EN
         </button>
-        <a href="#download" data-gh-path="/releases/latest" class="btn-primary-sm magnetic-btn">
+        <a href="#download" data-gh-path="/releases/latest" class="btn-primary-sm fx-primary-btn">
           <span data-i18n="nav_download">下载 DMG</span>
         </a>
       </div>
     </nav>
+
+    <!-- Mobile / Tablet (< 1060px) Floating Liquid Glass Section Bar -->
+    <nav class="mobile-section-bar liquid-glass-layer" id="mobileSectionBar" aria-label="章节快捷导航">
+      <a href="#hero" class="active" data-i18n="nav_launcher">启动面板</a>
+      <a href="#builder" data-i18n="nav_builder">高度定制</a>
+      <a href="#theatre" data-i18n="nav_theatre">AI 共创</a>
+      <a href="#capabilities" data-i18n="nav_bento">日常利器</a>
+      <a href="#philosophy" data-i18n="nav_philosophy">设计哲学</a>
+      <a href="#architecture" data-i18n="nav_arch">极客架构</a>
+    </nav>
   </header>
 
   <main>
-    <!-- ACT I · Hero: Approachable Everyday Speed + Live Launch Panel Customization -->
+    <!-- ACT I · Hero: Refined First Screen + Interactive 880×544 Liquid Glass Hub Simulator -->
     <section class="hero-section" id="hero">
       <div class="container">
         <div class="hero-copy" id="heroCopy">
-          <div class="hero-badges hero-stagger" style="--stagger: 0ms">
-            <a href="#builder" class="hero-badge">
-              <i class="pulse-dot"></i>
-              <span data-i18n="hero_badge_1">全新启动面板自定义 · 快捷脚本库 · 20 项 MCP 工具</span>
-            </a>
-            <a href="#architecture" class="hero-badge">
-              <span>Swift 6</span>
-              <code class="mono">arm64 · ~10 MB</code>
-            </a>
-            <button type="button" class="hero-badge hero-badge-btn" id="heroFocusShortcutBtn">
+          <div class="hero-status-row hero-stagger" style="--stagger: 0ms">
+            <button type="button" class="hero-status-capsule" id="heroFocusShortcutBtn">
+              <i class="status-live-dot" aria-hidden="true"></i>
+              <span class="mono">macOS 14+ · Apple Silicon · Swift 6 · ~10 MB</span>
+              <span class="capsule-sep" aria-hidden="true"></span>
               <kbd class="keycap" data-key-watch="Alt">⌥</kbd><kbd class="keycap" data-key-watch="Space">Space</kbd>
-              <span data-i18n="hero_badge_3">秒呼即走 · 不占后台</span>
             </button>
           </div>
 
-          <h1 class="hero-title hero-stagger" style="--stagger: 80ms">
-            <span data-i18n="hero_title_1">轻巧顺手的 Mac 效率底座，</span><span class="gradient-text shimmer-text" data-i18n="hero_title_2">从启动面板到插件全随你定。</span>
+          <h1 class="hero-title hero-stagger" style="--stagger: 65ms">
+            <span class="hero-title-primary" data-i18n="hero_title_1">轻巧顺手的 Mac 效率底座，</span>
+            <span class="hero-title-accent" data-i18n="hero_title_2"><span class="nowrap">从启动面板</span><span class="nowrap">到插件</span><span class="nowrap">全随你定。</span></span>
           </h1>
 
-          <p class="hero-subtitle hero-stagger" style="--stagger: 160ms" data-i18n="hero_subtitle">
-            按一下 ⌥Space，找软件、搜电脑与移动硬盘文件、翻剪贴板、截屏识字、算账换算一框搞定；用完切走自动释放内存。更把选择权彻底交还给你：启动面板怎么排、顶部菜单留哪几项、快捷键怎么顺手全可自由编排，还能对 AI 说一句话十秒造出你独有的新工具。
+          <p class="hero-subtitle hero-stagger" style="--stagger: 120ms" data-i18n="hero_subtitle">
+            按一下 ⌥Space，找软件、搜本机与移动硬盘文件、翻剪贴板、截屏识字、按 ⌘K 呼出动作抽屉<span class="nowrap">一框搞定；</span>用完即焚自动归还内存，还可让 AI 一句话<span class="nowrap">造脚本、</span><span class="nowrap">写插件、</span><span class="nowrap">排主页。</span>
           </p>
 
-          <div class="hero-cta-row hero-stagger" style="--stagger: 230ms">
-            <a href="#builder" class="btn-hero-primary magnetic-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
-              <span data-i18n="cta_builder">亲手定制你的专属 Lucent</span>
+          <div class="hero-cta-row hero-stagger" style="--stagger: 175ms">
+            <a href="#download" data-gh-path="/releases/latest" class="btn-hero-primary fx-primary-btn">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span data-i18n="cta_download">下载 macOS DMG</span>
             </a>
-            <a href="./index.html" class="btn-hero-3d magnetic-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-              <span data-i18n="cta_3d_exp">返回 3D 沉浸式主页</span>
+            <a href="#builder" class="btn-hero-secondary">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
+              <span data-i18n="cta_builder">定制你的 Lucent</span>
             </a>
-            <a href="#download" data-gh-path="/releases/latest" class="btn-hero-secondary magnetic-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span data-i18n="cta_download">下载 macOS 安装包 (.dmg)</span>
+            <a href="./index.html" class="hero-text-link">
+              <span data-i18n="cta_3d_exp">前往 3D 舞台 →</span>
             </a>
           </div>
         </div>
 
-        <div class="launcher-presets hero-stagger" style="--stagger: 300ms" role="tablist" aria-label="交互式启动面板布局与搜索场景切换">
-          <span class="preset-label" data-i18n="preset_try">切换启动面板布局 / 试搜指令：</span>
-          <button type="button" class="preset-chip active" data-preset="bento" data-i18n="preset_bento">✦ 均衡默认主页</button>
-          <button type="button" class="preset-chip" data-preset="home_min" data-i18n="preset_home_min">◐ 极简 16 格混合坞</button>
-          <button type="button" class="preset-chip" data-preset="home_dev" data-i18n="preset_home_dev">⌘ 开发者主页与书签架</button>
-          <button type="button" class="preset-chip" data-preset="home_shelf" data-i18n="preset_home_shelf">📑 4 列磁贴与分类架</button>
-          <button type="button" class="preset-chip" data-preset="translate" data-i18n="preset_translate">🌐 划词/OCR 翻译</button>
-          <button type="button" class="preset-chip" data-preset="remind" data-i18n="preset_remind">⏰ 10m 喝水提醒</button>
-          <button type="button" class="preset-chip" data-preset="dev" data-i18n="preset_dev">∑ 算式与色板换算</button>
+        <div class="launcher-presets hero-stagger" style="--stagger: 230ms" role="tablist" aria-label="交互式启动面板布局与搜索场景切换">
+          <span class="preset-label" data-i18n="preset_try">切换启动面板 / 试搜指令：</span>
+          <button type="button" class="preset-chip active" data-preset="bento">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            <span data-i18n="preset_bento">均衡默认主页</span>
+          </button>
+          <button type="button" class="preset-chip" data-preset="home_min">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg>
+            <span data-i18n="preset_home_min">极简 16 格混合坞</span>
+          </button>
+          <button type="button" class="preset-chip" data-preset="home_dev">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span data-i18n="preset_home_dev">开发者主页与书签架</span>
+          </button>
+          <button type="button" class="preset-chip" data-preset="home_shelf">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18" cy="18" r="2.5"/></svg>
+            <span data-i18n="preset_home_shelf">4 列磁贴与分类架</span>
+          </button>
+          <button type="button" class="preset-chip" data-preset="translate">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 1 3.5 9 13 13 0 0 1-3.5 9 13 13 0 0 1-3.5-9A13 13 0 0 1 12 3Z"/></svg>
+            <span data-i18n="preset_translate">划词 / OCR 翻译</span>
+          </button>
+          <button type="button" class="preset-chip" data-preset="remind">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5"/><path d="M5 3 2 6M22 6l-3-3"/></svg>
+            <span data-i18n="preset_remind">10m 喝水提醒</span>
+          </button>
+          <button type="button" class="preset-chip" data-preset="dev">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><line x1="8" y1="8" x2="16" y2="8"/><path d="M8 13h2M14 13h2M8 17h2M14 17h2"/></svg>
+            <span data-i18n="preset_dev">算式与色板换算</span>
+          </button>
         </div>
 
-        <div class="launcher-perspective hero-stagger" style="--stagger: 370ms" id="launcherStageWrap">
-          <div class="launcher-halo" aria-hidden="true"></div>
-          <div class="luma-panel glass-specular" id="heroPanel">
+        <!-- 880×544 Interactive Liquid Glass Launch Panel Simulator -->
+        <div class="launcher-perspective hero-stagger" style="--stagger: 290ms" id="launcherStageWrap">
+          <div class="luma-panel liquid-glass-layer" id="heroPanel">
             <div class="panel-sheen" aria-hidden="true"></div>
             <div class="panel-grabber">
-              <span class="panel-action-toast mono" id="panelActionToast" aria-live="polite"></span>
               <div class="panel-grabber-pill"></div>
-              <span class="panel-dimension-tag mono">880 × 544 · Custom Home Profiles + 0ms Search</span>
+              <span class="panel-action-toast mono" id="panelActionToast" aria-live="polite"></span>
             </div>
 
             <div class="panel-search-bar" id="panelSearchBar">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7.5"/><line x1="20.5" y1="20.5" x2="16.4" y2="16.4"/></svg>
               <input
                 type="text"
                 id="launcherInput"
@@ -151,26 +194,44 @@
               <div class="panel-right-lens" id="launcherRightLens"></div>
             </div>
 
+            <!-- Real ⌘K Liquid Glass Contextual Action Drawer -->
+            <div class="panel-action-drawer liquid-glass-layer" id="panelActionDrawer" role="dialog" aria-label="⌘K 上下文动作抽屉" aria-hidden="true">
+              <div class="drawer-head">
+                <div class="drawer-head-left">
+                  <kbd class="keycap">⌘K</kbd>
+                  <span class="drawer-target-title" id="drawerTargetTitle">当前选中项</span>
+                </div>
+                <button type="button" class="drawer-close-btn" id="drawerCloseBtn" aria-label="关闭动作抽屉">
+                  <kbd class="keycap">Esc</kbd>
+                </button>
+              </div>
+              <div class="drawer-list" id="drawerActionList" role="listbox"></div>
+              <div class="drawer-foot mono">
+                <span data-i18n="drawer_foot_nav">↑↓ 选择 · ↵ 执行 · Esc 关闭</span>
+                <span>OverlayActionCatalog</span>
+              </div>
+            </div>
+
             <div class="panel-footer">
               <div class="footer-hints" id="panelFooterHints">
                 <button type="button" class="footer-hint-btn" data-footer-act="exec"><kbd class="keycap">↵</kbd> <em class="hint-label" data-i18n="hint_open">执行 / 打开</em></button>
-                <button type="button" class="footer-hint-btn" data-footer-act="quick"><kbd class="keycap">⌘1-9</kbd> <em class="hint-label" data-i18n="hint_quick">盲按快选</em></button>
-                <button type="button" class="footer-hint-btn" data-footer-act="pin"><kbd class="keycap">Right Click</kbd> <em class="hint-label" data-i18n="hint_tab">右键钉上主页</em></button>
-                <button type="button" class="footer-hint-btn" data-footer-act="focus"><kbd class="keycap" data-key-watch="Space">⌥Space</kbd> <em class="hint-label" data-i18n="hint_focus">聚焦体验框</em></button>
+                <button type="button" class="footer-hint-btn" data-footer-act="actions"><kbd class="keycap">⌘K</kbd> <em class="hint-label" data-i18n="hint_actions">动作抽屉</em></button>
+                <button type="button" class="footer-hint-btn" data-footer-act="tab"><kbd class="keycap">Tab</kbd> <em class="hint-label" data-i18n="hint_scope">切换分类</em></button>
+                <button type="button" class="footer-hint-btn" data-footer-act="pin"><kbd class="keycap">Right Click</kbd> <em class="hint-label" data-i18n="hint_tab">右键菜单</em></button>
               </div>
-              <span class="mono status-heartbeat" id="panelEngineStatus">Home: Balanced · 5 Active Plugins</span>
+              <span class="mono status-heartbeat" id="panelEngineStatus">Home: Balanced · 6 Active Plugins</span>
             </div>
           </div>
         </div>
 
-        <div class="scroll-cue hero-stagger" style="--stagger: 450ms">
+        <div class="scroll-cue hero-stagger" style="--stagger: 360ms">
           <div class="scroll-mouse"><div class="scroll-wheel-dot"></div></div>
           <span data-i18n="scroll_hint">向下滚动，体验全维度自由定制与 AI 一句话共创</span>
         </div>
       </div>
     </section>
 
-    <!-- ACT II · DEEP CUSTOMIZATION WORKBENCH: Plugins, Menu Bar, Hotkeys & Freeform HUD -->
+    <!-- ACT II · DEEP CUSTOMIZATION WORKBENCH: 11 Official Plugins + MCP Custom -->
     <section class="builder-section section-band" id="builder">
       <div class="container">
         <div class="builder-header-row reveal-up">
@@ -178,35 +239,50 @@
             <span class="section-eyebrow" data-i18n="builder_eyebrow">DEEP CUSTOMIZATION WORKBENCH · 全维度高度自定义拼装台</span>
             <h2 class="section-title" data-i18n="builder_title"><span class="title-clause">一千个人手里，</span><span class="title-clause">有一千种长相的 Lucent</span></h2>
             <p class="section-desc" data-i18n="builder_desc">
-              讨厌装完多出一堆关不掉的按钮和后台进程？这里所有扩展默认零打扰：不开启即零内存、零后台轮询；开启后可按需钉入启动面板或顶部状态栏菜单、自由修改唤醒词、录制不抢焦点的静默快捷键，甚至弹出无边框透明桌面挂件。点按下方开关亲手试拼：
+              讨厌装完多出一堆关不掉的按钮和后台进程？这里 11 款官方原生 Swift 扩展默认零打扰：不开启即零内存、零后台轮询；开启后可按需钉入启动面板、挂载右键与 ⌘K 动作流，或弹出无边框液态玻璃桌面挂件。点按下方开关亲手试拼：
             </p>
           </div>
-          <a href="./index.html?scene=plugins" class="section-3d-jump magnetic-btn">
-            <span class="nav-3d-spark">✦</span>
-            <span data-i18n="jump_3d_plugins">返回 3D 主页 · 插件生态 →</span>
+          <a href="./index.html?scene=plugins" class="section-3d-jump">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 3.5 7.25v9.5L12 21.5l8.5-4.75v-9.5L12 2.5Z"/><path d="M3.5 7.25 12 12l8.5-4.75"/><path d="M12 21.5V12"/></svg>
+            <span data-i18n="jump_3d_plugins">在 3D 舞台查看插件生态 →</span>
           </a>
         </div>
 
         <div class="builder-profile-bar reveal-up" id="builderProfileBar" role="group" aria-label="一键切换组合方案">
-          <button type="button" class="builder-profile-btn" data-profile="minimal" data-i18n="prof_minimal">◐ 纯粹微内核底座 (0 插件)</button>
-          <button type="button" class="builder-profile-btn active" data-profile="daily" data-i18n="prof_daily">✦ 日常省心高频套装</button>
-          <button type="button" class="builder-profile-btn" data-profile="dev" data-i18n="prof_dev">⌘ 极客 AI 与远控开发流</button>
-          <button type="button" class="builder-profile-btn" data-profile="full" data-i18n="prof_full">⚡ 7 款官方旗舰 + AI 自制满配</button>
+          <button type="button" class="builder-profile-btn" data-profile="minimal">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg>
+            <span data-i18n="prof_minimal">纯粹微内核底座 (0 插件)</span>
+          </button>
+          <button type="button" class="builder-profile-btn active" data-profile="daily">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 14.8 8.7 21 9.6 16.5 14 17.6 20.2 12 17.2 6.4 20.2 7.5 14 3 9.6 9.2 8.7 12 3"/></svg>
+            <span data-i18n="prof_daily">日常省心高频套装</span>
+          </button>
+          <button type="button" class="builder-profile-btn" data-profile="dev">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span data-i18n="prof_dev">极客 AI 与悬浮挂件流</span>
+          </button>
+          <button type="button" class="builder-profile-btn" data-profile="full">
+            <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span data-i18n="prof_full">11 款官方旗舰 + AI 自制满配</span>
+          </button>
         </div>
 
-        <div class="builder-layout reveal-up" data-spotlight-group>
-          <div class="builder-catalog-card spotlight-surface">
+        <div class="builder-layout reveal-up">
+          <div class="builder-catalog-card elevated-surface">
             <div class="builder-catalog-head">
-              <span class="builder-catalog-title" data-i18n="cat_head_title">7 款官方旗舰扩展 + AI 自制示例（点击查看能力 / 开关挂载）</span>
-              <span class="accent-pill mono" id="enabledCountBadge">5 / 9 Active</span>
+              <span class="builder-catalog-title" data-i18n="cat_head_title">11 款官方原生 Swift 扩展 + AI 自制示例</span>
+              <span class="accent-pill mono" id="enabledCountBadge">6 / 12 Active</span>
             </div>
             <div class="plugin-toggle-list" id="pluginToggleList"></div>
           </div>
 
-          <div class="builder-preview-card spotlight-surface">
+          <div class="builder-preview-card elevated-surface">
             <div class="preview-head-bar">
               <div>
-                <span class="ok-pill live-dot-pill" data-i18n="prev_live_badge">● 实时联动：上方启动面板与菜单栏形态</span>
+                <span class="ok-pill live-dot-pill">
+                  <i class="ok-dot" aria-hidden="true"></i>
+                  <span data-i18n="prev_live_badge">实时联动：上方启动面板与菜单栏形态</span>
+                </span>
               </div>
               <span class="subtle-chip mono" id="previewDaemonStat">0 Resident Daemons</span>
             </div>
@@ -214,14 +290,14 @@
             <div class="assembled-zone">
               <div class="assembled-zone-title">
                 <span data-i18n="zone_quick_title">按需挂载至启动面板胶囊架 &amp; 状态栏菜单（默认关闭不挤占）</span>
-                <span class="mono" id="quickMountCount">5 Mounted</span>
+                <span class="mono" id="quickMountCount">6 Mounted</span>
               </div>
               <div class="mounted-pills" id="mountedQuickPills"></div>
             </div>
 
             <div class="assembled-zone">
               <div class="assembled-zone-title">
-                <span data-i18n="zone_accepts_title">跨模块右键联动（自动接入离线识字 / 剪贴板 / 双栏文件台）</span>
+                <span data-i18n="zone_accepts_title">跨模块 ⌘K 动作流 &amp; 右键联动（OCR / 剪贴板 / 文件工作台）</span>
                 <span class="mono">accepts[]</span>
               </div>
               <div class="mounted-pills" id="mountedAcceptsPills"></div>
@@ -235,19 +311,22 @@
       </div>
     </section>
 
-    <!-- ACT III · Sticky Scroll-Scrubbed AI Co-Creation, Home Orchestration & Security -->
+    <!-- ACT III · Streamlined Sticky Scroll Theatre (300vh, ←/→ Keyboard Nav, 1-Line Non-Active Summary) -->
     <section class="theatre-section" id="theatre">
       <div class="theatre-sticky">
         <div class="container">
           <div class="theatre-head theatre-head-flex">
             <div>
               <span class="section-eyebrow" data-i18n="theatre_eyebrow">AI CO-CREATION &amp; PLUGIN V3.7 · 不会写代码也能深度定制</span>
-              <h2 class="section-title" data-i18n="theatre_title"><span class="title-clause">不仅能装现成插件，</span><span class="title-clause">还能一句话让 AI 造工具、排主页</span></h2>
+              <h2 class="section-title" data-i18n="theatre_title"><span class="title-clause">不仅能装现成插件，</span><span class="title-clause">还能一句话让 AI <span class="nowrap">造脚本、</span><span class="nowrap">造插件、</span><span class="nowrap">排主页</span></span></h2>
             </div>
-            <a href="./index.html?scene=mcp" class="section-3d-jump magnetic-btn">
-              <span class="nav-3d-spark">✦</span>
-              <span data-i18n="jump_3d_mcp">返回 3D 主页 · MCP 共创 →</span>
-            </a>
+            <div class="theatre-head-controls">
+              <span class="theatre-kbd-hint mono" aria-hidden="true"><kbd class="keycap">←</kbd><kbd class="keycap">→</kbd></span>
+              <a href="./index.html?scene=mcp" class="section-3d-jump">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 3.5 7.25v9.5L12 21.5l8.5-4.75v-9.5L12 2.5Z"/><path d="M3.5 7.25 12 12l8.5-4.75"/><path d="M12 21.5V12"/></svg>
+                <span data-i18n="jump_3d_mcp">在 3D 舞台查看 MCP 共创 →</span>
+              </a>
+            </div>
           </div>
 
           <div class="theatre-grid">
@@ -256,29 +335,29 @@
                 <div class="theatre-progress-fill" id="theatreProgressFill"></div>
               </div>
 
-              <article class="step-card active" data-step="0">
+              <article class="step-card active" data-step="0" tabindex="0" role="button">
                 <div class="step-header">
                   <span class="step-index mono">01 / LUCENT-MCP AI CO-CREATION</span>
-                  <span class="accent-pill mono">20 Tools</span>
+                  <span class="accent-pill mono">21 Tools</span>
                 </div>
-                <h3 class="step-title" data-i18n="s1_title">内置 20 项 MCP 工具：一句话写脚本绘图标、造插件、排启动面板</h3>
+                <h3 class="step-title" data-i18n="s1_title">21 项 MCP 工具：<span class="nowrap">造脚本、</span><span class="nowrap">写插件、</span><span class="nowrap">排主页</span>与<span class="nowrap">本地检索</span></h3>
                 <p class="step-desc" data-i18n="s1_desc">
-                  安装包自带零依赖 lucent-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出你想要的快捷脚本（自动绘制 64×64 SVG 图标）、多视图插件或主页布局，AI 过沙箱实测并热刷新生效。
+                  安装包自带零依赖 lucent-mcp 服务，连接 Claude Code、Cursor、Codex 或 Gemini CLI 后，用大白话说出想要的快捷脚本（自动绘制 64×64 SVG 图标）、多视图插件或主页布局，还可在显式授权后通过 lucent_search_files 只读检索本地 LCNTIDX3 文件快照。
                 </p>
               </article>
 
-              <article class="step-card" data-step="1">
+              <article class="step-card" data-step="1" tabindex="0" role="button">
                 <div class="step-header">
                   <span class="step-index mono">02 / PLUGIN V3.7 &amp; FREEFORM HUD</span>
                   <span class="accent-pill mono">Spec v3.7</span>
                 </div>
                 <h3 class="step-title" data-i18n="s2_title">零前端自动生成设置页，亦支持无边框透明玻璃桌面悬浮挂件</h3>
                 <p class="step-desc" data-i18n="s2_desc">
-                  一份 plugin.json 自动渲染滑块、加密密钥框与子功能静默热键；进阶玩家还可开启 window / floatingWindow 自由画布，打造 120Hz 顺滑拖拽、点击穿透的置顶悬浮小窗（关窗即释放内存）。
+                  一份 plugin.json 自动渲染滑块、加密密钥框与子功能静默热键；进阶玩家还可开启 window / floatingWindow 自由画布，打造 120Hz 顺滑拖拽、贴边隐藏与点击穿透的置顶悬浮窗（支持跨重启自动恢复）。
                 </p>
               </article>
 
-              <article class="step-card" data-step="2">
+              <article class="step-card" data-step="2" tabindex="0" role="button">
                 <div class="step-header">
                   <span class="step-index mono">03 / SMART SNIFFER &amp; LOSSLESS UPGRADE</span>
                   <span class="accent-pill mono">SHA-256</span>
@@ -289,7 +368,7 @@
                 </p>
               </article>
 
-              <article class="step-card" data-step="3">
+              <article class="step-card" data-step="3" tabindex="0" role="button">
                 <div class="step-header">
                   <span class="step-index mono">04 / SEATBELT, VAULT &amp; WEBDAV SYNC</span>
                   <span class="ok-pill mono">AES-GCM</span>
@@ -301,9 +380,9 @@
               </article>
             </div>
 
-            <div class="theatre-stage-box spotlight-surface" aria-live="polite">
+            <div class="theatre-stage-box elevated-surface" aria-live="polite">
               <div class="theatre-mobile-tabs" role="tablist" aria-label="插件共创场景切换">
-                <button type="button" class="theatre-mobile-tab active" data-scene-tab="0">01 MCP (20)</button>
+                <button type="button" class="theatre-mobile-tab active" data-scene-tab="0">01 MCP (21)</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="1">02 Spec v3.7</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="2">03 Store</button>
                 <button type="button" class="theatre-mobile-tab" data-scene-tab="3">04 Sandbox</button>
@@ -314,8 +393,11 @@
                 <div class="stage-scene active" data-scene="0" id="mcpSceneStage">
                   <div class="scene-top-bar">
                     <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
-                    <span class="scene-tech-label mono">lucent-mcp · 20 Tools (Scripts + Plugin + Home)</span>
-                    <button type="button" class="ok-pill mono mcp-replay-btn" id="mcpReplayBtn" title="重播 AI 自动编排流水线动画">↻ Live Reload</button>
+                    <span class="scene-tech-label mono">lucent-mcp · 21 Tools (Scripts + Plugin + Home + Files)</span>
+                    <button type="button" class="ok-pill mono mcp-replay-btn" id="mcpReplayBtn" title="重播 AI 自动编排流水线动画">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                      <span>Live Reload</span>
+                    </button>
                   </div>
 
                   <div class="scene-visual-body">
@@ -330,17 +412,17 @@
                       </div>
                       <div class="mcp-step-row mcp-seq-item" style="--seq: 1">
                         <span><strong class="mono">2. scaffold + validate + run_test</strong> · <span data-i18n="sc0_st2">自动生成插件或脚本并在 Seatbelt 沙箱内完成实跑验证</span></span>
-                        <span class="ok-pill mono">Passed ✓</span>
+                        <span class="ok-pill mono">Passed</span>
                       </div>
                       <div class="mcp-step-row mcp-seq-item" style="--seq: 2">
-                        <span><strong class="mono">3. lucent_update_home_layout</strong> · <span data-i18n="sc0_st3">创建新主页 Profile、挂载磁贴与书签架并实时热刷新</span></span>
-                        <span class="ok-pill mono">Synced ✓</span>
+                        <span><strong class="mono">3. lucent_update_home_layout + search_files</strong> · <span data-i18n="sc0_st3">创建新主页 Profile、挂载磁贴并支持只读本地文件检索</span></span>
+                        <span class="ok-pill mono">Synced</span>
                       </div>
                     </div>
 
-                    <div class="mock-card selected-mock mcp-seq-item interactive-mock-card" id="mcpApplyDemoCard" style="--seq: 3" role="button" tabindex="0">
+                    <div class="mock-card selected-mock mcp-seq-item seq-lit interactive-mock-card" id="mcpApplyDemoCard" style="--seq: 3" role="button" tabindex="0">
                       <div class="mock-card-head">
-                        <span class="mock-card-title" data-i18n="sc0_live_t">✦ 已热刷新至 ⌥Space：新插件与「日常开发」启动面板同步就绪</span>
+                        <span class="mock-card-title" data-i18n="sc0_live_t">已热刷新至 ⌥Space：新插件与「日常开发」启动面板同步就绪</span>
                         <span class="accent-pill mono" data-i18n="sc0_try_btn">点击在上方体验 ↗</span>
                       </div>
                       <div class="mock-card-sub" data-i18n="sc0_live_d">
@@ -350,9 +432,9 @@
                   </div>
 
                   <div class="scene-footer-metrics">
-                    <span class="subtle-chip" data-i18n="sc0_f1">12 项插件全生命周期工具</span>
-                    <span class="subtle-chip" data-i18n="sc0_f2">4 项快捷脚本与 SVG 图标工具</span>
-                    <span class="subtle-chip" data-i18n="sc0_f3">4 项启动面板实时编排工具</span>
+                    <span class="subtle-chip" data-i18n="sc0_f1">12 项插件生命周期工具</span>
+                    <span class="subtle-chip" data-i18n="sc0_f2">4 项快捷脚本 + 4 项主页编排</span>
+                    <span class="subtle-chip" data-i18n="sc0_f3">lucent_search_files 离线快照检索</span>
                   </div>
                 </div>
 
@@ -361,7 +443,7 @@
                   <div class="scene-top-bar">
                     <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
                     <span class="scene-tech-label mono">Plugin v3.7 · Auto Settings · Freeform Glass HUD</span>
-                    <span class="ok-pill mono" id="settingsAutoSaveBadge">✓ settings.json Synced</span>
+                    <span class="ok-pill mono" id="settingsAutoSaveBadge">settings.json Synced</span>
                   </div>
 
                   <div class="scene-visual-body">
@@ -378,15 +460,17 @@
                         <div class="form-slider-knob" id="demoSliderKnob"></div>
                       </div>
                       <div class="slider-live-feedback">
-                        <span class="slider-mode-pill mono" id="sliderModeLabel">⚖️ 均衡自然 · Balanced</span>
+                        <span class="slider-mode-pill mono" id="sliderModeLabel">均衡自然 · Balanced</span>
                         <span class="slider-sample-text" id="sliderSamplePreview">实时译文预览：“用完即焚的原生微内核，轻巧不占内存。”</span>
                       </div>
                       <div class="interactive-form-strip">
                         <button type="button" class="mini-form-ctrl mono" id="demoModelSelectBtn" title="点击切换下拉单选模型">
-                          <span>▾ Engine:</span> <strong id="demoModelVal">Ollama · qwen2.5</strong>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                          <span>Engine:</span> <strong id="demoModelVal">Ollama · qwen2.5</strong>
                         </button>
                         <button type="button" class="mini-form-ctrl mono" id="demoVaultSecretBtn" title="点击切换 AES-GCM 密钥框显隐">
-                          <span id="demoVaultVal">🔒 sk-••••9f2a (AES-GCM)</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                          <span id="demoVaultVal">sk-••••9f2a (AES-GCM)</span>
                         </button>
                       </div>
                     </div>
@@ -400,7 +484,7 @@
                         <div class="mock-card-sub" data-i18n="sc1_hk_d">
                           每条细分动作都能独立绑快捷键后台静默秒跑；点击此卡片可轮换测试热键并实时核验冲突：
                         </div>
-                        <div class="mini-status-note mono" id="demoHotkeyStatus">✓ 三层热键无冲突 · 唤醒词可改</div>
+                        <div class="mini-status-note mono" id="demoHotkeyStatus">三层热键无冲突 · 唤醒词可改</div>
                       </div>
 
                       <div class="mock-card hud-levitate-card interactive-mock-card" id="demoHudCard" role="button" tabindex="0">
@@ -409,11 +493,11 @@
                           <code class="accent-pill mono" id="demoHudModeTag">floatingWindow</code>
                         </div>
                         <div class="mock-card-sub" data-i18n="sc1_dl_d">
-                          支持无边框透明毛玻璃 HUD、置顶悬浮与点击穿透；点击下方挂件切换「完整 / 紧凑穿透」态：
+                          支持无边框透明毛玻璃 HUD、贴边磁吸与跨重启恢复；点击下方挂件切换「完整 / 紧凑穿透」态：
                         </div>
                         <div class="mini-hud-preview mono" id="demoMiniHud">
-                          <span><i></i> Focus 18:42</span>
-                          <span>Remind +10m</span>
+                          <span><i></i> Au99.99 684.2</span>
+                          <span>Pulse 92%</span>
                           <span>3 Active</span>
                         </div>
                       </div>
@@ -432,7 +516,7 @@
                   <div class="scene-top-bar">
                     <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
                     <span class="scene-tech-label mono">PluginStoreSniffer · 4-Tier URL Resolution</span>
-                    <span class="ok-pill mono" id="snifferDigestBadge">SHA-256: 8f4c…d91a ✓</span>
+                    <span class="ok-pill mono" id="snifferDigestBadge">SHA-256: 8f4c…d91a</span>
                   </div>
 
                   <div class="scene-visual-body">
@@ -445,7 +529,7 @@
                     <div class="sniffer-input-mock interactive-mock-card" id="snifferInputMock" role="button" tabindex="0" title="点击重新触发四级嗅探与指纹校验">
                       <span class="sniffer-scan-beam" aria-hidden="true"></span>
                       <span class="mono" id="snifferUrlText">lengsukq/Lucent/tree/main/plugin-demo</span>
-                      <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (7 Plugins)</span>
+                      <span class="ok-pill mono" id="snifferDetectedKind">Store Registry (11 Plugins)</span>
                     </div>
 
                     <div class="mock-row-grid">
@@ -487,27 +571,27 @@
 
                   <div class="scene-visual-body">
                     <div class="mcp-pipeline-steps" id="sandboxLayerList">
-                      <div class="mcp-step-row sec-row sec-active" data-sec-idx="0">
+                      <div class="mcp-step-row sec-row sec-active" data-sec-idx="0" tabindex="0" role="button">
                         <span><strong>Seatbelt Kernel Sandbox</strong> · <span data-i18n="sc3_r1">未声明联网或子进程即由系统内核硬阻断，无条件隔离钥匙串与敏感目录</span></span>
                         <span class="ok-pill mono">Isolated</span>
                       </div>
-                      <div class="mcp-step-row sec-row" data-sec-idx="1">
-                        <span><strong>Host Bridge UDS (0700)</strong> · <span data-i18n="sc3_r2">11 项受控宿主桥接（OCR / 划词 / 截屏 / 通知等），一次性令牌随进程结束即焚</span></span>
+                      <div class="mcp-step-row sec-row" data-sec-idx="1" tabindex="0" role="button">
+                        <span><strong>Host Bridge UDS (0700)</strong> · <span data-i18n="sc3_r2">受控宿主桥接（OCR / 划词 / 截屏 / 音频 / 通知等），一次性令牌随进程结束即焚</span></span>
                         <span class="accent-pill mono">Scoped</span>
                       </div>
-                      <div class="mcp-step-row sec-row" data-sec-idx="2">
+                      <div class="mcp-step-row sec-row" data-sec-idx="2" tabindex="0" role="button">
                         <span><strong>LCNTVLT2 Secret Vault</strong> · <span data-i18n="sc3_r3">双轨 256-bit 随机主密钥 AES-GCM 加密存放 API Key，磁盘零明文残留</span></span>
                         <span class="ok-pill mono">256-bit</span>
                       </div>
-                      <div class="mcp-step-row sec-row" data-sec-idx="3">
-                        <span><strong>.lucentbackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 压缩打包启动面板、菜单配置、自制插件与密钥，云盘与 NAS 一键漫游</span></span>
+                      <div class="mcp-step-row sec-row" data-sec-idx="3" tabindex="0" role="button">
+                        <span><strong>.lucentbackup v2 + WebDAV</strong> · <span data-i18n="sc3_r4">LZFSE 压缩打包启动面板、快捷脚本库、自制插件与密钥，云盘与 NAS 一键漫游</span></span>
                         <span class="accent-pill mono">LZFSE</span>
                       </div>
                     </div>
                   </div>
 
                   <div class="scene-footer-metrics">
-                    <span class="subtle-chip" data-i18n="sc3_f1">21 项全景权限审计面板</span>
+                    <span class="subtle-chip" data-i18n="sc3_f1">全景权限审计矩阵</span>
                     <span class="subtle-chip" data-i18n="sc3_f2">子进程超时自动回收兜底</span>
                     <span class="subtle-chip" data-i18n="sc3_f3">HKDF + AES-GCM 备份口令保护</span>
                   </div>
@@ -519,14 +603,14 @@
       </div>
     </section>
 
-    <!-- ACT IV · Everyday Built-in Native Tools (With Live Kinetic Micro-Visuals!) -->
+    <!-- ACT IV · Everyday Built-in Native Tools (Pure Elevated Surface Cards + Apple System Icons) -->
     <section class="bento-section" id="capabilities">
       <div class="container">
         <div class="reveal-up">
           <span class="section-eyebrow" data-i18n="bento_eyebrow">EVERYDAY NATIVE ESSENTIALS · 不装任何插件也超好用的五大原生利器</span>
           <h2 class="section-title" data-i18n="bento_title"><span class="title-clause">把五六个日常小软件，</span><span class="title-clause">浓缩进一个 10 MB 原生底座</span></h2>
           <p class="section-desc" data-i18n="bento_desc">
-            平时最常用的搜索、剪贴板、截屏贴图、GIF 录屏、离线识字与外接鼠标平滑滚轮全部原生内置，用起来直觉顺手，关掉即刻释放内存：
+            平时最常用的搜索、⌘K 动作流、剪贴板、截屏长图、GIF 录屏、离线识字与外接鼠标平滑滚轮全部原生内置，用起来直觉顺手，关掉即刻释放内存：
           </p>
         </div>
 
@@ -535,7 +619,7 @@
             <span data-i18n="hk_all">全部内置利器</span>
           </button>
           <button type="button" class="hotkey-pill" data-target="card-search">
-            <kbd class="keycap">⌥Space</kbd> <span data-i18n="hk_search">自定义主页与全盘秒搜</span>
+            <kbd class="keycap">⌥Space</kbd> <kbd class="keycap">⌘K</kbd> <span data-i18n="hk_search">自定义主页与全盘秒搜</span>
           </button>
           <button type="button" class="hotkey-pill" data-target="card-capture">
             <kbd class="keycap">⌥A</kbd> <kbd class="keycap">⌥G</kbd> <kbd class="keycap">⌥O</kbd> <span data-i18n="hk_shot">截图标注 · GIF · 离线识字</span>
@@ -551,13 +635,15 @@
           </button>
         </div>
 
-        <div class="feature-bento-grid" data-spotlight-group>
-          <!-- Card 1: Search & Custom Home -->
-          <article class="f-card span-6 spotlight-surface reveal-up" id="card-search" style="--delay: 0ms">
+        <div class="feature-bento-grid">
+          <!-- Card 1: Search, ⌘K Actions & Custom Home -->
+          <article class="f-card span-6 elevated-surface fx-bento-card reveal-up" id="card-search" style="--delay: 0ms">
             <div>
               <div class="f-card-top">
-                <span class="squircle-badge" style="background:linear-gradient(135deg,#0066dc,#4338ca)">⌘</span>
-                <kbd class="keycap">⌥Space</kbd>
+                <span class="squircle-badge tone-blue" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.2" y2="16.2"/></svg>
+                </span>
+                <span><kbd class="keycap">⌥Space</kbd> <kbd class="keycap">⌘K</kbd></span>
               </div>
               <div class="bento-micro-stage micro-search">
                 <div class="ms-bar">
@@ -572,52 +658,59 @@
                   <button type="button" class="ms-pill" data-ms-preset="home_shelf">4-Col Tiles</button>
                 </div>
               </div>
-              <h3 data-i18n="fc1_title">可定制启动面板 · 全盘秒搜 · 15 步可撤回剪贴板</h3>
+              <h3 data-i18n="fc1_title">可定制启动面板 · 全盘秒搜 · ⌘K 动作流与剪贴板</h3>
               <p data-i18n="fc1_desc">
-                未打字时展示你自定义的 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜中文双音字/拼音应用、本机与移动硬盘文件、富媒体剪贴板历史（自动跳过密码）、!单文件快捷脚本库、10 类日常单位算式换算、;短语扩展与离线开发小工具。
+                未打字时展示自定义 Bento 磁贴、混合应用坞与分组书签架；输入即免前缀并发秒搜拼音应用、本机与外置盘文件、剪贴板（15 步撤回与本地 0600 持久化）、算式换算与开发小工具，对任意选中项按 ⌘K 即可串联中转站、钉屏与扩展插件。
               </p>
             </div>
             <div class="f-card-chips">
-              <span class="subtle-chip" data-i18n="fc1_c1">4 区 × 多场景 Profile</span>
+              <span class="subtle-chip" data-i18n="fc1_c1">⌘K 上下文动作抽屉</span>
               <span class="subtle-chip" data-i18n="fc1_c2">LCNTIDX3 mmap 零拷贝秒搜</span>
-              <span class="subtle-chip" data-i18n="fc1_c3">880×544 防跳行不抢焦点</span>
+              <span class="subtle-chip" data-i18n="fc1_c3">SearchAffinity 自适应排序</span>
             </div>
           </article>
 
-          <!-- Card 2: Capture, GIF & Offline OCR -->
-          <article class="f-card span-6 spotlight-surface reveal-up" id="card-capture" style="--delay: 75ms">
+          <!-- Card 2: Capture, Scrolling Stitch, GIF & Offline OCR -->
+          <article class="f-card span-6 elevated-surface fx-bento-card reveal-up" id="card-capture" style="--delay: 70ms">
             <div>
               <div class="f-card-top">
-                <span class="squircle-badge" style="background:linear-gradient(135deg,#7c3aed,#db2777)">✦</span>
+                <span class="squircle-badge tone-indigo" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
+                </span>
                 <span><kbd class="keycap">⌥A</kbd> <kbd class="keycap">⌥G</kbd> <kbd class="keycap">⌥O</kbd></span>
               </div>
               <div class="bento-micro-stage micro-capture">
                 <div class="mc-crop-box">
                   <span class="mc-ocr-scan"></span>
-                  <span class="mc-ocr-tag mono">OCR 99.4% · Edge-Safe HUD</span>
+                  <span class="mc-ocr-tag mono">OCR 99.4% · 11 Vector Tools</span>
                 </div>
                 <div class="mc-hud-stack">
                   <div class="mc-island mono"><i class="rec-dot"></i> GIF · 04.2s · 420 KB</div>
-                  <button type="button" class="mc-loupe mono" id="demoCopyColorBtn" title="点击复制取色 HEX"><i class="swatch-dot" id="demoSwatchDot"></i> <span id="demoColorLabel">#38BDF8 · Copy C</span></button>
+                  <button type="button" class="mc-loupe mono" id="demoCopyColorBtn" title="点击复制取色 HEX">
+                    <i class="swatch-dot" id="demoSwatchDot"></i>
+                    <span id="demoColorLabel">#0071E3 · Copy C</span>
+                  </button>
                 </div>
               </div>
-              <h3 data-i18n="fc2_title">多屏超清截图标注 · 轻巧区域 GIF · 一秒离线识字贴图</h3>
+              <h3 data-i18n="fc2_title">多屏超清截图标注 · 长截图 · GIF · 离线识字贴图</h3>
               <p data-i18n="fc2_desc">
-                多块不同分辨率屏幕拼接也能原画质框选与一键抠出独立圆角窗口（靠近屏幕边缘自动避让菜单）；自带箭头、荧光笔、实时马赛克、序号、放大镜按 C 取色及半透明悬浮钉图（按 T 穿透对照），还能直接录轻巧 GIF 动图或离线提取图中文字与二维码。
+                跨屏混合 DPI 原画质冻屏捕获与无障碍子控件下钻抠图；内置 11 种可选中矢量标注工具（贝塞尔曲线箭头、CIGaussianBlur 模糊、荧光笔、100 步撤销）、手动滚动长截图拼接、空格键原地二次标注悬浮钉图，以及零 ffmpeg 区域 GIF 与本地 Vision OCR。
               </p>
             </div>
             <div class="f-card-chips">
               <span class="subtle-chip" data-i18n="fc2_c1">ScreenCaptureKit 零延迟冻屏</span>
-              <span class="subtle-chip" data-i18n="fc2_c2">零 ffmpeg 流式 GIF89a</span>
+              <span class="subtle-chip" data-i18n="fc2_c2">滚动长截图 &amp; 流式 GIF89a</span>
               <span class="subtle-chip" data-i18n="fc2_c3">Vision 本地离线 OCR</span>
             </div>
           </article>
 
           <!-- Card 3: Chip Wattage & Pulse -->
-          <article class="f-card spotlight-surface reveal-up" id="card-pulse" style="--delay: 0ms">
+          <article class="f-card elevated-surface fx-bento-card reveal-up" id="card-pulse" style="--delay: 0ms">
             <div>
               <div class="f-card-top">
-                <span class="squircle-badge" style="background:linear-gradient(135deg,#059669,#10b981)">⚡</span>
+                <span class="squircle-badge tone-green" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 20 9 4 6 12 2 12"/></svg>
+                </span>
                 <kbd class="keycap">⌥M</kbd>
               </div>
               <div class="bento-micro-stage micro-pulse" aria-hidden="true">
@@ -628,26 +721,28 @@
                 <svg class="mp-sparkline" viewBox="0 0 220 44" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="pulseFillGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#10b981" stop-opacity="0.34"/>
-                      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+                      <stop offset="0%" stop-color="#28CD41" stop-opacity="0.28"/>
+                      <stop offset="100%" stop-color="#28CD41" stop-opacity="0"/>
                     </linearGradient>
                   </defs>
                   <path class="mp-area" d="M0,34 Q24,18 48,26 T96,14 T144,24 T192,10 L220,16 L220,44 L0,44 Z" fill="url(#pulseFillGrad)"/>
-                  <path class="mp-line" d="M0,34 Q24,18 48,26 T96,14 T144,24 T192,10 L220,16" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                  <path class="mp-line" d="M0,34 Q24,18 48,26 T96,14 T144,24 T192,10 L220,16" fill="none" stroke="#28CD41" stroke-width="2.1" stroke-linecap="round"/>
                 </svg>
               </div>
               <h3 data-i18n="fc3_title">芯片脉搏贴边小胶囊</h3>
               <p data-i18n="fc3_desc">
-                默认关闭不打扰；开启后以超低开销实时显示芯片大小核负载、频率、内存压力与整机瓦数功耗 (W)，靠近屏幕边缘自动贴边收起。
+                默认关闭不打扰；开启后以超低开销实时显示芯片大小核负载、频率、内存压力与整机瓦数功耗 (W)，靠近屏幕边缘自动贴边收起，支持跨重启自动恢复。
               </p>
             </div>
           </article>
 
           <!-- Card 4: App Bandwidth & Cache -->
-          <article class="f-card spotlight-surface reveal-up" id="card-net" style="--delay: 75ms">
+          <article class="f-card elevated-surface fx-bento-card reveal-up" id="card-net" style="--delay: 70ms">
             <div>
               <div class="f-card-top">
-                <span class="squircle-badge" style="background:linear-gradient(135deg,#0284c7,#4f46e5)">⇄</span>
+                <span class="squircle-badge tone-cyan" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4m0 0-3 3m3-3 3 3"/><path d="M17 8v12m0 0-3-3m3 3 3-3"/></svg>
+                </span>
                 <kbd class="keycap">⌥N</kbd>
               </div>
               <div class="bento-micro-stage micro-net mono" aria-hidden="true">
@@ -662,28 +757,30 @@
               </div>
               <h3 data-i18n="fc4_title">软件网速透视 &amp; 安全清缓存</h3>
               <p data-i18n="fc4_desc">
-                不用装复杂的抓包或后台监控服务，随时看清哪个软件正在占用网速、连向哪里，并可分门别类把临时缓存安全移入废纸篓。
+                免 Root 直连系统 nettop 实时看清哪个软件正在占用网速、连向哪里，并可分门别类将应用临时缓存安全移入废纸篓。
               </p>
             </div>
           </article>
 
           <!-- Card 5: 120Hz Smooth Wheel & Dual Workspace -->
-          <article class="f-card spotlight-surface reveal-up" id="card-workspace" style="--delay: 150ms">
+          <article class="f-card elevated-surface fx-bento-card reveal-up" id="card-workspace" style="--delay: 140ms">
             <div>
               <div class="f-card-top">
-                <span class="squircle-badge" style="background:linear-gradient(135deg,#ea580c,#e11d48)">▤</span>
+                <span class="squircle-badge tone-orange" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                </span>
                 <kbd class="keycap">⌥E</kbd>
               </div>
               <div class="bento-micro-stage micro-wheel" aria-hidden="true">
                 <svg class="mw-curve" viewBox="0 0 220 44" preserveAspectRatio="none">
                   <path d="M0,38 L35,38 L35,26 L75,26 L75,14 L125,14 L125,6 L220,6" fill="none" stroke="currentColor" stroke-opacity="0.22" stroke-width="1.5" stroke-dasharray="3 3"/>
-                  <path class="mw-smooth-path" d="M0,38 C48,38 68,8 138,8 C176,8 196,6 220,6" fill="none" stroke="#f97316" stroke-width="2.3" stroke-linecap="round"/>
+                  <path class="mw-smooth-path" d="M0,38 C48,38 68,8 138,8 C176,8 196,6 220,6" fill="none" stroke="#FF9500" stroke-width="2.2" stroke-linecap="round"/>
                 </svg>
                 <span class="mw-badge mono">120Hz Inertia · NTFS RO</span>
               </div>
               <h3 data-i18n="fc5_title">外接鼠标丝滑滚轮 &amp; 双栏文件台</h3>
               <p data-i18n="fc5_desc">
-                让普通外接鼠标拥有 120Hz 顺滑滚动与独立方向反转（完全不动触控板手感）；按需呼出双栏文件整理台（NTFS 移动硬盘只读护航）与秒开 Markdown / 4K 视频窗。
+                让外接物理鼠标拥有 120Hz 平滑插值与独立方向反转（完全不动触控板手感）；按需呼出双栏文件整理台（NTFS 只读护航）与秒开原生 Markdown / 4K 视频窗。
               </p>
             </div>
           </article>
@@ -691,7 +788,7 @@
       </div>
     </section>
 
-    <!-- ACT V · Core Philosophy, Dual-Theme Switcher & Boundaries -->
+    <!-- ACT V · Core Philosophy, Visual Dual-Theme Mini Desktop Switcher & Boundaries -->
     <section class="philosophy-section section-band" id="philosophy">
       <div class="container">
         <div class="reveal-up">
@@ -702,16 +799,16 @@
           </p>
         </div>
 
-        <div class="pillars-grid" data-spotlight-group>
-          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 0ms">
+        <div class="pillars-grid">
+          <article class="pillar-card elevated-surface fx-bento-card reveal-up" style="--delay: 0ms">
             <span class="pillar-num mono">PILLAR 01 · TOTAL CUSTOMIZABILITY</span>
             <h3 data-i18n="p1_title">全维度高度可定制，却绝不强迫折腾</h3>
             <p data-i18n="p1_desc">
-              开箱自带精心打磨的默认体验；想折腾时，启动面板四大分区与多套场景 Profile、顶部状态栏菜单顺序、全局与子功能静默热键、唤醒词与排序权重，乃至一句话 AI 定制插件全部向你敞开。
+              开箱自带精心打磨的默认体验；想折腾时，启动面板四大分区与多套场景 Profile、单文件快捷脚本库、顶部状态栏菜单顺序、全局与子功能静默热键，乃至一句话 AI 定制插件全部向你敞开。
             </p>
           </article>
 
-          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 80ms">
+          <article class="pillar-card elevated-surface fx-bento-card reveal-up" style="--delay: 75ms">
             <span class="pillar-num mono">PILLAR 02 · NATIVE SWIFT 6, ~10 MB</span>
             <h3 data-i18n="p2_title">约 10 MB 纯正 Mac 原生，拒绝网页套壳</h3>
             <p data-i18n="p2_desc">
@@ -719,43 +816,119 @@
             </p>
           </article>
 
-          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 0ms">
+          <article class="pillar-card elevated-surface fx-bento-card reveal-up" style="--delay: 0ms">
             <span class="pillar-num mono">PILLAR 03 · DETERMINISTIC MUSCLE MEMORY</span>
             <h3 data-i18n="p3_title">不乱跳的窗口，稳稳当当的肌肉记忆</h3>
             <p data-i18n="p3_desc">
-              主窗口固定锁定 880 × 544，切分类不位移、打中文拼音不误触回车、后台刷新索引绝不抢走你正选中的那一行，配合克制跟手的原生弹簧动效，盲操行云流水。
+              主窗口固定锁定 880 × 544，切分类不位移、打中文拼音不误触回车、后台刷新索引绝不抢走选中行，配合统一 ⌘K 动作抽屉与克制跟手的原生弹簧动效，盲操行云流水。
             </p>
           </article>
 
-          <article class="pillar-card spotlight-surface reveal-up" style="--delay: 80ms">
+          <article class="pillar-card elevated-surface fx-bento-card reveal-up" style="--delay: 75ms">
             <span class="pillar-num mono">PILLAR 04 · EPHEMERAL &amp; SANDBOXED</span>
             <h3 data-i18n="p4_title">用完即走省内存，本机沙箱守隐私</h3>
             <p data-i18n="p4_desc">
-              主面板收起 30 秒自动销毁界面缓存，文件索引空闲 90 秒自动卸载；外部插件关进 macOS Seatbelt 内核沙箱，API 密钥经 256-bit AES-GCM 加密存放本机。
+              主面板收起 30 秒自动销毁界面缓存，文件索引空闲 90 秒自动卸载；外部插件与快捷脚本关进 macOS Seatbelt 内核沙箱，API 密钥经 256-bit AES-GCM 加密存放本机。
             </p>
           </article>
         </div>
 
-        <div class="theme-duality-banner spotlight-surface reveal-up">
+        <!-- Visual Mini macOS Desktop Dual-Theme Comparison Selector -->
+        <div class="theme-duality-banner elevated-surface reveal-up">
           <div class="duality-copy">
-            <span class="section-eyebrow" data-i18n="duality_eyebrow">PURE FROST &amp; PRISM PULSE · 双生液态玻璃主题</span>
-            <h3 class="duality-heading" data-i18n="duality_title"><span class="title-clause">「凝霜留白」的温润瓷感，</span><span class="title-clause">或「霓彩流光」的深邃光谱</span></h3>
+            <span class="section-eyebrow" data-i18n="duality_eyebrow">LIGHT FROST &amp; OBSIDIAN DARK · 双生液态玻璃主题</span>
+            <h3 class="duality-heading" data-i18n="duality_title"><span class="title-clause">「晴霜浅色」的清冽瓷白，</span><span class="title-clause">或「曜石暗色」的深邃玻璃</span></h3>
             <p class="duality-sub" data-i18n="duality_desc">
-              喜欢干净清爽的白昼质感，还是深邃通透的暗夜毛玻璃？点击右侧即可实时切换两套原生外观，软件内切换时还会自动同步给所有已开启的插件与悬浮窗。
+              默认自动跟随 macOS 系统外观，亦可随时点击下方实时迷你窗口预览卡一键切换；软件内切换外观时将同步广播给所有已开启的原生浮窗与自由画布挂件。
             </p>
           </div>
 
-          <div class="theme-switch-group" role="group" aria-label="实时切换页面视觉主题">
-            <button type="button" class="theme-choice-btn active" data-set-theme="pure-frost" data-i18n="btn_frost">
-              ◐ 凝霜留白 Pure Frost
+          <div class="theme-preview-grid" role="group" aria-label="实时切换页面视觉主题">
+            <!-- Light Frost Mini Desktop Preview Card -->
+            <button type="button" class="theme-preview-card preview-light active" data-set-theme="pure-frost" aria-pressed="true">
+              <div class="mini-mac-screen screen-light" aria-hidden="true">
+                <div class="mini-menubar">
+                  <span class="mini-apple-dot"></span>
+                  <span class="mini-mb-lines"><i></i><i></i></span>
+                  <span class="mini-mb-right"><i></i><i></i></span>
+                </div>
+                <div class="mini-lucent-window">
+                  <div class="mini-win-search">
+                    <span class="mini-win-lens"></span>
+                    <span class="mini-win-bar"></span>
+                    <span class="mini-win-scope"></span>
+                  </div>
+                  <div class="mini-win-body">
+                    <div class="mini-win-tiles">
+                      <span class="mt-blue"></span>
+                      <span class="mt-indigo"></span>
+                      <span class="mt-green"></span>
+                      <span class="mt-orange"></span>
+                    </div>
+                    <div class="mini-win-side">
+                      <span class="ms-l1"></span>
+                      <span class="ms-l2"></span>
+                      <span class="ms-switch"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="theme-preview-meta">
+                <div class="theme-preview-title-row">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77"/></svg>
+                  <strong data-i18n="btn_frost">晴霜浅色</strong>
+                  <span class="mono theme-preview-en">Light Frost</span>
+                </div>
+                <span class="theme-check-pill" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </div>
             </button>
-            <button type="button" class="theme-choice-btn" data-set-theme="prism-pulse" data-i18n="btn_prism">
-              ✦ 霓彩流光 Prism Pulse
+
+            <!-- Obsidian Dark Mini Desktop Preview Card -->
+            <button type="button" class="theme-preview-card preview-dark" data-set-theme="prism-pulse" aria-pressed="false">
+              <div class="mini-mac-screen screen-dark" aria-hidden="true">
+                <div class="mini-menubar">
+                  <span class="mini-apple-dot"></span>
+                  <span class="mini-mb-lines"><i></i><i></i></span>
+                  <span class="mini-mb-right"><i></i><i></i></span>
+                </div>
+                <div class="mini-lucent-window">
+                  <div class="mini-win-search">
+                    <span class="mini-win-lens"></span>
+                    <span class="mini-win-bar"></span>
+                    <span class="mini-win-scope"></span>
+                  </div>
+                  <div class="mini-win-body">
+                    <div class="mini-win-tiles">
+                      <span class="mt-blue"></span>
+                      <span class="mt-cyan"></span>
+                      <span class="mt-green"></span>
+                      <span class="mt-indigo"></span>
+                    </div>
+                    <div class="mini-win-side">
+                      <span class="ms-l1"></span>
+                      <span class="ms-l2"></span>
+                      <span class="ms-switch"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="theme-preview-meta">
+                <div class="theme-preview-title-row">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z"/><path d="M17.5 3.5v3M16 5h3"/></svg>
+                  <strong data-i18n="btn_prism">曜石暗色</strong>
+                  <span class="mono theme-preview-en">Obsidian Dark</span>
+                </div>
+                <span class="theme-check-pill" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </div>
             </button>
           </div>
         </div>
 
-        <div class="boundary-panel spotlight-surface reveal-up">
+        <div class="boundary-panel elevated-surface reveal-up">
           <h3 class="boundary-heading" data-i18n="bound_title"><span class="title-clause">清晰克制的产品边界：</span><span class="title-clause">把自由留给定制，让底座永远轻快</span></h3>
           <p class="boundary-sub" data-i18n="bound_sub">
             知道「什么该做到极致」与「什么绝不往底座硬塞」，才能让你的 Mac 长久保持清爽不卡顿。
@@ -764,30 +937,42 @@
           <div class="boundary-columns">
             <ul class="boundary-list">
               <li>
-                <span class="badge-yes">✓</span>
-                <span data-i18n="yes_1"><strong>你的界面你做主：</strong>启动面板四分区、顶部状态栏菜单、全局快捷键、唤醒词与插件挂件全部支持按需开启与自由排布。</span>
+                <span class="badge-yes" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+                <span data-i18n="yes_1"><strong>你的界面你做主：</strong>启动面板四分区、⌘K 动作流、快捷脚本库、顶部状态栏菜单、全局快捷键与插件挂件全部支持按需开启与自由排布。</span>
               </li>
               <li>
-                <span class="badge-yes">✓</span>
-                <span data-i18n="yes_2"><strong>普通人也能玩的 AI 扩展：</strong>内置 20 项 lucent-mcp 工具与单框智能商店嗅探，一句话就能定制快捷脚本、新插件或新主页。</span>
+                <span class="badge-yes" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+                <span data-i18n="yes_2"><strong>普通人也能玩的 AI 扩展：</strong>内置 21 项 lucent-mcp 工具与单框智能商店嗅探，一句话就能定制快捷脚本、新插件或新主页。</span>
               </li>
               <li>
-                <span class="badge-yes">✓</span>
+                <span class="badge-yes" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
                 <span data-i18n="yes_3"><strong>100% 专为 M 系列芯片打造：</strong>纯 arm64 原生编译与 macOS 14+ 系统框架直连，没有跨平台兼容包袱。</span>
               </li>
             </ul>
 
             <ul class="boundary-list">
               <li>
-                <span class="badge-no">✕</span>
+                <span class="badge-no" aria-hidden="true">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </span>
                 <span data-i18n="no_1"><strong>绝不做关不掉的臃肿全家桶：</strong>刚装好时零悬浮球、零菜单栏强塞读数、零后台守护进程，一切按需点亮。</span>
               </li>
               <li>
-                <span class="badge-no">✕</span>
+                <span class="badge-no" aria-hidden="true">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </span>
                 <span data-i18n="no_2"><strong>绝不拿几百 MB 网页内核套主界面：</strong>内置文档阅读与主面板坚持纯 Swift 原生渲染；插件自由浮窗关窗即刻销毁。</span>
               </li>
               <li>
-                <span class="badge-no">✕</span>
+                <span class="badge-no" aria-hidden="true">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </span>
                 <span data-i18n="no_3"><strong>绝不裸奔跑脚本或冒险强写脏硬盘：</strong>外部脚本强制进内核沙箱、密钥加密存放，遇到带脏标记的 NTFS 盘严格只读护航。</span>
               </li>
             </ul>
@@ -802,50 +987,49 @@
         <div class="builder-header-row reveal-up">
           <div>
             <span class="section-eyebrow" data-i18n="arch_eyebrow">UNDER THE HOOD FOR GEEKS · 给极客看的硬核工程纪律</span>
-            <h2 class="section-title" data-i18n="arch_title"><span class="title-clause">九大单向无环模块 · </span><span class="title-clause">单文件硬性严控 ≤ 300 行</span></h2>
+            <h2 class="section-title" data-i18n="arch_title"><span class="title-clause">单向无环 Swift 6 模块分层 · </span><span class="title-clause">单文件硬性严控 ≤ 300 行</span></h2>
             <p class="section-desc" data-i18n="arch_desc">
               代码库与产品一样干净克制：每次构建均由自动化脚本强制核验模块单向 DAG 依赖、单 .swift 文件行数上限、文档死链与真实 lucent-mcp JSON-RPC 往返联调。
             </p>
           </div>
-          <a href="./index.html?scene=dag" class="section-3d-jump magnetic-btn">
-            <span class="nav-3d-spark">✦</span>
-            <span data-i18n="jump_3d_dag">返回 3D 主页 · 原生架构 →</span>
+          <a href="./index.html?scene=dag" class="section-3d-jump">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 3.5 7.25v9.5L12 21.5l8.5-4.75v-9.5L12 2.5Z"/><path d="M3.5 7.25 12 12l8.5-4.75"/><path d="M12 21.5V12"/></svg>
+            <span data-i18n="jump_3d_dag">在 3D 舞台查看原生架构 →</span>
           </a>
         </div>
 
-        <div class="metrics-strip" id="metricsStrip" data-spotlight-group>
-          <div class="metric-box spotlight-surface reveal-up" style="--delay: 0ms">
-            <div class="metric-number gradient-text mono" data-count-to="20">20</div>
-            <div class="metric-caption" data-i18n="m_1">内置 lucent-mcp 造脚本、插件与排主页工具</div>
+        <div class="metrics-strip" id="metricsStrip">
+          <div class="metric-box elevated-surface fx-bento-card reveal-up" style="--delay: 0ms">
+            <div class="metric-number mono" data-count-to="21">21</div>
+            <div class="metric-caption" data-i18n="m_1">内置 lucent-mcp 脚本、插件、主页与检索工具</div>
           </div>
-          <div class="metric-box spotlight-surface reveal-up" style="--delay: 70ms">
-            <div class="metric-number gradient-text mono" data-count-to="0">0</div>
+          <div class="metric-box elevated-surface fx-bento-card reveal-up" style="--delay: 65ms">
+            <div class="metric-number mono" data-count-to="0">0</div>
             <div class="metric-caption" data-i18n="m_2">第三方 SwiftPM / CocoaPods 外部依赖</div>
           </div>
-          <div class="metric-box spotlight-surface reveal-up" style="--delay: 140ms">
-            <div class="metric-number gradient-text mono" data-count-prefix="≤ " data-count-to="300">≤ 300</div>
+          <div class="metric-box elevated-surface fx-bento-card reveal-up" style="--delay: 130ms">
+            <div class="metric-number mono" data-count-prefix="≤ " data-count-to="300">≤ 300</div>
             <div class="metric-caption" data-i18n="m_3">单 .swift 源码文件硬性行数上限</div>
           </div>
-          <div class="metric-box spotlight-surface reveal-up" style="--delay: 210ms">
-            <div class="metric-number gradient-text mono">30s / 90s</div>
+          <div class="metric-box elevated-surface fx-bento-card reveal-up" style="--delay: 195ms">
+            <div class="metric-number mono">30s / 90s</div>
             <div class="metric-caption" data-i18n="m_4">浮窗销毁 / 索引自动归还内存窗口</div>
           </div>
         </div>
 
-        <div class="dag-board spotlight-surface reveal-up">
+        <div class="dag-board elevated-surface reveal-up">
           <div class="dag-tiers">
             <div class="dag-tier">
               <div class="dag-node" data-dag-mod="Lucent.app">
-                <div class="dag-node-name mono"><i class="node-orb cyan"></i>Lucent.app</div>
-                <div class="dag-node-desc" data-i18n="dag_app">SwiftUI + AppKit 双主题前端 · 启动面板/脚本库/菜单栏定制 · 自由画布窗口</div>
+                <div class="dag-node-name mono"><i class="node-orb blue"></i>Lucent.app</div>
+                <div class="dag-node-desc" data-i18n="dag_app">SwiftUI + AppKit 双主题前端 · ⌘K 动作抽屉 · 启动面板/脚本库定制 · 自由画布悬浮窗</div>
               </div>
               <div class="dag-node" data-dag-mod="lucent-mcp">
-                <div class="dag-node-name mono"><i class="node-orb violet"></i>lucent-mcp</div>
-                <div class="dag-node-desc" data-i18n="dag_mcp">内置 20 项 JSON-RPC 2.0 工具：快捷脚本与 SVG 图标绘制、插件脚手架与主页实时编排</div>
+                <div class="dag-node-name mono"><i class="node-orb indigo"></i>lucent-mcp</div>
+                <div class="dag-node-desc" data-i18n="dag_mcp">内置 21 项 JSON-RPC 2.0 工具：快捷脚本与 SVG 图标、插件脚手架、主页编排与离线文件检索</div>
               </div>
             </div>
 
-            <!-- Animated SVG Optical Conduit 1 -->
             <div class="dag-conduit" aria-hidden="true">
               <svg viewBox="0 0 600 42" preserveAspectRatio="none">
                 <path class="conduit-track" d="M180,0 C180,22 300,16 300,42 M420,0 C420,22 300,16 300,42" />
@@ -856,12 +1040,11 @@
 
             <div class="dag-tier">
               <div class="dag-node dag-node-wide" data-dag-mod="LucentCore">
-                <div class="dag-node-name mono"><i class="node-orb indigo"></i>LucentCore</div>
-                <div class="dag-node-desc" data-i18n="dag_core">HomeLayout 多场景启动面板 · Quick Scripts 快捷脚本库 · Plugin v3.7 宿主桥与 TCC 代申 · Seatbelt 沙箱 · WebDAV 备份</div>
+                <div class="dag-node-name mono"><i class="node-orb cyan"></i>LucentCore</div>
+                <div class="dag-node-desc" data-i18n="dag_core">HomeLayout 多场景启动面板 · OverlayActionCatalog · Quick Scripts · Plugin v3.7 宿主桥 · Seatbelt 沙箱 · WebDAV 备份</div>
               </div>
             </div>
 
-            <!-- Animated SVG Optical Conduit 2 -->
             <div class="dag-conduit" aria-hidden="true">
               <svg viewBox="0 0 600 42" preserveAspectRatio="none">
                 <path class="conduit-track" d="M300,0 C300,20 110,18 110,42 M300,0 L300,42 M300,0 C300,20 490,18 490,42" />
@@ -872,20 +1055,19 @@
 
             <div class="dag-tier">
               <div class="dag-node" data-dag-mod="LucentSearch">
-                <div class="dag-node-name mono"><i class="node-orb sky"></i>LucentSearch</div>
-                <div class="dag-node-desc" data-i18n="dag_search">LCNTIDX3 mmap 零拷贝快照 · FSEvents 实时增量 · 批量改名预检</div>
+                <div class="dag-node-name mono"><i class="node-orb blue"></i>LucentSearch</div>
+                <div class="dag-node-desc" data-i18n="dag_search">LCNTIDX3 mmap 零拷贝快照 · getattrlistbulk · FSEvents 实时增量 · 批量改名预检</div>
               </div>
               <div class="dag-node" data-dag-mod="LucentMedia">
-                <div class="dag-node-name mono"><i class="node-orb rose"></i>LucentMedia</div>
-                <div class="dag-node-desc" data-i18n="dag_media">逐屏冻屏标注合成 · Vision 离线 OCR · hev1 4K 硬解 · 纯原生 Markdown</div>
+                <div class="dag-node-name mono"><i class="node-orb orange"></i>LucentMedia</div>
+                <div class="dag-node-desc" data-i18n="dag_media">逐屏冻屏 11 工具矢量标注 · 滚动长截图 · Vision 离线 OCR · hev1 4K 硬解 · 原生 Markdown</div>
               </div>
               <div class="dag-node" data-dag-mod="LucentSystem">
-                <div class="dag-node-name mono"><i class="node-orb emerald"></i>LucentSystem</div>
-                <div class="dag-node-desc" data-i18n="dag_sys">Mach/IOKit 功耗遥测 · 进程网速去向 · 120Hz 鼠标平滑滚轮 · 三层热键防冲突</div>
+                <div class="dag-node-name mono"><i class="node-orb green"></i>LucentSystem</div>
+                <div class="dag-node-desc" data-i18n="dag_sys">Mach/IOKit 功耗遥测 · nettop 进程网速 · 120Hz 鼠标平滑滚轮 · 三层热键防冲突</div>
               </div>
             </div>
 
-            <!-- Animated SVG Optical Conduit 3 -->
             <div class="dag-conduit" aria-hidden="true">
               <svg viewBox="0 0 600 42" preserveAspectRatio="none">
                 <path class="conduit-track" d="M110,0 C110,22 300,18 300,42 M300,0 L300,42 M490,0 C490,22 300,18 300,42" />
@@ -896,8 +1078,8 @@
 
             <div class="dag-tier">
               <div class="dag-node dag-node-wide" data-dag-mod="LucentFoundation">
-                <div class="dag-node-name mono"><i class="node-orb amber"></i>LucentFoundation</div>
-                <div class="dag-node-desc" data-i18n="dag_found">凝霜/流光双主题模型 · 中英双语免重启 · LCNTVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor</div>
+                <div class="dag-node-name mono"><i class="node-orb slate"></i>LucentFoundation</div>
+                <div class="dag-node-desc" data-i18n="dag_found">晴霜/曜石双主题模型 · 中英双语免重启 · LCNTVLT2 256-bit AES-GCM 密钥箱 · ProcessSupervisor</div>
               </div>
             </div>
           </div>
@@ -905,28 +1087,30 @@
       </div>
     </section>
 
-    <!-- ACT VII · Download & Adaptive Code Studio -->
+    <!-- ACT VII · Download & Xcode-Styled Adaptive Code Studio -->
     <section class="download-section" id="download">
       <div class="container">
-        <div class="download-card spotlight-surface reveal-up">
+        <div class="download-card elevated-surface reveal-up">
           <div>
             <span class="section-eyebrow" data-i18n="dl_eyebrow">START BUILDING YOUR LUCENT · 立即免费使用</span>
             <h2 class="section-title download-title" data-i18n="dl_title">
               下载 10 MB 轻巧底座，<br/>搭出最懂你的效率流
             </h2>
             <p class="section-desc download-desc" data-i18n="dl_desc">
-              MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。普通用户拖入应用程序即可开箱使用；右侧附上 AI 接入、7 款官方原生 Swift 插件安装及升级免重复授权命令：
+              MIT 协议免费开源，支持 macOS 14.0+ 全系 M1 / M2 / M3 / M4 设备。拖入应用程序即可开箱使用，11 款官方插件全原生 Swift 二进制（零 Python 依赖），并支持应用内一键更新保留本机权限：
             </p>
 
             <div class="download-actions">
-              <a href="#download" data-gh-path="/releases/latest" class="btn-hero-primary magnetic-btn">
+              <a href="#download" data-gh-path="/releases/latest" class="btn-hero-primary fx-primary-btn">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span data-i18n="dl_btn_dmg">下载最新 DMG 安装包</span>
               </a>
-              <a href="#download" data-gh-path="/blob/main/plugin-demo/README.md" class="btn-hero-secondary magnetic-btn">
-                <span data-i18n="dl_btn_store">浏览 7 款官方插件库</span>
+              <a href="#download" data-gh-path="/blob/main/plugin-demo/README.md" class="btn-hero-secondary">
+                <span data-i18n="dl_btn_store">浏览 11 款官方插件库</span>
               </a>
-              <a href="#download" data-gh-path="" class="btn-hero-secondary magnetic-btn">
-                <span data-i18n="dl_btn_star">GitHub 点亮 Star ★</span>
+              <a href="#download" data-gh-path="" class="btn-hero-secondary">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 14.8 8.7 21 9.6 16.5 14 17.6 20.2 12 17.2 6.4 20.2 7.5 14 3 9.6 9.2 8.7 12 3"/></svg>
+                <span data-i18n="dl_btn_star">GitHub 点亮 Star</span>
               </a>
             </div>
           </div>
@@ -936,11 +1120,16 @@
               <div class="window-dots"><i class="dot-red"></i><i class="dot-amber"></i><i class="dot-green"></i></div>
               <div class="studio-tabs" id="studioTabs">
                 <span class="studio-tab-glider" id="studioTabGlider" aria-hidden="true"></span>
-                <button type="button" class="term-tab active" data-term="mcp" data-i18n="term_tab_mcp">接入 AI 造插件/排主页</button>
-                <button type="button" class="term-tab" data-term="plugins" data-i18n="term_tab_plugins">安装 7 款官方插件</button>
-                <button type="button" class="term-tab" data-term="install" data-i18n="term_tab_install">免重复授权 &amp; 源码构建</button>
+                <button type="button" class="term-tab active" data-term="mcp" data-i18n="term_tab_mcp">接入 AI / MCP</button>
+                <button type="button" class="term-tab" data-term="plugins" data-i18n="term_tab_plugins">11 款官方插件</button>
+                <button type="button" class="term-tab" data-term="install" data-i18n="term_tab_install">免重授权 &amp; 源码</button>
               </div>
-              <button type="button" class="copy-cmd-btn" id="copyCmdBtn" data-i18n="term_copy">复制代码</button>
+              <button type="button" class="copy-cmd-btn" id="copyCmdBtn">
+                <span class="copy-icon-slot" id="copyBtnIcon" aria-hidden="true">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </span>
+                <span id="copyBtnLabel" data-i18n="term_copy">复制代码</span>
+              </button>
             </div>
             <pre class="studio-pre mono" id="terminalCode"></pre>
           </div>
@@ -949,6 +1138,9 @@
     </section>
   </main>
 
+  <!-- Real Right-Click macOS Liquid Glass Context Menu -->
+  <div class="panel-context-menu liquid-glass-layer" id="panelContextMenu" role="menu" aria-hidden="true"></div>
+
   <footer class="site-footer">
     <div class="container footer-inner">
       <div class="footer-brand">
@@ -956,7 +1148,7 @@
         <span><strong data-i18n="foot_brand">Lucent 流光</strong> · Native Swift 6 Customizable Hub &amp; Open Plugin v3.7 · MIT License</span>
       </div>
       <div class="footer-links">
-        <a href="./index.html" data-i18n="foot_3d_exp">返回 3D 主页</a>
+        <a href="./index.html" data-i18n="foot_3d_exp">前往 3D 舞台</a>
         <a href="#hero" data-gh-path="">GitHub</a>
         <a href="#download" data-gh-path="/releases">Releases</a>
         <a href="#theatre" data-gh-path="/blob/main/docs/PLUGIN_AND_MCP.md" data-i18n="foot_plugin_doc">插件与 MCP 规范</a>

@@ -178,7 +178,7 @@ struct OverlayBentoHomeView: View {
             .contentShape(RoundedRectangle(cornerRadius: LiquidRadii.bento, style: .continuous))
         }
         .buttonStyle(LiquidBentoTileStyle(cornerRadius: LiquidRadii.bento))
-        .liquidHoverLift(cornerRadius: LiquidRadii.bento, scale: 1.015, staggerDelay: Double(index) * 0.018)
+        .liquidHoverLift(cornerRadius: LiquidRadii.bento, scale: 1.008, staggerDelay: Double(index) * 0.018)
         .contextMenu { itemContextMenu(item, in: .bento) }
     }
 
@@ -230,7 +230,7 @@ struct OverlayBentoHomeView: View {
             .contentShape(tileShape)
         }
         .buttonStyle(LiquidBentoTileStyle(cornerRadius: 12))
-        .liquidHoverLift(cornerRadius: 12, scale: 1.03, staggerDelay: 0.04)
+        .liquidHoverLift(cornerRadius: 12, scale: 1.012, staggerDelay: 0.04)
         .help("\(vis.title) · \(vis.subtitle)")
         .contextMenu { dockSlotContextMenu(slot) }
     }

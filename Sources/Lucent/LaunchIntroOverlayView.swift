@@ -29,29 +29,32 @@ struct LaunchIntroOverlayView: View {
     }
 
     private let motes: [MoteSpec] = [
-        MoteSpec(id: 0, angle: -0.52, distance: 158, size: 5.5, color: .cyan),
-        MoteSpec(id: 1, angle: 0.35, distance: 172, size: 4.5, color: .pink),
-        MoteSpec(id: 2, angle: 1.18, distance: 136, size: 4.0, color: .purple),
-        MoteSpec(id: 3, angle: 2.05, distance: 148, size: 5.0, color: .mint),
-        MoteSpec(id: 4, angle: 2.72, distance: 168, size: 4.5, color: .cyan),
-        MoteSpec(id: 5, angle: -2.35, distance: 162, size: 5.0, color: .indigo),
-        MoteSpec(id: 6, angle: -1.42, distance: 132, size: 4.0, color: .pink),
-        MoteSpec(id: 7, angle: -0.10, distance: 184, size: 3.8, color: .cyan)
+        MoteSpec(id: 0, angle: -0.52, distance: 158, size: 5.5, color: Color(red: 0.56, green: 0.82, blue: 1.0)),
+        MoteSpec(id: 1, angle: 0.35, distance: 172, size: 4.5, color: Color.white),
+        MoteSpec(id: 2, angle: 1.18, distance: 136, size: 4.0, color: Color(red: 0.04, green: 0.52, blue: 1.0)),
+        MoteSpec(id: 3, angle: 2.05, distance: 148, size: 5.0, color: Color(red: 0.74, green: 0.89, blue: 1.0)),
+        MoteSpec(id: 4, angle: 2.72, distance: 168, size: 4.5, color: Color(red: 0.32, green: 0.68, blue: 1.0)),
+        MoteSpec(id: 5, angle: -2.35, distance: 162, size: 5.0, color: Color.white),
+        MoteSpec(id: 6, angle: -1.42, distance: 132, size: 4.0, color: Color(red: 0.14, green: 0.56, blue: 1.0)),
+        MoteSpec(id: 7, angle: -0.10, distance: 184, size: 3.8, color: Color(red: 0.80, green: 0.92, blue: 1.0))
     ]
+
+    private let iceBlue = Color(red: 0.62, green: 0.84, blue: 1.0)
+    private let appleBlue = Color(red: 0.04, green: 0.52, blue: 1.0)
 
     var body: some View {
         let _ = languageManager.current
-        let isPrism = themeManager.current == .prismPulse
+        let isDark = themeManager.resolvedIsDark
         let reduceTrans = SystemDisplayPreferences.shared.reduceTransparency
 
         ZStack {
-            ambientAuroraBackdrop(isPrism: isPrism, reduceTransparency: reduceTrans)
-            shockwaveRipplesAndMotes
-            morphingPanelSilhouette
+            ambientPrismBackdrop(isDark: isDark, reduceTransparency: reduceTrans)
+            shockwaveRipplesAndMotes(isDark: isDark)
+            morphingPanelSilhouette(isDark: isDark)
 
             VStack(spacing: 18) {
-                iconKeycapHeroStage
-                sloganGlassPlaque(isPrism: isPrism, reduceTransparency: reduceTrans)
+                iconKeycapHeroStage(isDark: isDark)
+                sloganGlassPlaque(isDark: isDark, reduceTransparency: reduceTrans)
             }
             .scaleEffect(state.stageDissolving ? 1.07 : 1.0)
             .opacity(state.stageDissolving ? 0.0 : 1.0)
@@ -63,51 +66,51 @@ struct LaunchIntroOverlayView: View {
     }
 
     @ViewBuilder
-    private func ambientAuroraBackdrop(isPrism: Bool, reduceTransparency: Bool) -> some View {
+    private func ambientPrismBackdrop(isDark: Bool, reduceTransparency: Bool) -> some View {
         if !reduceTransparency {
             ZStack {
                 Ellipse()
                     .fill(
                         RadialGradient(
-                            colors: [Color.cyan.opacity(isPrism ? 0.34 : 0.24), Color.indigo.opacity(isPrism ? 0.26 : 0.16), .clear],
+                            colors: [appleBlue.opacity(isDark ? 0.28 : 0.18), iceBlue.opacity(isDark ? 0.14 : 0.12), .clear],
                             center: .center, startRadius: 12, endRadius: 240
                         )
                     )
-                    .frame(width: 520, height: 320).offset(x: -36, y: -18)
+                    .frame(width: 520, height: 320).offset(x: -32, y: -16)
 
                 Ellipse()
                     .fill(
                         RadialGradient(
-                            colors: [Color.pink.opacity(isPrism ? 0.28 : 0.18), Color.purple.opacity(isPrism ? 0.22 : 0.12), .clear],
+                            colors: [Color.white.opacity(isDark ? 0.14 : 0.34), iceBlue.opacity(isDark ? 0.12 : 0.14), .clear],
                             center: .center, startRadius: 10, endRadius: 210
                         )
                     )
-                    .frame(width: 440, height: 280).offset(x: 48, y: 24)
+                    .frame(width: 440, height: 280).offset(x: 46, y: 22)
             }
-            .blur(radius: 26)
+            .blur(radius: 28)
             .scaleEffect(state.auraVisible ? (state.stageDissolving ? 1.24 : 1.0) : 0.62)
             .opacity(state.auraVisible ? (state.stageDissolving ? 0.0 : 1.0) : 0.0)
             .allowsHitTesting(false)
         }
     }
 
-    private var shockwaveRipplesAndMotes: some View {
+    private func shockwaveRipplesAndMotes(isDark: Bool) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 36 + state.rippleProgress * 24, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [.cyan.opacity(0.88), .white.opacity(0.92), .purple.opacity(0.80), .pink.opacity(0.84)],
+                        colors: [.white.opacity(0.92), iceBlue.opacity(0.84), appleBlue.opacity(0.76), .white.opacity(0.82)],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ),
-                    lineWidth: max(0.6, 2.4 * (1.0 - state.rippleProgress))
+                    lineWidth: max(0.6, 2.2 * (1.0 - state.rippleProgress))
                 )
                 .frame(width: 96 + state.rippleProgress * 310, height: 96 + state.rippleProgress * 230)
                 .offset(y: -48).opacity(state.rippleOpacity)
 
             Circle()
                 .strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.75), .cyan.opacity(0.45), .pink.opacity(0.45)], startPoint: .leading, endPoint: .trailing),
-                    lineWidth: max(0.5, 1.5 * (1.0 - state.rippleProgress))
+                    LinearGradient(colors: [.white.opacity(0.82), iceBlue.opacity(0.55), appleBlue.opacity(0.40)], startPoint: .leading, endPoint: .trailing),
+                    lineWidth: max(0.5, 1.4 * (1.0 - state.rippleProgress))
                 )
                 .frame(width: 82 + state.rippleProgress * 220, height: 82 + state.rippleProgress * 220)
                 .offset(y: -48).opacity(state.rippleOpacity * 0.85)
@@ -116,38 +119,38 @@ struct LaunchIntroOverlayView: View {
                 let dist = mote.distance * (0.28 + state.rippleProgress * 0.88)
                 Circle()
                     .fill(mote.color).frame(width: mote.size, height: mote.size)
-                    .shadow(color: mote.color.opacity(0.85), radius: 6)
+                    .shadow(color: appleBlue.opacity(isDark ? 0.72 : 0.42), radius: 5)
                     .offset(x: CGFloat(cos(mote.angle)) * dist, y: -48 + CGFloat(sin(mote.angle)) * dist * 0.68)
-                    .opacity(state.rippleOpacity * 0.92)
+                    .opacity(state.rippleOpacity * 0.90)
             }
         }
         .allowsHitTesting(false)
     }
 
-    private var morphingPanelSilhouette: some View {
+    private func morphingPanelSilhouette(isDark: Bool) -> some View {
         let shape = RoundedRectangle(cornerRadius: LiquidRadii.panel, style: .continuous)
         return shape
             .strokeBorder(
                 LinearGradient(
-                    colors: [.cyan.opacity(0.82), .white.opacity(0.90), .purple.opacity(0.72), .pink.opacity(0.78)],
+                    colors: [.white.opacity(isDark ? 0.76 : 0.92), iceBlue.opacity(0.75), appleBlue.opacity(0.62)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 ),
-                lineWidth: state.morphWaveActive ? 1.35 : 2.0
+                lineWidth: state.morphWaveActive ? 1.25 : 1.9
             )
             .background(
                 shape.fill(
-                    RadialGradient(colors: [.cyan.opacity(0.14), .purple.opacity(0.08), .clear], center: .center, startRadius: 20, endRadius: 420)
+                    RadialGradient(colors: [iceBlue.opacity(isDark ? 0.10 : 0.14), appleBlue.opacity(0.05), .clear], center: .center, startRadius: 20, endRadius: 420)
                 )
             )
             .frame(width: state.morphWaveActive ? 868 : 340, height: state.morphWaveActive ? 532 : 180)
-            .opacity(state.morphWaveActive ? (state.stageDissolving ? 0.24 : 0.88) : 0.0)
+            .opacity(state.morphWaveActive ? (state.stageDissolving ? 0.24 : 0.86) : 0.0)
             .allowsHitTesting(false)
     }
 
-    private var iconKeycapHeroStage: some View {
+    private func iconKeycapHeroStage(isDark: Bool) -> some View {
         ZStack {
             Circle()
-                .fill(RadialGradient(colors: [.cyan.opacity(0.42), .purple.opacity(0.22), .clear], center: .center, startRadius: 4, endRadius: 74))
+                .fill(RadialGradient(colors: [iceBlue.opacity(isDark ? 0.36 : 0.28), appleBlue.opacity(0.16), .clear], center: .center, startRadius: 4, endRadius: 74))
                 .frame(width: 148, height: 148)
                 .opacity(state.iconOpacity)
 
@@ -159,8 +162,8 @@ struct LaunchIntroOverlayView: View {
         }
     }
 
-    private func sloganGlassPlaque(isPrism: Bool, reduceTransparency: Bool) -> some View {
-        let plaqueShape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+    private func sloganGlassPlaque(isDark: Bool, reduceTransparency: Bool) -> some View {
+        let plaqueShape = RoundedRectangle(cornerRadius: LiquidRadii.bento, style: .continuous)
         return VStack(spacing: 8) {
             HStack(spacing: 7) {
                 Text("流光  LUCENT")
@@ -169,13 +172,13 @@ struct LaunchIntroOverlayView: View {
 
                 Text("⌥Space")
                     .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(isPrism ? Color.cyan : LiquidColors.accentPrimary)
+                    .foregroundStyle(LiquidColors.accentPrimary)
                     .padding(.horizontal, 7).padding(.vertical, 2)
                     .background(LiquidColors.pillSurface, in: Capsule(style: .continuous))
                     .overlay { Capsule(style: .continuous).strokeBorder(LiquidColors.pillBorder, lineWidth: 0.75) }
             }
 
-            sloganShimmerHeadline(isPrism: isPrism)
+            sloganShimmerHeadline(isDark: isDark)
 
             Text(L10n.pick("越用越懂你 · 毫秒唤起 · 松手即净", "Smarter Every Click · Instant · Zero Trace"))
                 .font(.system(size: 11.5, weight: .medium)).foregroundStyle(LiquidColors.textSecondary)
@@ -185,8 +188,8 @@ struct LaunchIntroOverlayView: View {
                 ZStack(alignment: .leading) {
                     Capsule(style: .continuous).fill(LiquidColors.pillBorder.opacity(0.45)).frame(height: 2.5)
                     Capsule(style: .continuous)
-                        .fill(LinearGradient(colors: [.cyan, Color(red: 0.65, green: 0.55, blue: 0.98), .pink], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: fillW, height: 2.5).shadow(color: .cyan.opacity(0.55), radius: 4)
+                        .fill(LinearGradient(colors: [appleBlue, iceBlue, .white.opacity(0.92)], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: fillW, height: 2.5).shadow(color: appleBlue.opacity(0.45), radius: 4)
                 }
             }
             .frame(width: 228, height: 3).padding(.top, 3)
@@ -195,22 +198,22 @@ struct LaunchIntroOverlayView: View {
         .background {
             ZStack {
                 if !reduceTransparency { plaqueShape.fill(.ultraThinMaterial) }
-                plaqueShape.fill(reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.elevatedSurface.opacity(isPrism ? 0.86 : 0.92))
+                plaqueShape.fill(reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.elevatedSurface.opacity(isDark ? 0.86 : 0.94))
             }
         }
-        .overlay { DoubleSpecularBorder(cornerRadius: 22, isShell: true, highContrast: SystemDisplayPreferences.shared.increaseContrast) }
-        .shadow(color: Color.black.opacity(isPrism ? 0.36 : 0.14), radius: 22, y: 10)
+        .overlay { DoubleSpecularBorder(cornerRadius: LiquidRadii.bento, isShell: true, highContrast: SystemDisplayPreferences.shared.increaseContrast) }
+        .shadow(color: Color.black.opacity(isDark ? 0.36 : 0.12), radius: 22, y: 10)
         .scaleEffect(state.plaqueVisible ? 1.0 : 0.92)
         .offset(y: state.plaqueVisible ? 0 : 12)
         .opacity(state.plaqueVisible ? 1.0 : 0.0)
     }
 
-    private func sloganShimmerHeadline(isPrism: Bool) -> some View {
+    private func sloganShimmerHeadline(isDark: Bool) -> some View {
         let slogan = "一触流光，用完即焚"
         let baseGrad = LinearGradient(
-            colors: isPrism
-                ? [Color(red: 0.55, green: 0.90, blue: 1.0), .white, Color(red: 0.84, green: 0.72, blue: 1.0), Color(red: 0.98, green: 0.58, blue: 0.82)]
-                : [Color(red: 0.02, green: 0.42, blue: 0.88), Color(red: 0.26, green: 0.22, blue: 0.78), Color(red: 0.78, green: 0.18, blue: 0.54)],
+            colors: isDark
+                ? [.white, Color(red: 0.76, green: 0.89, blue: 1.0), Color(red: 0.45, green: 0.74, blue: 1.0)]
+                : [Color(red: 0.07, green: 0.09, blue: 0.14), Color(red: 0.0, green: 0.42, blue: 0.86), Color(red: 0.14, green: 0.49, blue: 0.90)],
             startPoint: .leading, endPoint: .trailing
         )
         return Text(slogan)
@@ -220,7 +223,7 @@ struct LaunchIntroOverlayView: View {
                 GeometryReader { geo in
                     let w = max(geo.size.width, 1)
                     LinearGradient(
-                        colors: [.clear, .white.opacity(isPrism ? 0.95 : 0.78), .cyan.opacity(0.55), .clear],
+                        colors: [.clear, .white.opacity(isDark ? 0.95 : 0.82), iceBlue.opacity(0.55), .clear],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     )
                     .frame(width: w * 0.46).offset(x: state.shimmerPhase * w)

@@ -64,7 +64,7 @@ struct SettingsDetailSectionsView: View {
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [.cyan, LiquidColors.accentPrimary, .pink],
+                                colors: [LiquidColors.accentPrimary, Color(red: 0.36, green: 0.68, blue: 1.0), LiquidColors.accentPrimary],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -73,8 +73,8 @@ struct SettingsDetailSectionsView: View {
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
                     Text(
                         L10n.pick(
-                            "轻量级菜单栏原生快捷中枢：内置中英双语实时切换与「凝霜留白」「霓彩流光」双视觉主题，统合可定制四分区启动面板、单文件双向同步快捷脚本库（Quick Scripts）、全局智能检索、双栏文件工作台、原生 GIF 录屏、多屏截图标注与钉屏、离线 Vision OCR、WebDAV 加密云备份、Plugin v3.7 自由悬浮挂件与内置 20 项工具的 lucent-mcp。",
-                            "Lightweight native menu bar productivity hub with live Chinese/English switching and dual Liquid Glass themes (Pure Frost & Prism Pulse), uniting customizable 4-zone Launch Profiles, Quick Scripts library, omni-search, dual-pane file workspace, GIF capture, multi-display screenshot annotation & pinning, offline Vision OCR, WebDAV encrypted backup, Plugin v3.7 freeform HUDs, and a 20-tool lucent-mcp bridge."
+                            "轻量级菜单栏原生快捷中枢：内置中英双语实时切换与「晴霜浅色」「曜石暗色」双液态玻璃主题（支持跟随系统深浅色），统合可定制四分区启动面板、单文件双向同步快捷脚本库（Quick Scripts）、全局智能检索、双栏文件工作台、原生 GIF 录屏、多屏截图标注与钉屏、离线 Vision OCR、WebDAV 加密云备份、Plugin v3.7 自由悬浮挂件与内置 21 项工具的 lucent-mcp。",
+                            "Lightweight native menu bar productivity hub with live Chinese/English switching and dual macOS Liquid Glass themes (Light Frost & Obsidian Dark, with system appearance sync), uniting customizable 4-zone Launch Profiles, Quick Scripts library, omni-search, dual-pane file workspace, GIF capture, multi-display screenshot annotation & pinning, offline Vision OCR, WebDAV encrypted backup, Plugin v3.7 freeform HUDs, and a 21-tool lucent-mcp bridge."
                         )
                     )
                     .font(.callout).multilineTextAlignment(.center).foregroundStyle(.secondary).frame(maxWidth: 540)
@@ -100,7 +100,7 @@ struct SettingsDetailSectionsView: View {
                 GeneralSigningStatusCardView(viewModel: viewModel)
 
                 HStack(spacing: 10) {
-                    aboutPillar("cpu", .cyan, "Native Services First", "完全基于 SwiftUI、AppKit、Vision 与 CoreGraphics 原生构建，无任何外部依赖或浏览器壳。")
+                    aboutPillar("cpu", LiquidColors.accentPrimary, "Native Services First", "完全基于 SwiftUI、AppKit、Vision 与 CoreGraphics 原生构建，无任何外部依赖或浏览器壳。")
                     aboutPillar("leaf.arrow.circlepath", .green, "最优内存自洁架构", "浮窗隐藏 30s 回收视图树，索引按需驻留 · 空闲 90s 卸载（保留 LCNTIDX3 快照），独立窗口关闭即销毁。")
                     aboutPillar("shield.lefthalf.filled", .orange, "无感静默启动策略", "全部悬浮监控与顶部实时状态新装默认关闭，不安装任何 launchd 后台常驻守护进程。")
                 }

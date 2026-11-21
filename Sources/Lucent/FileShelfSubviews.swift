@@ -10,6 +10,9 @@ struct FileShelfActions {
     let toggleEdgeAutoHide: () -> Void
     let toggleRemoveAfterDragOut: () -> Void
     let onDragTargetedChanged: (Bool) -> Void
+    let onDragWillStart: () -> Void
+    let onDragEnded: () -> Void
+    let onDragCancelled: () -> Void
     let onSearchFocusChanged: (Bool) -> Void
     let onDraggedOut: (Set<UUID>) -> Void
     let close: () -> Void
@@ -22,6 +25,9 @@ struct FileShelfEmptyStateView: View {
     let symbol: String
     let title: String
     let detail: String
+    var onDragWillStart: (() -> Void)? = nil
+    var onDragEnded: (() -> Void)? = nil
+    var onDragCancelled: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 7) {
@@ -34,6 +40,12 @@ struct FileShelfEmptyStateView: View {
             }
         }
         .padding(18).frame(maxWidth: .infinity, maxHeight: .infinity)
+        .allowsHitTesting(false)
+        .background {
+            if onDragWillStart != nil || onDragEnded != nil || onDragCancelled != nil {
+                FileShelfDragOverlay(onDragWillStart: onDragWillStart, onDragEnded: onDragEnded, onDragCancelled: onDragCancelled)
+            }
+        }
     }
 }
 
@@ -53,11 +65,64 @@ struct FileShelfDropOverlayView: View {
     }
 }
 
+final class FileShelfDragNSView: NSView {
+    var onTap: (() -> Void)?
+    var onDoubleClick: (() -> Void)?
+    var onDragWillStart: (() -> Void)?
+    var onDragEnded: (() -> Void)?
+    var onDragCancelled: (() -> Void)?
+    override var mouseDownCanMoveWindow: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { bounds.contains(point) ? self : nil }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let window else { super.mouseDown(with: event); return }
+        if event.clickCount == 2, let onDoubleClick {
+            onDoubleClick()
+            return
+        }
+        let startOrigin = window.frame.origin
+        onDragWillStart?()
+        window.performDrag(with: event)
+        let endOrigin = window.frame.origin
+        if hypot(endOrigin.x - startOrigin.x, endOrigin.y - startOrigin.y) >= 3.0 {
+            onDragEnded?()
+        } else {
+            onDragCancelled?()
+            onTap?()
+        }
+    }
+}
+
+struct FileShelfDragOverlay: NSViewRepresentable {
+    var onTap: (() -> Void)? = nil
+    var onDoubleClick: (() -> Void)? = nil
+    var onDragWillStart: (() -> Void)? = nil
+    var onDragEnded: (() -> Void)? = nil
+    var onDragCancelled: (() -> Void)? = nil
+
+    func makeNSView(context: Context) -> FileShelfDragNSView {
+        let view = FileShelfDragNSView()
+        sync(view)
+        return view
+    }
+
+    func updateNSView(_ nsView: FileShelfDragNSView, context: Context) { sync(nsView) }
+
+    private func sync(_ v: FileShelfDragNSView) {
+        v.onTap = onTap; v.onDoubleClick = onDoubleClick
+        v.onDragWillStart = onDragWillStart; v.onDragEnded = onDragEnded; v.onDragCancelled = onDragCancelled
+    }
+}
+
 struct FileShelfEdgeTabView: View {
     let edge: FileShelfDockEdge
     let itemCount: Int
     let isDropTarget: Bool
     let onTap: () -> Void
+    var onDragWillStart: (() -> Void)? = nil
+    var onDragEnded: (() -> Void)? = nil
+    var onDragCancelled: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 8) {
@@ -85,11 +150,13 @@ struct FileShelfEdgeTabView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(isDropTarget ? Color.teal.opacity(0.28) : Color.teal.opacity(0.06))
         .contentShape(Rectangle())
-        .onTapGesture(perform: onTap)
+        .overlay {
+            FileShelfDragOverlay(onTap: onTap, onDragWillStart: onDragWillStart, onDragEnded: onDragEnded, onDragCancelled: onDragCancelled)
+        }
         .accessibilityLabel(L10n.pick("展开文件中转站", "Expand File Shelf"))
         .help(L10n.pick(
-            "悬停、点击或拖入文件以展开中转站（\(edge == .left ? "左侧" : "右侧")贴边）",
-            "Hover, click, or drag files to expand File Shelf"
+            "悬停、拖拽调位或点击展开中转站（\(edge == .left ? "左侧" : "右侧")贴边）",
+            "Hover, drag to reposition, or click to expand File Shelf"
         ))
     }
 }
@@ -98,19 +165,23 @@ struct FileShelfCapsuleView: View {
     let itemCount: Int
     let isDropTarget: Bool
     let onTap: () -> Void
+    var onDragWillStart: (() -> Void)? = nil
+    var onDragEnded: (() -> Void)? = nil
+    var onDragCancelled: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 8) {
-                SquircleBadge(symbol: "tray.full.fill", topColor: .teal, bottomColor: .cyan, size: 26)
-                Text(itemCount, format: .number)
-                    .font(.system(size: 14, weight: .bold).monospacedDigit())
-                    .foregroundStyle(LiquidColors.textPrimary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(isDropTarget ? Color.teal.opacity(0.20) : .clear)
+        HStack(spacing: 8) {
+            SquircleBadge(symbol: "tray.full.fill", topColor: .teal, bottomColor: .cyan, size: 26)
+            Text(itemCount, format: .number)
+                .font(.system(size: 14, weight: .bold).monospacedDigit())
+                .foregroundStyle(LiquidColors.textPrimary)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(isDropTarget ? Color.teal.opacity(0.20) : .clear)
+        .contentShape(Rectangle())
+        .overlay {
+            FileShelfDragOverlay(onTap: onTap, onDragWillStart: onDragWillStart, onDragEnded: onDragEnded, onDragCancelled: onDragCancelled)
+        }
         .accessibilityLabel(L10n.pick("展开文件中转站", "Expand File Shelf"))
         .accessibilityValue(Text(itemCount, format: .number))
     }

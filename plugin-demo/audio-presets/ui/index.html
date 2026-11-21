@@ -59,7 +59,7 @@
       <main class="content">
         <section aria-labelledby="app-subtitle">
           <div class="devices">
-            <button type="button" class="device glass-card" id="output-card" data-direction="output">
+            <button type="button" class="device glass-card" id="output-card" data-direction="output" aria-expanded="false">
               <div class="device-top">
                 <span class="device-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6m2.5-8.5a7.5 7.5 0 0 1 0 11"/></svg>
@@ -72,7 +72,7 @@
               <p id="output" class="device-name"></p>
             </button>
 
-            <button type="button" class="device glass-card" id="input-card" data-direction="input">
+            <button type="button" class="device glass-card" id="input-card" data-direction="input" aria-expanded="false">
               <div class="device-top">
                 <span class="device-icon mic" aria-hidden="true">
                   <svg viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M6 11.5a6 6 0 0 0 12 0m-6 6v3m-3 0h6"/></svg>
@@ -116,6 +116,7 @@
         </section>
       </main>
     </div>
+    <div id="modal-scrim" class="modal-scrim" hidden></div>
   </div>
 
   <dialog id="editor" aria-labelledby="editor-title">

@@ -11,7 +11,7 @@ enum HUDMode: String {
 
     func size(edge: String = "right") -> (w: Double, h: Double) {
         switch self {
-        case .standard: return (352, 334)
+        case .standard: return (376, 356)
         case .dock: return dockTargetSize(for: edge)
         }
     }
@@ -73,8 +73,8 @@ func openFloatingHUD(mode: HUDMode, input: PluginInput, isEn: Bool) -> BridgeRes
         "title": isEn ? "Antigravity Pulse" : "Antigravity Pulse · 上下文与会话监控",
         "width": Int(target.w),
         "height": Int(target.h),
-        "minWidth": 112,
-        "minHeight": 42,
+        "minWidth": 140,
+        "minHeight": 56,
         "resizable": false,
         "chrome": "frameless",
         "transparent": true,

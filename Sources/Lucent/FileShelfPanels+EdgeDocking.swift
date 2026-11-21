@@ -17,27 +17,18 @@ final class FileShelfPanelState: ObservableObject {
 final class FileShelfHoverTrackingView: NSView {
     var onHoverChanged: ((Bool) -> Void)?
     private var trackingArea: NSTrackingArea?
+    override var mouseDownCanMoveWindow: Bool { true }
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let trackingArea { removeTrackingArea(trackingArea) }
-        let area = NSTrackingArea(
-            rect: .zero,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: self,
-            userInfo: nil
-        )
+        let area = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
         addTrackingArea(area)
         trackingArea = area
     }
 
-    override func mouseEntered(with event: NSEvent) {
-        onHoverChanged?(true)
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        onHoverChanged?(false)
-    }
+    override func mouseEntered(with event: NSEvent) { onHoverChanged?(true) }
+    override func mouseExited(with event: NSEvent) { onHoverChanged?(false) }
 }
 
 private final class UnconstrainedFileShelfHostingView<Content: View>: NSHostingView<Content> {
@@ -70,6 +61,9 @@ extension FileShelfPanelController {
             toggleEdgeAutoHide: { [weak self] in self?.toggleEdgeAutoHide() },
             toggleRemoveAfterDragOut: { [weak self] in self?.toggleRemoveAfterDragOut() },
             onDragTargetedChanged: { [weak self] targeted in self?.setDraggingIntoShelf(targeted) },
+            onDragWillStart: { [weak self] in self?.beginUserWindowDrag() },
+            onDragEnded: { [weak self] in self?.endUserWindowDrag(didMove: true) },
+            onDragCancelled: { [weak self] in self?.endUserWindowDrag(didMove: false) },
             onSearchFocusChanged: { [weak self] focused in self?.setSearchFocused(focused) },
             onDraggedOut: { [weak self] ids in self?.handleDraggedOut(ids: ids) },
             close: { [weak self] in self?.closeWindow(clearPersistedSession: true) },
@@ -90,14 +84,10 @@ extension FileShelfPanelController {
         tracker.addSubview(hosting)
         glass.addSubview(tracker)
         NSLayoutConstraint.activate([
-            tracker.leadingAnchor.constraint(equalTo: glass.leadingAnchor),
-            tracker.trailingAnchor.constraint(equalTo: glass.trailingAnchor),
-            tracker.topAnchor.constraint(equalTo: glass.topAnchor),
-            tracker.bottomAnchor.constraint(equalTo: glass.bottomAnchor),
-            hosting.leadingAnchor.constraint(equalTo: tracker.leadingAnchor),
-            hosting.trailingAnchor.constraint(equalTo: tracker.trailingAnchor),
-            hosting.topAnchor.constraint(equalTo: tracker.topAnchor),
-            hosting.bottomAnchor.constraint(equalTo: tracker.bottomAnchor)
+            tracker.leadingAnchor.constraint(equalTo: glass.leadingAnchor), tracker.trailingAnchor.constraint(equalTo: glass.trailingAnchor),
+            tracker.topAnchor.constraint(equalTo: glass.topAnchor), tracker.bottomAnchor.constraint(equalTo: glass.bottomAnchor),
+            hosting.leadingAnchor.constraint(equalTo: tracker.leadingAnchor), hosting.trailingAnchor.constraint(equalTo: tracker.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: tracker.topAnchor), hosting.bottomAnchor.constraint(equalTo: tracker.bottomAnchor)
         ])
         hoverContainer = tracker
         window.contentView = glass
@@ -106,28 +96,18 @@ extension FileShelfPanelController {
     func reconcilePresentation(animate: Bool, preferCursorScreen: Bool = false) {
         guard let window else { return }
         let nextMode = FileShelfEdgeGeometry.resolveMode(
-            settings: panelState.settings,
-            isHovered: isHovered,
-            isDraggingIntoShelf: isDraggingIntoShelf,
-            isModalOrInputActive: isSearchFocused || isModalSheetActive,
-            isManuallyRevealed: isManuallyRevealed
+            settings: panelState.settings, isHovered: isHovered, isDraggingIntoShelf: isDraggingIntoShelf,
+            isModalOrInputActive: isSearchFocused || isModalSheetActive, isManuallyRevealed: isManuallyRevealed
         )
-        if panelState.mode != nextMode {
-            panelState.mode = nextMode
-        }
+        if panelState.mode != nextMode { panelState.mode = nextMode }
         let targetScreen = preferCursorScreen
             ? (ScreenTopologyAndWindowMatcher.activeCursorScreen() ?? NSScreen.main)
             : (window.screen ?? ScreenTopologyAndWindowMatcher.activeCursorScreen() ?? NSScreen.main)
         let visible = targetScreen?.visibleFrame ?? activeVisibleFrame
         let size = FileShelfEdgeGeometry.targetSize(for: nextMode, isEmpty: model.rows.isEmpty, visibleFrame: visible)
-        let anchorY = panelState.settings.anchorMidY.map { CGFloat($0) }
         let targetFrame = FileShelfEdgeGeometry.frame(
-            for: nextMode,
-            dockEdge: panelState.settings.dockEdge,
-            size: size,
-            currentFrame: window.frame,
-            anchorMidY: anchorY,
-            visibleFrame: visible
+            for: nextMode, dockEdge: panelState.settings.dockEdge, size: size,
+            currentFrame: window.frame, anchorMidY: panelState.settings.anchorMidY.map { CGFloat($0) }, visibleFrame: visible
         )
         let radius = currentShellCornerRadius
         if abs(radius - lastAppliedCornerRadius) > 0.1 {
@@ -151,6 +131,17 @@ extension FileShelfPanelController {
         }
     }
 
+    func beginUserWindowDrag() {
+        isUserDraggingWindow = true
+        wasExpandedBeforeDrag = (panelState.mode == .expanded)
+        cancelTimers()
+    }
+
+    func endUserWindowDrag(didMove: Bool) {
+        isUserDraggingWindow = false
+        if didMove { handleDragFinished() }
+    }
+
     func handleDragFinished() {
         dragSettleTask?.cancel(); dragSettleTask = nil
         guard let window else { return }
@@ -158,25 +149,35 @@ extension FileShelfPanelController {
         let snapped = FileShelfEdgeGeometry.detectSnapEdge(frame: window.frame, visibleFrame: visible)
         panelState.settings.dockEdge = snapped
         panelState.settings.anchorMidY = Double(window.frame.midY)
+        panelState.settings.collapsedCapsule = false
         isManuallyRevealed = false
         if snapped != .none {
-            panelState.settings.collapsedCapsule = false
-            isHovered = window.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation)
+            isHovered = wasExpandedBeforeDrag && window.frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation)
         }
         saveSettings()
         reconcilePresentation(animate: true)
-        if snapped != .none && !isHovered {
-            scheduleAutoCollapseIfPointerOutside()
-        }
+        if snapped != .none && !isHovered { scheduleAutoCollapseIfPointerOutside() }
     }
 
     func setHovered(_ hovered: Bool) {
+        hoverEnterTask?.cancel(); hoverEnterTask = nil
         hoverExitTask?.cancel(); hoverExitTask = nil
+        guard !isUserDraggingWindow else { return }
         if hovered {
+            guard NSEvent.pressedMouseButtons == 0 else { return }
             isManuallyRevealed = false
             guard !isHovered else { return }
-            isHovered = true
-            reconcilePresentation(animate: true)
+            if panelState.mode != .expanded && !isDraggingIntoShelf {
+                hoverEnterTask = Task { [weak self] in
+                    try? await Task.sleep(for: .milliseconds(180))
+                    guard !Task.isCancelled, let self, !self.isUserDraggingWindow, NSEvent.pressedMouseButtons == 0 else { return }
+                    self.isHovered = true
+                    self.reconcilePresentation(animate: true)
+                }
+            } else {
+                isHovered = true
+                reconcilePresentation(animate: true)
+            }
             return
         }
         isManuallyRevealed = false
@@ -184,10 +185,11 @@ extension FileShelfPanelController {
     }
 
     func scheduleAutoCollapseIfPointerOutside() {
+        guard !isUserDraggingWindow else { return }
         hoverExitTask?.cancel()
         hoverExitTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(360))
-            guard !Task.isCancelled, let self else { return }
+            guard !Task.isCancelled, let self, !self.isUserDraggingWindow else { return }
             if let win = self.window, win.isVisible,
                win.frame.insetBy(dx: -6, dy: -6).contains(NSEvent.mouseLocation) {
                 return
@@ -259,9 +261,7 @@ extension FileShelfPanelController {
 
     func toggleEdgeAutoHide() {
         panelState.settings.edgeAutoHide.toggle()
-        if panelState.settings.edgeAutoHide {
-            panelState.settings.pinnedExpanded = false
-        }
+        if panelState.settings.edgeAutoHide { panelState.settings.pinnedExpanded = false }
         saveSettings()
         reconcilePresentation(animate: true)
     }
@@ -277,21 +277,17 @@ extension FileShelfPanelController {
     }
 
     func cancelTimers() {
-        hoverExitTask?.cancel(); hoverExitTask = nil
+        hoverEnterTask?.cancel(); hoverEnterTask = nil; hoverExitTask?.cancel(); hoverExitTask = nil
         dragSettleTask?.cancel(); dragSettleTask = nil
     }
 
     func saveSettings() {
-        if let data = try? JSONEncoder().encode(panelState.settings) {
-            UserDefaults.standard.set(data, forKey: settingsKey)
-        }
+        if let data = try? JSONEncoder().encode(panelState.settings) { UserDefaults.standard.set(data, forKey: settingsKey) }
     }
 
     static func loadSettings(forKey key: String) -> FileShelfWindowSettings {
         guard let data = UserDefaults.standard.data(forKey: key),
-              let decoded = try? JSONDecoder().decode(FileShelfWindowSettings.self, from: data) else {
-            return FileShelfWindowSettings()
-        }
+              let decoded = try? JSONDecoder().decode(FileShelfWindowSettings.self, from: data) else { return FileShelfWindowSettings() }
         return decoded
     }
 }

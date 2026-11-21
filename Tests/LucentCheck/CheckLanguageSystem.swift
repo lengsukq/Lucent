@@ -70,8 +70,10 @@ func testV086BilingualSystem() throws {
         HotKeyActionID.launcher.title != "全局统一快捷中枢" && HotKeyActionID.launcher.title.unicodeScalars.allSatisfy(\.isASCII),
         "HotKeyActionID.launcher localizes to English (got '\(HotKeyActionID.launcher.title)')"
     )
-    check(AppThemeID.pureFrost.localizedTitle.contains("Pure Frost"), "AppThemeID.localizedTitle returns English in .english mode")
-    check(AppThemeID.pureFrost.title == "凝霜留白", "AppThemeID.title canonical Chinese stays intact")
+    check(AppThemeID.pureFrost.localizedTitle.contains("Light Frost"), "AppThemeID.localizedTitle returns English in .english mode")
+    check(AppThemeID.pureFrost.title == "晴霜浅色", "AppThemeID.title canonical Chinese stays intact")
+    check(AppThemeID.prismPulse.localizedTitle.contains("Obsidian Dark"), "AppThemeID.prismPulse.localizedTitle returns English in .english mode")
+    check(AppThemeID.prismPulse.title == "曜石暗色", "AppThemeID.prismPulse.title canonical Chinese stays intact")
     check(ClipboardCategory.pinned.localizedTitle == "Pinned", "ClipboardCategory.localizedTitle returns English")
     check(ClipboardPayloadKind.colorHex("#3478F6").badgeTitle == "Color", "ClipboardPayloadKind.badgeTitle returns English")
 

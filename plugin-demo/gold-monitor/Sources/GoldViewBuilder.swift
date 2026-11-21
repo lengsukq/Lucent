@@ -37,8 +37,8 @@ func openFloatingWindow(style: WindowStyle, input: PluginInput, isEn: Bool) -> B
         state: DockLaunchState(edge: existing?.edge ?? "right", anchorX: nil, anchorY: nil, fromMode: style.rawValue, pendingSnap: true)
     )
 
-    let targetW: Double = style == .dock ? 212 : (style == .mini ? 280 : 352)
-    let targetH: Double = style == .dock ? 96 : (style == .mini ? 112 : 240)
+    let targetW: Double = style == .dock ? 236 : (style == .mini ? 304 : 376)
+    let targetH: Double = style == .dock ? 106 : (style == .mini ? 134 : 262)
 
     let check = checkWindowEdgeState(dataDir: input.dataDir, windowId: "gold-monitor-hud", mode: style.rawValue)
     if check.ok && check.outOfBounds, let sx = check.snapX, let sy = check.snapY {
@@ -51,8 +51,8 @@ func openFloatingWindow(style: WindowStyle, input: PluginInput, isEn: Bool) -> B
         "title": isEn ? "Gold Monitor · Au99.99" : "黄金大盘 · Au99.99",
         "width": Int(targetW),
         "height": Int(targetH),
-        "minWidth": 212,
-        "minHeight": 96,
+        "minWidth": 236,
+        "minHeight": 106,
         "resizable": false,
         "chrome": "frameless",
         "transparent": true,

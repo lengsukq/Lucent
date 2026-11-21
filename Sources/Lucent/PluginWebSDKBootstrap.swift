@@ -19,7 +19,8 @@ enum PluginWebSDKBootstrap {
             "showInDock": spec.showInDock,
             "opacity": spec.opacity,
             "locale": L10n.current.rawValue,
-            "theme": AppThemeConfig.load().selectedTheme.rawValue,
+            "theme": ThemeManager.shared.effectiveTheme.rawValue,
+            "appearance": ThemeManager.shared.resolvedIsDark ? "dark" : "light",
             "networkAllowed": plugin.isResourceScopeGranted(.network),
             "declaredCapabilities": plugin.declaredCapabilities.map(\.rawValue),
             "grantedCapabilities": plugin.grantedCapabilities.map(\.rawValue).sorted(),
@@ -122,7 +123,7 @@ struct PluginWindowPermissionGateView: View {
                         .font(.headline)
                     Text(capability.title)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(LiquidColors.accentPrimary)
                 }
             }
             Text(capability.summary)

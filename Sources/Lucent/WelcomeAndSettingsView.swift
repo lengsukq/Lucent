@@ -141,7 +141,7 @@ struct SettingsCenterView: View {
             .liquidHoverRow(active: active, cornerRadius: 10)
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(LiquidBentoTileStyle(cornerRadius: 10))
+        .buttonStyle(LiquidSidebarRowStyle())
     }
 
     private func externalPluginSidebarButton(_ plugin: PluginDescriptor) -> some View {
@@ -165,7 +165,7 @@ struct SettingsCenterView: View {
             .liquidHoverRow(active: active, cornerRadius: 10)
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(LiquidBentoTileStyle(cornerRadius: 10))
+        .buttonStyle(LiquidSidebarRowStyle())
     }
 
     @ViewBuilder

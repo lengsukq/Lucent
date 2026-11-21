@@ -16,10 +16,12 @@ func testV085BuiltInThemes() throws {
                   "theme '\(theme.title)' avoids legacy placeholder word '\(word)'")
         }
     }
-    check(AppThemeID.pureFrost.title == "凝霜留白" && AppThemeID.pureFrost.englishBadge == "PURE FROST",
+    check(AppThemeID.pureFrost.title == "晴霜浅色" && AppThemeID.pureFrost.englishBadge == "LIGHT FROST" && AppThemeID.pureFrost.symbolName == "sun.max.fill",
           "pureFrost display metadata")
-    check(AppThemeID.prismPulse.title == "霓彩流光" && AppThemeID.prismPulse.englishBadge == "PRISM PULSE",
+    check(AppThemeID.prismPulse.title == "曜石暗色" && AppThemeID.prismPulse.englishBadge == "OBSIDIAN DARK" && AppThemeID.prismPulse.symbolName == "moon.stars.fill",
           "prismPulse display metadata")
+    check(AppThemeID.pureFrost.rawValue == "pure-frost" && AppThemeID.prismPulse.rawValue == "prism-pulse",
+          "AppThemeID rawValues remain backward-compatible")
     check(AppThemeID.pureFrost.next == .prismPulse && AppThemeID.prismPulse.next == .pureFrost,
           "AppThemeID.next cycles cleanly")
 
@@ -27,35 +29,47 @@ func testV085BuiltInThemes() throws {
     defer { try? FileManager.default.removeItem(at: tmp) }
     let cfgURL = tmp.appendingPathComponent("theme-config.json")
 
-    // Missing file falls back to pureFrost
-    check(AppThemeConfig.load(from: cfgURL).selectedTheme == .pureFrost, "default theme is pureFrost")
+    // Missing file falls back to pureFrost + followSystemAppearance = false
+    let defaultCfg = AppThemeConfig.load(from: cfgURL)
+    check(defaultCfg.selectedTheme == .pureFrost && !defaultCfg.followSystemAppearance, "default theme is pureFrost with followSystemAppearance=false")
 
-    // Persist prismPulse and reload
-    AppThemeConfig(selectedTheme: .prismPulse).save(to: cfgURL)
-    check(AppThemeConfig.load(from: cfgURL).selectedTheme == .prismPulse, "saved prismPulse reloads cleanly")
+    // Persist prismPulse + followSystemAppearance = true and reload
+    AppThemeConfig(selectedTheme: .prismPulse, followSystemAppearance: true).save(to: cfgURL)
+    let reloadedCfg = AppThemeConfig.load(from: cfgURL)
+    check(reloadedCfg.selectedTheme == .prismPulse && reloadedCfg.followSystemAppearance, "saved prismPulse + followSystemAppearance reloads cleanly")
+
+    // Legacy JSON without followSystemAppearance decodes cleanly to false
+    try Data(#"{"selectedTheme":"prism-pulse"}"#.utf8).write(to: cfgURL)
+    let legacyCfg = AppThemeConfig.load(from: cfgURL)
+    check(legacyCfg.selectedTheme == .prismPulse && !legacyCfg.followSystemAppearance, "legacy theme-config.json defaults followSystemAppearance to false")
 
     // Corrupted theme value gracefully falls back to pureFrost
     try Data(#"{"selectedTheme":"unknown-future-theme"}"#.utf8).write(to: cfgURL)
     check(AppThemeConfig.load(from: cfgURL).selectedTheme == .pureFrost, "unknown theme value falls back safely")
 
-    // Global search command matching
+    // Global search command matching (new & legacy aliases)
     let cycleHits = UnitAndCommandEngine.matchCommands(query: "主题", volumes: [])
     check(cycleHits.contains(where: { $0.command == .cycleTheme }), "query '主题' matches .cycleTheme")
-    let frostHits = UnitAndCommandEngine.matchCommands(query: "凝霜", volumes: [])
-    check(frostHits.contains(where: { $0.command == .switchTheme(.pureFrost) }), "query '凝霜' matches .switchTheme(.pureFrost)")
-    let prismHits = UnitAndCommandEngine.matchCommands(query: "霓彩", volumes: [])
-    check(prismHits.contains(where: { $0.command == .switchTheme(.prismPulse) }), "query '霓彩' matches .switchTheme(.prismPulse)")
+    for alias in ["晴霜", "浅色", "凝霜", "light", "frost"] {
+        let hits = UnitAndCommandEngine.matchCommands(query: alias, volumes: [])
+        check(hits.contains(where: { $0.command == .switchTheme(.pureFrost) }), "query '\(alias)' matches .switchTheme(.pureFrost)")
+    }
+    for alias in ["曜石", "暗色", "深色", "霓彩", "obsidian", "dark", "prism"] {
+        let hits = UnitAndCommandEngine.matchCommands(query: alias, volumes: [])
+        check(hits.contains(where: { $0.command == .switchTheme(.prismPulse) }), "query '\(alias)' matches .switchTheme(.prismPulse)")
+    }
 
     // Verify BackupArchiveService captures and restores theme-config.json automatically
     let supportSrc = tmp.appendingPathComponent("SupportSrc", isDirectory: true)
     let supportDst = tmp.appendingPathComponent("SupportDst", isDirectory: true)
     try FileManager.default.createDirectory(at: supportSrc, withIntermediateDirectories: true)
-    AppThemeConfig(selectedTheme: .prismPulse).save(to: supportSrc.appendingPathComponent("theme-config.json"))
+    AppThemeConfig(selectedTheme: .prismPulse, followSystemAppearance: true).save(to: supportSrc.appendingPathComponent("theme-config.json"))
     let archive = try BackupArchiveService.exportBackupData(appSupportDirectory: supportSrc)
     let report = try BackupArchiveService.restoreBackupData(archive, appSupportDirectory: supportDst)
     check(report.restoredConfigFileNames.contains("theme-config.json"), "backup archive includes theme-config.json")
-    check(AppThemeConfig.load(from: supportDst.appendingPathComponent("theme-config.json")).selectedTheme == .prismPulse,
-          "restored theme-config.json preserves selectedTheme = prismPulse")
+    let restoredTheme = AppThemeConfig.load(from: supportDst.appendingPathComponent("theme-config.json"))
+    check(restoredTheme.selectedTheme == .prismPulse && restoredTheme.followSystemAppearance,
+          "restored theme-config.json preserves selectedTheme = prismPulse & followSystemAppearance = true")
 
     // Verify LauncherSelectionAnchor prevents background refreshes from snapping selection back to 0
     let c0 = LauncherCandidate(id: "app:wechat", score: 9000, kind: .calculator(expression: "1", resultText: "1", badgeLabel: "A"))
