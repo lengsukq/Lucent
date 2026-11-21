@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>流光 Lucent — 2D 图文详解与启动面板定制实验台</title>
-  <meta name="description" content="专为 Apple Silicon Mac 打造的纯原生 Swift 6 快捷效率中枢：支持启动面板四分区自由定制、⌘K 上下文动作抽屉、单文件快捷脚本库、全盘秒搜、多屏截图标注与离线识字、11 款官方原生 Swift 插件及内置 21 项 lucent-mcp AI 工具。" />
-  <meta property="og:title" content="流光 Lucent — 轻巧顺手、从启动面板到插件皆可定制的 Mac 效率中枢" />
-  <meta property="og:description" content="启动面板四分区自由编排 · ⌘K 上下文动作抽屉 · 11 款官方原生 Swift 扩展 + Plugin v3.7 透明桌面挂件 · 内置 21 项 lucent-mcp AI 工具 · 纯 Swift 6 零依赖。" />
+  <title>流光 Lucent — 10 MB 免费开源纯原生 Mac 效率中枢，替掉 5 个付费工具</title>
+  <meta name="description" content="MIT 免费开源、免登录零订阅的 10 MB 纯 Swift 6 Mac 效率中枢：集成启动器、多屏截图标注/长截图/穿透贴图/GIF·MP4 录屏、外接鼠标 120Hz 平滑、三向磁吸文件中转站与 11 款官方原生 Swift 插件，内置 21 项 lucent-mcp 工具直连 Claude Code / Cursor 十秒造插件。" />
+  <meta property="og:title" content="流光 Lucent — 10 MB 纯原生开源效率中枢，替掉一排付费 Mac 工具" />
+  <meta property="og:description" content="免费开源免登录、不赚 AI 差价 · 竞品对照一目了然 · 11 款官方原生 Swift 插件 + 三向磁吸托盘 + Plugin v3.7 透明桌面挂件 · 内置 21 项 lucent-mcp 工具。" />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="./assets/icon.svg" />
   <script>
@@ -51,6 +51,7 @@
       <div class="nav-links" id="navLinks">
         <span class="nav-glider" id="navGlider" aria-hidden="true"></span>
         <a href="#hero" class="active" data-i18n="nav_launcher">启动面板</a>
+        <a href="#compare" data-i18n="nav_compare">竞品对比</a>
         <a href="#builder" data-i18n="nav_builder">高度定制</a>
         <a href="#theatre" data-i18n="nav_theatre">AI 共创</a>
         <a href="#capabilities" data-i18n="nav_bento">日常利器</a>
@@ -82,6 +83,7 @@
     <!-- Mobile / Tablet (< 1060px) Floating Liquid Glass Section Bar -->
     <nav class="mobile-section-bar liquid-glass-layer" id="mobileSectionBar" aria-label="章节快捷导航">
       <a href="#hero" class="active" data-i18n="nav_launcher">启动面板</a>
+      <a href="#compare" data-i18n="nav_compare">竞品对比</a>
       <a href="#builder" data-i18n="nav_builder">高度定制</a>
       <a href="#theatre" data-i18n="nav_theatre">AI 共创</a>
       <a href="#capabilities" data-i18n="nav_bento">日常利器</a>
@@ -98,19 +100,19 @@
           <div class="hero-status-row hero-stagger" style="--stagger: 0ms">
             <button type="button" class="hero-status-capsule" id="heroFocusShortcutBtn">
               <i class="status-live-dot" aria-hidden="true"></i>
-              <span class="mono">macOS 14+ · Apple Silicon · Swift 6 · ~10 MB</span>
+              <span class="mono" data-i18n="hero_capsule">MIT 开源免费 · ~10 MB Swift 6 · 0 订阅 · 0 登录</span>
               <span class="capsule-sep" aria-hidden="true"></span>
               <kbd class="keycap" data-key-watch="Alt">⌥</kbd><kbd class="keycap" data-key-watch="Space">Space</kbd>
             </button>
           </div>
 
           <h1 class="hero-title hero-stagger" style="--stagger: 65ms">
-            <span class="hero-title-primary" data-i18n="hero_title_1">轻巧顺手的 Mac 效率底座，</span>
-            <span class="hero-title-accent" data-i18n="hero_title_2"><span class="nowrap">从启动面板</span><span class="nowrap">到插件</span><span class="nowrap">全随你定。</span></span>
+            <span class="hero-title-primary" data-i18n="hero_title_1">10 MB 纯原生效率中枢，</span>
+            <span class="hero-title-accent" data-i18n="hero_title_2"><span class="nowrap">替掉一排</span><span class="nowrap">付费 Mac 工具。</span></span>
           </h1>
 
           <p class="hero-subtitle hero-stagger" style="--stagger: 120ms" data-i18n="hero_subtitle">
-            按一下 ⌥Space，找软件、搜本机与移动硬盘文件、翻剪贴板、截屏识字、按 ⌘K 呼出动作抽屉<span class="nowrap">一框搞定；</span>用完即焚自动归还内存，还可让 AI 一句话<span class="nowrap">造脚本、</span><span class="nowrap">写插件、</span><span class="nowrap">排主页。</span>
+            永久开源、免登录、不赚 AI 差价：按一下 ⌥Space 搞定全盘秒搜、多屏长截图与穿透贴图、GIF/MP4 录屏、外接鼠标 120Hz 平滑与三向磁吸中转站；自带 21 项 MCP 工具，连上 Claude Code / Cursor 十秒造原生插件。
           </p>
 
           <div class="hero-cta-row hero-stagger" style="--stagger: 175ms">
@@ -226,7 +228,78 @@
 
         <div class="scroll-cue hero-stagger" style="--stagger: 360ms">
           <div class="scroll-mouse"><div class="scroll-wheel-dot"></div></div>
-          <span data-i18n="scroll_hint">向下滚动，体验全维度自由定制与 AI 一句话共创</span>
+          <span data-i18n="scroll_hint">向下滚动，查看竞品对比、自由定制与 AI 一句话共创</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACT I.5 · WHY LUCENT: DIRECT COMPETITOR DIFFERENTIATION MATRIX -->
+    <section class="compare-section" id="compare">
+      <div class="container">
+        <div class="reveal-up">
+          <span class="section-eyebrow" data-i18n="cmp_eyebrow">WHY LUCENT · 人无我有的差异化对照</span>
+          <h2 class="section-title" data-i18n="cmp_title"><span class="title-clause">把别人锁进付费墙的，</span><span class="title-clause">做成 10 MB 开源原生底座</span></h2>
+          <p class="section-desc" data-i18n="cmp_desc">
+            不必同时常驻启动器、截图贴图、录屏、鼠标平滑、文件中转站与网速监控；也不必为云同步、主题或内置 AI 再交一份月费订阅。
+          </p>
+        </div>
+
+        <div class="compare-card elevated-surface reveal-up">
+          <div class="compare-table-wrap">
+            <table class="compare-table" aria-label="Lucent 与同类竞品核心差异对比">
+              <thead>
+                <tr>
+                  <th scope="col" data-i18n="cmp_h_dim">核心维度</th>
+                  <th scope="col" class="cmp-col-lucent">
+                    <span class="cmp-head-lucent">
+                      <img src="./assets/icon.svg" alt="" width="18" height="18" />
+                      <span data-i18n="cmp_h_lucent">流光 Lucent</span>
+                    </span>
+                  </th>
+                  <th scope="col" data-i18n="cmp_h_raycast">Raycast (Free / Pro)</th>
+                  <th scope="col" data-i18n="cmp_h_utools">uTools</th>
+                  <th scope="col" data-i18n="cmp_h_alfred">Alfred + 常用单品</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" class="cmp-dim" data-i18n="cmp_r1_k">开源、账号与收费</th>
+                  <td class="cmp-col-lucent" data-i18n="cmp_r1_l"><strong>MIT 永久开源免费</strong> · 免登录 · WebDAV 自有云同步</td>
+                  <td data-i18n="cmp_r1_r">闭源；云同步、主题、AI、MCP、翻译与无限剪贴板需 Pro 订阅</td>
+                  <td data-i18n="cmp_r1_u">闭源；强绑定账号，云同步与高频能力依赖会员/付费插件</td>
+                  <td data-i18n="cmp_r1_a">闭源；Powerpack 买断 + 另购截图/贴图/中转站软件</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-dim" data-i18n="cmp_r2_k">AI 造工具 / MCP</th>
+                  <td class="cmp-col-lucent" data-i18n="cmp_r2_l"><strong>内置 21 项零依赖 MCP</strong>，直连 Claude Code / Cursor，<strong>不赚 AI 差价</strong></td>
+                  <td data-i18n="cmp_r2_r">绑定自家 AI Credits 订阅计费</td>
+                  <td data-i18n="cmp_r2_u">绑定自家平台 AI 会员</td>
+                  <td data-i18n="cmp_r2_a">无原生 MCP 共创能力</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-dim" data-i18n="cmp_r3_k">系统级原生利器</th>
+                  <td class="cmp-col-lucent" data-i18n="cmp_r3_l"><strong>全原生直连</strong>：多屏长截图、钉屏按 T 穿透、GIF/MP4 录屏、离线 OCR、外接鼠标 120Hz 平滑、三向磁吸中转站</td>
+                  <td data-i18n="cmp_r3_r">无内置截图、长图、贴图、录屏、鼠标平滑与磁吸托盘</td>
+                  <td data-i18n="cmp_r3_u">需装第三方插件，原生体验较割裂</td>
+                  <td data-i18n="cmp_r3_a">需另装 CleanShot X / Snipaste / Mos / Dropover</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-dim" data-i18n="cmp_r4_k">插件形态与安全</th>
+                  <td class="cmp-col-lucent" data-i18n="cmp_r4_l">零前端原生页 + <strong>120Hz 透明点击穿透桌面挂件</strong> + <strong>Seatbelt 内核沙箱</strong></td>
+                  <td data-i18n="cmp_r4_r">扩展局限于列表/表单模板，无法做透明置顶挂件</td>
+                  <td data-i18n="cmp_r4_u">独立窗口但跑在 Electron 进程内</td>
+                  <td data-i18n="cmp_r4_a">仅列表与 Workflow</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-dim" data-i18n="cmp_r5_k">体量与内存克制</th>
+                  <td class="cmp-col-lucent" data-i18n="cmp_r5_l"><strong>~10 MB 纯 Swift 6 · 0 第三方依赖</strong>；收起 30s 毁视图、空闲 90s 卸索引、0 常驻挂件</td>
+                  <td data-i18n="cmp_r5_r">原生核心，但 Node/React 扩展越多常驻越重</td>
+                  <td data-i18n="cmp_r5_u">Electron 跨平台架构，内存占用偏高</td>
+                  <td data-i18n="cmp_r5_a">本体轻量，但需同时常驻 4–5 个辅助软件</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -317,8 +390,8 @@
         <div class="container">
           <div class="theatre-head theatre-head-flex">
             <div>
-              <span class="section-eyebrow" data-i18n="theatre_eyebrow">AI CO-CREATION &amp; PLUGIN V3.7 · 不会写代码也能深度定制</span>
-              <h2 class="section-title" data-i18n="theatre_title"><span class="title-clause">不仅能装现成插件，</span><span class="title-clause">还能一句话让 AI <span class="nowrap">造脚本、</span><span class="nowrap">造插件、</span><span class="nowrap">排主页</span></span></h2>
+              <span class="section-eyebrow" data-i18n="theatre_eyebrow">ZERO AI MARKUP · 内置 21 项 MCP 工具直连你已有的 AI 客户端</span>
+              <h2 class="section-title" data-i18n="theatre_title"><span class="title-clause">不卖 AI 会员，</span><span class="title-clause">把 Claude Code / Cursor 变成你的<span class="nowrap">原生插件工厂</span></span></h2>
             </div>
             <div class="theatre-head-controls">
               <span class="theatre-kbd-hint mono" aria-hidden="true"><kbd class="keycap">←</kbd><kbd class="keycap">→</kbd></span>
@@ -692,9 +765,9 @@
                   </button>
                 </div>
               </div>
-              <h3 data-i18n="fc2_title">多屏超清截图标注 · 长截图 · GIF · 离线识字贴图</h3>
+              <h3 data-i18n="fc2_title">多屏超清截图标注 · 长截图 · GIF/MP4 · 穿透钉屏与离线识字</h3>
               <p data-i18n="fc2_desc">
-                跨屏混合 DPI 原画质冻屏捕获与无障碍子控件下钻抠图；内置 11 种可选中矢量标注工具（贝塞尔曲线箭头、CIGaussianBlur 模糊、荧光笔、100 步撤销）、手动滚动长截图拼接、空格键原地二次标注悬浮钉图，以及零 ffmpeg 区域 GIF 与本地 Vision OCR。
+                跨屏混合 DPI 原画质冻屏捕获与无障碍子控件下钻抠图；内置 11 种可选中矢量标注工具（贝塞尔曲线箭头、CIGaussianBlur 模糊、荧光笔、100 步撤销）、手动滚动长截图拼接、钉屏按 T 半透明点击穿透与空格键原地二次标注，以及零 ffmpeg 区域 GIF/MP4 录屏与本地 Vision OCR。
               </p>
             </div>
             <div class="f-card-chips">

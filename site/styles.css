@@ -2008,6 +2008,95 @@ kbd.keycap.keycap-released::after {
 }
 
 /* ==========================================================================
+   6.5. ACT I.5 · Competitor Differentiation Matrix (#compare)
+   ========================================================================== */
+.compare-section {
+  padding: 64px 0 84px;
+}
+
+.compare-card {
+  margin-top: 26px;
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.compare-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.compare-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+  line-height: 1.58;
+}
+
+.compare-table thead th {
+  padding: 16px 18px;
+  font-size: 12.5px;
+  font-weight: 720;
+  color: var(--text-secondary);
+  background: var(--bg-well);
+  border-bottom: 1px solid var(--rim-outer);
+  white-space: nowrap;
+}
+
+.compare-table tbody th,
+.compare-table tbody td {
+  padding: 15px 18px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rim-subtle);
+  color: var(--text-secondary);
+}
+
+.compare-table tbody tr:last-child th,
+.compare-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.compare-table .cmp-dim {
+  width: 15%;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.compare-table .cmp-col-lucent {
+  width: 28%;
+  background: var(--accent-badge-bg);
+  color: var(--text-primary);
+  border-left: 1px solid var(--accent-badge-border);
+  border-right: 1px solid var(--accent-badge-border);
+}
+
+.compare-table thead .cmp-col-lucent {
+  color: var(--accent-text);
+  background: var(--accent-badge-bg);
+}
+
+.compare-table .cmp-col-lucent strong {
+  color: var(--accent-text);
+  font-weight: 720;
+}
+
+.cmp-head-lucent {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 760;
+}
+
+.cmp-head-lucent img {
+  border-radius: 4.5px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
    7. ACT II · Deep Customization Workbench (11 Official + AI Custom)
    ========================================================================== */
 .builder-section {
@@ -4259,6 +4348,7 @@ kbd.keycap.keycap-released::after {
   .panel-action-drawer { left: 10px; right: 10px; width: auto; bottom: 44px; }
 
   .builder-section,
+  .compare-section,
   .bento-section,
   .philosophy-section,
   .arch-section { padding: 54px 0; }
