@@ -9,7 +9,13 @@ private final class MosDraftBundleState: ObservableObject {
 
 struct MosPluginSettingsView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var deviceServices: DeviceServicesStore
     @StateObject private var draft = MosDraftBundleState()
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._deviceServices = ObservedObject(wrappedValue: viewModel.deviceServices)
+    }
 
     var body: some View {
         ScrollView {

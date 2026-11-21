@@ -50,6 +50,9 @@ struct OverlayCommandView: View {
             Divider().opacity(0.28)
             OverlayBottomFooterBar(viewModel: viewModel)
         }
+        .overlay(alignment: .bottomTrailing) {
+            OverlayActionDrawerView(viewModel: viewModel)
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .liquidGlassShell(cornerRadius: LiquidRadii.panel)
     }

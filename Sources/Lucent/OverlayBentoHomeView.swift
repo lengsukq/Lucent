@@ -10,8 +10,14 @@ final class OverlayHomeUIState: ObservableObject {
 
 struct OverlayBentoHomeView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var deviceServices: DeviceServicesStore
     @ObservedObject private var usageTracker = AppUsageTrackerController.shared
     @StateObject var uiState = OverlayHomeUIState()
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._deviceServices = ObservedObject(wrappedValue: viewModel.deviceServices)
+    }
 
     var isEditingHome: Bool { uiState.isEditingHome }
     var config: HomeLayoutConfig { viewModel.homeLayoutConfig }

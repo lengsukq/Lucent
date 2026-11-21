@@ -4,8 +4,16 @@ import SwiftUI
 
 struct WorkspaceEntryContextMenu: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     let pane: PaneSide
     let entry: FileEntry
+
+    init(viewModel: AppViewModel, pane: PaneSide, entry: FileEntry) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+        self.pane = pane
+        self.entry = entry
+    }
 
     var body: some View {
         let targets = viewModel.contextTargetEntries(for: entry, in: pane)
@@ -160,8 +168,16 @@ struct WorkspaceEntryContextMenu: View {
 
 struct WorkspaceCanvasContextMenu: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     let pane: PaneSide
     let state: PaneState
+
+    init(viewModel: AppViewModel, pane: PaneSide, state: PaneState) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+        self.pane = pane
+        self.state = state
+    }
 
     var body: some View {
         Button("新建文件夹… (⇧⌘N)") { viewModel.beginCreateFolder(in: pane) }

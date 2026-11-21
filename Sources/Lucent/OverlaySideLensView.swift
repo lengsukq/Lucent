@@ -4,7 +4,9 @@ import SwiftUI
 
 struct OverlaySideLensView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     @ObservedObject private var usageTracker = AppUsageTrackerController.shared
+    init(viewModel: AppViewModel) { self.viewModel = viewModel; self._workspace = ObservedObject(wrappedValue: viewModel.workspace) }
 
     private var lensIdentity: String {
         if viewModel.inlinePluginViewPayload != nil {

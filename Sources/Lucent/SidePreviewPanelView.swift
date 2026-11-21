@@ -4,6 +4,12 @@ import SwiftUI
 
 struct SidePreviewPanelView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

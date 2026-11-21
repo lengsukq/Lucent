@@ -3,11 +3,18 @@ import Foundation
 import LucentCore
 
 extension AppViewModel {
+    private var shouldPreCaptureSelectionForOverlay: Bool {
+        scripts.contains(where: \.isEnabled)
+            || plugins.contains { $0.isValid && $0.isEnabled && $0.grantedCapabilities.contains(.selection) }
+    }
+
     func prepareOverlay(filter: OmniFilter) {
         runtime.indexUnloadTask?.cancel(); runtime.indexUnloadTask = nil
         runtime.queryIdleClearTask?.cancel(); runtime.queryIdleClearTask = nil
         if !isOverlayVisible && !skipNextSelectionCapture {
-            lastCapturedSelection = PluginSelectionReader.captureFrontmostSelection()
+            lastCapturedSelection = shouldPreCaptureSelectionForOverlay
+                ? PluginSelectionReader.captureFrontmostSelection(allowCopyFallback: false, enableManualAccessibility: false)
+                : nil
         }
         isOverlayVisible = true
         if filter != .plugins { scopedPluginID = nil }
@@ -17,8 +24,8 @@ extension AppViewModel {
         capturePasteboardOnceIfChanged()
         triggerStalePluginIndexRefreshIfNeeded()
         IconCache.shared.prewarmDockIcons(cachedDockApps)
-        let hasQuery = !overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        if everythingIndex == nil && !isIndexingEverything && (filter == .files || (hasQuery && scopedPluginID == nil)) {
+        if everythingIndex == nil && !isIndexingEverything
+            && LauncherEngine.shouldWakeEverythingIndex(for: overlayQuery, filter: filter, scopedPluginID: scopedPluginID) {
             rebuildEverythingIndex(scope: everythingScope)
         }
         refreshDisplayedCandidates(resetSelection: true)
@@ -58,6 +65,7 @@ extension AppViewModel {
 
     func handleOverlayHidden() {
         isOverlayVisible = false
+        closeOverlayActionMenu()
         runtime.cancelOverlaySessionTasks()
         previewState = .empty; displayedCandidates = []
         resetOverlaySelection(); scopedPluginID = nil
@@ -88,9 +96,10 @@ extension AppViewModel {
     }
 
     func handleOverlayQueryChanged() {
+        closeOverlayActionMenu()
         resetOverlaySelection()
-        if isOverlayVisible, scopedPluginID == nil, everythingIndex == nil, !isIndexingEverything,
-           !overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if isOverlayVisible, everythingIndex == nil, !isIndexingEverything,
+           LauncherEngine.shouldWakeEverythingIndex(for: overlayQuery, filter: omniFilter, scopedPluginID: scopedPluginID) {
             rebuildEverythingIndex(scope: everythingScope)
         }
         refreshDisplayedCandidates(resetSelection: true)
@@ -179,10 +188,24 @@ extension AppViewModel {
     }
 
     func handleOverlayKeyAction(_ action: OverlayKeyAction) {
+        if actionMenu.isPresented {
+            switch action {
+            case .moveUp: actionMenu.moveUp(); return
+            case .moveDown: actionMenu.moveDown(); return
+            case .submit:
+                if let selected = actionMenu.selectedAction { executeOverlayAction(selected) }
+                return
+            case .escape, .toggleActionMenu:
+                closeOverlayActionMenu(); return
+            default:
+                closeOverlayActionMenu()
+            }
+        }
         switch action {
         case .moveUp: selectOverlayCandidate(at: overlaySelectedIndex - 1, userInitiated: true)
         case .moveDown: selectOverlayCandidate(at: overlaySelectedIndex + 1, userInitiated: true)
         case .submit: if let candidate = selectedCandidate { executeCandidate(candidate) }
+        case .toggleActionMenu: toggleOverlayActionMenu()
         case .pasteSubmit:
             guard let candidate = selectedCandidate else { return }
             if case .clipboard(let entry) = candidate.kind { executeClipboardEntry(entry, autoPaste: true) }

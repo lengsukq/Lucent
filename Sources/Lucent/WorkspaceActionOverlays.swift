@@ -102,7 +102,14 @@ struct WorkspacePromptSheetView: View {
 
 struct WorkspaceFloatingActionBar: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     let pane: PaneSide
+
+    init(viewModel: AppViewModel, pane: PaneSide) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+        self.pane = pane
+    }
 
     var body: some View {
         let selected = viewModel.selectedEntries(in: pane)

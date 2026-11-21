@@ -4,6 +4,12 @@ import SwiftUI
 
 struct BatchRenameSheet: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+    }
 
     var body: some View {
         ZStack {
@@ -17,17 +23,17 @@ struct BatchRenameSheet: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Toggle("序号递增", isOn: $viewModel.renameRule.useIndexNumbering)
+                    Toggle("序号递增", isOn: $workspace.renameRule.useIndexNumbering)
                         .toggleStyle(.switch)
                 }
                 .padding(12)
                 .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
 
                 HStack(spacing: 8) {
-                    GlassInputField(symbol: "magnifyingglass", placeholder: "查找文本", text: $viewModel.renameRule.findText)
-                    GlassInputField(symbol: "arrow.triangle.2.circlepath", placeholder: "替换为", text: $viewModel.renameRule.replaceText)
-                    GlassInputField(placeholder: "统一前缀", text: $viewModel.renameRule.prefix)
-                    GlassInputField(placeholder: "统一后缀", text: $viewModel.renameRule.suffix)
+                    GlassInputField(symbol: "magnifyingglass", placeholder: "查找文本", text: $workspace.renameRule.findText)
+                    GlassInputField(symbol: "arrow.triangle.2.circlepath", placeholder: "替换为", text: $workspace.renameRule.replaceText)
+                    GlassInputField(placeholder: "统一前缀", text: $workspace.renameRule.prefix)
+                    GlassInputField(placeholder: "统一后缀", text: $workspace.renameRule.suffix)
                 }
 
                 List(viewModel.batchRenamePreview) { item in
@@ -73,24 +79,26 @@ struct BatchRenameSheet: View {
 
 struct WorkspaceHostView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     @ObservedObject private var prompt: WorkspacePromptController
 
     init(viewModel: AppViewModel) {
         self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
         self.prompt = viewModel.workspacePrompt
     }
 
     var body: some View {
         SecondaryWindowScaffold(
             title: "文件与外置磁盘工作台",
-            subtitle: viewModel.layoutMode == .dual ? "双栏模式" : "单栏模式",
+            subtitle: workspace.layoutMode == .dual ? "双栏模式" : "单栏模式",
             symbol: "externaldrive.fill.badge.checkmark",
             pinWindowKey: "workspace"
         ) {
             FileWorkspaceView(viewModel: viewModel)
         }
         .background { WorkspaceKeyShortcutBridgeView(viewModel: viewModel).frame(width: 0, height: 0) }
-        .sheet(isPresented: $viewModel.showBatchRenameSheet) { BatchRenameSheet(viewModel: viewModel) }
+        .sheet(isPresented: $workspace.showBatchRenameSheet) { BatchRenameSheet(viewModel: viewModel) }
         .sheet(
             isPresented: Binding(get: { prompt.isPresented }, set: { if !$0 { prompt.dismiss() } })
         ) {

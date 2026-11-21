@@ -5,10 +5,19 @@ import UniformTypeIdentifiers
 
 struct WorkspaceEntriesContentView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     let pane: PaneSide
     let state: PaneState
     let entries: [FileEntry]
     @StateObject private var canvas = WorkspaceCanvasController()
+
+    init(viewModel: AppViewModel, pane: PaneSide, state: PaneState, entries: [FileEntry]) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+        self.pane = pane
+        self.state = state
+        self.entries = entries
+    }
 
     private var spaceName: String { "workspace-canvas-\(pane.rawValue)" }
     private var isDual: Bool { viewModel.layoutMode == .dual }

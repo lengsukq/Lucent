@@ -3,6 +3,12 @@ import SwiftUI
 
 struct FileWorkspaceView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+    }
 
     private var shouldShowPreviewSidebar: Bool {
         guard viewModel.showWorkspacePreview else { return false }
@@ -42,6 +48,12 @@ struct FileWorkspaceView: View {
 
 private struct LocationSidebarView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -127,8 +139,16 @@ private struct ToolRow: View {
 
 private struct FilePaneView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     let pane: PaneSide
     let state: PaneState
+
+    init(viewModel: AppViewModel, pane: PaneSide, state: PaneState) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+        self.pane = pane
+        self.state = state
+    }
 
     var body: some View {
         let visible = state.visibleEntries

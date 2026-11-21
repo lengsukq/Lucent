@@ -30,18 +30,8 @@ final class AppViewModel: ObservableObject {
     @Published var launchAtLoginStatus: LaunchAtLoginStatus = LaunchAtLoginService.currentStatus()
     @Published var everythingScope: EverythingScope
 
-    @Published var clipboardItems: [ClipboardEntry] = [] {
-        didSet {
-            guard clipboardItems != oldValue else { return }
-            if isOverlayVisible { refreshDisplayedCandidates(resetSelection: false) }
-            persistPinnedClipboardIfNeeded(previous: oldValue)
-        }
-    }
-    @Published var clipboardCategory: ClipboardCategory = .all {
-        didSet { if clipboardCategory != oldValue { refreshDisplayedCandidates(resetSelection: true) } }
-    }
-    @Published var isClipboardPaused: Bool = false
-    @Published var canUndoClipboardDelete: Bool = false
+    let clipboard = ClipboardStore()
+    let actionMenu = OverlayActionMenuState()
 
     @Published var inlineResultTitle: String = ""
     @Published var inlineResultBody: String?
@@ -60,25 +50,8 @@ final class AppViewModel: ObservableObject {
     @Published var appLaunchCounts: [String: Int] = [:] { didSet { updateCachedDockApps() } }
     @Published var isCapturingScreen: Bool = false
 
-    @Published var mosConfig: MosConfig = MosConfig.load()
-    @Published var mosTapActive: Bool = false
-    @Published var mosAccessibilityTrusted: Bool = false
-    @Published var lumaLinkConfig: LumaLinkConfig = LumaLinkConfig.load()
-    @Published var lumaLinkStatus: LumaLinkRuntimeSnapshot = LumaLinkRuntimeSnapshot()
-    @Published var lumaLinkRdpStatus: LumaLinkRdpStatus = LumaLinkRdpStatus()
-
-    @Published var layoutMode: ExplorerLayoutMode = .single
-    @Published var showWorkspacePreview: Bool = true
-    @Published var activePane: PaneSide = .left
-    @Published var leftPane: PaneState
-    @Published var rightPane: PaneState
-
-    @Published var locations: [LocationItem] = []
-    @Published var selectedEntry: FileEntry?
-    @Published var selectedEntryIDs: Set<String> = []
-    @Published var previewState: PreviewContentState = .empty
-    @Published var computedSHA256: String?
-    @Published var isComputingSHA256 = false
+    let deviceServices = DeviceServicesStore()
+    let workspace = WorkspaceStore()
 
     @Published var installedApps: [InstalledAppItem] = [] {
         didSet {
@@ -116,10 +89,6 @@ final class AppViewModel: ObservableObject {
     @Published var serviceMessage: String?
     @Published var diagnostic: UserFacingDiagnostic?
 
-    @Published var showBatchRenameSheet = false
-    @Published var renameRule = BatchRenameRule()
-    @Published var workspaceClipboard: WorkspaceClipboardState?
-    @Published var workspaceSearchFocusToken: Int = 0
     let workspacePrompt = WorkspacePromptController()
 
     let clipboardRuntime = ClipboardRuntimeState()
@@ -156,7 +125,9 @@ final class AppViewModel: ObservableObject {
 
     var residentEverythingNodeCount: Int { everythingIndex?.nodes.count ?? 0 }
     var needsEverythingIndexResident: Bool {
-        isOverlayVisible && (omniFilter == .files || (!overlayQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && scopedPluginID == nil))
+        isOverlayVisible && LauncherEngine.shouldWakeEverythingIndex(
+            for: overlayQuery, filter: omniFilter, scopedPluginID: scopedPluginID
+        )
     }
 
     var onRouteRequest: ((WindowRoute) -> Void)?
@@ -172,13 +143,6 @@ final class AppViewModel: ObservableObject {
         self.generalPreferences = initialPrefs
         self.showDockIcon = initialPrefs.showDockIcon
         self.everythingScope = EverythingScope(persisted: initialPrefs.defaultEverythingScope)
-
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first ?? home
-        let leftTab = WorkspaceTab(directoryURL: home)
-        let rightTab = WorkspaceTab(directoryURL: desktop)
-        self.leftPane = PaneState(tabs: [leftTab], activeTabID: leftTab.id)
-        self.rightPane = PaneState(tabs: [rightTab], activeTabID: rightTab.id)
     }
 
     func bootstrap() {

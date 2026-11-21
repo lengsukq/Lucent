@@ -3,6 +3,12 @@ import SwiftUI
 
 struct WorkspaceTopToolbar: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -36,9 +42,17 @@ struct WorkspaceTopToolbar: View {
 
 struct WorkspacePaneHeaderToolbar: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     let pane: PaneSide
     let state: PaneState
     @FocusState private var isSearchFieldFocused: Bool
+
+    init(viewModel: AppViewModel, pane: PaneSide, state: PaneState) {
+        self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
+        self.pane = pane
+        self.state = state
+    }
 
     private var abbreviatedPath: String {
         let raw = state.currentDirectory.path

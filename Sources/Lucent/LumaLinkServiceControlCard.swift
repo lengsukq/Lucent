@@ -5,8 +5,16 @@ import SwiftUI
 
 struct LumaLinkServiceControlCard: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var deviceServices: DeviceServicesStore
     let companionPlugin: PluginDescriptor?
     let ctrl: PluginCenterController?
+
+    init(viewModel: AppViewModel, companionPlugin: PluginDescriptor?, ctrl: PluginCenterController?) {
+        self.viewModel = viewModel
+        self._deviceServices = ObservedObject(wrappedValue: viewModel.deviceServices)
+        self.companionPlugin = companionPlugin
+        self.ctrl = ctrl
+    }
 
     var body: some View {
         let cfg = viewModel.lumaLinkConfig

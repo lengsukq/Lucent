@@ -83,6 +83,12 @@ struct LumaLinkDedicatedConsoleView<CustomCard: View>: View {
 
 struct LumaLinkSafetyAndDevicesCard: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var deviceServices: DeviceServicesStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._deviceServices = ObservedObject(wrappedValue: viewModel.deviceServices)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {

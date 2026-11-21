@@ -9,10 +9,16 @@ private final class SettingsSidebarCollapseState: ObservableObject {
 
 struct SettingsCenterView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var deviceServices: DeviceServicesStore
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var languageManager = LanguageManager.shared
     @ObservedObject private var updater = AppUpdateCoordinator.shared
     @StateObject private var collapseState = SettingsSidebarCollapseState()
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._deviceServices = ObservedObject(wrappedValue: viewModel.deviceServices)
+    }
 
     private var allExternalPlugins: [PluginDescriptor] { viewModel.plugins.filter { !$0.isBuiltin } }
     private var visibleExternalPlugins: [PluginDescriptor] {

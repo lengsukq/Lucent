@@ -11,7 +11,13 @@ private final class ClipboardPrivacyCardState: ObservableObject {
 
 struct ClipboardPrivacySettingsCardView: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var clipboard: ClipboardStore
     @StateObject private var uiState = ClipboardPrivacyCardState()
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._clipboard = ObservedObject(wrappedValue: viewModel.clipboard)
+    }
 
     private var prefs: GeneralPreferences { viewModel.generalPreferences }
 

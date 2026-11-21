@@ -74,6 +74,7 @@ final class WorkspaceCanvasController: ObservableObject {
 
 struct WorkspaceMarqueeContainer<Content: View>: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var workspace: WorkspaceStore
     @ObservedObject var canvas: WorkspaceCanvasController
     let pane: PaneSide
     let state: PaneState
@@ -89,6 +90,7 @@ struct WorkspaceMarqueeContainer<Content: View>: View {
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.viewModel = viewModel
+        self._workspace = ObservedObject(wrappedValue: viewModel.workspace)
         self.canvas = canvas
         self.pane = pane
         self.state = state

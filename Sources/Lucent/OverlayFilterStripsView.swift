@@ -41,6 +41,12 @@ struct OverlayEverythingFilterStrip: View {
 
 struct OverlayClipboardCategoryStrip: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var clipboard: ClipboardStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._clipboard = ObservedObject(wrappedValue: viewModel.clipboard)
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -100,6 +106,12 @@ struct OverlayClipboardCategoryStrip: View {
 
 struct OverlayBottomFooterBar: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var deviceServices: DeviceServicesStore
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._deviceServices = ObservedObject(wrappedValue: viewModel.deviceServices)
+    }
 
     private var pinnedScripts: [ScriptRecord] {
         viewModel.scripts.filter { $0.isEnabled && $0.pinnedInQuickBar }
@@ -168,6 +180,13 @@ struct OverlayBottomFooterBar: View {
                 .buttonStyle(.plain).help("固定悬浮窗不被失焦收起")
 
                 Divider().frame(height: 14).opacity(0.35)
+                if viewModel.selectedCandidate != nil {
+                    Button { viewModel.toggleOverlayActionMenu() } label: {
+                        KeycapPill(title: L10n.pick("动作", "Actions"), keyText: "⌘K")
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.pick("对当前选中项展开更多动作与插件联动 (⌘K)", "Open context actions & plugin pipeline (⌘K)"))
+                }
                 KeycapPill(title: "过滤", keyText: "⇥")
                 KeycapPill(title: "预览", keyText: "⌘Y")
                 KeycapPill(title: "执行", keyText: "↩", prominent: true)

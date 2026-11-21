@@ -22,7 +22,13 @@ final class LumaLinkNetworkCardState: ObservableObject {
 
 struct LumaLinkNetworkAndPairingCard: View {
     @ObservedObject var viewModel: AppViewModel
+    @ObservedObject private var deviceServices: DeviceServicesStore
     @StateObject private var cardState = LumaLinkNetworkCardState()
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        self._deviceServices = ObservedObject(wrappedValue: viewModel.deviceServices)
+    }
 
     private var endpoint: (host: String, port: UInt16, candidate: LumaLinkNetworkCandidate?, isCustomHost: Bool) {
         let resolved = LumaLinkNetworkResolver.resolveConnectHost(

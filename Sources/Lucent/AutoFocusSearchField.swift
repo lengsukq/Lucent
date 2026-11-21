@@ -12,6 +12,7 @@ enum OverlayKeyAction: Sendable {
     case cycleMode
     case deleteBackwardWhenEmpty
     case togglePreview
+    case toggleActionMenu
     case revealInFinder
     case openSettings
 }
@@ -219,6 +220,9 @@ struct AutoFocusSearchField: NSViewRepresentable {
                 }
             case "y":
                 parent.onAction(.togglePreview)
+                return nil
+            case "k":
+                parent.onAction(.toggleActionMenu)
                 return nil
             case "r":
                 parent.onAction(.revealInFinder)
