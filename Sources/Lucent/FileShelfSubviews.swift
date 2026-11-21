@@ -193,11 +193,34 @@ struct FileShelfRowContent: View {
             guard let url = row.url else { return }
             let values = try? url.resourceValues(forKeys: [.isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey])
             if values?.isUbiquitousItem == true && values?.ubiquitousItemDownloadingStatus != .current { return }
-            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 68, height: 68),
-                                                       scale: 2, representationTypes: [.icon, .thumbnail])
-            defer { QLThumbnailGenerator.shared.cancel(request) }
-            if let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request),
-               !Task.isCancelled { uiState.thumbnail = representation.nsImage }
+            if let cgImage = await ShelfThumbnailLoader.loadCGImage(for: url), !Task.isCancelled {
+                uiState.thumbnail = NSImage(cgImage: cgImage, size: NSSize(width: 34, height: 34))
+            }
+        }
+    }
+}
+
+private enum ShelfThumbnailLoader {
+    // QLThumbnailGenerator.cancel(_:) is thread-safe, while macOS 15.x SDK headers omit Sendable on Request/Representation.
+    private final class RequestBox: @unchecked Sendable {
+        let request: QLThumbnailGenerator.Request
+        init(url: URL) {
+            self.request = QLThumbnailGenerator.Request(
+                fileAt: url, size: CGSize(width: 68, height: 68), scale: 2, representationTypes: [.icon, .thumbnail]
+            )
+        }
+    }
+
+    static func loadCGImage(for url: URL) async -> CGImage? {
+        let box = RequestBox(url: url)
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                QLThumbnailGenerator.shared.generateBestRepresentation(for: box.request) { representation, _ in
+                    continuation.resume(returning: representation?.cgImage)
+                }
+            }
+        } onCancel: {
+            QLThumbnailGenerator.shared.cancel(box.request)
         }
     }
 }

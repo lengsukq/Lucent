@@ -6,7 +6,11 @@ import LucentFoundation
 import LucentSearch
 
 public enum ScreenshotCompositor {
-    private static let sharedCIContext = CIContext(options: [.useSoftwareRenderer: false])
+    // CIContext is documented thread-safe by Apple, but macOS 15.x SDK headers do not mark it Sendable yet.
+    private final class CIContextBox: @unchecked Sendable {
+        let context = CIContext(options: [.useSoftwareRenderer: false])
+    }
+    private static let sharedCIContextBox = CIContextBox()
 
     public static func samplePixelColor(in cgImage: CGImage, point: CGPoint, screenBounds: CGRect) -> String {
         guard let (r, g, b) = samplePixelRGB(in: cgImage, point: point, screenBounds: screenBounds) else {
@@ -44,7 +48,7 @@ public enum ScreenshotCompositor {
         filter.setValue(ciInput, forKey: kCIInputImageKey)
         filter.setValue(max(2.0, radius), forKey: kCIInputRadiusKey)
         guard let out = filter.outputImage?.cropped(to: extent) else { return nil }
-        return sharedCIContext.createCGImage(out, from: extent)
+        return sharedCIContextBox.context.createCGImage(out, from: extent)
     }
 
     public static func renderCroppedImage(
