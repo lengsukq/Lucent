@@ -1,6 +1,8 @@
 # 流光译站 · 有道/苹果与多源大模型翻译 (`translate-hub`)
 
-Lucent 官方翻译与词典插件（Plugin v3.7 · 原生 Swift 6 `arm64` 可执行程序 `bin/translate-hub`）：
+Lucent 官方翻译与词典插件（Plugin v3.7 · 原生 Swift 6 `arm64` 可执行程序 `bin/translate-hub`）。
+
+![流光译站设置，显示划词入口、默认互译语言和首选翻译引擎](../../docs/screenshots/translate-hub.webp)
 
 ## 支持的翻译引擎与自由展示控制
 

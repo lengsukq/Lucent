@@ -6,6 +6,8 @@
 
 免登录、零订阅、不卖 AI 会员。按一下 `⌥Space`，搜索、截图标注与长截图、穿透贴图、录屏、离线识字、外接鼠标平滑与磁吸文件中转站一次搞定，用完自动释放内存。
 
+![按 ⌥Space 唤起的 Lucent 启动首页，显示搜索框、功能磁贴和混合高频坞](docs/screenshots/launcher-home.webp)
+
 ## 为什么选 Lucent？
 
 | 对比维度 | **流光 Lucent** | Raycast | uTools | Alfred + 单品 |
@@ -25,6 +27,10 @@
 - **按需实用工具箱（`⌥E` / `⌥M` / `⌥N`）**：双栏文件整理台（NTFS 移动硬盘只读保护）、芯片功耗监控、软件实时网速与安全清缓存、轻量 Markdown / 看图 / 4K 视频播放窗，关窗即释放内存。
 - **连上你已有的 AI 十秒造工具**：内置 `lucent-mcp`，连接 Claude Code / Cursor / Codex / Gemini CLI 后，一句话写脚本、造插件、排启动面板并热重载生效。
 - **透明悬浮挂件 & 跨机同步**：支持无边框透明点击穿透桌面挂件、三向磁吸边缘停靠、本地加密备份与 WebDAV（坚果云 / NAS）同步；所有悬浮挂件默认关闭，不打扰不占内存。
+
+![Lucent 快捷台计算 128 × 48，并通过 ⌘K 展开结果的动作抽屉](docs/screenshots/search-actions.webp)
+
+![Lucent 启动页定制设置，显示场景预设、磁贴列数、高频坞容量与分区开关](docs/screenshots/home-layout.webp)
 
 ## 12 款官方精选插件
 

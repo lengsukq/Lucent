@@ -17,6 +17,8 @@
 - [`screen-shield/`](screen-shield/README.md)：**状态屏 · 清洁屏幕与暂离防误触遮罩**（一键盖住全部显示器展示「清洁屏幕」「请勿触碰」「马上回来」或自定义告示，联动拦截键盘与滚轮误触，长按 `Esc` 2 秒安全退出）。
 - `Starters/`（`sys-ip-dns` / `port-killer` / `shell-note`）：内置精选模板画廊（`PluginStarterGallery`）的三款原生 Swift 源码与预编译产物源。
 
+![Lucent 快捷台中的插件列表，按插件筛选并直接执行子功能](../docs/screenshots/plugin-list.webp)
+
 ## 快速使用
 
 ### 方式一：作为插件商店一键入驻（推荐）

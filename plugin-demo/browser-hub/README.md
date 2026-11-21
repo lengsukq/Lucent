@@ -2,6 +2,8 @@
 
 基于 **原生 Swift 6 (`PluginKit` + `SQLite3` + `PropertyListSerialization`)** 编译为 `arm64` 可执行文件（`bin/browser-hub`，零 Python 运行时依赖）。无需安装任何浏览器扩展或登录云账号，直接在本机安全直连 **Microsoft Edge**、**Google Chrome**（自动识别 `Default` 与全部 `Profile *` 多配置档昵称）以及 **Apple Safari** 的书签、Reading List 阅读列表与近期历史记录，并自动将高频词条同步至 Lucent 的 `⌥Space` 零延迟免前缀检索索引（`search-index.json`）。
 
+![浏览器书签与历史中枢设置，显示数据源、历史回溯天数与索引缓存](../../docs/screenshots/browser-hub.webp)
+
 ## 核心特性
 
 - **无锁 WAL 快照读取（浏览器运行中零阻塞）**：查询 `History` / `History.db` 前自动将 SQLite 主文件及 `-wal` / `-shm` 拷入隔离临时目录并以 `PRAGMA query_only = ON` 只读打开，既不会锁死正在运行的浏览器，也不会遇到 `database is locked` 报错。

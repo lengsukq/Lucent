@@ -2,6 +2,8 @@
 
 基于 **Lucent Plugin v3.7 窗口绑定会话 (`lucent.session`)** 打造的零常驻 macOS 局域网快传插件，完整兼容 **LocalSend Protocol v2.1**（可与 iOS / Android / Windows / macOS / Linux 官方 LocalSend 客户端直接互通）。
 
+![Lucent 中的 LocalSend 插件设置，显示浮窗入口、监听端口、HTTPS 开关与接收策略](../../docs/screenshots/local-send.webp)
+
 ## 核心特性
 
 - **零常驻、即关即毁**：仅在打开快传浮窗（含贴边迷你胶囊）时启动沙箱子进程与 `53317` 监听；关闭浮窗瞬间释放端口、Socket 与内存，不与原版 LocalSend 冲突。
