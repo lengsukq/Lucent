@@ -5,3 +5,7 @@
 *.DS_Store
 __pycache__/
 *.pyc
+promo-video/node_modules/
+promo-video/.remotion/
+promo-video/out/
+promo-video/public/audio/generated/

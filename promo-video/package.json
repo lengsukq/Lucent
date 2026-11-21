@@ -1,0 +1,27 @@
+{
+  "name": "lucent-promo-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Programmatic 1080p60 promotional video for Lucent (流光) built with Remotion",
+  "scripts": {
+    "setup": "bash scripts/setup-env.sh",
+    "audio": "NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem node scripts/generate-audio.mjs",
+    "remux-audio": "bash scripts/remux-audio.sh",
+    "typecheck": "tsc --noEmit",
+    "studio": "remotion studio src/index.ts",
+    "stills": "node scripts/render-stills.mjs",
+    "render": "bash scripts/render.sh"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.290",
+    "@remotion/transitions": "^4.0.290",
+    "msedge-tts": "^2.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.290"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "typescript": "^5.7.3"
+  }
+}

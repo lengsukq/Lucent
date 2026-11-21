@@ -1,0 +1,145 @@
+{
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "transitionFrames": 24,
+  "totalFrames": 15000,
+  "acts": [
+    {
+      "id": "act0",
+      "index": "00",
+      "title": "序幕 · 一触流光",
+      "english": "PROLOGUE",
+      "startFrame": 0,
+      "durationFrames": 1224,
+      "theme": "prism-pulse",
+      "scaleIndex": 0
+    },
+    {
+      "id": "act1",
+      "index": "01",
+      "title": "随心编排的启动面板",
+      "english": "CUSTOM LAUNCH PANEL",
+      "startFrame": 1200,
+      "durationFrames": 2064,
+      "theme": "dual",
+      "scaleIndex": 1
+    },
+    {
+      "id": "act2",
+      "index": "02",
+      "title": "一框全搜与高频日常",
+      "english": "UNIFIED SEARCH HUB",
+      "startFrame": 3240,
+      "durationFrames": 2304,
+      "theme": "prism-pulse",
+      "scaleIndex": 1
+    },
+    {
+      "id": "act3",
+      "index": "03",
+      "title": "开箱即用的五大原生利器",
+      "english": "NATIVE TOOLKIT",
+      "startFrame": 5520,
+      "durationFrames": 2664,
+      "theme": "dual",
+      "scaleIndex": 4
+    },
+    {
+      "id": "act4",
+      "index": "04",
+      "title": "深度定制与 Plugin v3.7",
+      "english": "PLUGIN ECOSYSTEM",
+      "startFrame": 8160,
+      "durationFrames": 2064,
+      "theme": "prism-pulse",
+      "scaleIndex": 2
+    },
+    {
+      "id": "act5",
+      "index": "05",
+      "title": "lucent-mcp 一句话 AI 共创",
+      "english": "AI CO-CREATION",
+      "startFrame": 10200,
+      "durationFrames": 2304,
+      "theme": "prism-pulse",
+      "scaleIndex": 3
+    },
+    {
+      "id": "act6",
+      "index": "06",
+      "title": "工程底牌与用完即焚",
+      "english": "SWIFT 6 ARCHITECTURE",
+      "startFrame": 12480,
+      "durationFrames": 1584,
+      "theme": "dual",
+      "scaleIndex": 4
+    },
+    {
+      "id": "act7",
+      "index": "07",
+      "title": "让每一次按键，如流光掠影",
+      "english": "FINALE",
+      "startFrame": 14040,
+      "durationFrames": 960,
+      "theme": "prism-pulse",
+      "scaleIndex": 5
+    }
+  ],
+  "sfxEvents": [
+    { "frame": 165, "type": "keycap_press", "gain": 0.92 },
+    { "frame": 182, "type": "shockwave_bloom", "gain": 0.95 },
+    { "frame": 420, "type": "panel_morph", "gain": 0.78 },
+    { "frame": 760, "type": "crystal_chime", "gain": 0.60 },
+
+    { "frame": 1200, "type": "scene_whoosh", "gain": 0.72 },
+    { "frame": 1560, "type": "glass_click", "gain": 0.65 },
+    { "frame": 1920, "type": "glass_click", "gain": 0.65 },
+    { "frame": 2280, "type": "pin_pop", "gain": 0.78 },
+    { "frame": 2640, "type": "theme_sweep", "gain": 0.95 },
+    { "frame": 2980, "type": "crystal_chime", "gain": 0.60 },
+
+    { "frame": 3240, "type": "scene_whoosh", "gain": 0.72 },
+    { "frame": 3400, "type": "type_burst", "gain": 0.55 },
+    { "frame": 3880, "type": "tab_glide", "gain": 0.62 },
+    { "frame": 4010, "type": "pin_pop", "gain": 0.68 },
+    { "frame": 4420, "type": "type_burst", "gain": 0.55 },
+    { "frame": 4920, "type": "type_burst", "gain": 0.55 },
+    { "frame": 5240, "type": "reload_bell", "gain": 0.75 },
+
+    { "frame": 5520, "type": "scene_whoosh", "gain": 0.76 },
+    { "frame": 5740, "type": "shutter_snap", "gain": 0.88 },
+    { "frame": 6060, "type": "glass_click", "gain": 0.68 },
+    { "frame": 6360, "type": "rec_pulse", "gain": 0.78 },
+    { "frame": 6720, "type": "ocr_scan", "gain": 0.85 },
+    { "frame": 7160, "type": "scroll_swoosh", "gain": 0.76 },
+    { "frame": 7640, "type": "glass_click", "gain": 0.65 },
+
+    { "frame": 8160, "type": "scene_whoosh", "gain": 0.72 },
+    { "frame": 8420, "type": "tab_glide", "gain": 0.64 },
+    { "frame": 8780, "type": "card_fan", "gain": 0.72 },
+    { "frame": 9140, "type": "card_fan", "gain": 0.68 },
+    { "frame": 9520, "type": "panel_morph", "gain": 0.72 },
+    { "frame": 9860, "type": "verify_lock", "gain": 0.82 },
+
+    { "frame": 10200, "type": "scene_whoosh", "gain": 0.82 },
+    { "frame": 10440, "type": "type_burst", "gain": 0.52 },
+    { "frame": 10720, "type": "mcp_beam", "gain": 0.88 },
+    { "frame": 10940, "type": "reload_bell", "gain": 0.90 },
+    { "frame": 11240, "type": "mcp_beam", "gain": 0.86 },
+    { "frame": 11520, "type": "reload_bell", "gain": 0.90 },
+    { "frame": 11840, "type": "mcp_beam", "gain": 0.88 },
+    { "frame": 12120, "type": "reload_bell", "gain": 0.92 },
+
+    { "frame": 12480, "type": "scene_whoosh", "gain": 0.72 },
+    { "frame": 12720, "type": "dag_node", "gain": 0.68 },
+    { "frame": 12880, "type": "dag_node", "gain": 0.72 },
+    { "frame": 13040, "type": "dag_node", "gain": 0.76 },
+    { "frame": 13360, "type": "verify_lock", "gain": 0.76 },
+    { "frame": 13680, "type": "memory_release", "gain": 0.74 },
+
+    { "frame": 14040, "type": "scene_whoosh", "gain": 0.75 },
+    { "frame": 14220, "type": "shockwave_bloom", "gain": 0.84 },
+    { "frame": 14560, "type": "crystal_chime", "gain": 0.72 }
+  ]
+}
