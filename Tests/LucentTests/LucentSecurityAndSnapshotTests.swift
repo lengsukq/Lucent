@@ -127,4 +127,116 @@ struct LucentSecurityAndSnapshotTests {
         try truncated.write(to: snapURL, options: .atomic)
         #expect(EverythingSnapshotStore.load(scopeKey: "unit-idx3", expectedRoots: [scanRoot], cacheDirectory: cacheDir) == nil)
     }
+
+    @Test("PluginSandboxProfileBuilder isolates sibling PluginData, host stores, credentials, and osascript/nc")
+    func sandboxHardeningCrossPluginAndHostPrivacy() throws {
+        let root = try makeIsolatedDir("sandbox-hardening")
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let pluginDir = root.appendingPathComponent("Plugins/plugin-a", isDirectory: true)
+        let dataRoot = root.appendingPathComponent("PluginData", isDirectory: true)
+        let dataDirA = dataRoot.appendingPathComponent("plugin-a", isDirectory: true)
+        let tmpDir = root.appendingPathComponent("tmp-a", isDirectory: true)
+        let vaultDir = root.appendingPathComponent(".vault", isDirectory: true)
+        for d in [pluginDir, dataDirA, tmpDir, vaultDir] {
+            try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        }
+
+        let strictProfile = PluginSandboxProfileBuilder.buildProfile(
+            pluginDirectory: pluginDir,
+            dataDirectory: dataDirA,
+            isolatedTmpDirectory: tmpDir,
+            vaultDirectories: [vaultDir],
+            bridgeSocketPath: nil,
+            allowedScopes: [],
+            allowAppleScriptRuntime: false
+        )
+        let canonicalDataRoot = dataRoot.resolvingSymlinksInPath().standardizedFileURL.path
+        let canonicalDataA = dataDirA.resolvingSymlinksInPath().standardizedFileURL.path
+        #expect(strictProfile.contains("(deny file-read* file-write* (subpath \"\(canonicalDataRoot)\"))"))
+        #expect(strictProfile.contains("(allow file-read* file-write* (subpath \"\(canonicalDataA)\"))"))
+        #expect(strictProfile.contains("ClipboardHistory"))
+        #expect(strictProfile.contains("plugin-state.json"))
+        #expect(strictProfile.contains("/.kube"))
+        #expect(strictProfile.contains("/.npmrc"))
+        #expect(strictProfile.contains("(literal \"/usr/bin/osascript\")"))
+        #expect(strictProfile.contains("(literal \"/usr/bin/nc\")"))
+        #expect(strictProfile.contains("(literal \"/usr/bin/open\")"))
+
+        let appleScriptProfile = PluginSandboxProfileBuilder.buildProfile(
+            pluginDirectory: pluginDir,
+            dataDirectory: nil,
+            isolatedTmpDirectory: tmpDir,
+            vaultDirectories: [vaultDir],
+            bridgeSocketPath: nil,
+            allowedScopes: [],
+            allowAppleScriptRuntime: true
+        )
+        #expect(!appleScriptProfile.contains("(literal \"/usr/bin/osascript\")"))
+    }
+
+    @Test("LauncherEngine wakes Everything index selectively and extracts file stems without URL overhead")
+    func launcherIndexWakeAndStemPolicy() {
+        #expect(LauncherEngine.shouldWakeEverythingIndex(for: "", filter: .files, scopedPluginID: nil))
+        #expect(!LauncherEngine.shouldWakeEverythingIndex(for: "", filter: .all, scopedPluginID: nil))
+        #expect(!LauncherEngine.shouldWakeEverythingIndex(for: "s", filter: .all, scopedPluginID: nil))
+        #expect(!LauncherEngine.shouldWakeEverythingIndex(for: "1+2*3", filter: .all, scopedPluginID: nil))
+        #expect(!LauncherEngine.shouldWakeEverythingIndex(for: "notes", filter: .all, scopedPluginID: "translate-hub"))
+        #expect(LauncherEngine.shouldWakeEverythingIndex(for: "ab", filter: .all, scopedPluginID: nil))
+        #expect(LauncherEngine.shouldWakeEverythingIndex(for: "文", filter: .all, scopedPluginID: nil))
+        #expect(LauncherEngine.shouldWakeEverythingIndex(for: "f a", filter: .all, scopedPluginID: nil))
+        #expect(LauncherEngine.shouldWakeEverythingIndex(for: "ext:md", filter: .all, scopedPluginID: nil))
+
+        #expect(LauncherEngine.stemLowercased(of: "report.pdf") == "report")
+        #expect(LauncherEngine.stemLowercased(of: "archive.tar.gz") == "archive.tar")
+        #expect(LauncherEngine.stemLowercased(of: ".gitignore") == ".gitignore")
+        #expect(LauncherEngine.stemLowercased(of: "makefile") == "makefile")
+
+        #expect(PluginSelectionReader.defaultAXMessagingTimeoutSeconds > 0
+                && PluginSelectionReader.defaultAXMessagingTimeoutSeconds <= 0.5)
+    }
+
+    @Test("DirectoryEntryEnumerator getattrlistbulk matches readdir across Unicode, packages, symlinks, dotfiles, and exclusions")
+    func getattrlistbulkMatchesReaddirExactly() throws {
+        let root = try makeIsolatedDir("bulk-enum")
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let fm = FileManager.default
+        let normalDir = root.appendingPathComponent("中文目录", isDirectory: true)
+        let skippedDir = root.appendingPathComponent("node_modules", isDirectory: true)
+        let appPkg = root.appendingPathComponent("Demo.app", isDirectory: true)
+        let excludedDir = root.appendingPathComponent("SecretSkip", isDirectory: true)
+        for d in [normalDir, skippedDir, appPkg, excludedDir] {
+            try fm.createDirectory(at: d, withIntermediateDirectories: true)
+        }
+        try Data("ok".utf8).write(to: root.appendingPathComponent("设计文档 2026.md"))
+        try Data("dot".utf8).write(to: root.appendingPathComponent(".hidden"))
+        try fm.createSymbolicLink(
+            at: root.appendingPathComponent("link-to-dir"),
+            withDestinationURL: normalDir
+        )
+
+        let exclusions = EverythingIndex.normalizedExcludedSet([excludedDir.path])
+        let bulk = try #require(DirectoryEntryEnumerator.enumerateViaGetAttrListBulk(
+            at: root.path, includeHidden: false, excludedPaths: exclusions,
+            skippedFolders: DirectoryEntryEnumerator.defaultSkippedFolders, scratchBuffer: nil
+        ))
+        let posix = DirectoryEntryEnumerator.enumerateViaReaddir(
+            at: root.path, includeHidden: false, excludedPaths: exclusions,
+            skippedFolders: DirectoryEntryEnumerator.defaultSkippedFolders
+        )
+
+        #expect(Set(bulk) == Set(posix))
+        #expect(bulk.contains(DirectoryChildEntry(name: "中文目录", isDirectory: true)))
+        #expect(bulk.contains(DirectoryChildEntry(name: "设计文档 2026.md", isDirectory: false)))
+        #expect(bulk.contains(DirectoryChildEntry(name: "Demo.app", isDirectory: false)))
+        #expect(bulk.contains(DirectoryChildEntry(name: "link-to-dir", isDirectory: false)))
+        #expect(!bulk.contains(where: { $0.name == "node_modules" || $0.name == "SecretSkip" || $0.name == ".hidden" }))
+
+        let withHiddenBulk = try #require(DirectoryEntryEnumerator.enumerateViaGetAttrListBulk(
+            at: root.path, includeHidden: true, excludedPaths: exclusions,
+            skippedFolders: DirectoryEntryEnumerator.defaultSkippedFolders, scratchBuffer: nil
+        ))
+        #expect(withHiddenBulk.contains(DirectoryChildEntry(name: ".hidden", isDirectory: false)))
+    }
 }

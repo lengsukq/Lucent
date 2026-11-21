@@ -48,13 +48,6 @@ public struct EverythingIndex: Sendable {
         self.reachedNodeLimit = reachedNodeLimit
     }
 
-    private static let skippedFolderNames: Set<String> = [
-        "Library", "node_modules", ".git", ".build", "DerivedData", "Caches",
-        ".Spotlight-V100", ".Trashes", "$RECYCLE.BIN", "System Volume Information",
-        ".fseventsd", ".TemporaryItems", ".venv", "venv", "__pycache__", "Pods",
-        ".gradle", ".cargo", ".rustup", ".npm"
-    ]
-
     private static let packageSuffixBytes: [[UInt8]] = [
         ".app", ".framework", ".bundle", ".xcodeproj", ".xcworkspace", ".playground", ".photoslibrary"
     ].map { Array($0.utf8) }
@@ -115,6 +108,8 @@ public struct EverythingIndex: Sendable {
         nodes.reserveCapacity(min(maxNodes, 8192))
         var queues: [[(path: String, parentID: Int32)]] = validRoots.map { [($0.standardizedFileURL.path, Int32(-1))] }
         var heads = Array(repeating: 0, count: validRoots.count)
+        let bulkScratch = UnsafeMutableRawBufferPointer.allocate(byteCount: DirectoryEntryEnumerator.defaultBufferBytes, alignment: 8)
+        defer { bulkScratch.deallocate() }
         var reachedLimit = false
         var active = true
 
@@ -127,34 +122,13 @@ public struct EverythingIndex: Sendable {
                 let current = queues[rootIdx][heads[rootIdx]]
                 heads[rootIdx] += 1
 
-                guard let dir = current.path.withCString({ opendir($0) }) else { continue }
-                defer { closedir(dir) }
-
-                while let entry = readdir(dir) {
-                    let name = decodeEntryName(entry)
-                    if name == "." || name == ".." { continue }
-                    if !includeHidden && name.hasPrefix(".") { continue }
-
-                    let childPath = current.path == "/" ? "/\(name)" : "\(current.path)/\(name)"
-                    if !normalizedExclusions.isEmpty && isPathExcluded(childPath, excludedPaths: normalizedExclusions) {
-                        continue
-                    }
-
-                    let rawIsDir: Bool
-                    switch Int32(entry.pointee.d_type) {
-                    case DT_DIR:
-                        rawIsDir = true
-                    case DT_UNKNOWN:
-                        var st = stat()
-                        rawIsDir = childPath.withCString { lstat($0, &st) == 0 } && ((st.st_mode & S_IFMT) == S_IFDIR)
-                    default:
-                        rawIsDir = false
-                    }
-
-                    let isPackage = rawIsDir && hasPackageSuffix(name)
-                    let isDirectory = rawIsDir && !isPackage
-                    if isDirectory && !includeHidden && skippedFolderNames.contains(name) { continue }
-
+                let children = DirectoryEntryEnumerator.enumerate(
+                    at: current.path,
+                    includeHidden: includeHidden,
+                    excludedPaths: normalizedExclusions,
+                    scratchBuffer: bulkScratch
+                )
+                for child in children {
                     if nodes.count >= maxNodes {
                         reachedLimit = true
                         break
@@ -163,10 +137,11 @@ public struct EverythingIndex: Sendable {
                     nodes.append(IndexedNode(
                         parentID: current.parentID,
                         rootIndex: UInt16(rootIdx),
-                        isDirectory: isDirectory,
-                        name: name
+                        isDirectory: child.isDirectory,
+                        name: child.name
                     ))
-                    if isDirectory {
+                    if child.isDirectory {
+                        let childPath = current.path == "/" ? "/\(child.name)" : "\(current.path)/\(child.name)"
                         queues[rootIdx].append((childPath, nodeID))
                     }
                 }
@@ -197,13 +172,6 @@ public struct EverythingIndex: Sendable {
             builtAt: Date(),
             reachedNodeLimit: reachedNodeLimit || other.reachedNodeLimit
         )
-    }
-
-    private static func decodeEntryName(_ entry: UnsafeMutablePointer<dirent>) -> String {
-        let len = Int(entry.pointee.d_namlen) + 1
-        return withUnsafePointer(to: entry.pointee.d_name) { ptr in
-            ptr.withMemoryRebound(to: CChar.self, capacity: len) { String(cString: $0) }
-        }
     }
 
     public static func hasPackageSuffix(_ name: String) -> Bool {

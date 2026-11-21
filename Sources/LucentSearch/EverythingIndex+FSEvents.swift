@@ -1,15 +1,7 @@
 import LucentFoundation
-import Darwin
 import Foundation
 
 public extension EverythingIndex {
-    private static let fsSkippedFolders: Set<String> = [
-        "Library", "node_modules", ".git", ".build", "DerivedData", "Caches",
-        ".Spotlight-V100", ".Trashes", "$RECYCLE.BIN", "System Volume Information",
-        ".fseventsd", ".TemporaryItems", ".venv", "venv", "__pycache__", "Pods",
-        ".gradle", ".cargo", ".rustup", ".npm"
-    ]
-
     func applyingFSEventDirectories(
         _ rawChangedDirs: Set<String>,
         maxNodes: Int = 260_000,
@@ -77,7 +69,12 @@ public extension EverythingIndex {
                 let shouldScan = changedSet.contains(item.path) || (!isRoot && item.oldDirID == nil)
 
                 if shouldScan {
-                    for child in scanSingleDirectory(at: item.path, excludedPaths: normalizedExclusions) {
+                    let children = DirectoryEntryEnumerator.enumerate(
+                        at: item.path,
+                        includeHidden: false,
+                        excludedPaths: normalizedExclusions
+                    )
+                    for child in children {
                         if newNodes.count >= maxNodes { reachedLimit = true; break }
                         let newID = Int32(newNodes.count)
                         newNodes.append(IndexedNode(
@@ -117,33 +114,5 @@ public extension EverythingIndex {
             }
         }
         return EverythingIndex(rootURLs: rootURLs, nodes: newNodes, builtAt: Date(), reachedNodeLimit: reachedLimit)
-    }
-
-    private func scanSingleDirectory(at path: String, excludedPaths: Set<String>) -> [(name: String, isDirectory: Bool)] {
-        guard let dir = path.withCString({ opendir($0) }) else { return [] }
-        defer { closedir(dir) }
-        var result: [(name: String, isDirectory: Bool)] = []
-        while let entry = readdir(dir) {
-            let len = Int(entry.pointee.d_namlen) + 1
-            let name: String = withUnsafePointer(to: entry.pointee.d_name) { ptr in
-                ptr.withMemoryRebound(to: CChar.self, capacity: len) { String(cString: $0) }
-            }
-            if name == "." || name == ".." || name.hasPrefix(".") { continue }
-            let childPath = path == "/" ? "/\(name)" : "\(path)/\(name)"
-            if !excludedPaths.isEmpty && Self.isPathExcluded(childPath, excludedPaths: excludedPaths) { continue }
-            let rawIsDir: Bool
-            switch Int32(entry.pointee.d_type) {
-            case DT_DIR: rawIsDir = true
-            case DT_UNKNOWN:
-                var st = stat()
-                rawIsDir = childPath.withCString { lstat($0, &st) == 0 } && ((st.st_mode & S_IFMT) == S_IFDIR)
-            default: rawIsDir = false
-            }
-            let isPackage = rawIsDir && EverythingIndex.hasPackageSuffix(name)
-            let isDirectory = rawIsDir && !isPackage
-            if isDirectory && Self.fsSkippedFolders.contains(name) { continue }
-            result.append((name, isDirectory))
-        }
-        return result
     }
 }
