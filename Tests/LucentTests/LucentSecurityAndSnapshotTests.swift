@@ -231,7 +231,8 @@ struct LucentSecurityAndSnapshotTests {
         #expect(bulk.contains(DirectoryChildEntry(name: "设计文档 2026.md", isDirectory: false)))
         #expect(bulk.contains(DirectoryChildEntry(name: "Demo.app", isDirectory: false)))
         #expect(bulk.contains(DirectoryChildEntry(name: "link-to-dir", isDirectory: false)))
-        #expect(!bulk.contains(where: { $0.name == "node_modules" || $0.name == "SecretSkip" || $0.name == ".hidden" }))
+        let bulkNames = Set(bulk.map(\.name))
+        #expect(bulkNames.isDisjoint(with: ["node_modules", "SecretSkip", ".hidden"]))
 
         let withHiddenBulk = try #require(DirectoryEntryEnumerator.enumerateViaGetAttrListBulk(
             at: root.path, includeHidden: true, excludedPaths: exclusions,
