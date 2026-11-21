@@ -11,10 +11,11 @@
 ## 2. 统一快捷中枢 (`⌥Space`) 与可定制启动面板
 
 - **模块化多场景启动页 (`home-layout.json`)**：支持最多 8 套场景 Profile 与 4 套官方预设切换、一键撤回编辑，自由编排 Bento 大磁贴（`2/3/4` 列）、混合高频坞（`8/16` 格，混排本机应用、插件、目录与协议书签）、最多 6 组命名胶囊架及可隐藏探索提示条，并打通搜索候选右键「钉上主页」与 `lucent-mcp` 零轮询热刷新。
-- **并发全搜与「越用越懂你」自适应排序引擎**：
+- **并发全搜、`⌘K` 二级上下文动作流与「越用越懂你」自适应排序引擎**：
+  - **统一 `⌘K` 上下文动作抽屉 (`OverlayActionCatalog` + `OverlayActionDrawerView`)**：对主浮窗中任意选中候选（文件、剪贴板图文/链接、计算结果、开发工具、短语、插件或应用）按 `⌘K` 即可在纯键盘流下呼出液态玻璃动作抽屉，一键串联原生动作（放进文件中转站、钉屏、离线 OCR、纯文本粘贴、钉到启动页）以及所有匹配 `accepts`/`acceptExtensions`/`acceptURLHosts` 的扩展插件与快捷脚本；
   - **应用启动与智能排序 (`AppUsageService`)**：融合前台活跃时长、启动频次 `log2` 加权、时间衰减与中文多音字拼音首字母检索；
   - **全候选点击频率与搜索词亲和排序 (`SearchAffinityStore`)**：覆盖应用、插件及子功能/索引词条、文件、快捷脚本、动态短语与静态系统命令，基于本地离线 Frecency（7 天半衰期）与精确/前缀搜索词亲和动态置顶高频点击项（隐私隔离剪贴板与计算结果，支持单项重置、一键清空与 `.lucentbackup` 自动备份）；
-  - **全盘与外置盘秒搜 (`EverythingIndex` + `LCNTIDX3`)**：基于 POSIX `opendir`/`readdir` 多卷并发扫描、带尾部 `SHA-256` 与无环父指针校验的 `mmap` 二进制快照、`FSEvents` 实时增量同步及用户自定义排除路径；
+  - **全盘与外置盘秒搜 (`EverythingIndex` + `DirectoryEntryEnumerator` + `LCNTIDX3`)**：基于 Darwin `getattrlistbulk` 批量目录扫描（不支持卷自动无缝回退 POSIX `opendir`/`readdir`）、带尾部 `SHA-256` 与无环父指针校验的 `mmap` 二进制快照、`FSEvents` 实时增量同步及用户自定义排除路径；
   - **计算、10 维单位换算与离线开发工具箱 (`UnitAndCommandEngine` + `DevToolkitEngine` + `SnippetStore`)**：覆盖算式/百分比/科学函数、10 类中英自然单位换算、`;` 动态模板短语，以及离线时间戳、UUID、Base64/URL、JWT、JSON、哈希、色值与二维码生成；
   - **富媒体剪贴板历史 (`ClipboardMonitor` + `ClipboardHistoryStore`)**：支持文本、`#HEX`/`rgb` 色值、图片、GIF、视频与多文件固化快照，自动过滤密码管理器隐私标记与高危明文私钥，支持回车粘贴回原窗口、15 步删除撤回、容量/过期策略、应用黑名单、全量 `0600` 本地跨重启持久化（含临时媒体迁移至 `ClipboardHistory/`）以及按时间/媒体/分类/未收藏/全量一键批量清理。
 
@@ -34,7 +35,7 @@
   - 单输入框自动嗅探 GitHub 仓库、商店 `lucent-registry.json` 或 `.zip` 包，强制校验 `SHA-256` 与权限升级差异，附带 `plugin-demo/` 11 款原生 Swift 官方插件（含 `antigravity-pulse` 与 `gold-monitor` 自由画布悬浮窗）与 3 款内置精选模板；
   - **文件中转站与一键音频组合**：中转站采用原生液态玻璃浮窗（`RoundedGlassContainerView` + `DoubleSpecularBorder`），支持左右边缘磁吸贴边隐藏、悬停/拖入自动滑出、右键菜单与可选「拖出即移出」及跨重启会话恢复，条目由宿主长期保留并校验源文件身份；音频组合采用无边框双主题液态玻璃悬浮控制台（支持靠边胶囊收起与点击设备卡直切单个扬声器/麦克风），通过 Core Audio 回读核验并在部分失败时自动恢复，配合原生液态玻璃 HUD 反馈；
   - 支持应用与插件更新检查、含 `LZFSE` 压缩与可选口令密钥迁移的 `.lucentbackup` v2 归档及 HTTPS WebDAV 云端自动轮转同步；
-  - 安装包内置零外部依赖 `lucent-mcp` 二进制，暴露 4 份规范资源与 20 项工具供 AI 客户端直接创建脚本、脚手架开发插件与编排启动面板。
+  - 安装包内置零外部依赖 `lucent-mcp` 二进制，暴露 4 份规范资源与 21 项工具供 AI 客户端直接创建脚本、脚手架开发插件、编排启动面板，并在用户显式开启「设置 › 通用 › 允许 `lucent-mcp` 离线检索」后只读检索本地 `LCNTIDX3` 文件快照。
 
 ## 5. 当前已知运行约束
 
