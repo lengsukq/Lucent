@@ -62,8 +62,8 @@ enum WindowMotionStyle {
         case .launcher: 0.19
         case .launcherFromIntro: 0.24
         case .dynamicIsland: 0.21
-        case .floatingPin: 0.20
-        case .pulseCapsule: 0.18
+        case .floatingPin: 0.28
+        case .pulseCapsule: 0.28
         case .standardWindow: 0.21
         case .fullscreenOverlay: 0.12
         }
@@ -135,17 +135,17 @@ enum WindowMotionAnimator {
             spring.fromValue = NSValue(caTransform3D: fromTransform)
             spring.toValue = NSValue(caTransform3D: CATransform3DIdentity)
             spring.mass = 1.0
-            spring.stiffness = 490
-            spring.damping = 33
-            spring.initialVelocity = 3.5
-            spring.duration = min(max(spring.settlingDuration, 0.18), 0.30)
+            spring.stiffness = 340
+            spring.damping = 30
+            spring.initialVelocity = 1.6
+            spring.duration = min(max(spring.settlingDuration, 0.28), 0.42)
             spring.isRemovedOnCompletion = true
             layer.add(spring, forKey: transformKey)
         }
 
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = style.enterFadeDuration
-            ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.20, 0.96, 0.32, 1.0)
+            ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.32, 0.72, 0.0, 1.0)
             window.animator().alphaValue = 1.0
         } completionHandler: { [weak window] in
             MainActor.assumeIsolated {
@@ -209,7 +209,7 @@ enum WindowMotionAnimator {
     static func animateFrame(
         _ window: NSWindow,
         to targetFrame: NSRect,
-        duration: TimeInterval = 0.23,
+        duration: TimeInterval = 0.34,
         onComplete: (@MainActor () -> Void)? = nil
     ) {
         guard !shouldReduceMotion, window.isVisible else {
@@ -221,7 +221,7 @@ enum WindowMotionAnimator {
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = duration
             ctx.allowsImplicitAnimation = true
-            ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.20, 0.96, 0.32, 1.0)
+            ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.32, 0.72, 0.0, 1.0)
             window.animator().setFrame(targetFrame, display: true)
         } completionHandler: { [weak window] in
             MainActor.assumeIsolated {

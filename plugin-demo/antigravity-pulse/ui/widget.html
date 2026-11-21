@@ -197,10 +197,10 @@
       --my: 0%;
       --sheen-op: 0;
       transition:
-        border-radius 220ms var(--spring-ease),
-        border-color 220ms var(--spring-ease),
-        box-shadow 220ms var(--spring-ease),
-        color 180ms ease;
+        border-radius 320ms var(--spring-ease),
+        border-color 280ms var(--spring-ease),
+        box-shadow 320ms var(--spring-ease),
+        color 220ms ease;
     }
 
     /* Pointer-tracked soft cool-silver/white liquid specular sheen */
@@ -221,7 +221,7 @@
     .strip-view, .full-view {
       position: relative;
       z-index: 2;
-      transition: opacity 160ms var(--spring-ease);
+      transition: opacity 240ms var(--spring-ease);
     }
 
     .card.sheet-open .full-view {
@@ -305,7 +305,7 @@
       width: 100%;
       height: 100%;
       gap: 2px;
-      animation: lg-view-enter 200ms var(--spring-ease);
+      animation: lg-view-enter 300ms var(--spring-ease);
     }
     html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-view {
       flex-direction: row;
@@ -319,7 +319,7 @@
       flex-direction: column;
       height: 100%;
       gap: 5.5px;
-      animation: lg-view-enter 220ms var(--spring-ease);
+      animation: lg-view-enter 320ms var(--spring-ease);
     }
 
     /* Edge-Cycle Button Only Relevant When Docked */
@@ -893,7 +893,7 @@
       opacity: 0;
       pointer-events: none;
       transform: translateY(10px) scale(0.985);
-      transition: opacity 200ms var(--spring-ease), transform 260ms var(--spring-bounce);
+      transition: opacity 260ms var(--spring-ease), transform 340ms var(--spring-ease);
       z-index: 20;
     }
     .session-sheet.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
@@ -1550,7 +1550,7 @@
         clearHoverTimers();
         state.morphing = true;
         state.expanded = true;
-        state.ignoreAutoUntil = Date.now() + 500;
+        state.ignoreAutoUntil = Date.now() + 700;
         syncDOMState();
 
         try {
@@ -1559,7 +1559,7 @@
               width: FULL_SIZE.w,
               height: FULL_SIZE.h,
               anchor: anchorForEdge(state.edge),
-              durationMs: 180,
+              durationMs: 340,
               easing: "spring",
               keepOnScreen: true
             });
@@ -1567,14 +1567,14 @@
             await window.lucent?.window?.resize?.(FULL_SIZE.w, FULL_SIZE.h);
           }
           await window.lucent?.window?.setPinned?.(true);
-          setTimeout(drawSparkline, 80);
+          setTimeout(drawSparkline, 360);
         } finally {
           setTimeout(() => {
             state.morphing = false;
             if (!state.mouseInside && state.docked && state.expanded && !state.dragging && !el.sessionSheet.classList.contains("open")) {
               scheduleDockRetract(260);
             }
-          }, 40);
+          }, 350);
         }
       }
 
@@ -1588,15 +1588,15 @@
         state.morphing = true;
         state.docked = true;
         state.expanded = false;
-        state.ignoreAutoUntil = Date.now() + 650;
-        state.ignoreHoverUntil = Date.now() + 280;
+        state.ignoreAutoUntil = Date.now() + 820;
+        state.ignoreHoverUntil = Date.now() + 400;
         syncDOMState();
 
         const sz = stripSizeForEdge(state.edge);
         try {
           if (hasNativeMotion) {
             await window.lucent.window.snapToEdge(state.edge, {
-              width: sz.w, height: sz.h, margin: 0, durationMs: 200, easing: "spring"
+              width: sz.w, height: sz.h, margin: 0, durationMs: 320, easing: "spring"
             });
           } else {
             const res = await runExclusive(["--snap-dock", state.edge, window.lucent?.env?.windowId || "antigravity-pulse-hud"]);
@@ -1606,7 +1606,7 @@
           }
           await window.lucent?.window?.setPinned?.(true);
         } finally {
-          setTimeout(() => { state.morphing = false; }, 50);
+          setTimeout(() => { state.morphing = false; }, 330);
         }
       }
 
@@ -1618,7 +1618,7 @@
         state.morphing = true;
         state.docked = false;
         state.expanded = true;
-        state.ignoreAutoUntil = Date.now() + 650;
+        state.ignoreAutoUntil = Date.now() + 820;
         syncDOMState();
 
         try {
@@ -1628,7 +1628,7 @@
                 width: FULL_SIZE.w,
                 height: FULL_SIZE.h,
                 anchor: anchorForEdge(state.edge),
-                durationMs: 200,
+                durationMs: 340,
                 easing: "spring",
                 keepOnScreen: true
               });
@@ -1637,9 +1637,9 @@
             }
           }
           await window.lucent?.window?.setPinned?.(true);
-          setTimeout(drawSparkline, 120);
+          setTimeout(drawSparkline, 360);
         } finally {
-          setTimeout(() => { state.morphing = false; }, 40);
+          setTimeout(() => { state.morphing = false; }, 350);
         }
       }
 

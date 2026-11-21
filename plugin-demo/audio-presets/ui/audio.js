@@ -497,9 +497,9 @@ async function setPillMode(toPill, edgeHint = null) {
   if (!host?.window) return;
   const anchor = state.dockedEdge === "left" ? "topLeft" : "topRight";
   if (toPill) {
-    await host.window.snapToEdge(state.dockedEdge, { width: PILL.width, height: PILL.height, margin: 10, animate: true });
+    await host.window.snapToEdge(state.dockedEdge, { width: PILL.width, height: PILL.height, margin: 10, durationMs: 340, easing: "spring", animate: true });
   } else {
-    await host.window.morph({ width: EXPANDED.width, height: EXPANDED.height, anchor, animate: true, keepOnScreen: true });
+    await host.window.morph({ width: EXPANDED.width, height: EXPANDED.height, anchor, durationMs: 340, easing: "spring", animate: true, keepOnScreen: true });
   }
 }
 
@@ -686,7 +686,7 @@ if (host) {
     const edge = detail?.nearEdge;
     if (edge === "left" || edge === "right") {
       state.dockedEdge = edge;
-      host.window.snapToEdge(edge, { margin: 10, animate: true });
+      host.window.snapToEdge(edge, { margin: 10, durationMs: 320, easing: "spring", animate: true });
     }
   });
 

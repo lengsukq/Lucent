@@ -208,7 +208,7 @@ final class PluginWindowMotionSession {
 
     private static func timingFunction(for easing: PluginWindowEasing) -> CAMediaTimingFunction {
         switch easing {
-        case .spring: CAMediaTimingFunction(controlPoints: 0.22, 1.0, 0.36, 1.0)
+        case .spring: CAMediaTimingFunction(controlPoints: 0.32, 0.72, 0.0, 1.0)
         case .easeOut: CAMediaTimingFunction(name: .easeOut)
         case .easeInOut: CAMediaTimingFunction(name: .easeInEaseOut)
         case .linear: CAMediaTimingFunction(name: .linear)

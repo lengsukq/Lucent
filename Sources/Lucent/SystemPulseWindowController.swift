@@ -245,7 +245,7 @@ final class SystemPulseWindowController: NSObject, NSWindowDelegate {
         guard !NSEqualRects(panel.frame, targetFrame) else { return }
         isApplyingFrame = true
         if animate {
-            WindowMotionAnimator.animateFrame(panel, to: targetFrame, duration: 0.22) { [weak self] in
+            WindowMotionAnimator.animateFrame(panel, to: targetFrame, duration: 0.34) { [weak self] in
                 self?.isApplyingFrame = false
             }
         } else {

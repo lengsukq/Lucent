@@ -143,10 +143,10 @@ body {
   --my: 0%;
   --sheen-op: 0;
   transition:
-    border-radius 240ms var(--spring-ease),
-    border-color 220ms var(--spring-ease),
-    box-shadow 220ms var(--spring-ease),
-    color 180ms ease;
+    border-radius 340ms var(--spring-ease),
+    border-color 280ms var(--spring-ease),
+    box-shadow 320ms var(--spring-ease),
+    color 220ms ease;
 }
 
 /* Pointer-tracked restrained cool-silver/white liquid specular sheen */
@@ -185,7 +185,7 @@ html[data-mode="pill"] .shell {
   display: flex;
   align-items: center;
   gap: 6px;
-  animation: lg-view-enter 220ms var(--spring-ease);
+  animation: lg-view-enter 300ms var(--spring-ease);
 }
 
 .pill-main {
@@ -220,7 +220,7 @@ html[data-mode="pill"] .shell {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  animation: lg-view-enter 240ms var(--spring-ease);
+  animation: lg-view-enter 320ms var(--spring-ease);
 }
 
 .grip-bar {
@@ -561,7 +561,7 @@ select:focus-visible {
 .quick-picker {
   margin-top: 8px;
   padding: 8px;
-  animation: lg-panel-drop 260ms var(--spring-bounce);
+  animation: lg-panel-drop 320ms var(--spring-ease);
 }
 
 .picker-head {
@@ -838,7 +838,7 @@ dialog {
 }
 
 dialog[open] {
-  animation: lg-dialog-pop 260ms var(--spring-bounce);
+  animation: lg-dialog-pop 300ms var(--spring-ease);
 }
 
 dialog::backdrop {

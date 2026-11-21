@@ -57,7 +57,7 @@ public enum PluginWindowGeometry {
     public static let minFloatingHeight: CGFloat = 36
     public static let maxWidth: CGFloat = 2400
     public static let maxHeight: CGFloat = 1600
-    public static let defaultDurationMs: Double = 220
+    public static let defaultDurationMs: Double = 340
     public static let maxDurationMs: Double = 1200
     public static let defaultEdgeThreshold: Double = 28
     public static let minVisibleDragInset: CGFloat = 56

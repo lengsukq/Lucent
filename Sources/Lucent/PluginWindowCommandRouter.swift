@@ -147,7 +147,7 @@ extension PluginWindowMotionSession {
         let target = PluginWindowGeometry.snappedFrame(
             current: win.frame, targetSize: targetSize, edge: edge, margin: margin, visibleFrame: screen.visibleFrame
         )
-        let durationMs = PluginWindowGeometry.clampDurationMs((body["durationMs"] as? NSNumber)?.doubleValue ?? 240)
+        let durationMs = PluginWindowGeometry.clampDurationMs((body["durationMs"] as? NSNumber)?.doubleValue ?? 340)
         let easing = (body["easing"] as? String).flatMap(PluginWindowEasing.init(rawValue:)) ?? .spring
         let applied = applyFrame(window: win, target: target, durationMs: durationMs, easing: easing, keepOnScreen: true)
         return targetPayload(for: applied, window: win, extra: ["snappedEdge": edge.rawValue])
@@ -157,7 +157,7 @@ extension PluginWindowMotionSession {
         let raw = PluginWindowGeometry.finiteDouble((body["opacity"] as? NSNumber)?.doubleValue, fallback: Double(win.alphaValue))
         let clamped = min(max(raw, PluginCustomWindowSpec.minOpacity), 1.0)
         let animate = (body["animate"] as? Bool) ?? false
-        let durationMs = animate ? PluginWindowGeometry.clampDurationMs((body["durationMs"] as? NSNumber)?.doubleValue ?? 180) : 0
+        let durationMs = animate ? PluginWindowGeometry.clampDurationMs((body["durationMs"] as? NSNumber)?.doubleValue ?? 240) : 0
         if durationMs > 0 && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             NSAnimationContext.runAnimationGroup { ctx in
                 ctx.duration = durationMs / 1000.0

@@ -119,7 +119,7 @@ extension FileShelfPanelController {
         isApplyingFrame = true
         let allowAnimate = animate && !movingAcrossDisplays && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         if allowAnimate {
-            WindowMotionAnimator.animateFrame(window, to: targetFrame, duration: 0.20) { [weak self] in
+            WindowMotionAnimator.animateFrame(window, to: targetFrame, duration: 0.34) { [weak self] in
                 self?.isApplyingFrame = false
                 self?.window?.saveFrame(usingName: self?.frameName ?? "")
             }

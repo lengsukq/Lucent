@@ -184,7 +184,7 @@
       justify-content: center;
       padding: 14px 20px 24px 20px;
       background: transparent;
-      transition: padding 240ms var(--spring-ease);
+      transition: padding 320ms var(--spring-ease);
     }
 
     html[data-mode="dock"][data-edge="right"] .stage {
@@ -224,13 +224,13 @@
       --my: 0%;
       --sheen-op: 0;
       transition:
-        width 260ms var(--spring-ease),
-        height 260ms var(--spring-ease),
-        padding 240ms var(--spring-ease),
-        border-radius 220ms var(--spring-ease),
-        border-color 220ms var(--spring-ease),
-        box-shadow 220ms var(--spring-ease),
-        transform 220ms var(--spring-ease);
+        width 360ms var(--spring-ease),
+        height 360ms var(--spring-ease),
+        padding 340ms var(--spring-ease),
+        border-radius 320ms var(--spring-ease),
+        border-color 280ms var(--spring-ease),
+        box-shadow 320ms var(--spring-ease),
+        transform 320ms var(--spring-ease);
     }
 
     /* Pointer-tracked restrained liquid specular sheen */
@@ -255,7 +255,7 @@
     .footer {
       position: relative;
       z-index: 2;
-      transition: opacity 160ms var(--spring-ease);
+      transition: opacity 240ms var(--spring-ease);
     }
 
     .card.drawer-open .header,
@@ -554,7 +554,7 @@
       opacity: 0;
       pointer-events: none;
       transform: translateX(4px);
-      transition: opacity 180ms var(--spring-ease), transform 220ms var(--spring-ease);
+      transition: opacity 260ms var(--spring-ease), transform 300ms var(--spring-ease);
     }
 
     html[data-mode="dock"] .card:not(:hover):not(.pinned-open) .controls {
@@ -652,14 +652,14 @@
       font-size: 28px;
       font-weight: 780;
       color: var(--ink);
-      transition: font-size 220ms var(--spring-ease);
+      transition: font-size 320ms var(--spring-ease);
     }
 
     .price-dec {
       font-size: 18px;
       font-weight: 600;
       color: var(--ink-dec);
-      transition: font-size 220ms var(--spring-ease);
+      transition: font-size 320ms var(--spring-ease);
     }
 
     html[data-mode="mini"] .price-int { font-size: 23px; }
@@ -809,7 +809,7 @@
       min-width: 0;
       opacity: 0;
       overflow: hidden;
-      transition: opacity 220ms var(--spring-ease), flex-grow 220ms var(--spring-ease), margin 220ms var(--spring-ease);
+      transition: opacity 320ms var(--spring-ease), flex-grow 320ms var(--spring-ease), margin 320ms var(--spring-ease);
     }
 
     html[data-mode="dock"][data-edge="top"] .card:not(:hover):not(.pinned-open) .micro-spark-wrap {
@@ -903,7 +903,7 @@
       opacity: 0;
       pointer-events: none;
       transform: translateY(6px) scale(0.96);
-      transition: opacity 200ms var(--spring-ease), transform 260ms var(--spring-bounce);
+      transition: opacity 260ms var(--spring-ease), transform 340ms var(--spring-ease);
     }
 
     .alert-drawer.open {
@@ -1416,7 +1416,7 @@
         const size = MODE_SIZES[targetMode] || MODE_SIZES.standard;
 
         state.morphing = true;
-        state.ignoreAutoUntil = Date.now() + 700;
+        state.ignoreAutoUntil = Date.now() + 850;
         setAlertDrawerOpen(false);
         el.card.style.transform = "";
         el.card.removeAttribute("data-near-edge");
@@ -1438,7 +1438,7 @@
                 width: size.w,
                 height: size.h,
                 margin: 0,
-                durationMs: 240,
+                durationMs: 340,
                 easing: "spring"
               });
             } else if (opts.x !== undefined && opts.y !== undefined && Number.isFinite(opts.x) && Number.isFinite(opts.y)) {
@@ -1447,7 +1447,7 @@
                 y: Math.round(opts.y),
                 width: size.w,
                 height: size.h,
-                durationMs: 230,
+                durationMs: 340,
                 easing: "spring",
                 keepOnScreen: true
               });
@@ -1459,12 +1459,12 @@
                 width: size.w,
                 height: size.h,
                 anchor,
-                durationMs: 230,
+                durationMs: 340,
                 easing: "spring",
                 keepOnScreen: true
               });
             }
-            setTimeout(drawActiveChart, 250);
+            setTimeout(drawActiveChart, 360);
             return;
           }
 
@@ -1493,12 +1493,12 @@
           setTimeout(() => checkFrameAfterDrag(true), 220);
           setTimeout(drawActiveChart, 260);
         } finally {
-          state.morphing = false;
+          setTimeout(() => { state.morphing = false; }, hasNativeMotion ? 350 : 60);
         }
       }
 
       async function snapDockToEdge(edge) {
-        state.ignoreAutoUntil = Date.now() + 700;
+        state.ignoreAutoUntil = Date.now() + 850;
         updateEdgeVisual(edge);
         if (hasNativeMotion) {
           if (state.mode !== "dock") {
@@ -1508,10 +1508,10 @@
               width: MODE_SIZES.dock.w,
               height: MODE_SIZES.dock.h,
               margin: 0,
-              durationMs: 240,
+              durationMs: 340,
               easing: "spring"
             });
-            setTimeout(drawActiveChart, 250);
+            setTimeout(drawActiveChart, 360);
           }
           return;
         }
@@ -2150,7 +2150,7 @@
         state.dockPinnedOpen = !state.dockPinnedOpen;
         el.card.classList.toggle("pinned-open", state.dockPinnedOpen);
         el.dockLockBtn.classList.toggle("active", state.dockPinnedOpen);
-        setTimeout(drawMicroSparkline, 240);
+        setTimeout(drawMicroSparkline, 360);
       });
 
       el.dockEdgeBtn.addEventListener("click", () => {
