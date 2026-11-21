@@ -1,6 +1,8 @@
 import AppKit
 import CoreGraphics
+import ImageIO
 import LucentCore
+import LucentMedia
 @preconcurrency import ScreenCaptureKit
 import SwiftUI
 
@@ -8,23 +10,24 @@ import SwiftUI
 final class ScreenCaptureCoordinator {
     static let shared = ScreenCaptureCoordinator()
 
-    private var overlayPanels: [CaptureOverlayPanel] = []
-    private var panelByDisplayID: [CGDirectDisplayID: CaptureOverlayPanel] = [:]
-    private var keyMonitor: Any?
-    private var screenObserver: NSObjectProtocol?
-    private var activeSession: ScreenshotSessionState?
-    private var continuation: CheckedContinuation<ScreenshotResult, Error>?
-    private var pasteboardSnapshot: PasteboardSnapshot?
-    private var didModifyPasteboard = false
-    private var lastSelectionRect: CGRect?
-    private let focusGuard = CaptureFocusGuard()
-    private var captureGeneration: UInt64 = 0
+    var overlayPanels: [CaptureOverlayPanel] = []
+    var panelByDisplayID: [CGDirectDisplayID: CaptureOverlayPanel] = [:]
+    var keyMonitor: Any?
+    var screenObserver: NSObjectProtocol?
+    var activeSession: ScreenshotSessionState?
+    var continuation: CheckedContinuation<ScreenshotResult, Error>?
+    var pasteboardSnapshot: PasteboardSnapshot?
+    var didModifyPasteboard = false
+    var lastSelectionRect: CGRect?
+    let focusGuard = CaptureFocusGuard()
+    var captureGeneration: UInt64 = 0
 
     private init() {}
 
     func capture(mode: ScreenshotMode, preferredTargetApp: NSRunningApplication? = nil) async throws -> ScreenshotResult {
         if !overlayPanels.isEmpty { finish(with: .cancelled, animated: false) }
         captureGeneration &+= 1
+        let hadVisibleLucentWindows = (NSApp?.windows ?? []).contains { $0.isVisible && !$0.isMiniaturized && $0.level == .normal }
         focusGuard.prepareForNewCapture(preferredApp: preferredTargetApp)
         guard CGPreflightScreenCaptureAccess() else {
             focusGuard.finishRestore(restorePreviousApp: false)
@@ -32,10 +35,12 @@ final class ScreenCaptureCoordinator {
             throw LucentError.visionFailed(L10n.pick("尚未授予“屏幕录制”权限，请在系统设置 -> 隐私与安全性 -> 屏幕录制 中勾选 Lucent。", "Screen Recording permission is not granted. Enable Lucent in System Settings > Privacy & Security > Screen Recording."))
         }
 
-        try? await Task.sleep(for: .milliseconds(70))
+        if hadVisibleLucentWindows {
+            try? await Task.sleep(for: .milliseconds(36))
+        }
         let topology: ScreenTopologySnapshot
         do {
-            topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includePixelatedPreview: true)
+            topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includeOwnOverlayWindows: false)
         } catch {
             focusGuard.finishRestore(restorePreviousApp: false)
             throw error
@@ -47,19 +52,97 @@ final class ScreenCaptureCoordinator {
         let session = ScreenshotSessionState(
             topology: topology, initialCursorCanvasPoint: initialPt, mode: mode, previousSelectionRect: remembered
         )
-        session.excludeWindowShadow = GeneralPreferences.load().screenshotExcludeWindowShadow
+        let prefs = GeneralPreferences.load()
+        session.excludeWindowShadow = prefs.screenshotExcludeWindowShadow
+        if prefs.hiddenToolbarItemSet.contains(ScreenshotToolbarItemID.forTool(session.activeTool).rawValue) {
+            session.activeTool = .move
+        }
         return try await withCheckedThrowingContinuation { cont in
             self.continuation = cont
             self.presentOverlays(with: session)
         }
     }
 
-    private func presentOverlays(with session: ScreenshotSessionState) {
+    /// Reuses the primary screenshot annotation canvas and toolbar in-place for lossless editing of an active screen Pin.
+    func editPinnedImage(
+        cleanBaseURL: URL,
+        pinAppKitFrame: NSRect,
+        existingAnnotations: [ScreenshotAnnotation]
+    ) async throws -> ScreenshotResult {
+        if !overlayPanels.isEmpty { finish(with: .cancelled, animated: false) }
+        captureGeneration &+= 1
+        guard let src = CGImageSourceCreateWithURL(cleanBaseURL as CFURL, nil),
+              let cleanCG = CGImageSourceCreateImageAtIndex(src, 0, nil) else {
+            throw LucentError.visionFailed(L10n.pick("无法加载钉图底图以进行标注编辑。", "Unable to load base pin image for editing."))
+        }
+        focusGuard.prepareForNewCapture(preferredApp: nil)
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else { throw LucentError.visionFailed("No display available.") }
+        let targetScreen = screens.max(by: {
+            $0.frame.intersection(pinAppKitFrame).width * $0.frame.intersection(pinAppKitFrame).height
+                < $1.frame.intersection(pinAppKitFrame).width * $1.frame.intersection(pinAppKitFrame).height
+        }) ?? screens[0]
+        let dispID = ScreenTopologyAndWindowMatcher.screenDisplayID(targetScreen)
+        let scale = max(1.0, CGFloat(cleanCG.width) / max(pinAppKitFrame.width, 1))
+        let layout = MultiDisplayLayout(
+            screens: [(displayID: dispID, appKitFrame: targetScreen.frame, appKitVisibleFrame: targetScreen.visibleFrame, scale: scale)],
+            mainDisplayID: dispID
+        )
+        guard let desc = layout.slices.first else { throw LucentError.visionFailed("Display layout empty.") }
+
+        let topLeft = layout.canvasPoint(fromAppKitGlobal: NSPoint(x: pinAppKitFrame.minX, y: pinAppKitFrame.maxY))
+        let canvasSel = CGRect(origin: topLeft, size: pinAppKitFrame.size).intersection(desc.canvasFrame)
+        let fullW = max(2, Int(round(desc.canvasFrame.width * scale)))
+        let fullH = max(2, Int(round(desc.canvasFrame.height * scale)))
+        let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: fullW, height: fullH, bitsPerComponent: 8, bytesPerRow: fullW * 4,
+            space: srgb, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            throw LucentError.visionFailed("Unable to allocate pin edit canvas.")
+        }
+        ctx.clear(CGRect(x: 0, y: 0, width: fullW, height: fullH))
+        let drawRect = CGRect(
+            x: (canvasSel.minX - desc.canvasFrame.minX) * scale,
+            y: CGFloat(fullH) - (canvasSel.maxY - desc.canvasFrame.minY) * scale,
+            width: canvasSel.width * scale,
+            height: canvasSel.height * scale
+        )
+        ctx.draw(cleanCG, in: drawRect)
+        guard let fullSheetCG = ctx.makeImage() else { throw LucentError.visionFailed("Pin canvas image nil.") }
+
+        let slice = ScreenDisplaySlice(descriptor: desc, scDisplay: nil, appKitScreen: targetScreen, image: fullSheetCG)
+        let topology = ScreenTopologySnapshot(layout: layout, displays: [slice], windows: [])
+        let mappedAnnotations: [ScreenshotAnnotation] = existingAnnotations.map { item -> ScreenshotAnnotation in
+            var copy = item
+            copy.points = item.points.map { pt -> CGPoint in
+                CGPoint(x: canvasSel.minX + pt.x * canvasSel.width, y: canvasSel.minY + pt.y * canvasSel.height)
+            }
+            return copy
+        }
+        let session = ScreenshotSessionState(
+            topology: topology,
+            initialCursorCanvasPoint: CGPoint(x: canvasSel.midX, y: canvasSel.midY),
+            mode: .interactiveAnnotate,
+            isPinEditSession: true,
+            initialAnnotations: mappedAnnotations
+        )
+        session.selectionRect = canvasSel
+        session.activeTool = AnnotationToolKind.arrow
+        return try await withCheckedThrowingContinuation { cont in
+            self.continuation = cont
+            self.presentOverlays(with: session)
+        }
+    }
+
+    func presentOverlays(with session: ScreenshotSessionState) {
         pasteboardSnapshot = PasteboardSnapshot.capture()
         didModifyPasteboard = false
         activeSession = session
         overlayPanels.removeAll(); panelByDisplayID.removeAll()
-        focusGuard.suppressBackgroundWindowsIfNeeded(excluding: overlayPanels)
+        if !session.isPinEditSession {
+            focusGuard.suppressBackgroundWindowsIfNeeded(excluding: overlayPanels)
+        }
 
         for slice in session.topology.displays {
             let panel = CaptureOverlayPanel(
@@ -84,7 +167,9 @@ final class ScreenCaptureCoordinator {
         focusGuard.activateAppForCapture()
         panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
 
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .rightMouseDown, .mouseMoved, .leftMouseDragged]) { [weak self] event in
+        keyMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.keyDown, .rightMouseDown, .mouseMoved, .leftMouseDragged, .scrollWheel]
+        ) { [weak self] event in
             guard let self, let current = self.activeSession else { return event }
             return self.handleEvent(event, session: current)
         }
@@ -95,180 +180,8 @@ final class ScreenCaptureCoordinator {
         }
     }
 
-    private func handleEvent(_ event: NSEvent, session current: ScreenshotSessionState) -> NSEvent? {
-        if event.type == .mouseMoved || event.type == .leftMouseDragged {
-            let prevID = current.activeDisplayID
-            current.updateHover(at: current.topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation))
-            if event.type == .mouseMoved, current.activeDisplayID != prevID,
-               !current.isDraggingSelection, current.activeDragMode == nil, current.pendingTextPoint == nil {
-                panelByDisplayID[current.activeDisplayID]?.makeKey()
-            }
-            return event
-        }
-        if event.type == .rightMouseDown {
-            if current.pendingTextPoint != nil {
-                current.pendingTextPoint = nil; current.pendingTextValue = ""
-            } else if current.selectionRect != nil {
-                current.selectionRect = nil; current.selectedWindow = nil
-                current.clearAnnotations(); current.activeTool = .move
-                current.updateHover(at: current.topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation))
-            } else {
-                finish(with: .cancelled)
-            }
-            return nil
-        }
-        if event.keyCode == 53 {
-            if current.pendingTextPoint != nil { current.pendingTextPoint = nil; current.pendingTextValue = "" }
-            else { finish(with: .cancelled) }
-            return nil
-        }
-        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if event.keyCode == 6 && mods.contains(.command) {
-            if mods.contains(.shift) { current.redoAnnotation() } else { current.undoAnnotation() }
-            return nil
-        }
-        guard current.pendingTextPoint == nil else { return event }
-        let cleanMods = mods.subtracting([.numericPad, .function])
-        if event.keyCode == 48 && cleanMods.isEmpty && current.selectionRect == nil { _ = current.cycleHoveredWindow(); return nil }
-        if (event.keyCode == 36 || event.keyCode == 76), current.selectionRect != nil {
-            handleAction(current.mode == .quickOCR ? .ocr : .copy); return nil
-        }
-        if event.keyCode == 8 && mods.contains(.command), current.selectionRect != nil { handleAction(.copy); return nil }
-        if event.keyCode == 1 && cleanMods == [.command], current.selectionRect != nil { handleAction(.save); return nil }
-        if event.keyCode == 8 && !mods.contains(.command) {
-            didModifyPasteboard = false
-            let colorVal = mods.contains(.shift) ? current.cursorRGB : current.cursorHex
-            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(colorVal, forType: .string)
-            current.bannerMessage = L10n.pick("已复制色值 \(colorVal)", "Copied color \(colorVal)")
-            return nil
-        }
-        if current.selectionRect != nil, [123, 124, 125, 126].contains(event.keyCode), cleanMods.isSubset(of: [.shift]) {
-            let step: CGFloat = cleanMods.contains(.shift) ? 10 : 1
-            let dx: CGFloat = event.keyCode == 123 ? -step : (event.keyCode == 124 ? step : 0)
-            let dy: CGFloat = event.keyCode == 126 ? -step : (event.keyCode == 125 ? step : 0)
-            if current.nudgeSelection(dx: dx, dy: dy) { syncSelectionIfPossible(session: current); return nil }
-        }
-        if event.keyCode == 15 && cleanMods.isEmpty && current.selectionRect == nil, let prev = current.previousSelectionRect {
-            current.selectionRect = prev; current.selectedWindow = nil
-            handleAction(current.mode == .quickOCR ? .ocr : .syncClipboard)
-            return nil
-        }
-        if cleanMods.isEmpty, current.selectionRect != nil {
-            if event.keyCode == 35 { handleAction(.pin); return nil }
-            if event.keyCode == 31 { handleAction(.ocr); return nil }
-            if let shortcutTool = AnnotationToolKind.fromShortcutKeyCode(event.keyCode) {
-                current.commitTextAnnotation(); current.activeTool = shortcutTool; return nil
-            }
-        }
-        return event
-    }
-
-    func handleAction(_ action: ScreenshotToolbarAction) {
-        guard let session = activeSession else { return }
-        session.commitTextAnnotation()
-        switch action {
-        case .cancel: finish(with: .cancelled)
-        case .undo: session.undoAnnotation()
-        case .redo: session.redoAnnotation()
-        case .clear: session.clearAnnotations()
-        case .syncClipboard: syncSelectionIfPossible(session: session)
-        case .copy, .pin, .ocr, .cutout, .save:
-            guard let sel = session.selectionRect?.standardized, sel.width >= 4, sel.height >= 4 else { return }
-            lastSelectionRect = sel
-            Task { [weak self] in
-                guard let self else { return }
-                do {
-                    let rendered = try await self.renderCaptureImage(session: session, selection: sel)
-                    self.performExport(action: action, image: rendered.image, scale: rendered.scale, session: session)
-                } catch {
-                    session.bannerMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-
-    private func renderCaptureImage(session: ScreenshotSessionState, selection: CGRect) async throws -> (image: CGImage, scale: CGFloat) {
-        let fallbackScale = session.effectiveScale(for: selection)
-        if let win = session.selectedWindow,
-           let winCapture = try? await ScreenTopologyAndWindowMatcher.captureIndependentWindowImage(
-               windowID: win.id, ignoreShadow: session.excludeWindowShadow, fallbackScale: fallbackScale
-           ) {
-            let composed = try ScreenshotCompositor.compositeAnnotationsOntoWindowImage(
-                windowImage: winCapture.image, windowCanvasFrame: win.frame, annotations: session.annotations
-            )
-            return (composed, winCapture.scale)
-        }
-        return try ScreenshotCompositor.renderMultiDisplaySelection(
-            slices: session.topology.compositorSlices, canvasBounds: session.screenBounds,
-            selectionRect: selection, annotations: session.annotations
-        )
-    }
-
-    private func syncSelectionIfPossible(session: ScreenshotSessionState) {
-        guard session.mode == .interactiveAnnotate,
-              let sel = session.selectionRect?.standardized, sel.width >= 4, sel.height >= 4 else { return }
-        Task { [weak self] in
-            guard let self, self.activeSession === session else { return }
-            if let rendered = try? await self.renderCaptureImage(session: session, selection: sel) {
-                self.copyComposedToPasteboard(rendered.image, scale: rendered.scale, session: session)
-                let prefix = session.selectedWindow != nil ? L10n.pick("✓ 已捕获独立窗口", "✓ Window captured") : L10n.pick("✓ 已自动放入剪贴板", "✓ Auto-copied")
-                session.bannerMessage = "\(prefix) · " + L10n.pick("1–0 标注、P 钉图、O 识字或回车完成", "1–0 annotate, P pin, O OCR, or Return")
-            }
-        }
-    }
-
-    private func copyComposedToPasteboard(_ image: CGImage, scale: CGFloat, session: ScreenshotSessionState) {
-        ScreenshotCompositor.copyImageToPasteboard(image, scale: scale)
-        didModifyPasteboard = true; session.hasAutoCopied = true
-    }
-
-    private func performExport(action: ScreenshotToolbarAction, image: CGImage, scale: CGFloat, session: ScreenshotSessionState) {
-        do {
-            switch action {
-            case .copy:
-                let url = try ScreenshotCompositor.saveTempCapture(image, scale: scale)
-                copyComposedToPasteboard(image, scale: scale, session: session); finish(with: .copied(url))
-            case .pin:
-                let url = try ScreenshotCompositor.saveTempCapture(image, scale: scale)
-                copyComposedToPasteboard(image, scale: scale, session: session)
-                let rect = session.screenRectForSelection() ?? NSRect(x: 200, y: 260, width: 360, height: 240)
-                finish(with: .pinned(url, rect), animated: false)
-            case .ocr:
-                finish(with: .ocrRequested(try ScreenshotCompositor.saveTempCapture(image, scale: scale)))
-            case .cutout:
-                let url = try ScreenshotCompositor.saveTempCapture(image, scale: scale)
-                copyComposedToPasteboard(image, scale: scale, session: session); finish(with: .cutoutRequested(url))
-            case .save:
-                let prefs = GeneralPreferences.load()
-                let saveDir = prefs.resolvedCaptureSaveDirectory()
-                try? FileManager.default.createDirectory(at: saveDir, withIntermediateDirectories: true)
-                let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-                let fileName = "Lucent-\(stamp).png"
-                if prefs.quickSaveCaptureWithoutDialog {
-                    let dst = saveDir.appendingPathComponent(fileName, isDirectory: false)
-                    try ScreenshotCompositor.writePNG(image, scale: scale, to: dst)
-                    copyComposedToPasteboard(image, scale: scale, session: session)
-                    finish(with: .saved(dst), animated: true)
-                    return
-                }
-                for p in overlayPanels { p.orderOut(nil) }
-                let panel = NSSavePanel(); panel.allowedContentTypes = [.png]
-                panel.directoryURL = saveDir
-                panel.nameFieldStringValue = fileName
-                if panel.runModal() == .OK, let url = panel.url {
-                    try ScreenshotCompositor.writePNG(image, scale: scale, to: url)
-                    copyComposedToPasteboard(image, scale: scale, session: session)
-                    finish(with: .saved(url), animated: false)
-                } else {
-                    for p in overlayPanels { p.orderFrontRegardless() }
-                    panelByDisplayID[session.activeDisplayID]?.makeKeyAndOrderFront(nil)
-                }
-            default: break
-            }
-        } catch { session.bannerMessage = error.localizedDescription }
-    }
-
-    private func finish(with result: ScreenshotResult, animated: Bool = true) {
+    func finish(with result: ScreenshotResult, animated: Bool = true) {
+        activeSession?.cancelAXProbe()
         if case .cancelled = result, didModifyPasteboard { pasteboardSnapshot?.restore() }
         pasteboardSnapshot = nil; didModifyPasteboard = false
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor); keyMonitor = nil }
@@ -276,7 +189,11 @@ final class ScreenCaptureCoordinator {
         let closingPanels = overlayPanels
         overlayPanels.removeAll(); panelByDisplayID.removeAll()
         activeSession = nil
-        let shouldRestoreApp = { if case .ocrRequested = result { return false }; return true }()
+        let shouldRestoreApp = {
+            if case .ocrRequested = result { return false }
+            if case .pinEdited = result { return false }
+            return true
+        }()
         if shouldRestoreApp { focusGuard.beginRestorePreviousAppIfNeeded() }
         let cont = continuation; continuation = nil
         cont?.resume(returning: result)

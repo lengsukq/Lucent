@@ -74,7 +74,8 @@ struct LucentStatusScreenAndCorePolishTests {
         #expect(UnitAndCommandEngine.evaluate("108 km/h to m/s")?.resultText == "30 m/s")
         #expect(UnitAndCommandEngine.evaluate("10 节转 km/h")?.resultText.contains("18.52") == true)
 
-        #expect(AnnotationToolKind.allCases.count == 11)
+        #expect(AnnotationToolKind.allCases.count == 12)
+        #expect(AnnotationToolKind.fromShortcutKeyCode(11) == .blur)
         #expect(AnnotationToolKind.fromShortcutKeyCode(21) == .line)
         #expect(AnnotationToolKind.fromShortcutKeyCode(28) == .spotlight)
     }

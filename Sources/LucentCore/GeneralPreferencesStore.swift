@@ -7,6 +7,7 @@ import LucentSystem
 public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public static let fileName = "general-preferences.json"
     public static let clipboardCapacityPresets: [Int] = [30, 80, 200, 500]
+    public static let defaultSwatchHexes = ["#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#007AFF"]
 
     public var schemaVersion: Int
     public var launchSilentlyInMenuBar: Bool
@@ -26,8 +27,16 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public var clipboardExcludedBundleIDs: [String]
 
     public var defaultCaptureSaveDirectoryPath: String
+    public var lastCaptureSavePanelDirectoryPath: String
     public var quickSaveCaptureWithoutDialog: Bool
     public var screenshotExcludeWindowShadow: Bool
+    public var captureExportFormat: CaptureExportFormat
+    public var captureFileNameTemplate: String
+    public var captureDoubleClickAction: CaptureDoubleClickAction
+    public var confirmCancelAnnotatedCaptureWithDoublePress: Bool
+    public var enableCaptureControlDrillDown: Bool
+    public var customAnnotationSwatchHexes: [String]
+    public var hiddenScreenshotToolbarItems: [String]
     public var gifDefaultOptions: GifRecordingOptions
     public var videoDefaultOptions: VideoRecordingOptions
 
@@ -58,8 +67,16 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         clipboardRetentionTTL: ClipboardRetentionTTL = .forever,
         clipboardExcludedBundleIDs: [String] = [],
         defaultCaptureSaveDirectoryPath: String = "",
+        lastCaptureSavePanelDirectoryPath: String = "",
         quickSaveCaptureWithoutDialog: Bool = false,
         screenshotExcludeWindowShadow: Bool = false,
+        captureExportFormat: CaptureExportFormat = .png,
+        captureFileNameTemplate: String = CaptureFileNameFormatter.defaultTemplate,
+        captureDoubleClickAction: CaptureDoubleClickAction = .copyAndFinish,
+        confirmCancelAnnotatedCaptureWithDoublePress: Bool = true,
+        enableCaptureControlDrillDown: Bool = true,
+        customAnnotationSwatchHexes: [String] = GeneralPreferences.defaultSwatchHexes,
+        hiddenScreenshotToolbarItems: [String] = [],
         gifDefaultOptions: GifRecordingOptions = GifRecordingOptions(),
         videoDefaultOptions: VideoRecordingOptions = VideoRecordingOptions(),
         excludedIndexPaths: [String] = [],
@@ -87,8 +104,17 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.clipboardRetentionTTL = clipboardRetentionTTL
         self.clipboardExcludedBundleIDs = Self.normalizeBundleIDs(clipboardExcludedBundleIDs)
         self.defaultCaptureSaveDirectoryPath = Self.normalizeSingleDirectoryPath(defaultCaptureSaveDirectoryPath)
+        self.lastCaptureSavePanelDirectoryPath = Self.normalizeSingleDirectoryPath(lastCaptureSavePanelDirectoryPath)
         self.quickSaveCaptureWithoutDialog = quickSaveCaptureWithoutDialog
         self.screenshotExcludeWindowShadow = screenshotExcludeWindowShadow
+        self.captureExportFormat = captureExportFormat
+        let trimmedTpl = captureFileNameTemplate.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.captureFileNameTemplate = trimmedTpl.isEmpty ? CaptureFileNameFormatter.defaultTemplate : trimmedTpl
+        self.captureDoubleClickAction = captureDoubleClickAction
+        self.confirmCancelAnnotatedCaptureWithDoublePress = confirmCancelAnnotatedCaptureWithDoublePress
+        self.enableCaptureControlDrillDown = enableCaptureControlDrillDown
+        self.customAnnotationSwatchHexes = Self.normalizeSwatches(customAnnotationSwatchHexes)
+        self.hiddenScreenshotToolbarItems = Array(Set(hiddenScreenshotToolbarItems)).sorted()
         self.gifDefaultOptions = gifDefaultOptions
         self.videoDefaultOptions = videoDefaultOptions
         self.excludedIndexPaths = Self.normalizeExcludedPaths(excludedIndexPaths)
@@ -100,17 +126,6 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.lastUpdateCheckTimestamp = max(0, lastUpdateCheckTimestamp)
         self.enableSelectionQuickBar = enableSelectionQuickBar
         self.enableSmartSearchRanking = enableSmartSearchRanking
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case schemaVersion, launchSilentlyInMenuBar, showLaunchIntroAnimation, restoreFloatingWindowsOnLaunch, showDockIcon, defaultEverythingScope
-        case queryClearPolicy, overlayScreenTarget, rememberOverlayPosition, savedOverlayTopCenter, menuBarIconStyle
-        case clipboardMaxUnpinned, clipboardRetentionTTL, clipboardExcludedBundleIDs
-        case defaultCaptureSaveDirectoryPath, quickSaveCaptureWithoutDialog, screenshotExcludeWindowShadow, gifDefaultOptions, videoDefaultOptions
-        case excludedIndexPaths
-        case updateCheckFrequency, includePrereleaseAppUpdates, skippedAppVersion
-        case autoCheckPluginUpdates, autoInstallSafePluginUpdates, lastUpdateCheckTimestamp
-        case enableSelectionQuickBar, enableSmartSearchRanking
     }
 
     public init(from decoder: Decoder) throws {
@@ -131,8 +146,16 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
             clipboardRetentionTTL: (try? c.decodeIfPresent(ClipboardRetentionTTL.self, forKey: .clipboardRetentionTTL)) ?? .forever,
             clipboardExcludedBundleIDs: (try? c.decodeIfPresent([String].self, forKey: .clipboardExcludedBundleIDs)) ?? [],
             defaultCaptureSaveDirectoryPath: (try? c.decodeIfPresent(String.self, forKey: .defaultCaptureSaveDirectoryPath)) ?? "",
+            lastCaptureSavePanelDirectoryPath: (try? c.decodeIfPresent(String.self, forKey: .lastCaptureSavePanelDirectoryPath)) ?? "",
             quickSaveCaptureWithoutDialog: (try? c.decodeIfPresent(Bool.self, forKey: .quickSaveCaptureWithoutDialog)) ?? false,
             screenshotExcludeWindowShadow: (try? c.decodeIfPresent(Bool.self, forKey: .screenshotExcludeWindowShadow)) ?? false,
+            captureExportFormat: (try? c.decodeIfPresent(CaptureExportFormat.self, forKey: .captureExportFormat)) ?? .png,
+            captureFileNameTemplate: (try? c.decodeIfPresent(String.self, forKey: .captureFileNameTemplate)) ?? CaptureFileNameFormatter.defaultTemplate,
+            captureDoubleClickAction: (try? c.decodeIfPresent(CaptureDoubleClickAction.self, forKey: .captureDoubleClickAction)) ?? .copyAndFinish,
+            confirmCancelAnnotatedCaptureWithDoublePress: (try? c.decodeIfPresent(Bool.self, forKey: .confirmCancelAnnotatedCaptureWithDoublePress)) ?? true,
+            enableCaptureControlDrillDown: (try? c.decodeIfPresent(Bool.self, forKey: .enableCaptureControlDrillDown)) ?? true,
+            customAnnotationSwatchHexes: (try? c.decodeIfPresent([String].self, forKey: .customAnnotationSwatchHexes)) ?? Self.defaultSwatchHexes,
+            hiddenScreenshotToolbarItems: (try? c.decodeIfPresent([String].self, forKey: .hiddenScreenshotToolbarItems)) ?? [],
             gifDefaultOptions: (try? c.decodeIfPresent(GifRecordingOptions.self, forKey: .gifDefaultOptions)) ?? GifRecordingOptions(),
             videoDefaultOptions: (try? c.decodeIfPresent(VideoRecordingOptions.self, forKey: .videoDefaultOptions)) ?? VideoRecordingOptions(),
             excludedIndexPaths: (try? c.decodeIfPresent([String].self, forKey: .excludedIndexPaths)) ?? [],
@@ -166,6 +189,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     }
 
     public var excludedIndexPathSet: Set<String> { Set(excludedIndexPaths) }
+    public var hiddenToolbarItemSet: Set<String> { Set(hiddenScreenshotToolbarItems) }
 
     public mutating func toggleExcludedApp(bundleID: String) {
         let trimmed = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -203,9 +227,17 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         AtomicJSONStore.save(self, to: url, notification: notify ? .lucentGeneralPreferencesDidChange : nil)
     }
 
+    public static func normalizeSwatches(_ raw: [String]) -> [String] {
+        var out: [String] = []
+        for idx in 0..<5 {
+            let candidate = idx < raw.count ? AnnotationRGBColor(hex: raw[idx])?.hexString : nil
+            out.append(candidate ?? defaultSwatchHexes[idx])
+        }
+        return out
+    }
+
     public static func normalizeBundleIDs(_ raw: [String]) -> [String] {
-        var seen = Set<String>()
-        var result: [String] = []
+        var seen = Set<String>(); var result: [String] = []
         for item in raw {
             let trimmed = item.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { continue }
@@ -222,8 +254,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     }
 
     public static func normalizeExcludedPaths(_ raw: [String]) -> [String] {
-        var seen = Set<String>()
-        var result: [String] = []
+        var seen = Set<String>(); var result: [String] = []
         for item in raw {
             let std = normalizeSingleDirectoryPath(item)
             guard !std.isEmpty, std != "/", seen.insert(std).inserted else { continue }

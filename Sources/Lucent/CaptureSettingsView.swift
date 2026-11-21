@@ -16,8 +16,8 @@ struct CaptureSettingsView: View {
                     bottomColor: .purple,
                     title: L10n.pick("截图、钉图与 GIF 录屏", "Capture, Pins & GIF Recording"),
                     subtitle: L10n.pick(
-                        "集中配置默认导出目录、独立窗口去阴影、静默保存及 GIF 录制规格，并快捷管理屏幕钉图。",
-                        "Configure default save folder, window shadows, silent ⌘S saving, GIF presets, and active screen pins."
+                        "集中配置默认导出目录、多格式命名模板、子控件捕捉、工具栏精简及 GIF / MP4 录制规格。",
+                        "Configure save folder, export format & templates, control drill-down, toolbar items, and recording presets."
                     )
                 ) {
                     HStack(spacing: 8) {
@@ -44,6 +44,7 @@ struct CaptureSettingsView: View {
                 }
 
                 captureExportDefaultsCard
+                CaptureToolbarCustomizationCard(viewModel: viewModel)
                 gifDefaultsCard
                 videoDefaultsCard
                 captureTipsCard
@@ -55,7 +56,7 @@ struct CaptureSettingsView: View {
     private var captureExportDefaultsCard: some View {
         VStack(alignment: .leading, spacing: 11) {
             Label(
-                L10n.pick("截图导出与标注默认项", "Screenshot Export & Annotation"),
+                L10n.pick("截图导出、命名模板与交互行为", "Screenshot Export, Template & Behavior"),
                 systemImage: "photo.on.rectangle.angled"
             )
             .font(.callout.weight(.semibold))
@@ -93,9 +94,36 @@ struct CaptureSettingsView: View {
                 .buttonStyle(GlassPillButtonStyle(compact: true))
             }
 
+            HStack(spacing: 8) {
+                Text(L10n.pick("默认格式：", "Export Format:"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(LiquidColors.textSecondary)
+                ForEach(CaptureExportFormat.allCases) { fmt in
+                    Button(fmt.displayLabel) {
+                        viewModel.updateGeneralPreferences { $0.captureExportFormat = fmt }
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: prefs.captureExportFormat == fmt, compact: true))
+                }
+
+                Divider().frame(height: 14).padding(.horizontal, 4)
+
+                Text(L10n.pick("双击选区空白：", "Double-click Selection:"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(LiquidColors.textSecondary)
+                ForEach(CaptureDoubleClickAction.allCases) { act in
+                    Button(act.label) {
+                        viewModel.updateGeneralPreferences { $0.captureDoubleClickAction = act }
+                    }
+                    .buttonStyle(GlassPillButtonStyle(prominent: prefs.captureDoubleClickAction == act, compact: true))
+                }
+                Spacer()
+            }
+
+            templateConfigRow
+
             FlowWrapLayout(horizontalSpacing: 18, verticalSpacing: 8) {
                 Toggle(
-                    L10n.pick("截图 / GIF 按 ⌘S 直接静默保存至默认目录（免每次弹窗）", "Save screenshots & GIFs directly to default folder on ⌘S (skip dialog)"),
+                    L10n.pick("截图 / 长图按 ⌘S 直接静默保存至默认目录（弹可定位轻提示）", "Quick-save screenshots directly on ⌘S with Finder reveal toast"),
                     isOn: Binding(
                         get: { prefs.quickSaveCaptureWithoutDialog },
                         set: { val in viewModel.updateGeneralPreferences { $0.quickSaveCaptureWithoutDialog = val } }
@@ -104,10 +132,28 @@ struct CaptureSettingsView: View {
                 .fixedSize(horizontal: true, vertical: false)
 
                 Toggle(
-                    L10n.pick("独立窗口截图默认去除窗口阴影", "Exclude window shadow by default in window screenshots"),
+                    L10n.pick("独立窗口截图默认去除窗口阴影", "Exclude window shadow by default"),
                     isOn: Binding(
                         get: { prefs.screenshotExcludeWindowShadow },
                         set: { val in viewModel.updateGeneralPreferences { $0.screenshotExcludeWindowShadow = val } }
+                    )
+                )
+                .fixedSize(horizontal: true, vertical: false)
+
+                Toggle(
+                    L10n.pick("有未保存标注时连按两次 Esc / 右键才退出（防手滑丢稿）", "Require double Esc / Right-click to discard unsaved annotations"),
+                    isOn: Binding(
+                        get: { prefs.confirmCancelAnnotatedCaptureWithDoublePress },
+                        set: { val in viewModel.updateGeneralPreferences { $0.confirmCancelAnnotatedCaptureWithDoublePress = val } }
+                    )
+                )
+                .fixedSize(horizontal: true, vertical: false)
+
+                Toggle(
+                    L10n.pick("启用无障碍子控件级下钻捕捉（悬停识别按钮/输入框，滚轮切层级）", "Enable Accessibility UI control drill-down snap"),
+                    isOn: Binding(
+                        get: { prefs.enableCaptureControlDrillDown },
+                        set: { val in viewModel.updateGeneralPreferences { $0.enableCaptureControlDrillDown = val } }
                     )
                 )
                 .fixedSize(horizontal: true, vertical: false)
@@ -118,44 +164,66 @@ struct CaptureSettingsView: View {
         .liquidGlassCard(cornerRadius: LiquidRadii.card, solidReadable: true)
     }
 
-    private var gifDefaultsCard: some View {
-        VStack(alignment: .leading, spacing: 11) {
+    private var templateConfigRow: some View {
+        let preview = CaptureFileNameFormatter.formatBaseName(template: prefs.captureFileNameTemplate, appName: "Safari")
+            + ".\(prefs.captureExportFormat.fileExtension)"
+        return VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
-                Label(
-                    L10n.pick("GIF 动图录制默认规格", "GIF Recording Defaults"),
-                    systemImage: "film.stack.fill"
-                )
-                .font(.callout.weight(.semibold))
-                Spacer()
-                Text("\(prefs.gifDefaultOptions.fps) FPS · \(GifRecordingOptions.dimensionLabel(for: prefs.gifDefaultOptions.maxDimension))")
-                    .font(.caption2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(LiquidColors.accentPrimary)
-                    .padding(.horizontal, 8).padding(.vertical, 2.5)
-                    .background(LiquidColors.pillSurface, in: Capsule())
-            }
-
-            HStack(spacing: 7) {
-                Text(L10n.pick("默认帧率：", "Default FPS:"))
+                Text(L10n.pick("命名模板：", "Filename Template:"))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(LiquidColors.textSecondary)
-                ForEach(GifRecordingOptions.fpsPresets, id: \.self) { fps in
-                    Button("\(fps) FPS") {
-                        viewModel.updateGeneralPreferences { $0.gifDefaultOptions.fps = fps }
+                TextField(
+                    CaptureFileNameFormatter.defaultTemplate,
+                    text: Binding(
+                        get: { prefs.captureFileNameTemplate },
+                        set: { val in viewModel.updateGeneralPreferences { $0.captureFileNameTemplate = val } }
+                    )
+                )
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 11.5, design: .monospaced))
+                .frame(maxWidth: 240)
+
+                ForEach(["{date}", "{time}", "{ms}", "{app}"], id: \.self) { token in
+                    Button(token) {
+                        viewModel.updateGeneralPreferences {
+                            if !$0.captureFileNameTemplate.contains(token) {
+                                $0.captureFileNameTemplate += "_\(token)"
+                            }
+                        }
                     }
-                    .buttonStyle(GlassPillButtonStyle(prominent: prefs.gifDefaultOptions.fps == fps, compact: true))
+                    .buttonStyle(GlassPillButtonStyle(compact: true))
                 }
                 Spacer()
             }
+            Text(L10n.pick("实时预览：\(preview)", "Live preview: \(preview)"))
+                .font(.system(size: 10.5, design: .monospaced))
+                .foregroundStyle(LiquidColors.textSecondary)
+        }
+    }
 
+    private var gifDefaultsCard: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(spacing: 8) {
+                Label(L10n.pick("GIF 动图录制默认规格", "GIF Recording Defaults"), systemImage: "film.stack.fill")
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Text("\(prefs.gifDefaultOptions.fps) FPS · \(GifRecordingOptions.dimensionLabel(for: prefs.gifDefaultOptions.maxDimension))")
+                    .font(.caption2.monospacedDigit().weight(.semibold)).foregroundStyle(LiquidColors.accentPrimary)
+                    .padding(.horizontal, 8).padding(.vertical, 2.5).background(LiquidColors.pillSurface, in: Capsule())
+            }
             HStack(spacing: 7) {
-                Text(L10n.pick("最大分辨率：", "Max Resolution:"))
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(LiquidColors.textSecondary)
+                Text(L10n.pick("默认帧率：", "Default FPS:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
+                ForEach(GifRecordingOptions.fpsPresets, id: \.self) { fps in
+                    Button("\(fps) FPS") { viewModel.updateGeneralPreferences { $0.gifDefaultOptions.fps = fps } }
+                        .buttonStyle(GlassPillButtonStyle(prominent: prefs.gifDefaultOptions.fps == fps, compact: true))
+                }
+                Spacer()
+            }
+            HStack(spacing: 7) {
+                Text(L10n.pick("最大分辨率：", "Max Resolution:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                 ForEach(GifRecordingOptions.dimensionPresets, id: \.self) { dim in
-                    Button(GifRecordingOptions.dimensionLabel(for: dim)) {
-                        viewModel.updateGeneralPreferences { $0.gifDefaultOptions.maxDimension = dim }
-                    }
-                    .buttonStyle(GlassPillButtonStyle(prominent: prefs.gifDefaultOptions.maxDimension == dim, compact: true))
+                    Button(GifRecordingOptions.dimensionLabel(for: dim)) { viewModel.updateGeneralPreferences { $0.gifDefaultOptions.maxDimension = dim } }
+                        .buttonStyle(GlassPillButtonStyle(prominent: prefs.gifDefaultOptions.maxDimension == dim, compact: true))
                 }
                 Spacer()
             }
@@ -174,7 +242,6 @@ struct CaptureSettingsView: View {
                     .font(.caption2.monospacedDigit().weight(.semibold)).foregroundStyle(LiquidColors.accentPrimary)
                     .padding(.horizontal, 8).padding(.vertical, 2.5).background(LiquidColors.pillSurface, in: Capsule())
             }
-
             HStack(spacing: 7) {
                 Text(L10n.pick("默认帧率：", "Default FPS:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                 ForEach(VideoRecordingOptions.fpsPresets, id: \.self) { fps in
@@ -183,7 +250,6 @@ struct CaptureSettingsView: View {
                 }
                 Spacer()
             }
-
             HStack(spacing: 7) {
                 Text(L10n.pick("画质规格：", "Resolution:")).font(.caption2.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
                 ForEach(VideoRecordingOptions.dimensionPresets, id: \.self) { dim in
@@ -192,7 +258,6 @@ struct CaptureSettingsView: View {
                 }
                 Spacer()
             }
-
             Toggle(
                 L10n.pick("录制时同时捕获系统内部音频（单屏或单窗口模式生效）", "Capture system audio during recording (single-display or window mode)"),
                 isOn: Binding(
@@ -207,17 +272,14 @@ struct CaptureSettingsView: View {
     }
 
     private var captureTipsCard: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 6) {
             Label(L10n.pick("高频操作速记", "Quick Tips"), systemImage: "keyboard")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(LiquidColors.textSecondary)
+                .font(.caption.weight(.semibold)).foregroundStyle(LiquidColors.textSecondary)
             Text(L10n.pick(
-                "• 单击任意窗口直接吸附完整圆角窗口（重叠窗口按 Tab 轮切），拖拽可自由框选区域\n• 截图按 C 取色、按 T 切换半透明钉图点击穿透；离线识字 (⌥O) 支持中英识别与条码提取",
-                "• Click any window to snap cleanly (press Tab to cycle overlapping windows), or drag to select a region\n• Press C for color picker, T for click-through screen pins; Offline OCR (⌥O) extracts text & QR codes"
+                "• 悬停窗口滚轮钻取子控件、Tab 轮切重叠窗、F 全屏选区、⇧⌘A 再次截图、S 手动滚动长截图\n• 选中标注可改色/滚轮调粗细/⌫ 单独删除、箭头支持 S 形贝塞尔控制柄、钉图聚焦按空格原地补画标注",
+                "• Hover + Wheel drills into UI controls, Tab cycles windows, F selects screen, S starts scrolling capture\n• Click annotations to edit/resize/delete (⌫), bend arrows via handles, and press Space on Pins to annotate"
             ))
-            .font(.caption2)
-            .foregroundStyle(LiquidColors.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
+            .font(.caption2).foregroundStyle(LiquidColors.textSecondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)

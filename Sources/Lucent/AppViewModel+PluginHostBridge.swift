@@ -121,13 +121,13 @@ extension AppViewModel {
         switch result {
         case .cancelled:
             return PluginCapturedScreenFile(cancelled: true)
-        case .copied(let url), .ocrRequested(let url), .cutoutRequested(let url), .saved(let url):
+        case .copied(let url), .ocrRequested(let url), .cutoutRequested(let url), .saved(let url), .pinEdited(let url, _):
             let img = NSImage(contentsOf: url)
             return PluginCapturedScreenFile(
                 cancelled: false, imagePath: url.path,
                 width: Int(img?.size.width ?? 0), height: Int(img?.size.height ?? 0)
             )
-        case .pinned(let url, _):
+        case .pinned(let url, _, _, _):
             let img = NSImage(contentsOf: url)
             return PluginCapturedScreenFile(
                 cancelled: false, imagePath: url.path,

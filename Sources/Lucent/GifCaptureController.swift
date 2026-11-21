@@ -124,7 +124,7 @@ final class GifCaptureController: ObservableObject {
     private func prepareAndPresentSelection() async {
         try? await Task.sleep(for: .milliseconds(70))
         do {
-            let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includePixelatedPreview: false)
+            let topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot()
             let initialPt = topology.canvasPoint(fromAppKitGlobal: NSEvent.mouseLocation)
             presentSelectionOverlays(session: GifSelectionSession(
                 topology: topology, initialCursorCanvasPoint: initialPt, mode: recordingMode, options: options, videoOptions: videoOptions
@@ -183,7 +183,7 @@ final class GifCaptureController: ObservableObject {
         let appKitRegion = session.appKitScreenRect(for: sel)
         let targetSlice = session.topology.targetSlice(forSelection: sel, fallbackPoint: session.cursorPoint) ?? session.topology.displays[0]
         let lockedWindowID = session.selectedWindow?.id
-        let displaySpecs = session.topology.displays.map { (scDisplay: $0.scDisplay, canvasFrame: $0.canvasFrame, scale: $0.scale) }
+        let displaySpecs = session.topology.displays.compactMap { s in s.scDisplay.map { (scDisplay: $0, canvasFrame: s.canvasFrame, scale: s.scale) } }
         let outDims = session.outputDimensions(for: sel)
 
         closeSelectionPanels(); elapsedSeconds = 0; encodedFrameCount = 0; mergedFrameCount = 0; phase = .recording(isPaused: false)

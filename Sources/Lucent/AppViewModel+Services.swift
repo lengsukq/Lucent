@@ -49,6 +49,11 @@ extension AppViewModel {
         GifCaptureController.shared.onDiagnostic = { [weak self] diag in
             self?.diagnostic = diag
         }
+        ScrollingCaptureController.shared.onStatusMessage = { [weak self] msg in
+            guard let self else { return }
+            self.capturePasteboardOnceIfChanged()
+            self.serviceMessage = msg
+        }
     }
 
     func performStartupOrphanCleanup() {
@@ -88,16 +93,22 @@ extension AppViewModel {
                 switch result {
                 case .cancelled:
                     self.capturePasteboardOnceIfChanged()
-                case .copied(let url):
+                case .copied(let url), .pinEdited(let url, _):
                     self.capturePasteboardOnceIfChanged()
                     latestCaptureURL = url; serviceMessage = "截图已自动复制到剪贴板，可直接 ⌘V 粘贴"
                 case .saved(let url):
                     self.capturePasteboardOnceIfChanged()
                     latestCaptureURL = url; serviceMessage = "截图已保存并复制到剪贴板：\(url.lastPathComponent)"
-                case .pinned(let url, let screenRect):
+                case .pinned(let url, let screenRect, let cleanBaseURL, let annotations):
                     self.capturePasteboardOnceIfChanged()
-                    latestCaptureURL = url; PinWindowController.shared.pinImage(at: url, screenRect: screenRect)
-                    serviceMessage = "已钉在屏幕并自动复制到剪贴板"
+                    latestCaptureURL = url
+                    PinWindowController.shared.pinImage(
+                        at: url,
+                        screenRect: screenRect,
+                        cleanBaseSourceURL: cleanBaseURL,
+                        initialAnnotations: annotations
+                    )
+                    serviceMessage = "已钉在屏幕并自动复制到剪贴板（聚焦按空格可二次编辑标注）"
                 case .ocrRequested(let url):
                     await executeCaptureOCR(at: url)
                 case .cutoutRequested(let url):

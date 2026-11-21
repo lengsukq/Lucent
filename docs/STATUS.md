@@ -20,7 +20,7 @@
 
 ## 3. 多显示器捕获、录屏与按需原生工具窗
 
-- **逐屏原生 DPI 截图标注、离线识字与钉图 (`⌥A` / `⌥O`)**：基于 `MultiDisplayLayout` 与 `ScreenCaptureKit` 实现跨屏混合 DPI 无损分片捕获、独立窗口无遮挡圆角抠取（支持去阴影）、10 种实时标注工具、放大镜 `#HEX` 取色、`1:1` 悬浮穿透钉图 (`PinWindowController`)，以及绑定 CPU 亚秒级响应的离线 `Vision` 中英 OCR / 条码识别 (`OCRResultWindowController`)。
+- **逐屏原生 DPI 截图标注、长截图、离线识字与钉图 (`⌥A` / `⌥O`)**：基于 `MultiDisplayLayout`、`ScreenCaptureKit` 与 `AccessibilityElementMatcher` 实现跨屏混合 DPI 无损分片捕获、独立窗口无遮挡圆角抠取（支持去阴影）与带超时保护的无障碍子控件级下钻捕捉（滚轮切换层级、`F` 全屏选区、`⇧⌘A` 再次截图）；内置完整可选中矢量二次编辑引擎（100 步快照撤销栈、内部拖拽优先绘制防误触通道、`⌫` 单删、滚轮调粗细、双击文本/序号重编辑），覆盖 11 种实时标注工具（含三次贝塞尔曲线箭头、带引出箭头的递增序号、`CIGaussianBlur` 局部高斯模糊、正片叠底荧光笔、二次贝塞尔平滑画笔、圆角控制柄、实/虚/点划线型、5 色自定义色板与渐变色预设）；支持 `NSPasteboardItemDataProvider` 延迟渲染剪贴板、`PNG / JPEG / HEIC` 多格式变量模板导出与访达定位轻提示、工具栏按钮按需显隐、手动滚动长截图拼接 (`ScrollingCaptureStitcher` 行哈希去重叠、固定头尾剔除、侧边实时缩略图与分段撤回)，以及支持空格键原地无损二次标注的 `1:1` 悬浮穿透钉图 (`PinWindowController`) 与离线 `Vision` 中英 OCR / 条码识别 (`OCRResultWindowController`)。
 - **零依赖流式区域 GIF 录屏 (`⌥G`)**：基于 `SCStream` + `ImageIO` 实现窗口吸附或跨屏选区 GIF89a 动图录制，支持静止帧差值压缩、灵动岛悬浮 HUD 控制与即录即粘。
 - **物理鼠标平滑滚轮 (`MosMouseService`)**：独立区分外接物理鼠标与苹果触控板，仅对外接鼠标应用 `120Hz` 平滑插值、方向反转、`⇧` 横向滚动、`⌥` 加速与应用级排除；未开启或静止时零事件回调开销。
 - **按需独立窗口与双栏文件工作台 (`⌥E` / `⌥M` / `⌥N`)**：提供零 `WKWebView` 原生 Markdown/代码阅读器、只读看图窗、支持 `'hev1'` 零拷贝硬解与同目录连播的 4K 影院播放器、双栏多选框选与只读 NTFS 护航的文件工作台、贴边自适应系统脉搏监控窗 (`⌥M`)、免 Root `nettop` 进程网络去向监控 (`⌥N`) 与分桶缓存清理。

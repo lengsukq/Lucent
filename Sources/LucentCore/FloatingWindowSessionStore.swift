@@ -56,6 +56,8 @@ public struct PersistedPluginCustomWindow: Codable, Sendable, Hashable, Equatabl
 public struct PersistedPinnedImageWindow: Codable, Sendable, Hashable, Equatable {
     public var id: String
     public var imagePath: String
+    public var cleanBaseImagePath: String?
+    public var annotationsJSON: String?
     public var isManagedSessionCopy: Bool
     public var isCutout: Bool
     public var x: Double
@@ -69,6 +71,8 @@ public struct PersistedPinnedImageWindow: Codable, Sendable, Hashable, Equatable
     public init(
         id: String,
         imagePath: String,
+        cleanBaseImagePath: String? = nil,
+        annotationsJSON: String? = nil,
         isManagedSessionCopy: Bool,
         isCutout: Bool,
         x: Double,
@@ -81,6 +85,8 @@ public struct PersistedPinnedImageWindow: Codable, Sendable, Hashable, Equatable
     ) {
         self.id = id
         self.imagePath = imagePath
+        self.cleanBaseImagePath = cleanBaseImagePath
+        self.annotationsJSON = annotationsJSON
         self.isManagedSessionCopy = isManagedSessionCopy
         self.isCutout = isCutout
         self.x = x.isFinite ? x : 0

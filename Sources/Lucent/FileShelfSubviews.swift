@@ -116,11 +116,16 @@ struct FileShelfCapsuleView: View {
     }
 }
 
+@MainActor
+private final class FileShelfRowUIState: ObservableObject {
+    @Published var thumbnail: NSImage?
+    @Published var hovered = false
+}
+
 struct FileShelfRowContent: View {
     let row: FileShelfRowState
     let activate: () -> Void
-    @State private var thumbnail: NSImage?
-    @State private var hovered = false
+    @StateObject private var uiState = FileShelfRowUIState()
 
     var body: some View {
         HStack(spacing: 10) {
@@ -131,7 +136,7 @@ struct FileShelfRowContent: View {
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
                             .strokeBorder(LiquidColors.pillBorder, lineWidth: 0.7)
                     }
-                if let thumbnail {
+                if let thumbnail = uiState.thumbnail {
                     Image(nsImage: thumbnail)
                         .resizable()
                         .scaledToFit()
@@ -162,9 +167,9 @@ struct FileShelfRowContent: View {
                 Button(action: activate) {
                     Image(systemName: row.url == nil ? "link" : "eye")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(hovered ? LiquidColors.accentPrimary : LiquidColors.textSecondary)
+                        .foregroundStyle(uiState.hovered ? LiquidColors.accentPrimary : LiquidColors.textSecondary)
                         .frame(width: 26, height: 26)
-                        .background(hovered ? LiquidColors.pillSurface : Color.clear,
+                        .background(uiState.hovered ? LiquidColors.pillSurface : Color.clear,
                                     in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                 }
                 .buttonStyle(.plain).help(label).accessibilityLabel(label)
@@ -174,17 +179,17 @@ struct FileShelfRowContent: View {
         .padding(.vertical, 6)
         .background {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(hovered ? LiquidColors.pillSurface.opacity(0.85) : LiquidColors.cardSurface.opacity(0.42))
+                .fill(uiState.hovered ? LiquidColors.pillSurface.opacity(0.85) : LiquidColors.cardSurface.opacity(0.42))
                 .overlay {
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .strokeBorder(hovered ? LiquidColors.pillBorder : LiquidColors.subtleRim.opacity(0.45), lineWidth: 0.65)
+                        .strokeBorder(uiState.hovered ? LiquidColors.pillBorder : LiquidColors.subtleRim.opacity(0.45), lineWidth: 0.65)
                 }
         }
         .padding(.horizontal, 4)
-        .onHover { hovered = $0 }
+        .onHover { uiState.hovered = $0 }
         .help("\(row.name) · \(row.detail)")
         .task(id: row.url) {
-            thumbnail = nil
+            uiState.thumbnail = nil
             guard let url = row.url else { return }
             let values = try? url.resourceValues(forKeys: [.isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey])
             if values?.isUbiquitousItem == true && values?.ubiquitousItemDownloadingStatus != .current { return }
@@ -192,7 +197,7 @@ struct FileShelfRowContent: View {
                                                        scale: 2, representationTypes: [.icon, .thumbnail])
             defer { QLThumbnailGenerator.shared.cancel(request) }
             if let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request),
-               !Task.isCancelled { thumbnail = representation.nsImage }
+               !Task.isCancelled { uiState.thumbnail = representation.nsImage }
         }
     }
 }

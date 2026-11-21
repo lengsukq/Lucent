@@ -1,15 +1,24 @@
 import AppKit
+import ImageIO
 import LucentCore
+import LucentMedia
 import SwiftUI
 import UniformTypeIdentifiers
 
 @MainActor
 final class PinOverlayState: ObservableObject {
+    @Published var displayImage: NSImage
+    @Published var imageURL: URL
     @Published var opacity: Double = 0.98
     @Published var isHovered: Bool = false
     @Published var isClickThrough: Bool = false
     @Published var statusBadge: String?
     private var badgeTask: Task<Void, Never>?
+
+    init(displayImage: NSImage, imageURL: URL) {
+        self.displayImage = displayImage
+        self.imageURL = imageURL
+    }
 
     func flashBadge(_ text: String, autoClear: Bool = true) {
         badgeTask?.cancel(); statusBadge = text
@@ -22,13 +31,14 @@ final class PinOverlayState: ObservableObject {
 }
 
 struct PinMenuCallbacks {
+    let editAnnotations: (() -> Void)?
     let copyImage: () -> Void
     let runOCR: () -> Void
     let runCutout: () -> Void
     let resetSize: () -> Void
     let toggleOpacity: () -> Void
     let toggleClickThrough: () -> Void
-    let savePNG: () -> Void
+    let saveImage: () -> Void
     let matchingPlugins: () -> [(PluginDescriptor, PluginContextPayload)]
     let sendToPlugin: (PluginDescriptor, PluginContextPayload) -> Void
     let closeThis: () -> Void
@@ -36,14 +46,13 @@ struct PinMenuCallbacks {
 }
 
 struct PinnedImageOverlayView: View {
-    let image: NSImage
-    let imageURL: URL
     let aspectRatio: CGFloat
     var isCutoutSubject: Bool = false
     @ObservedObject var state: PinOverlayState
     var availablePluginsProvider: () -> [PluginDescriptor] = { [] }
     var onRouteToPlugin: ((PluginDescriptor, PluginContextPayload) -> Void)? = nil
     var onInvalidateShadow: (() -> Void)? = nil
+    var onEditAnnotations: (() -> Void)? = nil
     let onToggleClickThrough: () -> Void
     let onPinCutout: (URL) -> Void
     let onResetOriginalSize: () -> Void
@@ -54,15 +63,11 @@ struct PinnedImageOverlayView: View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         ZStack {
             if isCutoutSubject {
-                Image(nsImage: image)
-                    .resizable()
-                    .interpolation(.high)
-                    .opacity(state.opacity)
+                Image(nsImage: state.displayImage)
+                    .resizable().interpolation(.high).opacity(state.opacity)
             } else {
-                Image(nsImage: image)
-                    .resizable()
-                    .interpolation(.high)
-                    .opacity(state.opacity)
+                Image(nsImage: state.displayImage)
+                    .resizable().interpolation(.high).opacity(state.opacity)
                     .clipShape(shape)
                     .overlay { shape.strokeBorder(LiquidColors.specularRimGradient, lineWidth: 1.3) }
             }
@@ -77,9 +82,10 @@ struct PinnedImageOverlayView: View {
                 },
                 onHoverChanged: { state.isHovered = $0 },
                 menuCallbacks: PinMenuCallbacks(
+                    editAnnotations: isCutoutSubject ? nil : onEditAnnotations,
                     copyImage: { copyImage() }, runOCR: { runOCR() }, runCutout: { runCutout() },
                     resetSize: onResetOriginalSize, toggleOpacity: { toggleOpacity() },
-                    toggleClickThrough: onToggleClickThrough, savePNG: { saveAsPNG() },
+                    toggleClickThrough: onToggleClickThrough, saveImage: { saveAsImage() },
                     matchingPlugins: { resolveMatchingPlugins() },
                     sendToPlugin: { plugin, ctx in onRouteToPlugin?(plugin, ctx) },
                     closeThis: onClose, closeAll: onCloseAll
@@ -104,16 +110,20 @@ struct PinnedImageOverlayView: View {
 
     private var toolbarPills: some View {
         HStack(spacing: 5) {
-            Button("识字") { runOCR() }
-            Button("抠图") { runCutout() }
-            Button("复制") { copyImage() }
+            if !isCutoutSubject, let onEditAnnotations {
+                Button(L10n.pick("标注", "Edit"), action: onEditAnnotations)
+                    .help(L10n.pick("原地二次标注编辑 (空格)", "Edit annotations in-place (Space)"))
+            }
+            Button(L10n.pick("识字", "OCR")) { runOCR() }
+            Button(L10n.pick("抠图", "Cutout")) { runCutout() }
+            Button(L10n.pick("复制", "Copy")) { copyImage() }
             Button(action: onToggleClickThrough) { Image(systemName: "hand.point.up.braille") }
                 .help(L10n.pick("半透明鼠标穿透对照 (T)", "Click-through overlay (T)"))
             Button { toggleOpacity() } label: { Image(systemName: "circle.lefthalf.filled") }
-                .help("半透明对比 (⌥+滚轮可微调)")
-            Button { saveAsPNG() } label: { Image(systemName: "square.and.arrow.down") }
-                .help("另存为 PNG (⌘S)")
-            Button(action: onClose) { Image(systemName: "xmark") }.help("关闭此钉图 (Esc)")
+                .help(L10n.pick("半透明对比 (⌥+滚轮可微调)", "Toggle opacity (⌥+Wheel)"))
+            Button { saveAsImage() } label: { Image(systemName: "square.and.arrow.down") }
+                .help(L10n.pick("另存为图片 (⌘S)", "Save Image (⌘S)"))
+            Button(action: onClose) { Image(systemName: "xmark") }.help(L10n.pick("关闭此钉图 (Esc)", "Close Pin (Esc)"))
         }
         .font(.caption2.weight(.semibold)).buttonStyle(.plain)
         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -122,7 +132,7 @@ struct PinnedImageOverlayView: View {
     }
 
     private func resolveMatchingPlugins() -> [(PluginDescriptor, PluginContextPayload)] {
-        guard let ctx = PluginContextMatcher.payloadFromFiles([imageURL], source: "pin") else { return [] }
+        guard let ctx = PluginContextMatcher.payloadFromFiles([state.imageURL], source: "pin") else { return [] }
         return PluginContextMatcher.matchingPlugins(in: availablePluginsProvider(), for: ctx).map { ($0, ctx) }
     }
 
@@ -133,40 +143,58 @@ struct PinnedImageOverlayView: View {
     }
 
     func copyImage() {
-        if !ScreenshotCompositor.copyImageFileToPasteboard(at: imageURL) {
-            let pb = NSPasteboard.general; pb.clearContents(); pb.writeObjects([image])
+        if !ScreenshotCompositor.copyImageFileToPasteboard(at: state.imageURL) {
+            let pb = NSPasteboard.general; pb.clearContents(); pb.writeObjects([state.displayImage])
         }
-        state.flashBadge("图片已复制")
+        state.flashBadge(L10n.pick("图片已复制", "Copied"))
     }
 
-    func saveAsPNG() {
-        let panel = NSSavePanel(); panel.allowedContentTypes = [.png]
-        let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-        panel.nameFieldStringValue = "Lucent-Pin-\(stamp).png"
+    func saveAsImage() {
+        var prefs = GeneralPreferences.load()
+        let fmt = prefs.captureExportFormat
+        let baseName = CaptureFileNameFormatter.formatBaseName(template: prefs.captureFileNameTemplate, appName: "Pin")
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [fmt.utType]
+        let startDir = !prefs.lastCaptureSavePanelDirectoryPath.isEmpty
+            ? URL(fileURLWithPath: prefs.lastCaptureSavePanelDirectoryPath, isDirectory: true)
+            : prefs.resolvedCaptureSaveDirectory()
+        panel.directoryURL = startDir
+        panel.nameFieldStringValue = "\(baseName).\(fmt.fileExtension)"
         if panel.runModal() == .OK, let dest = panel.url {
-            try? FileManager.default.copyItem(at: imageURL, to: dest); state.flashBadge("已保存")
+            prefs.lastCaptureSavePanelDirectoryPath = dest.deletingLastPathComponent().standardizedFileURL.path
+            prefs.save()
+            if fmt == .png && state.imageURL.pathExtension.lowercased() == "png" {
+                try? FileManager.default.removeItem(at: dest)
+                try? FileManager.default.copyItem(at: state.imageURL, to: dest)
+            } else if let src = CGImageSourceCreateWithURL(state.imageURL as CFURL, nil),
+                      let cg = CGImageSourceCreateImageAtIndex(src, 0, nil) {
+                try? ScreenshotCompositor.writeEncodedImage(cg, scale: 2.0, format: fmt, to: dest)
+            }
+            state.flashBadge(L10n.pick("已保存", "Saved"))
         }
     }
 
     func runOCR() {
-        state.flashBadge("识字中…", autoClear: false); let url = imageURL
+        state.flashBadge(L10n.pick("识字中…", "Running OCR…"), autoClear: false)
+        let url = state.imageURL
         Task {
             do {
                 let res = try await Task.detached(priority: .userInitiated) { try VisionService.analyzeTextAndBarcodes(at: url) }.value
-                state.flashBadge(res.recognizedText.isEmpty && res.barcodes.isEmpty ? "无文本" : "OCR 已复制")
+                state.flashBadge(res.recognizedText.isEmpty && res.barcodes.isEmpty ? L10n.pick("无文本", "No text") : L10n.pick("OCR 已复制", "OCR copied"))
                 OCRResultWindowController.shared.present(imageURL: url, analysis: res)
-            } catch { state.flashBadge("识别失败") }
+            } catch { state.flashBadge(L10n.pick("识别失败", "OCR failed")) }
         }
     }
 
     func runCutout() {
-        state.flashBadge("抠图中…", autoClear: false); let url = imageURL
+        state.flashBadge(L10n.pick("抠图中…", "Lifting subject…"), autoClear: false)
+        let url = state.imageURL
         Task {
             do {
                 let outURL = try await Task.detached(priority: .userInitiated) { try VisionService.liftForegroundSubject(from: url) }.value
                 _ = ScreenshotCompositor.copyImageFileToPasteboard(at: outURL)
-                state.flashBadge("已抠图并复制"); onPinCutout(outURL)
-            } catch { state.flashBadge("未检测到主体") }
+                state.flashBadge(L10n.pick("已抠图并复制", "Subject lifted")); onPinCutout(outURL)
+            } catch { state.flashBadge(L10n.pick("未检测到主体", "No subject")) }
         }
     }
 }
@@ -233,6 +261,9 @@ final class PinInteractionNSView: NSView {
     override func menu(for event: NSEvent) -> NSMenu? {
         guard let cb = menuCallbacks else { return nil }
         let menu = NSMenu()
+        if let edit = cb.editAnnotations {
+            menu.addItem(PinMenuActionItem(title: L10n.pick("编辑标注 (空格)", "Edit Annotations (Space)"), action: edit))
+        }
         menu.addItem(PinMenuActionItem(title: L10n.pick("复制图片 (⌘C)", "Copy Image (⌘C)"), action: cb.copyImage))
         menu.addItem(PinMenuActionItem(title: L10n.pick("离线识字 (O)", "Offline OCR (O)"), action: cb.runOCR))
         menu.addItem(PinMenuActionItem(title: L10n.translate("主体抠图"), action: cb.runCutout))
@@ -247,7 +278,7 @@ final class PinInteractionNSView: NSView {
         menu.addItem(PinMenuActionItem(title: L10n.translate("100% 原始大小"), action: cb.resetSize))
         menu.addItem(PinMenuActionItem(title: L10n.pick("半透明鼠标穿透对照 (T)", "Click-Through Mode (T)"), action: cb.toggleClickThrough))
         menu.addItem(PinMenuActionItem(title: L10n.translate("切换半透明对比 (⌥滚轮)"), action: cb.toggleOpacity))
-        menu.addItem(PinMenuActionItem(title: L10n.pick("另存为 PNG… (⌘S)", "Save as PNG… (⌘S)"), action: cb.savePNG))
+        menu.addItem(PinMenuActionItem(title: L10n.pick("另存为图片… (⌘S)", "Save Image… (⌘S)"), action: cb.saveImage))
         menu.addItem(.separator())
         menu.addItem(PinMenuActionItem(title: L10n.translate("关闭此钉图 (Esc)"), action: cb.closeThis))
         menu.addItem(PinMenuActionItem(title: L10n.translate("关闭全部钉图"), action: cb.closeAll))

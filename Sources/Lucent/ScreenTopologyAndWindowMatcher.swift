@@ -2,7 +2,9 @@ import AppKit
 import CoreGraphics
 import Foundation
 import LucentCore
+import LucentMedia
 @preconcurrency import ScreenCaptureKit
+import SwiftUI
 
 final class CaptureOverlayPanel: NSPanel {
     override var canBecomeKey: Bool { true }
@@ -13,15 +15,37 @@ final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-import SwiftUI
+@MainActor
+final class SliceLazyEffectsCache: ObservableObject {
+    @Published private(set) var pixelatedByDisplay: [CGDirectDisplayID: CGImage] = [:]
+    @Published private(set) var blurredByDisplay: [CGDirectDisplayID: CGImage] = [:]
+
+    func ensurePixelated(for slice: ScreenDisplaySlice) -> CGImage? {
+        if let cached = pixelatedByDisplay[slice.displayID] { return cached }
+        let cell = max(8, Int(round(8 * slice.scale)))
+        guard let generated = ScreenshotCompositor.makePixelatedPreview(from: slice.image, cellPixelSize: cell) else {
+            return nil
+        }
+        pixelatedByDisplay[slice.displayID] = generated
+        return generated
+    }
+
+    func ensureBlurred(for slice: ScreenDisplaySlice) -> CGImage? {
+        if let cached = blurredByDisplay[slice.displayID] { return cached }
+        guard let generated = ScreenshotCompositor.makeBlurredPreview(from: slice.image, radius: Double(16.0 * slice.scale)) else {
+            return nil
+        }
+        blurredByDisplay[slice.displayID] = generated
+        return generated
+    }
+}
 
 struct ScreenDisplaySlice: Identifiable {
     var id: CGDirectDisplayID { descriptor.displayID }
     let descriptor: DisplaySliceDescriptor
-    let scDisplay: SCDisplay
+    let scDisplay: SCDisplay?
     let appKitScreen: NSScreen
     let image: CGImage
-    let pixelatedImage: CGImage?
 
     var displayID: CGDirectDisplayID { descriptor.displayID }
     var cgFrame: CGRect { descriptor.cgFrame }
@@ -34,6 +58,7 @@ struct ScreenTopologySnapshot {
     let layout: MultiDisplayLayout
     let displays: [ScreenDisplaySlice]
     let windows: [DetectedScreenWindow]
+    let effectsCache = SliceLazyEffectsCache()
 
     var cgUnionBounds: CGRect { layout.cgUnionBounds }
     var canvasBounds: CGRect { layout.canvasBounds }
@@ -50,6 +75,14 @@ struct ScreenTopologySnapshot {
 
     func canvasPoint(fromAppKitGlobal nsPt: NSPoint) -> CGPoint {
         layout.canvasPoint(fromAppKitGlobal: nsPt)
+    }
+
+    func quartzGlobalPoint(fromCanvas pt: CGPoint) -> CGPoint {
+        CGPoint(x: pt.x + cgUnionBounds.minX, y: pt.y + cgUnionBounds.minY)
+    }
+
+    func canvasRect(fromQuartzGlobal rect: CGRect) -> CGRect {
+        layout.canvasRect(fromQuartzGlobal: rect).intersection(canvasBounds)
     }
 
     func appKitGlobalRect(fromCanvas rect: CGRect) -> NSRect {
@@ -89,7 +122,7 @@ enum ScreenTopologyAndWindowMatcher {
     }
 
     @MainActor
-    static func captureSnapshot(includePixelatedPreview: Bool = true) async throws -> ScreenTopologySnapshot {
+    static func captureSnapshot(includeOwnOverlayWindows: Bool = false) async throws -> ScreenTopologySnapshot {
         let nsScreens = NSScreen.screens
         guard !nsScreens.isEmpty else {
             throw LucentError.visionFailed(L10n.pick("未检测到可用显示器。", "No available display detected."))
@@ -100,7 +133,7 @@ enum ScreenTopologyAndWindowMatcher {
         }
 
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        let ownApps = content.applications.filter { $0.processID == ownPID }
+        let ownApps = includeOwnOverlayWindows ? [] : content.applications.filter { $0.processID == ownPID }
 
         var matchedScreens: [(scDisplay: SCDisplay, screen: NSScreen, id: CGDirectDisplayID, scale: CGFloat)] = []
         for screen in nsScreens {
@@ -128,10 +161,8 @@ enum ScreenTopologyAndWindowMatcher {
             cfg.showsCursor = false
             cfg.captureResolution = .best
             let img = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: cfg)
-            let pix = includePixelatedPreview ? ScreenshotCompositor.makePixelatedPreview(from: img, cellPixelSize: max(8, Int(round(8 * desc.scale)))) : nil
             slices.append(ScreenDisplaySlice(
-                descriptor: desc, scDisplay: item.scDisplay, appKitScreen: item.screen,
-                image: img, pixelatedImage: pix
+                descriptor: desc, scDisplay: item.scDisplay, appKitScreen: item.screen, image: img
             ))
         }
 
@@ -139,7 +170,7 @@ enum ScreenTopologyAndWindowMatcher {
             throw LucentError.visionFailed(L10n.pick("显示器画面捕获为空。", "Captured display slices are empty."))
         }
 
-        let orderedWindows = buildZOrderedWindows(
+        let orderedWindows = includeOwnOverlayWindows ? [] : buildZOrderedWindows(
             scWindows: content.windows, ownPID: ownPID,
             cgUnion: layout.cgUnionBounds, canvasBounds: layout.canvasBounds
         )

@@ -3,11 +3,16 @@ import LucentCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+@MainActor
+private final class FileShelfDropState: ObservableObject {
+    @Published var isDropTarget = false
+}
+
 struct FileShelfView: View {
     @ObservedObject var model: FileShelfModel
     @ObservedObject var panelState: FileShelfPanelState
     @ObservedObject private var theme = ThemeManager.shared
-    @State private var isDropTarget = false
+    @StateObject private var dropState = FileShelfDropState()
     @FocusState private var searchFocused: Bool
 
     let actions: FileShelfActions
@@ -29,13 +34,13 @@ struct FileShelfView: View {
                 FileShelfEdgeTabView(
                     edge: edge,
                     itemCount: model.rows.count,
-                    isDropTarget: isDropTarget,
+                    isDropTarget: dropState.isDropTarget,
                     onTap: actions.toggleCollapseOrTuck
                 )
             case .capsule:
                 FileShelfCapsuleView(
                     itemCount: model.rows.count,
-                    isDropTarget: isDropTarget,
+                    isDropTarget: dropState.isDropTarget,
                     onTap: actions.toggleCollapseOrTuck
                 )
             case .expanded:
@@ -46,14 +51,14 @@ struct FileShelfView: View {
         .background(shape.fill(prefs.reduceTransparency ? LiquidColors.solidCardSurface : LiquidColors.shellTint.opacity(0.84)))
         .clipShape(shape)
         .overlay {
-            if isDropTarget {
+            if dropState.isDropTarget {
                 shape.strokeBorder(Color.teal, lineWidth: 2.0).allowsHitTesting(false)
             } else {
                 DoubleSpecularBorder(cornerRadius: cornerRadius, isShell: true, highContrast: prefs.increaseContrast)
             }
         }
-        .onDrop(of: [.fileURL], isTargeted: $isDropTarget, perform: accept)
-        .onChange(of: isDropTarget) { _, targeted in
+        .onDrop(of: [.fileURL], isTargeted: $dropState.isDropTarget, perform: accept)
+        .onChange(of: dropState.isDropTarget) { _, targeted in
             actions.onDragTargetedChanged(targeted)
         }
         .onChange(of: searchFocused) { _, focused in
@@ -63,7 +68,7 @@ struct FileShelfView: View {
             if panelState.mode == .expanded { actions.toggleCollapseOrTuck() } else { actions.close() }
         }
         .contextMenu { shelfContextMenu }
-        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeOut(duration: 0.16), value: isDropTarget)
+        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .easeOut(duration: 0.16), value: dropState.isDropTarget)
         .id(theme.current)
     }
 
@@ -85,7 +90,7 @@ struct FileShelfView: View {
             }
         }
         .overlay {
-            if isDropTarget { FileShelfDropOverlayView() }
+            if dropState.isDropTarget { FileShelfDropOverlayView() }
         }
     }
 

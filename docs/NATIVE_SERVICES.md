@@ -14,7 +14,7 @@
 | Markdown / 文本独立渲染 | Swift 6 原生块级解析器 + `AttributedString(markdown:)` | 零 `WKWebView`、零额外 WebKit XPC 进程开销 |
 | 单位换算、密码学哈希与二维码生成 | `Foundation.Measurement` + `CryptoKit` (`Insecure.MD5`, `SHA256`) + `CoreImage` (`CIQRCodeGenerator`) | 离线秒算物理量换算、MD5/SHA-256 摘要与高清无锯齿矢量缩放二维码 PNG |
 | 应用本地化与中文拼音检索 | `InfoPlist.loctable` + `String.applyingTransform(.toLatin)` | 直接解析系统包内中文名并用 ICU 音译为全拼与首字母 |
-| 原生选区截图、标注与钉图置顶 | `ScreenCaptureKit` (`SCShareableContent` + `SCScreenshotManager`) + `NSScreen` + `CGContext` | 免 CLI 毫秒级逐屏原生 DPI 冻屏分片、跨屏窗口识别吸附、像素取色、实时标注合成及 1:1 Retina 原位悬浮钉图 (`level = .screenSaver` / `.floating`) |
+| 原生选区截图、矢量标注、滚动长截图与钉图置顶 | `ScreenCaptureKit` (`SCShareableContent` + `SCScreenshotManager` + `SCStream`) + `ApplicationServices` (`AXUIElementCopyElementAtPosition`) + `CoreImage` (`CIGaussianBlur`) + `CGContext` + `NSPasteboardItemDataProvider` | 免 CLI 毫秒级逐屏原生 DPI 冻屏分片、异步超时保护的无障碍子控件下钻识别、矢量对象二次编辑（曲线箭头/引线序号/正片叠底/圆角/渐变）、延迟剪贴板渲染、多格式模板导出、行哈希手动滚动长截图拼接及支持空格原地重编辑的 1:1 悬浮钉图 |
 | 原生区域 GIF 动图流式录制 | `ScreenCaptureKit` (`SCStream` + `SCStreamOutput` + `SCScreenshotManager`) + `VideoToolbox` + `ImageIO` (`CGImageDestination` `com.compuserve.gif`) | 零 `ffmpeg` 依赖实现单屏/单窗口 `SCStream` 硬件流采集、跨屏区域分片裁剪合成、`sharingType = .none` 穿透边界提示、640p/960p/HD 分辨率缩放、静止帧差值合并与双格式剪贴板输出 |
 | 离线文字/条码识别与抠图 | `Vision` (`VNRecognizeTextRequest`, `VNDetectBarcodesRequest`, `VNGenerateForegroundInstanceMaskRequest`) + `CoreML.MLComputeDevice.cpu` | 绑定 CPU 计算阶段避开部分系统环境下 Neural Engine ~36s 卡顿，实现亚秒级中英 OCR、条码识别与透明通道主体抠图 |
 | 本地完整性备份与 WebDAV 云同步 | `CryptoKit` (`AES.GCM`, `SHA256`) + `Compression` (LZFSE) + `Foundation.URLSession` (RFC 4918) | 生成 LZFSE 压缩与 `SHA-256` 校验的 `.lucentbackup` v2 归档，`LocalSecretVault` (`LCNTVLT2`) 安全存密并原生直连坚果云/Nextcloud/Synology NAS/Alist WebDAV |

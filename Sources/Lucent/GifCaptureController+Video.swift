@@ -19,7 +19,9 @@ extension GifCaptureController {
         let targetSlice = session.topology.targetSlice(forSelection: selection, fallbackPoint: session.cursorPoint)
             ?? session.topology.displays[0]
         let lockedWindowID = session.selectedWindow?.id
-        let displaySpecs = session.topology.displays.map { (scDisplay: $0.scDisplay, canvasFrame: $0.canvasFrame, scale: $0.scale) }
+        let displaySpecs = session.topology.displays.compactMap { s in
+            s.scDisplay.map { (scDisplay: $0, canvasFrame: s.canvasFrame, scale: s.scale) }
+        }
         let outDims = session.outputDimensions(for: selection)
 
         let encoder = VideoStreamEncoder(options: videoOptions, outputSize: outDims)
