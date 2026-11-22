@@ -21,7 +21,7 @@ public enum LucentPermissionCategory: String, Codable, Sendable, Hashable, CaseI
 public enum LucentPermission: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
     case accessibility, screenRecording, systemNotifications, localNetwork, microphoneAndAudio
     case telemetrySampling
-    case clipboard, selection, window, floatingWindow, screenCapture, notifications, audio, ocr, everythingSearch, displayInfo, systemControl, lumaLinkStatus, fileShelf, audioDevices, contextRouter
+    case clipboard, selection, window, floatingWindow, screenCapture, notifications, audio, ocr, everythingSearch, displayInfo, systemControl, lumaLinkStatus, fileShelf, audioDevices, windowControl, contextRouter
     case networkAccess, filesystemWrite, subprocessExec
 
     public var id: String { rawValue }
@@ -30,7 +30,7 @@ public enum LucentPermission: String, Codable, Sendable, Hashable, CaseIterable,
         switch self {
         case .accessibility, .screenRecording, .systemNotifications, .localNetwork, .microphoneAndAudio: .systemTCC
         case .telemetrySampling: .systemKernel
-        case .clipboard, .selection, .window, .floatingWindow, .screenCapture, .notifications, .audio, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus, .fileShelf, .audioDevices, .contextRouter: .hostBridge
+        case .clipboard, .selection, .window, .floatingWindow, .screenCapture, .notifications, .audio, .ocr, .everythingSearch, .displayInfo, .systemControl, .lumaLinkStatus, .fileShelf, .audioDevices, .windowControl, .contextRouter: .hostBridge
         case .networkAccess, .filesystemWrite, .subprocessExec: .resourceScope
         }
     }
@@ -72,6 +72,7 @@ public enum LucentPermission: String, Codable, Sendable, Hashable, CaseIterable,
         case .lumaLinkStatus: self = .lumaLinkStatus
         case .fileShelf: self = .fileShelf
         case .audioDevices: self = .audioDevices
+        case .windowControl: self = .windowControl
         case .contextRouter: self = .contextRouter
         }
     }
@@ -102,7 +103,7 @@ public enum LucentPermission: String, Codable, Sendable, Hashable, CaseIterable,
         if let cap = capability { return cap.summary }
         if let scope = resourceScope { return scope.summary }
         switch self {
-        case .accessibility: return L10n.pick("由宿主统一代申，用于全局滚轮平滑、跨应用划词读取、原窗口粘贴回填与远控输入", "Host-brokered Accessibility for selection read, paste-back & input")
+        case .accessibility: return L10n.pick("由宿主统一代申，用于全局滚轮平滑、窗口分屏布局、跨应用划词读取、原窗口粘贴回填与远控输入", "Host-brokered Accessibility for window layouts, selection read, paste-back & input")
         case .screenRecording: return L10n.pick("由宿主统一代申，用于选区截图、取色、GIF 录制、离线识字与插件视觉采样", "Host-brokered Screen Recording for capture, color picking & OCR")
         case .systemNotifications: return L10n.pick("由宿主统一代申，代外部插件投递原生 macOS 横幅与声音提醒", "Host-brokered macOS Notification Center banners for plugins")
         case .localNetwork: return L10n.pick("用于 Bonjour 局域网服务广播与 LumaLink 设备配对通信", "Bonjour LAN service discovery & LumaLink device pairing")
@@ -176,7 +177,7 @@ public enum PluginPermissionAudit {
         for cap in plugin.declaredCapabilities {
             result.append(LucentPermission(capability: cap))
             switch cap {
-            case .selection: if !result.contains(.accessibility) { result.append(.accessibility) }
+            case .selection, .windowControl: if !result.contains(.accessibility) { result.append(.accessibility) }
             case .screenCapture: if !result.contains(.screenRecording) { result.append(.screenRecording) }
             case .notifications: if !result.contains(.systemNotifications) { result.append(.systemNotifications) }
             default: break

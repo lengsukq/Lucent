@@ -45,6 +45,9 @@ public struct PluginBridgeHostContext: Sendable {
     public let fileShelfAction: (@Sendable (String, Bool) -> Bool)?
     public let allowsAudioDevices: Bool
     public let audioFeedback: (@Sendable (String, String) -> Void)?
+    public let allowsWindowControl: Bool
+    public let preferredWindowTargetPID: (@Sendable () -> Int32?)?
+    public let windowControlFeedback: (@Sendable (String, String, String) -> Void)?
     public let progressReporter: (@Sendable (PluginExecutionProgress) -> Void)?
     public let contextMatcher: (@Sendable (String?, PluginContextPayload) -> [PluginContextRouteCandidate])?
     public let contextRouter: (@Sendable (String, PluginContextPayload) -> Bool)?
@@ -66,6 +69,9 @@ public struct PluginBridgeHostContext: Sendable {
         fileShelfAction: (@Sendable (String, Bool) -> Bool)? = nil,
         allowsAudioDevices: Bool = false,
         audioFeedback: (@Sendable (String, String) -> Void)? = nil,
+        allowsWindowControl: Bool = false,
+        preferredWindowTargetPID: (@Sendable () -> Int32?)? = nil,
+        windowControlFeedback: (@Sendable (String, String, String) -> Void)? = nil,
         progressReporter: (@Sendable (PluginExecutionProgress) -> Void)? = nil,
         contextMatcher: (@Sendable (String?, PluginContextPayload) -> [PluginContextRouteCandidate])? = nil,
         contextRouter: (@Sendable (String, PluginContextPayload) -> Bool)? = nil
@@ -95,6 +101,9 @@ public struct PluginBridgeHostContext: Sendable {
         self.fileShelfAction = fileShelfAction
         self.allowsAudioDevices = allowsAudioDevices
         self.audioFeedback = audioFeedback
+        self.allowsWindowControl = allowsWindowControl
+        self.preferredWindowTargetPID = preferredWindowTargetPID
+        self.windowControlFeedback = windowControlFeedback
         self.progressReporter = progressReporter
         self.contextMatcher = contextMatcher
         self.contextRouter = contextRouter
@@ -118,6 +127,9 @@ public struct PluginBridgeHostContext: Sendable {
             fileShelfAction: fileShelfAction,
             allowsAudioDevices: allowsAudioDevices,
             audioFeedback: audioFeedback,
+            allowsWindowControl: allowsWindowControl,
+            preferredWindowTargetPID: preferredWindowTargetPID,
+            windowControlFeedback: windowControlFeedback,
             progressReporter: progressReporter,
             contextMatcher: contextMatcher,
             contextRouter: contextRouter

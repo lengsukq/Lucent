@@ -21,6 +21,7 @@ PLUGINS=(
   "mac-pilot"
   "quick-remind"
   "screen-shield"
+  "window-snap"
 )
 
 STARTERS=(

@@ -19,6 +19,7 @@ ALL_PLUGINS=(
   "mac-pilot"
   "quick-remind"
   "screen-shield"
+  "window-snap"
 )
 
 ensure_binary() {

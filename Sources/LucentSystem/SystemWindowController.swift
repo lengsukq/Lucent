@@ -19,9 +19,6 @@ public protocol SystemWindowHardware: Sendable {
 }
 
 public struct SystemWindowControlAdapter: SystemWindowHardware {
-    private static let axTimeoutSeconds: Float = 0.15
-    private static let enhancedUIKey = "AXEnhancedUserInterface" as CFString
-
     public init() {}
 
     public func isAccessibilityTrusted() -> Bool {
@@ -114,33 +111,34 @@ public struct SystemWindowControlAdapter: SystemWindowHardware {
     ) -> CGRect? {
         guard isAccessibilityTrusted(), pid > 0 else { return nil }
         let appEl = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(appEl, Self.axTimeoutSeconds)
-        let windows = standardAXWindows(of: appEl)
+        AXUIElementSetMessagingTimeout(appEl, SystemWindowAXHelpers.axTimeoutSeconds)
+        let windows = SystemWindowAXHelpers.standardAXWindows(of: appEl)
         guard !windows.isEmpty else { return nil }
 
-        let target = pickWindow(in: windows, windowIndex: windowIndex, titleHint: titleHint)
-        AXUIElementSetMessagingTimeout(target, Self.axTimeoutSeconds)
+        let target = SystemWindowAXHelpers.pickWindow(in: windows, windowIndex: windowIndex, titleHint: titleHint)
+        AXUIElementSetMessagingTimeout(target, SystemWindowAXHelpers.axTimeoutSeconds)
 
-        if boolAttr(target, kAXMinimizedAttribute as CFString) == true {
+        if SystemWindowAXHelpers.boolAttr(target, kAXMinimizedAttribute as CFString) == true {
             _ = AXUIElementSetAttributeValue(target, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
         }
 
-        let hadEnhancedUI = boolAttr(appEl, Self.enhancedUIKey) == true
+        let enhancedKey = SystemWindowAXHelpers.enhancedUIName as CFString
+        let hadEnhancedUI = SystemWindowAXHelpers.boolAttr(appEl, enhancedKey) == true
         if hadEnhancedUI {
-            _ = AXUIElementSetAttributeValue(appEl, Self.enhancedUIKey, kCFBooleanFalse)
+            _ = AXUIElementSetAttributeValue(appEl, enhancedKey, kCFBooleanFalse)
         }
         defer {
             if hadEnhancedUI {
-                _ = AXUIElementSetAttributeValue(appEl, Self.enhancedUIKey, kCFBooleanTrue)
+                _ = AXUIElementSetAttributeValue(appEl, enhancedKey, kCFBooleanTrue)
             }
         }
 
         // Set size -> position -> size so cross-monitor resizes are not clamped by the source display bounds.
-        _ = setSize(frame.size, on: target)
-        _ = setPosition(frame.origin, on: target)
-        if let afterMove = readFrame(of: target),
+        SystemWindowAXHelpers.setSize(frame.size, on: target)
+        SystemWindowAXHelpers.setPosition(frame.origin, on: target)
+        if let afterMove = SystemWindowAXHelpers.readFrame(of: target),
            abs(afterMove.width - frame.width) > 2 || abs(afterMove.height - frame.height) > 2 {
-            _ = setSize(frame.size, on: target)
+            SystemWindowAXHelpers.setSize(frame.size, on: target)
         }
 
         if activate {
@@ -149,7 +147,7 @@ public struct SystemWindowControlAdapter: SystemWindowHardware {
                 _ = NSRunningApplication(processIdentifier: pid)?.activate()
             }
         }
-        return readFrame(of: target) ?? frame
+        return SystemWindowAXHelpers.readFrame(of: target) ?? frame
     }
 
     public func launchApplication(bundleID: String) -> Int32? {
@@ -176,9 +174,9 @@ public struct SystemWindowControlAdapter: SystemWindowHardware {
         guard let launchedPID = pidBox.get(), launchedPID > 0 else { return nil }
         let deadline = ProcessInfo.processInfo.systemUptime + 1.2
         let appEl = AXUIElementCreateApplication(launchedPID)
-        AXUIElementSetMessagingTimeout(appEl, Self.axTimeoutSeconds)
+        AXUIElementSetMessagingTimeout(appEl, SystemWindowAXHelpers.axTimeoutSeconds)
         while ProcessInfo.processInfo.systemUptime < deadline {
-            if !standardAXWindows(of: appEl).isEmpty { break }
+            if !SystemWindowAXHelpers.standardAXWindows(of: appEl).isEmpty { break }
             Thread.sleep(forTimeInterval: 0.08)
         }
         return launchedPID
@@ -192,17 +190,18 @@ public struct SystemWindowControlAdapter: SystemWindowHardware {
         isAppFrontmost: Bool
     ) -> [ManagedWindowInfo] {
         let appEl = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(appEl, Self.axTimeoutSeconds)
-        let focusedWin = elementAttr(appEl, kAXFocusedWindowAttribute as CFString)
-            ?? elementAttr(appEl, kAXMainWindowAttribute as CFString)
-        let rawWindows = standardAXWindows(of: appEl)
+        AXUIElementSetMessagingTimeout(appEl, SystemWindowAXHelpers.axTimeoutSeconds)
+        let focusedWin = SystemWindowAXHelpers.elementAttr(appEl, kAXFocusedWindowAttribute as CFString)
+            ?? SystemWindowAXHelpers.elementAttr(appEl, kAXMainWindowAttribute as CFString)
+        let rawWindows = SystemWindowAXHelpers.standardAXWindows(of: appEl)
         return rawWindows.enumerated().compactMap { idx, win in
-            guard let rect = readFrame(of: win),
+            guard let rect = SystemWindowAXHelpers.readFrame(of: win),
                   rect.width >= 80, rect.height >= 60 else { return nil }
             let dispIdx = WindowLayoutGeometry.bestDisplayIndex(for: rect, in: displays)
             let displayID = displays[dispIdx].displayID
-            let title = (stringAttr(win, kAXTitleAttribute as CFString) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let minimized = boolAttr(win, kAXMinimizedAttribute as CFString) == true
+            let title = (SystemWindowAXHelpers.stringAttr(win, kAXTitleAttribute as CFString) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let minimized = SystemWindowAXHelpers.boolAttr(win, kAXMinimizedAttribute as CFString) == true
             var sizeSettable = DarwinBoolean(false)
             _ = AXUIElementIsAttributeSettable(win, kAXSizeAttribute as CFString, &sizeSettable)
             let isFocused = isAppFrontmost && (focusedWin.map { CFEqual($0, win) } ?? (idx == 0))
@@ -213,28 +212,6 @@ public struct SystemWindowControlAdapter: SystemWindowHardware {
                 isFocused: isFocused, isMinimized: minimized, isResizable: sizeSettable.boolValue
             )
         }
-    }
-
-    private func standardAXWindows(of appEl: AXUIElement) -> [AXUIElement] {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(appEl, kAXWindowsAttribute as CFString, &ref) == .success,
-              let list = ref as? [AXUIElement] else { return [] }
-        return list.filter { win in
-            AXUIElementSetMessagingTimeout(win, Self.axTimeoutSeconds)
-            let role = stringAttr(win, kAXRoleAttribute as CFString) ?? ""
-            let subrole = stringAttr(win, kAXSubroleAttribute as CFString) ?? ""
-            guard role == (kAXWindowRole as String) else { return false }
-            return subrole.isEmpty || subrole == (kAXStandardWindowSubrole as String)
-        }
-    }
-
-    private func pickWindow(in windows: [AXUIElement], windowIndex: Int, titleHint: String?) -> AXUIElement {
-        if let hint = titleHint?.trimmingCharacters(in: .whitespacesAndNewlines), !hint.isEmpty,
-           let matched = windows.first(where: { stringAttr($0, kAXTitleAttribute as CFString) == hint }) {
-            return matched
-        }
-        if windows.indices.contains(windowIndex) { return windows[windowIndex] }
-        return windows[0]
     }
 
     private func visibleRegularAppPIDsInZOrder(excludingPID: Int32) -> [Int32] {
@@ -268,52 +245,6 @@ public struct SystemWindowControlAdapter: SystemWindowHardware {
             let name = app.localizedName ?? bundle
             return (bundle, name)
         }
-    }
-
-    private func readFrame(of win: AXUIElement) -> CGRect? {
-        var posRef: CFTypeRef?
-        var sizeRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(win, kAXPositionAttribute as CFString, &posRef) == .success,
-              AXUIElementCopyAttributeValue(win, kAXSizeAttribute as CFString, &sizeRef) == .success,
-              let posVal = posRef, let sizeVal = sizeRef,
-              CFGetTypeID(posVal) == AXValueGetTypeID(), CFGetTypeID(sizeVal) == AXValueGetTypeID() else { return nil }
-        var pt = CGPoint.zero
-        var sz = CGSize.zero
-        guard AXValueGetValue(posVal as! AXValue, .cgPoint, &pt),
-              AXValueGetValue(sizeVal as! AXValue, .cgSize, &sz),
-              sz.width.isFinite, sz.height.isFinite else { return nil }
-        return CGRect(origin: pt, size: sz)
-    }
-
-    private func setPosition(_ pt: CGPoint, on win: AXUIElement) -> Bool {
-        var mutable = pt
-        guard let val = AXValueCreate(.cgPoint, &mutable) else { return false }
-        return AXUIElementSetAttributeValue(win, kAXPositionAttribute as CFString, val) == .success
-    }
-
-    private func setSize(_ sz: CGSize, on win: AXUIElement) -> Bool {
-        var mutable = sz
-        guard let val = AXValueCreate(.cgSize, &mutable) else { return false }
-        return AXUIElementSetAttributeValue(win, kAXSizeAttribute as CFString, val) == .success
-    }
-
-    private func stringAttr(_ el: AXUIElement, _ attr: CFString) -> String? {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(el, attr, &ref) == .success else { return nil }
-        return ref as? String
-    }
-
-    private func boolAttr(_ el: AXUIElement, _ attr: CFString) -> Bool? {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(el, attr, &ref) == .success else { return nil }
-        return (ref as? NSNumber)?.boolValue
-    }
-
-    private func elementAttr(_ el: AXUIElement, _ attr: CFString) -> AXUIElement? {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(el, attr, &ref) == .success,
-              let val = ref, CFGetTypeID(val) == AXUIElementGetTypeID() else { return nil }
-        return (val as! AXUIElement)
     }
 
     private static func runOnMainSync<T: Sendable>(_ work: @MainActor @Sendable () -> T) -> T {

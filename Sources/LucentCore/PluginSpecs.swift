@@ -43,6 +43,7 @@ extension PluginSystem {
     - `displayInfo`: `list` -> `{displays}`
     - `fileShelf`: `open`, `addContextItems` (no params; only files captured by the desktop host for the current invocation).
     - `audioDevices`: `list` / `status`, `apply` (`{inputUID,outputUID,showFeedback?}`), `setDevice` (`{direction:"input"|"output",uid}`); returns the actual defaults and `applied`, `unavailable`, `restored`, or `partial`.
+    - `windowControl`: `status` / `list` -> `{accessibilityGranted,settingsURL,displays,activeWindow,windows,canUndo}`; `requestPermission`; `snap` (`{preset,gap?,pid?,windowIndex?,showFeedback?}`); `applyWorkspace` (`{name?,slots,gap?,launchMissing?,showFeedback?}`) — host-brokered Accessibility window snapping & multi-display workspace layouts.
     - `systemControl`: `status`, `setVolume`, `setMute`, `setCaffeine`, `setStatusScreen`, `clearStatusScreen`
     - `lumaLinkStatus`: `status` and LumaLink companion actions
     - `contextRouter`: `match` (`{kind,filePaths?,text?,url?,source?}` -> `{plugins}`) and `route` (`{targetPluginId,kind,...}`) for safe host-brokered cross-plugin routing

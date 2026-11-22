@@ -124,6 +124,12 @@ public enum PluginHostBridgeHandlers {
             }
             return PluginAudioDeviceRouter.shared.dispatch(action, params: params, feedback: hostContext.audioFeedback)
 
+        case .windowControl:
+            guard hostContext.allowsWindowControl else {
+                return errorJSON("unsupported_context", "Window control requires the Lucent desktop host", capability: capability)
+            }
+            return PluginWindowControlRouter.shared.dispatch(action, params: params, hostContext: hostContext)
+
         case .lumaLinkStatus:
             return handleLumaLinkBridge(action: action, params: params)
 

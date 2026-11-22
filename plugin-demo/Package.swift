@@ -13,7 +13,8 @@ let demoPlugins = [
     "notion-bookmarks",
     "quick-remind",
     "screen-shield",
-    "translate-hub"
+    "translate-hub",
+    "window-snap"
 ]
 
 let starterPlugins = [

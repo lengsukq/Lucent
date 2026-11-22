@@ -23,6 +23,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
     case systemControl
     case fileShelf
     case audioDevices
+    case windowControl
     case lumaLinkStatus
     case contextRouter
 
@@ -43,6 +44,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .systemControl: L10n.pick("系统音量与防休眠控制", "System & Screen Shield Control")
         case .fileShelf: L10n.pick("文件中转站", "File Shelf")
         case .audioDevices: L10n.pick("切换默认音频设备", "Switch Default Audio Devices")
+        case .windowControl: L10n.pick("控制应用窗口布局", "Window Layout & Workspace Control")
         case .lumaLinkStatus: L10n.pick("读取远程控制状态", "LumaLink Remote Status")
         case .contextRouter: L10n.pick("跨插件联动路由", "Cross-Plugin Routing")
         }
@@ -63,6 +65,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .systemControl: L10n.pick("按指令调节系统音量、防休眠或开启清洁防误触遮罩", "Adjust volume, keep awake, or show the screen-cleaning shield")
         case .fileShelf: L10n.pick("打开中转站并放入用户选中的文件", "Open the shelf and add files selected by the user")
         case .audioDevices: L10n.pick("查看并切换系统默认麦克风与扬声器", "Read and switch the system default microphone and speakers")
+        case .windowControl: L10n.pick("读取并调整当前桌面应用窗口的位置与尺寸，支持分屏与多屏工作区布局（需系统「辅助功能」权限）", "Inspect and arrange application windows across displays for snapping and workspaces (requires Accessibility)")
         case .lumaLinkStatus: L10n.pick("查看 LumaLink 局域网远程服务状态（不含敏感凭证）", "Read redacted LumaLink remote-control connection status")
         case .contextRouter: L10n.pick("查询支持当前文件/链接/文本的其他已装插件，并经宿主安全转交上下文（不读取其他插件私有数据）", "Discover installed plugins matching files, links, or text and route context through the host without exposing private plugin data")
         }
@@ -83,6 +86,7 @@ public enum PluginCapability: String, Codable, Sendable, Hashable, CaseIterable,
         case .systemControl: "speaker.wave.2.fill"
         case .fileShelf: "tray.full"
         case .audioDevices: "headphones"
+        case .windowControl: "rectangle.split.2x2"
         case .lumaLinkStatus: "ipad.and.iphone"
         case .contextRouter: "arrow.triangle.branch"
         }

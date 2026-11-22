@@ -70,7 +70,7 @@ extension PluginSystem {
             let defaultAction: String = switch firstCap {
             case .clipboard, .selection: "read"
             case .window, .floatingWindow: "open"
-            case .screenCapture, .notifications, .systemControl, .lumaLinkStatus: "status"
+            case .screenCapture, .notifications, .systemControl, .lumaLinkStatus, .windowControl: "status"
             case .audio: "stop"
             case .ocr: "recognize"
             case .everythingSearch: "search"

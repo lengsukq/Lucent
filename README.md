@@ -32,12 +32,13 @@
 
 ![Lucent 启动页定制设置，显示场景预设、磁贴列数、高频坞容量与分区开关](docs/screenshots/home-layout.webp)
 
-## 12 款官方精选插件
+## 13 款官方精选插件
 
 详细说明见 [`plugin-demo/`](plugin-demo/README.md)，在设置中粘贴仓库链接即可一键订阅安装（全原生 Swift 二进制，零 Python 依赖）：
 
 | 插件 | 功能 |
 | --- | --- |
+| [`window-snap`](plugin-demo/window-snap/README.md) | **窗口分屏与工作区**：半屏/三分屏/四象限/跨屏瞬移、一键撤销与多屏工作区布局快照恢复 |
 | [`file-shelf`](plugin-demo/file-shelf/README.md) | **文件中转站**：三向磁吸边缘停靠托盘，跨屏拖拽暂存与跨重启恢复 |
 | [`local-send`](plugin-demo/local-send/README.md) | **局域网快传**：兼容 LocalSend v2.1 跨设备收发，开窗监听、关窗即释放端口 |
 | [`audio-presets`](plugin-demo/audio-presets/README.md) | **一键音频组合**：悬浮液态玻璃控制台，一键切换扬声器与麦克风组合 |

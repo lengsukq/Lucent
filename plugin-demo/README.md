@@ -15,6 +15,7 @@
 - [`mac-pilot/`](mac-pilot/README.md)：**桌面中控台 · 系统控制、设置直达与访达助手**（支持音量档位/静音切换、防休眠常亮、16 项 macOS 系统设置分栏免前缀秒达、访达当前目录防重名新建文件与外置磁盘一键安全推出）。
 - [`quick-remind/`](quick-remind/README.md)：**闪电提醒 · 一句话倒计时与提醒看板**（解析 `10m 喝水`、`18:30 拿快递`、`明天 9:00 周报 工作日` 等自然短语，零常驻守护同步 macOS 原生提醒事项准点弹窗，支持推迟 Snooze 与语音播报）。
 - [`screen-shield/`](screen-shield/README.md)：**状态屏 · 清洁屏幕与暂离防误触遮罩**（一键盖住全部显示器展示「清洁屏幕」「请勿触碰」「马上回来」或自定义告示，联动拦截键盘与滚轮误触，长按 `Esc` 2 秒安全退出）。
+- [`window-snap/`](window-snap/README.md)：**窗口分屏与工作区**（纯原生液态玻璃不抢焦点悬浮控制台 + 22 项静默全局热键命令，支持半屏/三分屏/四象限/黄金居中/跨屏瞬移/一键撤销与多屏工作区布局快照秒恢复，零后台常驻）。
 - `Starters/`（`sys-ip-dns` / `port-killer` / `shell-note`）：内置精选模板画廊（`PluginStarterGallery`）的三款原生 Swift 源码与预编译产物源。
 
 ![Lucent 快捷台中的插件列表，按插件筛选并直接执行子功能](../docs/screenshots/plugin-list.webp)

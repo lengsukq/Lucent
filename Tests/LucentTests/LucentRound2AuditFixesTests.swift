@@ -56,7 +56,7 @@ struct LucentRound2AuditFixesTests {
         #expect(storeIDs == [
             "antigravity-pulse", "browser-hub", "gold-monitor", "local-send", "lumalink-companion",
             "mac-pilot", "notion-bookmarks", "quick-remind", "screen-shield", "translate-hub",
-            "audio-presets", "file-shelf"
+            "audio-presets", "file-shelf", "window-snap"
         ])
 
         let browserItem = try #require(demoStore.manifest.plugins.first { $0.id == "browser-hub" })
@@ -65,7 +65,7 @@ struct LucentRound2AuditFixesTests {
         #expect(installedBrowserHub.declaredCommands.count == 6)
         #expect(installedBrowserHub.customIconURL != nil)
 
-        for newID in ["antigravity-pulse", "gold-monitor", "local-send", "translate-hub", "mac-pilot", "quick-remind", "screen-shield"] {
+        for newID in ["antigravity-pulse", "gold-monitor", "local-send", "translate-hub", "mac-pilot", "quick-remind", "screen-shield", "window-snap"] {
             let item = try #require(demoStore.manifest.plugins.first { $0.id == newID })
             let inst = try await PluginStoreService.installStoreItem(item, from: demoStore, in: dir)
             #expect(inst.isValid)

@@ -52,7 +52,7 @@ public enum PluginHostTCCBroker {
 
     public static func requiredTCC(for capability: PluginCapability) -> PluginSystemTCCKind? {
         switch capability {
-        case .selection: .accessibility
+        case .selection, .windowControl: .accessibility
         case .screenCapture: .screenRecording
         case .notifications: .notifications
         default: nil

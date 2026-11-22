@@ -53,6 +53,16 @@ extension AppViewModel {
             audioFeedback: { input, output in
                 Task { @MainActor in AudioPresetHUD.shared.present(input: input, output: output) }
             },
+            allowsWindowControl: true,
+            preferredWindowTargetPID: { [weak self] in
+                guard let self else { return nil }
+                return Self.runOnMainActorSync {
+                    self.resolveOverlayTargetApp?()?.processIdentifier
+                }
+            },
+            windowControlFeedback: { title, subtitle, symbol in
+                Task { @MainActor in WindowSnapHUD.shared.present(title: title, subtitle: subtitle, symbol: symbol) }
+            },
             progressReporter: { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self else { return }

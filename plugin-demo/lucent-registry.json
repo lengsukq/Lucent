@@ -129,7 +129,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "a92401dada796d9afdf36bee23ba922ae91fccb3bf353bce3d85294396778187",
+      "sha256" : "4b7e1779a1b2519607af74a99b576bf88eaace285f6e58c8ba8a62bffcc5f993",
       "sizeBytes" : 162563,
       "version" : "1.1.1"
     },
@@ -218,7 +218,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "52acfd00288318432c1f5c0c7cb6c7cb2a67e2eda5bdd66bbe079ebab560d217",
+      "sha256" : "23d51dac68a1e97b31b0b1b66457f8d4b3af7f6c4edbee43e489a322049dcf79",
       "sizeBytes" : 181228,
       "version" : "1.0.0"
     },
@@ -263,7 +263,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "45ce05f94e51d8fe1b538d8e984da856354f51a489f74f9cd81420e45d19d3c5",
+      "sha256" : "2c90f149a4e9340c430e46fe7bc61108465353ba752ed6751c0e28c0c3da48a3",
       "sizeBytes" : 122582,
       "version" : "1.1.0"
     },
@@ -354,7 +354,7 @@
       "resourceScopes" : [
         "network"
       ],
-      "sha256" : "24c693efeb82845f9b2d960028b352671823baea8a1277fb3d1cfda1f3cad479",
+      "sha256" : "9aa9b3e3aebafd07fbf7fda90c12cd36738e7b00ea2870873369ac5efc97f4b9",
       "sizeBytes" : 211277,
       "version" : "1.1.1"
     },
@@ -453,7 +453,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "333802c2a934723e6e6e9f7f4dd02db2cd42c88be9354eeefd02a610e7e8facf",
+      "sha256" : "cce32a3a4b90fe9877d1f0b23176085ea2ce32caa94a7ebe10327817de17285c",
       "sizeBytes" : 328989,
       "version" : "1.0.0"
     },
@@ -535,7 +535,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "2fc764ffb2a2f6f50ac4d6617abfd7e0667a3bb67f314b64178ebf0b4623a7ba",
+      "sha256" : "f12669570b88ac2dd564ab5993d22fe2f4462254f0b4ad12fbfe28cf9e36049e",
       "sizeBytes" : 141606,
       "version" : "2.2.0"
     },
@@ -624,7 +624,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "0f8589b18e937e9f75e09c3a9794ad69c33a9c1063ddf9fed89e8e820b4e246c",
+      "sha256" : "a4169d06093d1158df45c8b651c936dbcf6dcf357e881718f5b1960ebd76a2e1",
       "sizeBytes" : 156368,
       "version" : "1.0.0"
     },
@@ -706,7 +706,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "ad7bde70c8f7b65196e98e2b1706f4cb18fb6bdf9be0e47f2556bc4dbfc51094",
+      "sha256" : "c870811b55e79c218b5bc3086a1aca6a6e9817472868f2c1e3b0618549d59ef1",
       "sizeBytes" : 202105,
       "version" : "1.4.0"
     },
@@ -780,7 +780,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "4e09fb46a4dff6360789f1a94bcb303922630c0ae558024494580f8419e39d9c",
+      "sha256" : "436e940ab60c7ed5fdce029ffb3223d5c00f106acb53092a20225ba19ac217ee",
       "sizeBytes" : 144098,
       "version" : "1.0.0"
     },
@@ -870,7 +870,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "acb112c5b28d4db2727dd0fd5567b5ea0dec05eee1142cbba8f7fc2ef56372db",
+      "sha256" : "bbd0f4dbcbcf4f7ceadb00c46e732ec10b7c809b277b5036a98e50df424448bf",
       "sizeBytes" : 115685,
       "version" : "1.0.0"
     },
@@ -1047,13 +1047,161 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "4250041a4836a629ca77548d91b6275f547b538fc8e3da066d0d40cf1c20f57f",
+      "sha256" : "d9d43061d0457e3cfa8aef121b9d36c0689cea8190bdd1522975a24377c4159c",
       "sizeBytes" : 204986,
       "version" : "1.1.0"
+    },
+    {
+      "accentColor" : "blue",
+      "author" : "Lucent Official",
+      "capabilities" : [
+        "floatingWindow",
+        "windowControl"
+      ],
+      "categoryTag" : "窗口布局",
+      "description" : "原生液态玻璃窗口分屏与多屏工作区管家：支持半屏、三分屏、四象限、跨屏瞬移、一键撤销与多屏工作区布局快照秒恢复（纯宿主代申辅助功能，零后台常驻）。",
+      "downloadURL" : "./dist/window-snap.zip",
+      "icon" : "rectangle.split.2x2",
+      "id" : "window-snap",
+      "keywords" : [
+        "win",
+        "snap",
+        "window",
+        "split",
+        "layout",
+        "workspace",
+        "rectangle",
+        "magnet",
+        "分屏",
+        "窗口",
+        "布局",
+        "工作区",
+        "多屏"
+      ],
+      "locales" : {
+        "en" : {
+          "categoryTag" : "Windows",
+          "commands" : {
+            "almost-max" : {
+              "subtitle" : "Center the active window at 90% × 90% of the work area",
+              "title" : "Almost Maximize Window (90%)"
+            },
+            "apply-favorite" : {
+              "subtitle" : "Apply your starred multi-display workspace layout",
+              "title" : "Restore Favorite Workspace"
+            },
+            "bottom-half" : {
+              "subtitle" : "Align the active window to the bottom half of its display",
+              "title" : "Snap Window to Bottom Half"
+            },
+            "bottom-left" : {
+              "subtitle" : "Align the active window to the bottom-left quadrant",
+              "title" : "Snap Window to Bottom-Left Quarter"
+            },
+            "bottom-right" : {
+              "subtitle" : "Align the active window to the bottom-right quadrant",
+              "title" : "Snap Window to Bottom-Right Quarter"
+            },
+            "capture-workspace" : {
+              "subtitle" : "Snapshot open windows across all displays into a reusable layout",
+              "title" : "Capture Current Multi-Display Workspace"
+            },
+            "center" : {
+              "subtitle" : "Center the active window at a comfortable 72% × 80% size",
+              "title" : "Center Window"
+            },
+            "center-third" : {
+              "subtitle" : "Middle 1/3 column ideal for ultrawide monitors",
+              "title" : "Snap Window to Center Third"
+            },
+            "left-half" : {
+              "subtitle" : "Align the active window to the left half of its display",
+              "title" : "Snap Window to Left Half"
+            },
+            "left-third" : {
+              "subtitle" : "Left 1/3 column ideal for ultrawide monitors",
+              "title" : "Snap Window to Left Third"
+            },
+            "left-two-thirds" : {
+              "subtitle" : "Primary 2/3 workspace on the left",
+              "title" : "Snap Window to Left Two Thirds"
+            },
+            "maximize" : {
+              "subtitle" : "Fill the visible work area without entering a macOS fullscreen space",
+              "title" : "Maximize Window"
+            },
+            "next-display" : {
+              "subtitle" : "Proportionally transfer the active window to the next monitor",
+              "title" : "Move Window to Next Display"
+            },
+            "open" : {
+              "subtitle" : "Floating Liquid Glass console for quick snapping and multi-screen workspaces",
+              "title" : "Open Window Snap & Workspaces Console"
+            },
+            "prev-display" : {
+              "subtitle" : "Proportionally transfer the active window to the previous monitor",
+              "title" : "Move Window to Previous Display"
+            },
+            "restore" : {
+              "subtitle" : "Restore the active window to its previous frame",
+              "title" : "Undo Last Window Snap"
+            },
+            "right-half" : {
+              "subtitle" : "Align the active window to the right half of its display",
+              "title" : "Snap Window to Right Half"
+            },
+            "right-third" : {
+              "subtitle" : "Right 1/3 column ideal for ultrawide monitors",
+              "title" : "Snap Window to Right Third"
+            },
+            "right-two-thirds" : {
+              "subtitle" : "Primary 2/3 workspace on the right",
+              "title" : "Snap Window to Right Two Thirds"
+            },
+            "top-half" : {
+              "subtitle" : "Align the active window to the top half of its display",
+              "title" : "Snap Window to Top Half"
+            },
+            "top-left" : {
+              "subtitle" : "Align the active window to the top-left quadrant",
+              "title" : "Snap Window to Top-Left Quarter"
+            },
+            "top-right" : {
+              "subtitle" : "Align the active window to the top-right quadrant",
+              "title" : "Snap Window to Top-Right Quarter"
+            }
+          },
+          "config" : {
+            "launchMissingApps" : {
+              "label" : "Auto-launch closed apps when restoring a workspace",
+              "section" : "Workspaces"
+            },
+            "showHudFeedback" : {
+              "label" : "Show Liquid Glass HUD feedback on snap or workspace restore",
+              "section" : "Layout Appearance"
+            },
+            "windowGap" : {
+              "label" : "Window Outer & Split Gap (pt)",
+              "section" : "Layout Appearance"
+            }
+          },
+          "description" : "Liquid Glass window snapping & multi-display workspace manager: halves, thirds, quarters, cross-monitor moves, instant undo, and one-click multi-screen layouts with zero background daemon.",
+          "name" : "Window Snap & Workspaces"
+        }
+      },
+      "minAppVersion" : "0.9.9.4",
+      "mode" : "view",
+      "name" : "窗口分屏与工作区",
+      "resourceScopes" : [
+
+      ],
+      "sha256" : "b9c356c0f1c108b50dc29ae3073f894880e10a0a61c123f5ad611e536d677b69",
+      "sizeBytes" : 164592,
+      "version" : "1.0.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-22T03:29:23Z"
+  "updatedAt" : "2026-11-22T08:50:51Z"
 }
