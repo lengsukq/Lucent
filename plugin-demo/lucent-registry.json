@@ -83,8 +83,8 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "6ac06e89d8f254cf28675711fbbec1f554c7771552aa32c55845fba4aa09accb",
-      "sizeBytes" : 287839,
+      "sha256" : "4d544450947b60acd55f3fab50bf9f47d8f5e6c61656e3982f8dc0a3fe191bcc",
+      "sizeBytes" : 287877,
       "version" : "1.3.2"
     },
     {
@@ -129,7 +129,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "f4971922fd2ee4f6bb695eecd55852050f42626854ef384bdd56afdedd48848b",
+      "sha256" : "a92401dada796d9afdf36bee23ba922ae91fccb3bf353bce3d85294396778187",
       "sizeBytes" : 162563,
       "version" : "1.1.1"
     },
@@ -218,7 +218,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "c5ed848f5090429e839e75d57cc004cdd49491d9a9b54d544b61ff2eaec37656",
+      "sha256" : "52acfd00288318432c1f5c0c7cb6c7cb2a67e2eda5bdd66bbe079ebab560d217",
       "sizeBytes" : 181228,
       "version" : "1.0.0"
     },
@@ -263,7 +263,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "8ac7c7a4fc3f1ede04e390cc679852303f3fbf4a3677d751965f5bf04990aacc",
+      "sha256" : "45ce05f94e51d8fe1b538d8e984da856354f51a489f74f9cd81420e45d19d3c5",
       "sizeBytes" : 122582,
       "version" : "1.1.0"
     },
@@ -354,7 +354,7 @@
       "resourceScopes" : [
         "network"
       ],
-      "sha256" : "f0dedd4975dfaa359f366f1a064b9ba87c690d806ed289a4aa5128eef9e4decf",
+      "sha256" : "24c693efeb82845f9b2d960028b352671823baea8a1277fb3d1cfda1f3cad479",
       "sizeBytes" : 211277,
       "version" : "1.1.1"
     },
@@ -453,7 +453,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "d4f9ce1af3557ad386ea5f6feaf1f0e990831f8806d2d17cc78d02ff9c76d4cc",
+      "sha256" : "333802c2a934723e6e6e9f7f4dd02db2cd42c88be9354eeefd02a610e7e8facf",
       "sizeBytes" : 328989,
       "version" : "1.0.0"
     },
@@ -535,7 +535,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "3bb77d66ba06d55221e3db9b32d653ab5a865425c32de0de48df81489a8b6535",
+      "sha256" : "2fc764ffb2a2f6f50ac4d6617abfd7e0667a3bb67f314b64178ebf0b4623a7ba",
       "sizeBytes" : 141606,
       "version" : "2.2.0"
     },
@@ -624,7 +624,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "6961a3dfafbbabf45d67b3cc2625c4cedfc27b3c96554259f6d9425e7890a665",
+      "sha256" : "0f8589b18e937e9f75e09c3a9794ad69c33a9c1063ddf9fed89e8e820b4e246c",
       "sizeBytes" : 156368,
       "version" : "1.0.0"
     },
@@ -706,7 +706,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "37f779bdcca62c06c79ad876a7aee36091260aa2aca933908e8b79d4f5051a10",
+      "sha256" : "ad7bde70c8f7b65196e98e2b1706f4cb18fb6bdf9be0e47f2556bc4dbfc51094",
       "sizeBytes" : 202105,
       "version" : "1.4.0"
     },
@@ -780,7 +780,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "70138f09edc6c0264d27787a777efeb98e59c343863b835fe81c5236726ceaa9",
+      "sha256" : "4e09fb46a4dff6360789f1a94bcb303922630c0ae558024494580f8419e39d9c",
       "sizeBytes" : 144098,
       "version" : "1.0.0"
     },
@@ -870,7 +870,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "1f38ebf6fbe111a61c753087b4f71914f1219087ca551d58dd52d360990c9b09",
+      "sha256" : "acb112c5b28d4db2727dd0fd5567b5ea0dec05eee1142cbba8f7fc2ef56372db",
       "sizeBytes" : 115685,
       "version" : "1.0.0"
     },
@@ -1047,7 +1047,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "8678457a81e67f9e44eedee1262cfb5cb5b5d9ba6e869b294acbec45c22af6d4",
+      "sha256" : "4250041a4836a629ca77548d91b6275f547b538fc8e3da066d0d40cf1c20f57f",
       "sizeBytes" : 204986,
       "version" : "1.1.0"
     }
@@ -1055,5 +1055,5 @@
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-22T03:16:49Z"
+  "updatedAt" : "2026-11-22T03:29:23Z"
 }

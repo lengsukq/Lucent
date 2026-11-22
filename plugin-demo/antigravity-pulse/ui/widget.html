@@ -1394,6 +1394,11 @@
         return String(Math.round(v));
       }
 
+      function formatTokensWithUnit(n) {
+        const v = Number(n || 0);
+        return Math.abs(v) >= 1e3 ? formatTokens(v) : `${Math.round(v)}t`;
+      }
+
       function formatPct(r) {
         const c = Math.max(0, Math.min(1, Number(r || 0)));
         const p = c * 100;
@@ -1830,12 +1835,12 @@
         } else if (rate >= 0.70) {
           el.cacheRateVal.classList.add("good");
           el.cacheSubVal.textContent = isLast
-            ? `本轮读 ${formatTokens(sess.latestCacheReadTokens)}`
+            ? `本轮读 ${formatTokensWithUnit(sess.latestCacheReadTokens)}`
             : `已省 ${formatUSD(sess.estimatedSavedUSD)} · ${sess.turnCount}轮`;
         } else if (rate >= 0.35) {
           el.cacheRateVal.classList.add("warn");
           el.cacheSubVal.textContent = isLast
-            ? `本轮读 ${formatTokens(sess.latestCacheReadTokens)}`
+            ? `本轮读 ${formatTokensWithUnit(sess.latestCacheReadTokens)}`
             : `已省 ${formatUSD(sess.estimatedSavedUSD)} · ${sess.turnCount}轮`;
         } else {
           el.cacheRateVal.classList.add("crit");
@@ -2143,15 +2148,16 @@
         el.segInput.style.width = `${inputWidth.toFixed(2)}%`;
         el.segInput.className = inputCls;
 
-        el.legendCache.textContent = `缓存 ${formatTokens(sess.latestCacheReadTokens)}`;
-        el.legendInput.textContent = `新输入 ${formatTokens(sess.latestInputTokens)}`;
+        el.legendCache.textContent = `缓存 ${formatTokensWithUnit(sess.latestCacheReadTokens)}`;
+        el.legendInput.textContent = `新输入 ${formatTokensWithUnit(sess.latestInputTokens)}`;
         const sessSpd = formatTokPerSec(sess.avgOutputTokensPerSec);
+        const outText = formatTokensWithUnit(sess.latestOutputTokens);
         el.legendOutput.textContent = sessSpd
-          ? `输出 ${formatTokens(sess.latestOutputTokens)} · 均 ${sessSpd}`
-          : `输出 ${formatTokens(sess.latestOutputTokens)}`;
+          ? `输出 ${outText} · 均 ${sessSpd}`
+          : `输出 ${outText}`;
         el.legendOutput.title = (sessSpd && sess.totalOutputDurationSeconds > 0)
-          ? `本轮输出 ${formatTokens(sess.latestOutputTokens)} · 会话平均速度 ${sessSpd}（累计输出 ${formatTokens(sess.cumulativeOutputTokens)} / ${Number(sess.totalOutputDurationSeconds).toFixed(1)}s）`
-          : `本轮输出 ${formatTokens(sess.latestOutputTokens)} · 累计输出 ${formatTokens(sess.cumulativeOutputTokens)}`;
+          ? `本轮输出 ${outText} · 会话平均速度 ${sessSpd}（累计输出 ${formatTokensWithUnit(sess.cumulativeOutputTokens)} / ${Number(sess.totalOutputDurationSeconds).toFixed(1)}s）`
+          : `本轮输出 ${outText} · 累计输出 ${formatTokensWithUnit(sess.cumulativeOutputTokens)}`;
 
         updateCacheView(sess);
 
