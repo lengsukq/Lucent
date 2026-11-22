@@ -20,66 +20,77 @@ func resolveModelProfile(rawModel: String) -> ModelProfile {
 
     if lower.isEmpty {
         return ModelProfile(
-            displayName: "Antigravity Legacy", shortName: "Legacy", defaultContextLimit: 1_000_000,
+            displayName: "Antigravity Legacy", shortName: "Legacy", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.0, cacheReadUSDPerMillion: 0.2, outputUSDPerMillion: 12.0
         )
     }
     if lower.contains("orchestrator") {
         let tag = lower.contains("neon") ? " Neon" : (lower.contains("argon") ? " Argon" : "")
         return ModelProfile(
-            displayName: "Gemini Orchestrator\(tag)", shortName: "Orchestrator\(tag)", defaultContextLimit: 1_000_000,
+            displayName: "Gemini Orchestrator\(tag)", shortName: "Orchestrator\(tag)", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.5, cacheReadUSDPerMillion: 0.25, outputUSDPerMillion: 15.0
         )
     }
     if lower.contains("neon") {
         let suffix = lower.contains("xhigh") ? " XHigh" : (lower.contains("high") ? " High" : "")
         return ModelProfile(
-            displayName: "Gemini 4 Neon\(suffix)", shortName: "Neon\(suffix)", defaultContextLimit: 1_000_000,
+            displayName: "Gemini 4 Neon\(suffix)", shortName: "Neon\(suffix)", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.5, cacheReadUSDPerMillion: 0.25, outputUSDPerMillion: 15.0
         )
     }
     if lower.contains("carbon") {
         let suffix = lower.contains("xhigh") ? " XHigh" : (lower.contains("high") ? " High" : "")
         return ModelProfile(
-            displayName: "Gemini 4 Carbon\(suffix)", shortName: "Carbon\(suffix)", defaultContextLimit: 1_000_000,
+            displayName: "Gemini 4 Carbon\(suffix)", shortName: "Carbon\(suffix)", defaultContextLimit: 512_000,
             inputUSDPerMillion: 3.0, cacheReadUSDPerMillion: 0.30, outputUSDPerMillion: 18.0
         )
     }
     if lower.contains("argon") {
         let suffix = lower.contains("high") ? " High" : ""
         return ModelProfile(
-            displayName: "Gemini 4 Argon\(suffix)", shortName: "Argon\(suffix)", defaultContextLimit: 1_000_000,
+            displayName: "Gemini 4 Argon\(suffix)", shortName: "Argon\(suffix)", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.0, cacheReadUSDPerMillion: 0.20, outputUSDPerMillion: 12.0
         )
     }
     if lower.contains("hydrogen") {
         let suffix = lower.contains("xhigh") ? " XHigh" : (lower.contains("high") ? " High" : "")
         return ModelProfile(
-            displayName: "Gemini 4 Hydrogen\(suffix)", shortName: "Hydrogen\(suffix)", defaultContextLimit: 1_000_000,
+            displayName: "Gemini 4 Hydrogen\(suffix)", shortName: "Hydrogen\(suffix)", defaultContextLimit: 512_000,
             inputUSDPerMillion: 1.25, cacheReadUSDPerMillion: 0.125, outputUSDPerMillion: 10.0
         )
     }
     if lower.contains("flash") {
+        let isLegacy25 = lower.contains("2.5") || lower.contains("2-5")
         return ModelProfile(
-            displayName: "Gemini Flash", shortName: "Flash", defaultContextLimit: 1_000_000,
+            displayName: "Gemini Flash", shortName: "Flash", defaultContextLimit: isLegacy25 ? 128_000 : 512_000,
             inputUSDPerMillion: 0.30, cacheReadUSDPerMillion: 0.03, outputUSDPerMillion: 2.50
         )
     }
     if lower.contains("gemini") {
+        let isLegacy25 = lower.contains("2.5") || lower.contains("2-5")
         return ModelProfile(
-            displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed), defaultContextLimit: 1_000_000,
+            displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed),
+            defaultContextLimit: isLegacy25 ? 128_000 : 512_000,
             inputUSDPerMillion: 2.0, cacheReadUSDPerMillion: 0.20, outputUSDPerMillion: 12.0
         )
     }
-    if lower.contains("opus") {
+    if lower.contains("gpt-oss") || lower.contains("oss-120b") {
         return ModelProfile(
-            displayName: humanizeRawModelId(trimmed), shortName: "Claude Opus", defaultContextLimit: 200_000,
+            displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed), defaultContextLimit: 80_000,
+            inputUSDPerMillion: 0.5, cacheReadUSDPerMillion: 0.05, outputUSDPerMillion: 2.0
+        )
+    }
+    if lower.contains("opus") {
+        let limit = lower.contains("1m") ? 1_000_000 : 200_000
+        return ModelProfile(
+            displayName: humanizeRawModelId(trimmed), shortName: "Claude Opus", defaultContextLimit: limit,
             inputUSDPerMillion: 15.0, cacheReadUSDPerMillion: 1.50, outputUSDPerMillion: 75.0
         )
     }
     if lower.contains("sonnet") || lower.contains("claude") {
+        let limit = lower.contains("1m") ? 1_000_000 : 200_000
         return ModelProfile(
-            displayName: humanizeRawModelId(trimmed), shortName: "Claude Sonnet", defaultContextLimit: 200_000,
+            displayName: humanizeRawModelId(trimmed), shortName: "Claude Sonnet", defaultContextLimit: limit,
             inputUSDPerMillion: 3.0, cacheReadUSDPerMillion: 0.30, outputUSDPerMillion: 15.0
         )
     }
@@ -105,9 +116,11 @@ private func compactModelId(_ raw: String) -> String {
     return pretty.count <= 18 ? pretty : String(pretty.prefix(17)) + "…"
 }
 
-func resolveContextLimit(profile: ModelProfile, configOverrideK: String) -> Int {
+func resolveContextLimit(profile: ModelProfile, configOverrideK: String, maxObservedContext: Int = 0) -> Int {
     let trimmed = configOverrideK.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     if let kVal = Int(trimmed), kVal >= 32, kVal <= 4096 { return kVal * 1_000 }
+    if maxObservedContext > 600_000 && profile.defaultContextLimit < 1_000_000 { return 1_000_000 }
+    if maxObservedContext > 260_000 && profile.defaultContextLimit < 512_000 { return 512_000 }
     return profile.defaultContextLimit
 }
 

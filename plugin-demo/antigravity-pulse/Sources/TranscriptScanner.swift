@@ -128,7 +128,8 @@ private func buildSessionSummary(
 ) -> SessionSummary? {
     guard let latest = file.turns.last else { return nil }
     let latestProfile = resolveModelProfile(rawModel: latest.model)
-    let limit = resolveContextLimit(profile: latestProfile, configOverrideK: contextWindowOverrideK)
+    let maxObserved = file.turns.reduce(0) { max($0, $1.inputTokens + $1.cacheReadTokens) }
+    let limit = resolveContextLimit(profile: latestProfile, configOverrideK: contextWindowOverrideK, maxObservedContext: maxObserved)
     let latestContext = latest.inputTokens + latest.cacheReadTokens
     let latestRatio = limit > 0 ? Double(latestContext) / Double(limit) : 0.0
     let latestCacheRate = latestContext > 0 ? Double(latest.cacheReadTokens) / Double(latestContext) : 0.0
