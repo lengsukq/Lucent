@@ -402,14 +402,17 @@
     .strip-status.warn { color: var(--ios-orange); }
     .strip-status.crit { color: var(--ios-red); }
 
-    html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-top {
-      max-width: 102px;
+        html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-top {
+      max-width: 88px;
     }
     html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-ctx {
       font-size: 13px;
     }
     html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-pct {
       display: none;
+    }
+    html[data-docked="true"][data-expanded="false"][data-edge="top"] .strip-status {
+      font-size: 9px;
     }
 
     /* Interactive surfaces with ripple & gleam */
@@ -706,6 +709,17 @@
     .stat-value.good { color: var(--ios-green); }
     .stat-value.warn { color: var(--ios-orange); }
     .stat-value.crit { color: var(--ios-red); }
+    .stat-speed {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--ios-blue-text);
+      background: var(--ios-blue-soft);
+      padding: 1.5px 6px;
+      border-radius: 999px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .stat-speed:empty { display: none; }
     .stat-sub { font-size: 10px; color: var(--label-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1.5px; }
 
     /* Bottom Docked Panel: Inline Recent Sessions OR Context Sparkline */
@@ -1107,6 +1121,7 @@
             </div>
             <div class="stat-value-row">
               <span id="winTotalVal" class="stat-value tabular">--</span>
+              <span id="winSpeedVal" class="stat-speed tabular" title="所选周期平均输出速度"></span>
             </div>
             <div id="winSubVal" class="stat-sub tabular">含缓存 -- · -- 轮</div>
           </div>
@@ -1241,6 +1256,7 @@
         cacheRateVal: $("cacheRateVal"),
         cacheSubVal: $("cacheSubVal"),
         winTotalVal: $("winTotalVal"),
+        winSpeedVal: $("winSpeedVal"),
         winSubVal: $("winSubVal"),
         bottomPanel: $("bottomPanel"),
         recentCountMeta: $("recentCountMeta"),
@@ -1389,6 +1405,36 @@
       function formatUSD(v) {
         const num = Number(v || 0);
         return num < 0.005 ? "$0.00" : `$${num.toFixed(2)}`;
+      }
+
+      function formatTokPerSec(v, compact = false) {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0) return "";
+        const num = n >= 100 ? String(Math.round(n)) : n.toFixed(1);
+        return compact ? `${num}t/s` : `${num} tok/s`;
+      }
+
+      function renderStripStatus(sess) {
+        if (!sess) return;
+        const isTop = state.edge === "top";
+        const spd = formatTokPerSec(sess.avgOutputTokensPerSec, isTop);
+        const spdFull = formatTokPerSec(sess.avgOutputTokensPerSec, false);
+        const isFirstTurnOnly = sess.turnCount <= 1 && (sess.latestCacheReadTokens || 0) === 0;
+        const cacheStr = isFirstTurnOnly ? "--" : formatPct(sess.cumulativeCacheHitRate || 0);
+        const cachePillCls = sess.cacheDropped ? "crit" : (sess.cumulativeCacheHitRate >= 0.7 ? "good" : "warn");
+
+        if (sess.activityState === "running") {
+          el.stripStatus.textContent = spd ? (isTop ? `● ${spdFull}` : `● 运行中 · ${spd}`) : "● 运行中";
+          el.stripStatus.className = "strip-status running tabular";
+        } else if (sess.cacheDropped) {
+          el.stripStatus.textContent = spd ? `掉缓存! · ${spd}` : "掉缓存!";
+          el.stripStatus.className = "strip-status crit tabular";
+        } else {
+          const pctCompact = isTop && cacheStr.endsWith("%") ? `${Math.round(parseFloat(cacheStr))}%` : cacheStr;
+          el.stripStatus.textContent = spd ? `✓ ${pctCompact} · ${spd}` : `✓ ${cacheStr}`;
+          el.stripStatus.className = `strip-status ${cachePillCls === "good" ? "" : cachePillCls} tabular`;
+        }
+        el.stripStatus.title = spdFull ? `平均输出速度 ${spdFull}` : "";
       }
 
       function resolveTheme(env) {
@@ -1591,6 +1637,7 @@
         state.ignoreAutoUntil = Date.now() + 820;
         state.ignoreHoverUntil = Date.now() + 400;
         syncDOMState();
+        renderStripStatus(currentDisplayedSession());
 
         const sz = stripSizeForEdge(state.edge);
         try {
@@ -1806,9 +1853,14 @@
         const net = (w.netTokens !== undefined && w.netTokens !== null)
           ? w.netTokens
           : (Number(w.inputTokens || 0) + Number(w.outputTokens || 0));
+        const spdStr = formatTokPerSec(w.avgTokensPerSec);
         el.winTotalVal.textContent = formatTokens(net);
+        el.winSpeedVal.textContent = spdStr;
+        el.winSpeedVal.title = (spdStr && w.timedDurationSeconds > 0)
+          ? `所选周期加权均速 ${spdStr}（${formatTokens(w.timedOutputTokens)} tokens / ${Number(w.timedDurationSeconds).toFixed(1)}s）`
+          : "所选周期平均输出速度";
         el.winSubVal.textContent = `含缓存 ${formatTokens(w.totalTokens)} · ${w.turns}轮`;
-        el.winSubVal.title = `新输入 ${formatTokens(w.inputTokens)} · 输出 ${formatTokens(w.outputTokens)} · 缓存读 ${formatTokens(w.cacheReadTokens)} · 估算 ${formatUSD(w.estimatedCostUSD)}`;
+        el.winSubVal.title = `新输入 ${formatTokens(w.inputTokens)} · 输出 ${formatTokens(w.outputTokens)} · 缓存读 ${formatTokens(w.cacheReadTokens)}${spdStr ? ` · 均速 ${spdStr}` : ""} · 估算 ${formatUSD(w.estimatedCostUSD)}`;
       }
 
       function renderInlineSessions(snap, activeIdOverride = null) {
@@ -1901,17 +1953,9 @@
         el.segInput.style.width = `${approxInputPct.toFixed(2)}%`;
         el.segInput.className = inputCls;
 
-        const cacheStr = formatPct(item.cumulativeCacheHitRate || 0);
-        const cachePillCls = item.cumulativeCacheHitRate >= 0.7 ? "good" : "warn";
         el.stripCtx.textContent = ctxStr;
         el.stripPct.textContent = pctStr;
-        if (item.activityState === "running") {
-          el.stripStatus.textContent = "● 运行中";
-          el.stripStatus.className = "strip-status running tabular";
-        } else {
-          el.stripStatus.textContent = `✓ ${cacheStr}`;
-          el.stripStatus.className = `strip-status ${cachePillCls === "good" ? "" : cachePillCls} tabular`;
-        }
+        renderStripStatus(item);
 
         if (state.snapshot) renderInlineSessions(state.snapshot, item.sessionId);
       }
@@ -1995,7 +2039,7 @@
               </span>
             </div>
             <div class="sheet-row-sub">
-              <span>${escapeHTML(item.modelShortName)} · ${formatTokens(item.contextTokens)} · 缓存 ${formatPct(item.cumulativeCacheHitRate)}</span>
+              <span>${escapeHTML(item.modelShortName)} · ${formatTokens(item.contextTokens)} · 缓存 ${formatPct(item.cumulativeCacheHitRate)}${formatTokPerSec(item.avgOutputTokensPerSec) ? ` · ${formatTokPerSec(item.avgOutputTokensPerSec)}` : ""}</span>
               <span>${escapeHTML(item.updatedLabel)}</span>
             </div>
           `;
@@ -2057,9 +2101,13 @@
           el.ctxBig.textContent = "--";
           el.ctxLimit.textContent = "";
           el.ctxPctPill.textContent = "空闲";
+          el.legendOutput.textContent = "输出 --";
+          el.legendOutput.title = "";
           el.stripCtx.textContent = "--";
           el.stripPct.textContent = "";
           el.stripStatus.textContent = "空闲";
+          el.stripStatus.className = "strip-status tabular";
+          el.stripStatus.title = "";
           return;
         }
 
@@ -2097,27 +2145,19 @@
 
         el.legendCache.textContent = `缓存 ${formatTokens(sess.latestCacheReadTokens)}`;
         el.legendInput.textContent = `新输入 ${formatTokens(sess.latestInputTokens)}`;
-        el.legendOutput.textContent = `输出 ${formatTokens(sess.latestOutputTokens)}`;
+        const sessSpd = formatTokPerSec(sess.avgOutputTokensPerSec);
+        el.legendOutput.textContent = sessSpd
+          ? `输出 ${formatTokens(sess.latestOutputTokens)} · 均 ${sessSpd}`
+          : `输出 ${formatTokens(sess.latestOutputTokens)}`;
+        el.legendOutput.title = (sessSpd && sess.totalOutputDurationSeconds > 0)
+          ? `本轮输出 ${formatTokens(sess.latestOutputTokens)} · 会话平均速度 ${sessSpd}（累计输出 ${formatTokens(sess.cumulativeOutputTokens)} / ${Number(sess.totalOutputDurationSeconds).toFixed(1)}s）`
+          : `本轮输出 ${formatTokens(sess.latestOutputTokens)} · 累计输出 ${formatTokens(sess.cumulativeOutputTokens)}`;
 
         updateCacheView(sess);
 
-        const displayCacheStr = (sess.turnCount <= 1 && sess.latestCacheReadTokens === 0)
-          ? "--"
-          : formatPct(sess.cumulativeCacheHitRate);
-        const cachePillCls = sess.cacheDropped ? "crit" : (sess.cumulativeCacheHitRate >= 0.7 ? "good" : "warn");
-
         el.stripCtx.textContent = ctxStr;
         el.stripPct.textContent = pctStr;
-        if (sess.activityState === "running") {
-          el.stripStatus.textContent = "● 运行中";
-          el.stripStatus.className = "strip-status running tabular";
-        } else if (sess.cacheDropped) {
-          el.stripStatus.textContent = "掉缓存!";
-          el.stripStatus.className = "strip-status crit tabular";
-        } else {
-          el.stripStatus.textContent = `✓ ${displayCacheStr}`;
-          el.stripStatus.className = `strip-status ${cachePillCls === "good" ? "" : cachePillCls} tabular`;
-        }
+        renderStripStatus(sess);
 
         if (snap.alertBanner?.title) {
           const alertKey = `${snap.alertBanner.sessionId || sess.sessionId}:${sess.latestStep}:${snap.alertBanner.kind}`;
@@ -2214,7 +2254,8 @@
           ctx.strokeStyle = stroke;
           ctx.lineWidth = 1.8;
           ctx.beginPath(); ctx.arc(hx, hy, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-          el.hoverTip.textContent = `#${pt.step} · ${formatTokens(pt.contextTokens)} · 缓存 ${formatPct(pt.cacheHitRate)} · ${pt.time}`;
+          const ptSpd = formatTokPerSec(pt.tokensPerSec);
+          el.hoverTip.textContent = `#${pt.step} · ${formatTokens(pt.contextTokens)} · 缓存 ${formatPct(pt.cacheHitRate)}${ptSpd ? ` · ${ptSpd}` : ""} · ${pt.time}`;
           el.hoverTip.classList.add("visible");
         } else {
           el.hoverTip.classList.remove("visible");

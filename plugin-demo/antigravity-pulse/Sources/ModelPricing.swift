@@ -141,6 +141,11 @@ func formatUSD(_ amount: Double) -> String {
     amount < 0.005 ? "$0.00" : String(format: "$%.2f", amount)
 }
 
+func formatTokensPerSec(_ tps: Double?) -> String {
+    guard let tps, tps.isFinite, tps > 0 else { return "--" }
+    return tps >= 100 ? String(format: "%.0f tok/s", tps) : String(format: "%.1f tok/s", tps)
+}
+
 func formatShortClock(_ epoch: TimeInterval) -> String {
     let comps = Calendar.current.dateComponents([.hour, .minute, .second], from: Date(timeIntervalSince1970: epoch))
     return String(format: "%02d:%02d:%02d", comps.hour ?? 0, comps.minute ?? 0, comps.second ?? 0)

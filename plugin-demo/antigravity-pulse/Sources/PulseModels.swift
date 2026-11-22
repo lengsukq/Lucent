@@ -2,7 +2,7 @@ import Foundation
 
 enum PulseConstants {
     static let windowID = "antigravity-pulse-hud"
-    static let cacheSchemaVersion = 3
+    static let cacheSchemaVersion = 4
     static let maxRecentSessions = 12
     static let maxCachedRecentSessions = 24
     static let maxChartPoints = 48
@@ -41,6 +41,7 @@ struct CachedTurnRecord: Codable {
     let inputTokens: Int
     let cacheReadTokens: Int
     let outputTokens: Int
+    let durationSeconds: Double?
 }
 
 struct CachedTranscriptFile: Codable {
@@ -49,6 +50,7 @@ struct CachedTranscriptFile: Codable {
     let title: String
     let fileSize: Int64
     let mtimeEpoch: TimeInterval
+    let dbMtimeEpoch: TimeInterval
     let lastEventType: String
     let lastEventStatus: String
     let lastEventHasToolCalls: Bool
@@ -69,6 +71,8 @@ struct TurnPoint: Codable {
     let inputTokens: Int
     let cacheReadTokens: Int
     let outputTokens: Int
+    let durationSeconds: Double?
+    let tokensPerSec: Double?
     let cacheHitRate: Double
     let model: String
 }
@@ -101,6 +105,8 @@ struct SessionSummary: Codable {
     let cumulativeCacheReadTokens: Int
     let cumulativeOutputTokens: Int
     let cumulativeCacheHitRate: Double
+    let avgOutputTokensPerSec: Double?
+    let totalOutputDurationSeconds: Double
     let estimatedCostUSD: Double
     let estimatedSavedUSD: Double
     let cacheDropped: Bool
@@ -124,6 +130,7 @@ struct SessionListItem: Codable {
     let contextLimit: Int
     let contextRatio: Double
     let cumulativeCacheHitRate: Double
+    let avgOutputTokensPerSec: Double?
     let turnCount: Int
     let updatedAt: TimeInterval
     let updatedLabel: String
@@ -148,6 +155,9 @@ struct WindowUsageStats: Codable {
     let inputTokens: Int
     let cacheReadTokens: Int
     let outputTokens: Int
+    let timedOutputTokens: Int
+    let timedDurationSeconds: Double
+    let avgTokensPerSec: Double?
     let turns: Int
     let cacheHitRate: Double
     let estimatedCostUSD: Double

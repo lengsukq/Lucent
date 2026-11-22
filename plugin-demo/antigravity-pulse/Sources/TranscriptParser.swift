@@ -124,7 +124,7 @@ func parseTranscriptFile(_ item: DiscoveredTranscript) -> CachedTranscriptFile {
     guard let data = try? Data(contentsOf: URL(fileURLWithPath: item.path), options: [.mappedIfSafe]) else {
         return CachedTranscriptFile(
             sessionId: item.sessionId, source: item.source, title: "", fileSize: item.fileSize,
-            mtimeEpoch: item.mtimeEpoch, lastEventType: "", lastEventStatus: "",
+            mtimeEpoch: item.mtimeEpoch, dbMtimeEpoch: 0, lastEventType: "", lastEventStatus: "",
             lastEventHasToolCalls: false, lastEventTimestamp: item.mtimeEpoch, turns: []
         )
     }
@@ -176,7 +176,8 @@ func parseTranscriptFile(_ item: DiscoveredTranscript) -> CachedTranscriptFile {
                             let ts = p.created_at.flatMap(parseISO8601Epoch) ?? item.mtimeEpoch
                             let rec = CachedTurnRecord(
                                 stepIndex: step, timestamp: ts, model: p.model ?? "",
-                                inputTokens: inp, cacheReadTokens: cache, outputTokens: outp
+                                inputTokens: inp, cacheReadTokens: cache, outputTokens: outp,
+                                durationSeconds: nil
                             )
                             if let existing = turnsByStep[step] {
                                 let oldTot = existing.inputTokens + existing.cacheReadTokens + existing.outputTokens
@@ -215,7 +216,7 @@ func parseTranscriptFile(_ item: DiscoveredTranscript) -> CachedTranscriptFile {
     }
     return CachedTranscriptFile(
         sessionId: item.sessionId, source: item.source, title: title, fileSize: item.fileSize,
-        mtimeEpoch: item.mtimeEpoch, lastEventType: lastType, lastEventStatus: lastStatus,
+        mtimeEpoch: item.mtimeEpoch, dbMtimeEpoch: 0, lastEventType: lastType, lastEventStatus: lastStatus,
         lastEventHasToolCalls: lastHasTools, lastEventTimestamp: lastTs, turns: sortedTurns
     )
 }

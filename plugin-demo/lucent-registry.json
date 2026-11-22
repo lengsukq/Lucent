@@ -10,7 +10,7 @@
         "clipboard"
       ],
       "categoryTag" : "开发监控",
-      "description" : "零侵入缩边悬浮窗监控 Antigravity 上下文占用、缓存命中率、5h/7d 净用量与活跃项目状态：悬停自动展开大窗、滚轮切换项目、一键直达对应对话",
+      "description" : "零侵入缩边悬浮窗监控 Antigravity 上下文占用、缓存命中率、平均输出速度 (tok/s)、5h/7d 净用量与活跃项目状态：悬停自动展开大窗、滚轮切换项目、一键直达对应对话",
       "downloadURL" : "./dist/antigravity-pulse.zip",
       "icon" : "sidebar.right",
       "id" : "antigravity-pulse",
@@ -74,7 +74,7 @@
               "section" : "Appearance"
             }
           },
-          "description" : "Zero-invasion edge-retractable iOS HUD for Antigravity: hover to expand full dashboard, scroll wheel to switch active projects, and jump directly to exact conversations",
+          "description" : "Zero-invasion edge-retractable iOS HUD for Antigravity: monitor context usage, cache hit rate, average tok/s, net usage, and jump directly to conversations",
           "name" : "Antigravity Pulse · Context & Session HUD"
         }
       },
@@ -83,9 +83,9 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "8594bd3b05e5245b5797762a13971ebfa7a0b1f1299406f33d1cb8d858ed04e0",
-      "sizeBytes" : 275730,
-      "version" : "1.3.1"
+      "sha256" : "6ac06e89d8f254cf28675711fbbec1f554c7771552aa32c55845fba4aa09accb",
+      "sizeBytes" : 287839,
+      "version" : "1.3.2"
     },
     {
       "accentColor" : "indigo",
@@ -129,8 +129,8 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "15c23fcb26f7ec5d52807c3eda69e933faad658ac1eb531e0592e72150da393f",
-      "sizeBytes" : 162484,
+      "sha256" : "f4971922fd2ee4f6bb695eecd55852050f42626854ef384bdd56afdedd48848b",
+      "sizeBytes" : 162563,
       "version" : "1.1.1"
     },
     {
@@ -218,8 +218,8 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "efc21bdd51e0e93cc294169f7c80ba5fe65be3500ac06458fd27375db2df1d2c",
-      "sizeBytes" : 181149,
+      "sha256" : "c5ed848f5090429e839e75d57cc004cdd49491d9a9b54d544b61ff2eaec37656",
+      "sizeBytes" : 181228,
       "version" : "1.0.0"
     },
     {
@@ -263,8 +263,8 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "7d82ec6164e6b766df8921a41187eba896b1eb777b3d5c351ba67400f04a6ad5",
-      "sizeBytes" : 122518,
+      "sha256" : "8ac7c7a4fc3f1ede04e390cc679852303f3fbf4a3677d751965f5bf04990aacc",
+      "sizeBytes" : 122582,
       "version" : "1.1.0"
     },
     {
@@ -354,7 +354,7 @@
       "resourceScopes" : [
         "network"
       ],
-      "sha256" : "ef3574ce50f6ec99357b4a5b9b28a1bd6c94bd81964e52fc41825233fc581e91",
+      "sha256" : "f0dedd4975dfaa359f366f1a064b9ba87c690d806ed289a4aa5128eef9e4decf",
       "sizeBytes" : 211277,
       "version" : "1.1.1"
     },
@@ -453,8 +453,8 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "8967d4ae11bb7c82735056f476e3f650b7ac1766e51e7e7336a7b43214805292",
-      "sizeBytes" : 328905,
+      "sha256" : "d4f9ce1af3557ad386ea5f6feaf1f0e990831f8806d2d17cc78d02ff9c76d4cc",
+      "sizeBytes" : 328989,
       "version" : "1.0.0"
     },
     {
@@ -535,7 +535,7 @@
       "resourceScopes" : [
 
       ],
-      "sha256" : "36bf4d4d247b4e4e8aa04ce69000007904ee53030500b2279d79dd75e262976f",
+      "sha256" : "3bb77d66ba06d55221e3db9b32d653ab5a865425c32de0de48df81489a8b6535",
       "sizeBytes" : 141606,
       "version" : "2.2.0"
     },
@@ -624,7 +624,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "f982615e1e6c5612d05d553693ac8ad8739fbb3f7233a58dae57fe90604039b2",
+      "sha256" : "6961a3dfafbbabf45d67b3cc2625c4cedfc27b3c96554259f6d9425e7890a665",
       "sizeBytes" : 156368,
       "version" : "1.0.0"
     },
@@ -706,7 +706,7 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "c4662f9697da597ecb33fc363cbbd9326d43fed848f71e95822ee5847ce6d83f",
+      "sha256" : "37f779bdcca62c06c79ad876a7aee36091260aa2aca933908e8b79d4f5051a10",
       "sizeBytes" : 202105,
       "version" : "1.4.0"
     },
@@ -780,7 +780,7 @@
         "filesystem",
         "subprocess"
       ],
-      "sha256" : "d3eef55925547a4be19daa3c199040969790d9ab88685371a06c63c821ddaf6a",
+      "sha256" : "70138f09edc6c0264d27787a777efeb98e59c343863b835fe81c5236726ceaa9",
       "sizeBytes" : 144098,
       "version" : "1.0.0"
     },
@@ -870,7 +870,7 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "082d28cd9476d427073f576fddd942c7dc1667665b9fde684013607054bfdeb6",
+      "sha256" : "1f38ebf6fbe111a61c753087b4f71914f1219087ca551d58dd52d360990c9b09",
       "sizeBytes" : 115685,
       "version" : "1.0.0"
     },
@@ -1047,13 +1047,13 @@
         "network",
         "filesystem"
       ],
-      "sha256" : "259578b571fb9989dcef4f5f69fa7e84661add22fa833c3daef2a112e8d2e685",
-      "sizeBytes" : 204918,
+      "sha256" : "8678457a81e67f9e44eedee1262cfb5cb5b5d9ba6e869b294acbec45c22af6d4",
+      "sizeBytes" : 204986,
       "version" : "1.1.0"
     }
   ],
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-21T08:32:28Z"
+  "updatedAt" : "2026-11-22T03:16:49Z"
 }

@@ -103,6 +103,12 @@ func buildLauncherCardPayload(
             key: isEn ? "Cache Hit" : "缓存命中",
             value: "\(formatPercent(active.cumulativeCacheHitRate)) · \(isEn ? "Saved" : "省") \(formatUSD(active.estimatedSavedUSD))"
         ))
+        if active.avgOutputTokensPerSec != nil || outcome.window5h.avgTokensPerSec != nil {
+            metrics.append(KeyValue(
+                key: isEn ? "Avg Speed" : "平均速度",
+                value: "\(formatTokensPerSec(active.avgOutputTokensPerSec)) · 5h \(formatTokensPerSec(outcome.window5h.avgTokensPerSec))"
+            ))
+        }
     }
     metrics.append(KeyValue(
         key: isEn ? "Sessions" : "近期会话",
@@ -173,12 +179,13 @@ func buildLauncherCardPayload(
         let copyText = sess.source == "cli" ? sess.resumeCommand : sess.title
         let displayTitle = sess.projectName.isEmpty ? sess.title : "[\(sess.projectName)] \(sess.title)"
         let jumpArgs: [String]? = sess.source == "desktop" ? ["--focus-session-card", sess.sessionId, sess.title] : nil
+        let speedTag = sess.avgOutputTokensPerSec != nil ? " · \(formatTokensPerSec(sess.avgOutputTokensPerSec))" : ""
         items.append(ViewItem(
             id: "session-\(sess.sessionId)",
             title: displayTitle,
             subtitle: isEn
-                ? "\(sess.modelShortName) · \(formatCompactTokens(sess.contextTokens)) (\(formatPercent(sess.contextRatio))) · Cache \(formatPercent(sess.cumulativeCacheHitRate)) · \(sess.updatedLabel)"
-                : "\(sess.modelShortName) · 上下文 \(formatCompactTokens(sess.contextTokens)) (\(formatPercent(sess.contextRatio))) · 缓存 \(formatPercent(sess.cumulativeCacheHitRate)) · \(sess.updatedLabel)",
+                ? "\(sess.modelShortName) · \(formatCompactTokens(sess.contextTokens)) (\(formatPercent(sess.contextRatio))) · Cache \(formatPercent(sess.cumulativeCacheHitRate))\(speedTag) · \(sess.updatedLabel)"
+                : "\(sess.modelShortName) · 上下文 \(formatCompactTokens(sess.contextTokens)) (\(formatPercent(sess.contextRatio))) · 缓存 \(formatPercent(sess.cumulativeCacheHitRate))\(speedTag) · \(sess.updatedLabel)",
             icon: iconName, tintColor: tint, badge: badgeText, copyText: copyText,
             openURL: sess.source == "desktop" ? nil : sess.resumeURL,
             commandArgs: jumpArgs,

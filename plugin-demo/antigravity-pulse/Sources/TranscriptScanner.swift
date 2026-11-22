@@ -68,9 +68,8 @@ private func loadIndexCache(dataDir: String) -> TranscriptIndexCache {
     guard !dataDir.isEmpty,
           let data = try? Data(contentsOf: URL(fileURLWithPath: dataDir, isDirectory: true).appendingPathComponent("transcript-index-cache.json")),
           let decoded = try? JSONDecoder().decode(TranscriptIndexCache.self, from: data),
-          decoded.schemaVersion == PulseConstants.cacheSchemaVersion else {
-        return TranscriptIndexCache(schemaVersion: PulseConstants.cacheSchemaVersion, files: [:])
-    }
+          decoded.schemaVersion == PulseConstants.cacheSchemaVersion
+    else { return TranscriptIndexCache(schemaVersion: PulseConstants.cacheSchemaVersion, files: [:]) }
     return decoded
 }
 
@@ -88,12 +87,16 @@ private struct ModelAccumulator {
 
 private struct WindowAccumulator {
     let label: String, cutoffEpoch: TimeInterval
-    var inputTokens = 0, cacheReadTokens = 0, outputTokens = 0, turns = 0, estimatedCostUSD = 0.0, estimatedSavedUSD = 0.0
+    var inputTokens = 0, cacheReadTokens = 0, outputTokens = 0, timedOutputTokens = 0
+    var timedDurationSeconds = 0.0, turns = 0, estimatedCostUSD = 0.0, estimatedSavedUSD = 0.0
     var byModel: [String: ModelAccumulator] = [:]
 
     mutating func add(turn: CachedTurnRecord, profile: ModelProfile, cost: TurnCostEstimate) {
         guard turn.timestamp >= cutoffEpoch else { return }
         inputTokens += turn.inputTokens; cacheReadTokens += turn.cacheReadTokens; outputTokens += turn.outputTokens
+        if let dur = turn.durationSeconds, dur > 0, turn.outputTokens > 0 {
+            timedOutputTokens += turn.outputTokens; timedDurationSeconds += dur
+        }
         turns += 1; estimatedCostUSD += cost.actualUSD; estimatedSavedUSD += cost.savedUSD
         var e = byModel[profile.displayName] ?? ModelAccumulator(modelName: profile.displayName, shortName: profile.shortName)
         e.inputTokens += turn.inputTokens; e.cacheReadTokens += turn.cacheReadTokens; e.outputTokens += turn.outputTokens
@@ -104,18 +107,18 @@ private struct WindowAccumulator {
     func finalize() -> WindowUsageStats {
         let net = inputTokens + outputTokens, total = net + cacheReadTokens, prompt = inputTokens + cacheReadTokens
         let hitRate = prompt > 0 ? Double(cacheReadTokens) / Double(prompt) : 0.0
+        let avgTps: Double? = timedDurationSeconds > 0 ? Double(timedOutputTokens) / timedDurationSeconds : nil
         let sortedModels = byModel.values.sorted { $0.totalTokens > $1.totalTokens }.prefix(5).map { m in
             let mp = m.inputTokens + m.cacheReadTokens
             return ModelBreakdown(
-                modelName: m.modelName, shortName: m.shortName, totalTokens: m.totalTokens,
-                cacheReadTokens: m.cacheReadTokens, outputTokens: m.outputTokens, turns: m.turns,
-                cacheHitRate: mp > 0 ? Double(m.cacheReadTokens) / Double(mp) : 0.0, estimatedCostUSD: m.estimatedCostUSD
+                modelName: m.modelName, shortName: m.shortName, totalTokens: m.totalTokens, cacheReadTokens: m.cacheReadTokens,
+                outputTokens: m.outputTokens, turns: m.turns, cacheHitRate: mp > 0 ? Double(m.cacheReadTokens) / Double(mp) : 0.0, estimatedCostUSD: m.estimatedCostUSD
             )
         }
         return WindowUsageStats(
-            label: label, netTokens: net, totalTokens: total, inputTokens: inputTokens,
-            cacheReadTokens: cacheReadTokens, outputTokens: outputTokens, turns: turns,
-            cacheHitRate: hitRate, estimatedCostUSD: estimatedCostUSD, estimatedSavedUSD: estimatedSavedUSD, topModels: sortedModels
+            label: label, netTokens: net, totalTokens: total, inputTokens: inputTokens, cacheReadTokens: cacheReadTokens,
+            outputTokens: outputTokens, timedOutputTokens: timedOutputTokens, timedDurationSeconds: timedDurationSeconds,
+            avgTokensPerSec: avgTps, turns: turns, cacheHitRate: hitRate, estimatedCostUSD: estimatedCostUSD, estimatedSavedUSD: estimatedSavedUSD, topModels: sortedModels
         )
     }
 }
@@ -130,26 +133,25 @@ private func buildSessionSummary(
     let latestRatio = limit > 0 ? Double(latestContext) / Double(limit) : 0.0
     let latestCacheRate = latestContext > 0 ? Double(latest.cacheReadTokens) / Double(latestContext) : 0.0
 
-    var cumInput = 0, cumCache = 0, cumOutput = 0
-    var totalCost = 0.0, totalSaved = 0.0
+    var cumInput = 0, cumCache = 0, cumOutput = 0, timedOut = 0
+    var timedDur = 0.0, totalCost = 0.0, totalSaved = 0.0
     var chartPoints: [TurnPoint] = []
     let startIdx = max(0, file.turns.count - PulseConstants.maxChartPoints)
 
     for (idx, turn) in file.turns.enumerated() {
-        cumInput += turn.inputTokens
-        cumCache += turn.cacheReadTokens
-        cumOutput += turn.outputTokens
+        cumInput += turn.inputTokens; cumCache += turn.cacheReadTokens; cumOutput += turn.outputTokens
+        if let dur = turn.durationSeconds, dur > 0, turn.outputTokens > 0 { timedOut += turn.outputTokens; timedDur += dur }
         let prof = resolveModelProfile(rawModel: turn.model)
         let cost = estimateTurnCost(inputTokens: turn.inputTokens, cacheReadTokens: turn.cacheReadTokens, outputTokens: turn.outputTokens, profile: prof)
-        totalCost += cost.actualUSD
-        totalSaved += cost.savedUSD
+        totalCost += cost.actualUSD; totalSaved += cost.savedUSD
         if idx >= startIdx {
             let ctx = turn.inputTokens + turn.cacheReadTokens
+            let tps: Double? = (turn.durationSeconds ?? 0) > 0 && turn.outputTokens > 0 ? Double(turn.outputTokens) / turn.durationSeconds! : nil
             chartPoints.append(TurnPoint(
                 step: turn.stepIndex, time: formatShortClock(turn.timestamp), timestamp: turn.timestamp,
                 contextTokens: ctx, inputTokens: turn.inputTokens, cacheReadTokens: turn.cacheReadTokens,
-                outputTokens: turn.outputTokens, cacheHitRate: ctx > 0 ? Double(turn.cacheReadTokens) / Double(ctx) : 0.0,
-                model: prof.shortName
+                outputTokens: turn.outputTokens, durationSeconds: turn.durationSeconds, tokensPerSec: tps,
+                cacheHitRate: ctx > 0 ? Double(turn.cacheReadTokens) / Double(ctx) : 0.0, model: prof.shortName
             ))
         }
     }
@@ -180,6 +182,7 @@ private func buildSessionSummary(
     let resumeURL: String? = (file.source == "desktop") ? "file:///Applications/Antigravity.app" : nil
     let resumeCmd = "agy --conversation \(file.sessionId)"
 
+    let avgTps: Double? = timedDur > 0 ? Double(timedOut) / timedDur : nil
     return SessionSummary(
         sessionId: file.sessionId, source: file.source, projectName: projectName, title: resolvedTitle,
         modelId: latest.model, modelName: latestProfile.displayName, modelShortName: latestProfile.shortName,
@@ -191,6 +194,7 @@ private func buildSessionSummary(
         latestOutputTokens: latest.outputTokens, latestCacheHitRate: latestCacheRate,
         cumulativeInputTokens: cumInput, cumulativeCacheReadTokens: cumCache,
         cumulativeOutputTokens: cumOutput, cumulativeCacheHitRate: cumCacheRate,
+        avgOutputTokensPerSec: avgTps, totalOutputDurationSeconds: timedDur,
         estimatedCostUSD: totalCost, estimatedSavedUSD: totalSaved,
         cacheDropped: cacheDropped, cacheDropPrevRate: prevRateOut, cacheDropDelta: dropDeltaOut, turns: chartPoints
     )
@@ -216,10 +220,12 @@ func scanTranscripts(options: ScanOptions) -> ScanOutcome {
     for item in relevant {
         activePaths.insert(item.path)
         if let cached = cache.files[item.path], cached.fileSize == item.fileSize, abs(cached.mtimeEpoch - item.mtimeEpoch) < 0.001 {
-            if !cached.turns.isEmpty { validFiles.append(cached) }
+            let refreshed = refreshTimingIfNeeded(cached)
+            if refreshed.updated { cache.files[item.path] = refreshed.file; cacheDirty = true }
+            if !refreshed.file.turns.isEmpty { validFiles.append(refreshed.file) }
             continue
         }
-        let parsed = parseTranscriptFile(item)
+        let parsed = enrichTurnsWithDurations(parseTranscriptFile(item))
         cache.files[item.path] = parsed
         cacheDirty = true; parsedNow += 1
         if !parsed.turns.isEmpty { validFiles.append(parsed) }
@@ -270,8 +276,9 @@ func scanTranscripts(options: ScanOptions) -> ScanOutcome {
             modelShortName: s.modelShortName, activityState: s.activityState, activityLabel: s.activityLabel,
             isCompleted: s.isCompleted, resumeURL: s.resumeURL, resumeCommand: s.resumeCommand,
             contextTokens: s.contextTokens, contextLimit: s.contextLimit, contextRatio: s.contextRatio,
-            cumulativeCacheHitRate: s.cumulativeCacheHitRate, turnCount: s.turnCount, updatedAt: s.updatedAt,
-            updatedLabel: s.updatedLabel, isActive: s.sessionId == activeSummary?.sessionId
+            cumulativeCacheHitRate: s.cumulativeCacheHitRate, avgOutputTokensPerSec: s.avgOutputTokensPerSec,
+            turnCount: s.turnCount, updatedAt: s.updatedAt, updatedLabel: s.updatedLabel,
+            isActive: s.sessionId == activeSummary?.sessionId
         )
     }
 
