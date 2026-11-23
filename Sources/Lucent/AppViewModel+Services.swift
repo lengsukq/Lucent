@@ -7,6 +7,7 @@ extension AppViewModel {
     func configureLifecycleIntegrations() {
         installHomeLayoutObservers()
         installScriptObservers()
+        installAppDirectoryWatcher()
         let tracker = AppUsageTrackerController.shared
         runtime.usageCancellable = tracker.$revision.sink { [weak self] _ in
             Task { @MainActor [weak self] in

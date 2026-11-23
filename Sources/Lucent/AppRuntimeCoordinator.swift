@@ -85,8 +85,19 @@ final class WorkspaceRuntimeState {
 
 @MainActor
 final class OverlayAndIndexRuntimeState {
+    static let maxIdleDirtyDirectories = 4_096
+
     var searchTask: Task<Void, Never>?
     var everythingIndexTask: Task<Void, Never>?
+    var fsEventApplyTask: Task<Void, Never>?
+    var pendingFSEventDirs: Set<String> = []
+    var pendingRecursiveFSEventDirs: Set<String> = []
+    var pendingLatestEventId: UInt64 = 0
+    var idleDirtyDirectories: Set<String> = []
+    var idleDirtyRecursiveDirectories: Set<String> = []
+    var watchedIndexScopeKey: String?
+    var reconciledColdScopeKeys: Set<String> = []
+
     var previewTask: Task<Void, Never>?
     var hashTask: Task<Void, Never>?
     var indexUnloadTask: Task<Void, Never>?
@@ -95,6 +106,11 @@ final class OverlayAndIndexRuntimeState {
     var pluginRunTask: Task<Void, Never>?
     private(set) var activePluginRunToken = UUID()
     var backgroundPluginTasks: [String: Task<Void, Never>] = [:]
+
+    var appDirectoryWatcher: EverythingFSEventWatcher?
+    var appRefreshTask: Task<Void, Never>?
+    var lastAppsFingerprint: UInt64 = 0
+    var watchedAppRootPaths: [String] = []
 
     var hotKeyBannerCancelAction: (() -> Void)?
     var hotKeyBannerDismissTask: Task<Void, Never>?
@@ -121,11 +137,29 @@ final class OverlayAndIndexRuntimeState {
         pluginRunTask?.cancel(); pluginRunTask = nil
     }
 
-    func stopIndexWatcher() {
+    func stopIndexWatcher(cancelPendingSave: Bool = false) {
         fsEventWatcher?.stop()
         fsEventWatcher = nil
-        snapshotSaveTask?.cancel()
-        snapshotSaveTask = nil
+        watchedIndexScopeKey = nil
+        fsEventApplyTask?.cancel()
+        fsEventApplyTask = nil
+        pendingFSEventDirs.removeAll()
+        pendingRecursiveFSEventDirs.removeAll()
+        pendingLatestEventId = 0
+        idleDirtyDirectories.removeAll()
+        idleDirtyRecursiveDirectories.removeAll()
+        if cancelPendingSave {
+            snapshotSaveTask?.cancel()
+            snapshotSaveTask = nil
+        }
+    }
+
+    func stopAppWatcherAndTasks() {
+        appDirectoryWatcher?.stop()
+        appDirectoryWatcher = nil
+        watchedAppRootPaths.removeAll()
+        appRefreshTask?.cancel()
+        appRefreshTask = nil
     }
 
     func stopPluginWatcherAndTasks() {
@@ -160,8 +194,9 @@ final class OverlayAndIndexRuntimeState {
     func shutdownAll() {
         removeHomeLayoutObserver()
         removeScriptObservers()
+        stopAppWatcherAndTasks()
         stopPluginWatcherAndTasks()
-        stopIndexWatcher()
+        stopIndexWatcher(cancelPendingSave: true)
         usageCancellable?.cancel(); usageCancellable = nil
         cancelOverlaySessionTasks()
         everythingIndexTask?.cancel(); everythingIndexTask = nil

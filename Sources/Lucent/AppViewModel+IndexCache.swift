@@ -4,7 +4,7 @@ import LucentCore
 extension AppViewModel {
     func primeEverythingIndexOnStartup(scope: EverythingScope) {
         runtime.everythingIndexTask?.cancel()
-        stopIndexWatcher()
+        stopIndexWatcher(cancelPendingSave: true)
         everythingScope = scope
         isIndexingEverything = true
         let excluded = generalPreferences.excludedIndexPathSet
@@ -26,6 +26,7 @@ extension AppViewModel {
                 guard !Task.isCancelled else { return }
                 self.everythingNodeCount = meta.nodeCount
                 self.isIndexingEverything = false
+                self.ensureFSEventWatcherRunning(roots: rootSetup.allRoots, scopeKey: scopeKey, sinceEventId: meta.lastEventId)
                 if self.needsEverythingIndexResident || self.isOverlayVisible {
                     self.loadOrBuildEverythingIndex(scope: scope, forceRebuild: false)
                 }
@@ -37,11 +38,12 @@ extension AppViewModel {
             )
             guard !Task.isCancelled else { return }
             if let built {
+                self.runtime.reconciledColdScopeKeys.insert(scopeKey)
                 self.everythingNodeCount = built.nodes.count
+                self.ensureFSEventWatcherRunning(roots: built.rootURLs, scopeKey: scopeKey, sinceEventId: built.lastEventId)
                 if self.needsEverythingIndexResident || self.isOverlayVisible {
                     self.everythingIndex = built
                     self.refreshDisplayedCandidates()
-                    self.startFSEventWatcherIfNeeded(for: built, scopeKey: scopeKey)
                     self.scheduleSnapshotSave(built, scopeKey: scopeKey)
                 } else {
                     _ = await Task.detached(priority: .utility) {
@@ -67,12 +69,17 @@ extension AppViewModel {
            everythingScope == scope,
            let existing = everythingIndex,
            !existing.nodes.isEmpty {
-            startFSEventWatcherIfNeeded(for: existing)
+            let scopeKey = Self.snapshotScopeKey(
+                scope: scope, roots: existing.rootURLs, excludedPaths: generalPreferences.excludedIndexPathSet
+            )
+            ensureFSEventWatcherRunning(roots: existing.rootURLs, scopeKey: scopeKey, sinceEventId: existing.lastEventId)
             return
         }
 
         runtime.everythingIndexTask?.cancel()
-        stopIndexWatcher()
+        if forceRebuild || everythingScope != scope {
+            stopIndexWatcher(cancelPendingSave: true)
+        }
         everythingScope = scope
         isIndexingEverything = true
         let excluded = generalPreferences.excludedIndexPathSet
@@ -92,11 +99,7 @@ extension AppViewModel {
                    EverythingSnapshotStore.load(scopeKey: scopeKey, expectedRoots: rootSetup.allRoots)
                }).value {
                 guard !Task.isCancelled else { return }
-                self.everythingIndex = cached
-                self.everythingNodeCount = cached.nodes.count
-                self.isIndexingEverything = false
-                self.refreshDisplayedCandidates()
-                self.startFSEventWatcherIfNeeded(for: cached, scopeKey: scopeKey)
+                await self.activateAndReconcileCachedSnapshot(cached, scopeKey: scopeKey, excludedPaths: excluded)
                 return
             }
 
@@ -113,10 +116,13 @@ extension AppViewModel {
 
             guard !Task.isCancelled else { return }
             if let finalIndex {
+                self.runtime.reconciledColdScopeKeys.insert(scopeKey)
+                self.runtime.idleDirtyDirectories.removeAll()
+                self.runtime.idleDirtyRecursiveDirectories.removeAll()
                 self.everythingIndex = finalIndex
                 self.everythingNodeCount = finalIndex.nodes.count
                 self.refreshDisplayedCandidates()
-                self.startFSEventWatcherIfNeeded(for: finalIndex, scopeKey: scopeKey)
+                self.ensureFSEventWatcherRunning(roots: finalIndex.rootURLs, scopeKey: scopeKey, sinceEventId: finalIndex.lastEventId)
                 self.scheduleSnapshotSave(finalIndex, scopeKey: scopeKey)
             }
             self.isIndexingEverything = false
@@ -132,63 +138,26 @@ extension AppViewModel {
     ) async -> EverythingIndex? {
         if scope == .allVolumes {
             let stage1 = await Task.detached(priority: priority) {
-                try? EverythingIndex.build(rootURLs: rootSetup.fastRoots, maxNodes: 180_000, excludedPaths: excludedPaths)
+                try? EverythingIndex.build(rootURLs: rootSetup.fastRoots, maxNodes: 350_000, excludedPaths: excludedPaths)
             }.value
             guard !Task.isCancelled else { return nil }
             if let stage1, let onStage1 { onStage1(stage1) }
             guard !rootSetup.slowRoots.isEmpty else { return stage1 }
             let stage2 = await Task.detached(priority: .utility) {
-                try? EverythingIndex.build(rootURLs: rootSetup.slowRoots, maxNodes: 140_000, excludedPaths: excludedPaths)
+                try? EverythingIndex.build(rootURLs: rootSetup.slowRoots, maxNodes: 180_000, excludedPaths: excludedPaths)
             }.value
             guard !Task.isCancelled else { return stage1 }
             return stage2.map { stage1?.merging($0) ?? $0 } ?? stage1
         }
         return await Task.detached(priority: priority) {
-            try? EverythingIndex.build(rootURLs: rootSetup.allRoots, maxNodes: 220_000, excludedPaths: excludedPaths)
+            try? EverythingIndex.build(rootURLs: rootSetup.allRoots, maxNodes: 400_000, excludedPaths: excludedPaths)
         }.value
     }
 
-    func startFSEventWatcherIfNeeded(for index: EverythingIndex, scopeKey: String? = nil) {
-        stopIndexWatcher()
-        let vols = cachedVolumes.sorted { $0.mountPath.count > $1.mountPath.count }
-        let watchRoots = index.rootURLs.filter { root in
-            let path = root.standardizedFileURL.path
-            let summary = vols.first(where: { path == $0.mountPath || path.hasPrefix($0.mountPath == "/" ? "/" : $0.mountPath + "/") })
-                ?? VolumeInspector.inspect(url: root)
-            return summary.map { !VolumeInspector.isSlowOrRemoteVolume($0) } ?? true
-        }
-        guard !watchRoots.isEmpty else { return }
-        let excluded = generalPreferences.excludedIndexPathSet
-        let resolvedKey = scopeKey ?? Self.snapshotScopeKey(
-            scope: everythingScope, roots: index.rootURLs, excludedPaths: excluded
-        )
-
-        runtime.fsEventWatcher = EverythingFSEventWatcher(roots: watchRoots, debounceInterval: 0.9) { [weak self] changedDirs in
-            Task { @MainActor [weak self] in
-                guard let self, let current = self.everythingIndex else { return }
-                let activeExcluded = self.generalPreferences.excludedIndexPathSet
-                let updated = await Task.detached(priority: .utility) {
-                    current.applyingFSEventDirectories(changedDirs, excludedPaths: activeExcluded)
-                }.value
-                guard self.everythingIndex?.rootPaths == current.rootPaths else { return }
-                self.everythingIndex = updated
-                self.everythingNodeCount = updated.nodes.count
-                if self.isOverlayVisible && (self.omniFilter == .files || !self.overlayQuery.isEmpty) {
-                    self.refreshDisplayedCandidates()
-                }
-                self.scheduleSnapshotSave(updated, scopeKey: resolvedKey)
-            }
-        }
-    }
-
-    func stopIndexWatcher() {
-        runtime.stopIndexWatcher()
-    }
-
-    private func scheduleSnapshotSave(_ index: EverythingIndex, scopeKey: String) {
+    func scheduleSnapshotSave(_ index: EverythingIndex, scopeKey: String) {
         runtime.snapshotSaveTask?.cancel()
         runtime.snapshotSaveTask = Task {
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: .milliseconds(600))
             guard !Task.isCancelled else { return }
             _ = await Task.detached(priority: .utility) {
                 EverythingSnapshotStore.save(index, scopeKey: scopeKey)
@@ -196,7 +165,7 @@ extension AppViewModel {
         }
     }
 
-    private static func resolveIndexRoots(
+    static func resolveIndexRoots(
         scope: EverythingScope,
         externals: [VolumeSummary]
     ) -> (fastRoots: [URL], slowRoots: [URL], allRoots: [URL]) {
@@ -211,7 +180,7 @@ extension AppViewModel {
         return (roots, [], roots)
     }
 
-    private static func snapshotScopeKey(scope: EverythingScope, roots: [URL], excludedPaths: Set<String>) -> String {
+    static func snapshotScopeKey(scope: EverythingScope, roots: [URL], excludedPaths: Set<String>) -> String {
         let joinedRoots = roots.map(\.standardizedFileURL.path).sorted().joined(separator: "|")
         guard !excludedPaths.isEmpty else { return "\(scope.id)|\(joinedRoots)" }
         let joinedExcl = excludedPaths.sorted().joined(separator: ";")

@@ -22,10 +22,10 @@ extension AppViewModel {
         resetOverlaySelection()
         inlineResultBody = nil; inlinePluginViewPayload = nil; activeInlinePlugin = nil
         capturePasteboardOnceIfChanged()
+        refreshInstalledAppsIfNeeded()
         triggerStalePluginIndexRefreshIfNeeded()
         IconCache.shared.prewarmDockIcons(cachedDockApps)
-        if everythingIndex == nil && !isIndexingEverything
-            && LauncherEngine.shouldWakeEverythingIndex(for: overlayQuery, filter: filter, scopedPluginID: scopedPluginID) {
+        if everythingIndex == nil && !isIndexingEverything && scopedPluginID == nil {
             rebuildEverythingIndex(scope: everythingScope)
         }
         refreshDisplayedCandidates(resetSelection: true)
@@ -90,7 +90,9 @@ extension AppViewModel {
         runtime.indexUnloadTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(90))
             guard !Task.isCancelled, let self, !self.isOverlayVisible, self.everythingIndex != nil else { return }
-            self.stopIndexWatcher(); self.everythingIndex = nil; self.displayedCandidates = []
+            self.runtime.fsEventApplyTask?.cancel()
+            self.runtime.fsEventApplyTask = nil
+            self.everythingIndex = nil; self.displayedCandidates = []
             MemoryStats.reclaimFreeHeapPages()
         }
     }

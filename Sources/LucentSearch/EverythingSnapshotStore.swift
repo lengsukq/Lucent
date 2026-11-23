@@ -7,11 +7,13 @@ public struct SnapshotHeaderMetadata: Sendable {
     public let nodeCount: Int
     public let builtAt: Date
     public let reachedNodeLimit: Bool
+    public let lastEventId: UInt64
 }
 
 public enum EverythingSnapshotStore {
-    public static let formatMagic = Data("LCNTIDX3".utf8)
-    private static let magic: [UInt8] = Array("LCNTIDX3".utf8)
+    public static let formatMagic = Data("LCNTIDX4".utf8)
+    private static let magic: [UInt8] = Array("LCNTIDX4".utf8)
+    private static let minHeaderPayloadBytes = 25
     private static let sha256ByteCount = 32
 
     public static func defaultCacheDirectory() -> URL {
@@ -49,7 +51,7 @@ public enum EverythingSnapshotStore {
         let fileURL = snapshotFileURL(scopeKey: scopeKey, cacheDirectory: cacheDirectory)
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
               let fileSize = (attrs[.size] as? NSNumber)?.intValue,
-              fileSize >= magic.count + 17 + sha256ByteCount,
+              fileSize >= magic.count + minHeaderPayloadBytes + sha256ByteCount,
               let handle = try? FileHandle(forReadingFrom: fileURL) else { return nil }
         defer { try? handle.close() }
         guard let data = try? handle.read(upToCount: 4096), !data.isEmpty else { return nil }
@@ -61,7 +63,8 @@ public enum EverythingSnapshotStore {
             return SnapshotHeaderMetadata(
                 nodeCount: Int(parsed.nodeCount),
                 builtAt: parsed.builtAt,
-                reachedNodeLimit: parsed.reachedNodeLimit
+                reachedNodeLimit: parsed.reachedNodeLimit,
+                lastEventId: parsed.lastEventId
             )
         }
     }
@@ -76,6 +79,7 @@ public enum EverythingSnapshotStore {
         data.reserveCapacity(max(4096, index.nodes.count * 26 + sha256ByteCount))
         data.append(contentsOf: magic)
         appendLE(index.builtAt.timeIntervalSince1970.bitPattern, to: &data)
+        appendLE(index.lastEventId, to: &data)
         data.append(index.reachedNodeLimit ? 1 : 0)
         appendLE(UInt32(index.rootPaths.count), to: &data)
         for path in index.rootPaths {
@@ -150,7 +154,7 @@ public enum EverythingSnapshotStore {
         maxAgeSeconds: TimeInterval = 43_200
     ) -> EverythingIndex? {
         guard let data = try? Data(contentsOf: fileURL, options: .mappedIfSafe),
-              data.count >= magic.count + 17 + sha256ByteCount else { return nil }
+              data.count >= magic.count + minHeaderPayloadBytes + sha256ByteCount else { return nil }
         return data.withUnsafeBytes { raw -> EverythingIndex? in
             let payloadEnd = raw.count - sha256ByteCount
             let payloadSlice = UnsafeRawBufferPointer(rebasing: raw[0..<payloadEnd])
@@ -193,13 +197,15 @@ public enum EverythingSnapshotStore {
                 rootURLs: header.rootURLs,
                 nodes: nodes,
                 builtAt: header.builtAt,
-                reachedNodeLimit: header.reachedNodeLimit
+                reachedNodeLimit: header.reachedNodeLimit,
+                lastEventId: header.lastEventId
             )
         }
     }
 
     private struct ParsedHeader {
         let builtAt: Date
+        let lastEventId: UInt64
         let reachedNodeLimit: Bool
         let rootURLs: [URL]
         let nodeCount: UInt32
@@ -212,11 +218,12 @@ public enum EverythingSnapshotStore {
         expectedRoots: [URL]?,
         maxAgeSeconds: TimeInterval
     ) -> ParsedHeader? {
-        guard limit >= magic.count + 17 else { return nil }
+        guard limit >= magic.count + minHeaderPayloadBytes else { return nil }
         for i in 0..<magic.count where raw[i] != magic[i] { return nil }
         offset = magic.count
 
         guard let builtBits = readLE(raw, limit: limit, offset: &offset, as: UInt64.self),
+              let lastEventId = readLE(raw, limit: limit, offset: &offset, as: UInt64.self),
               let reachedByte = readByte(raw, limit: limit, offset: &offset),
               let rootCount = readLE(raw, limit: limit, offset: &offset, as: UInt32.self),
               rootCount <= 256
@@ -242,7 +249,13 @@ public enum EverythingSnapshotStore {
         }
 
         guard let nodeCount = readLE(raw, limit: limit, offset: &offset, as: UInt32.self) else { return nil }
-        return ParsedHeader(builtAt: builtAt, reachedNodeLimit: reachedByte != 0, rootURLs: rootURLs, nodeCount: nodeCount)
+        return ParsedHeader(
+            builtAt: builtAt,
+            lastEventId: lastEventId,
+            reachedNodeLimit: reachedByte != 0,
+            rootURLs: rootURLs,
+            nodeCount: nodeCount
+        )
     }
 
     private static func appendLE<T: FixedWidthInteger>(_ value: T, to data: inout Data) {

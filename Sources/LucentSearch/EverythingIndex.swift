@@ -39,18 +39,41 @@ public struct EverythingIndex: Sendable {
     public let nodes: [IndexedNode]
     public let builtAt: Date
     public let reachedNodeLimit: Bool
+    public let lastEventId: UInt64
 
-    public init(rootURLs: [URL], nodes: [IndexedNode], builtAt: Date, reachedNodeLimit: Bool) {
+    public init(
+        rootURLs: [URL],
+        nodes: [IndexedNode],
+        builtAt: Date,
+        reachedNodeLimit: Bool,
+        lastEventId: UInt64 = 0
+    ) {
         self.rootURLs = rootURLs
         self.rootPaths = rootURLs.map { $0.standardizedFileURL.path }
         self.nodes = nodes
         self.builtAt = builtAt
         self.reachedNodeLimit = reachedNodeLimit
+        self.lastEventId = lastEventId
+    }
+
+    public func withUpdatedEventId(_ eventId: UInt64) -> EverythingIndex {
+        guard eventId > lastEventId else { return self }
+        return EverythingIndex(
+            rootURLs: rootURLs,
+            nodes: nodes,
+            builtAt: builtAt,
+            reachedNodeLimit: reachedNodeLimit,
+            lastEventId: eventId
+        )
     }
 
     private static let packageSuffixBytes: [[UInt8]] = [
         ".app", ".framework", ".bundle", ".xcodeproj", ".xcworkspace", ".playground", ".photoslibrary"
     ].map { Array($0.utf8) }
+
+    private static let highPriorityUserFolders: Set<String> = [
+        "Desktop", "Downloads", "Pictures", "Movies", "Music"
+    ]
 
     public static func normalizedExcludedSet(_ raw: Set<String>) -> Set<String> {
         var out = Set<String>()
@@ -87,10 +110,11 @@ public struct EverythingIndex: Sendable {
 
     public static func build(
         rootURLs: [URL],
-        maxNodes: Int = 240_000,
+        maxNodes: Int = 400_000,
         includeHidden: Bool = false,
         excludedPaths: Set<String> = []
     ) throws -> EverythingIndex {
+        let baselineEventId = EverythingFSEventWatcher.currentEventId()
         let normalizedExclusions = normalizedExcludedSet(excludedPaths)
         var seenPaths = Set<String>()
         let validRoots: [URL] = rootURLs.filter { url in
@@ -101,13 +125,25 @@ public struct EverythingIndex: Sendable {
             return FileManager.default.fileExists(atPath: std, isDirectory: &isDir) && isDir.boolValue
         }
         guard !validRoots.isEmpty else {
-            return EverythingIndex(rootURLs: [], nodes: [], builtAt: Date(), reachedNodeLimit: false)
+            return EverythingIndex(
+                rootURLs: [], nodes: [], builtAt: Date(), reachedNodeLimit: false, lastEventId: baselineEventId
+            )
+        }
+
+        struct FrontierItem {
+            let path: String
+            let parentID: Int32
+            let prioritized: Bool
         }
 
         var nodes: [IndexedNode] = []
         nodes.reserveCapacity(min(maxNodes, 8192))
-        var queues: [[(path: String, parentID: Int32)]] = validRoots.map { [($0.standardizedFileURL.path, Int32(-1))] }
-        var heads = Array(repeating: 0, count: validRoots.count)
+        var priorityQueues: [[FrontierItem]] = Array(repeating: [], count: validRoots.count)
+        var standardQueues: [[FrontierItem]] = validRoots.map {
+            [FrontierItem(path: $0.standardizedFileURL.path, parentID: -1, prioritized: false)]
+        }
+        var priorityHeads = Array(repeating: 0, count: validRoots.count)
+        var standardHeads = Array(repeating: 0, count: validRoots.count)
         let bulkScratch = UnsafeMutableRawBufferPointer.allocate(byteCount: DirectoryEntryEnumerator.defaultBufferBytes, alignment: 8)
         defer { bulkScratch.deallocate() }
         var reachedLimit = false
@@ -117,10 +153,17 @@ public struct EverythingIndex: Sendable {
             active = false
             for rootIdx in 0..<validRoots.count {
                 try Task.checkCancellation()
-                guard heads[rootIdx] < queues[rootIdx].count else { continue }
+                let current: FrontierItem
+                if priorityHeads[rootIdx] < priorityQueues[rootIdx].count {
+                    current = priorityQueues[rootIdx][priorityHeads[rootIdx]]
+                    priorityHeads[rootIdx] += 1
+                } else if standardHeads[rootIdx] < standardQueues[rootIdx].count {
+                    current = standardQueues[rootIdx][standardHeads[rootIdx]]
+                    standardHeads[rootIdx] += 1
+                } else {
+                    continue
+                }
                 active = true
-                let current = queues[rootIdx][heads[rootIdx]]
-                heads[rootIdx] += 1
 
                 let children = DirectoryEntryEnumerator.enumerate(
                     at: current.path,
@@ -142,14 +185,27 @@ public struct EverythingIndex: Sendable {
                     ))
                     if child.isDirectory {
                         let childPath = current.path == "/" ? "/\(child.name)" : "\(current.path)/\(child.name)"
-                        queues[rootIdx].append((childPath, nodeID))
+                        let isPrio = current.prioritized
+                            || (current.parentID == -1 && highPriorityUserFolders.contains(child.name))
+                        let nextItem = FrontierItem(path: childPath, parentID: nodeID, prioritized: isPrio)
+                        if isPrio {
+                            priorityQueues[rootIdx].append(nextItem)
+                        } else {
+                            standardQueues[rootIdx].append(nextItem)
+                        }
                     }
                 }
                 if reachedLimit { break }
             }
         }
 
-        return EverythingIndex(rootURLs: validRoots, nodes: nodes, builtAt: Date(), reachedNodeLimit: reachedLimit)
+        return EverythingIndex(
+            rootURLs: validRoots,
+            nodes: nodes,
+            builtAt: Date(),
+            reachedNodeLimit: reachedLimit,
+            lastEventId: baselineEventId
+        )
     }
 
     public func merging(_ other: EverythingIndex) -> EverythingIndex {
@@ -166,11 +222,15 @@ public struct EverythingIndex: Sendable {
                 name: node.name
             ))
         }
+        let mergedEventId = (lastEventId > 0 && other.lastEventId > 0)
+            ? min(lastEventId, other.lastEventId)
+            : max(lastEventId, other.lastEventId)
         return EverythingIndex(
             rootURLs: rootURLs + other.rootURLs,
             nodes: combinedNodes,
             builtAt: Date(),
-            reachedNodeLimit: reachedNodeLimit || other.reachedNodeLimit
+            reachedNodeLimit: reachedNodeLimit || other.reachedNodeLimit,
+            lastEventId: mergedEventId
         )
     }
 

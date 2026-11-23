@@ -30,14 +30,7 @@ extension AppViewModel {
     func reloadAppsAndPlugins() {
         reloadScriptsAndHotKeys()
         reloadPluginsAndHotKeys()
-        Task {
-            let apps = await Task.detached(priority: .userInitiated) { LauncherEngine.discoverInstalledApps() }.value
-            self.installedApps = apps
-            AppUsageTrackerController.shared.ensureSystemProbe(for: apps)
-            if self.isOverlayVisible {
-                IconCache.shared.prewarmDockIcons(self.cachedDockApps)
-            }
-        }
+        refreshInstalledApps(force: true)
     }
 
     func makePluginBridgeContext() -> PluginBridgeHostContext {

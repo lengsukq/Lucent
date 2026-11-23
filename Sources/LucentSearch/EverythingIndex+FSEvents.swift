@@ -1,32 +1,122 @@
-import LucentFoundation
+import Darwin
 import Foundation
+import LucentFoundation
 
 public extension EverythingIndex {
+    func directoriesModifiedSinceSnapshot(safetyMarginSeconds: TimeInterval = 2.0) -> Set<String> {
+        guard !rootPaths.isEmpty else { return [] }
+        let cutoff = builtAt.timeIntervalSince1970 - safetyMarginSeconds
+        var changed = Set<String>()
+
+        func inspectDirectory(path: String, fallbackParent: String?) {
+            var st = stat()
+            guard path.withCString({ stat($0, &st) == 0 }), (st.st_mode & S_IFMT) == S_IFDIR else {
+                if let fallbackParent { changed.insert(fallbackParent) }
+                else { changed.insert(path) }
+                return
+            }
+            let mtime = Double(st.st_mtimespec.tv_sec) + Double(st.st_mtimespec.tv_nsec) * 1e-9
+            if mtime >= cutoff {
+                changed.insert(path)
+            }
+        }
+
+        for rootPath in rootPaths {
+            inspectDirectory(path: rootPath, fallbackParent: nil)
+        }
+
+        var dirPaths: [Int32: String] = [:]
+        dirPaths.reserveCapacity(min(nodes.count / 6 + 16, 32_768))
+        for (idx, node) in nodes.enumerated() where node.isDirectory {
+            let rootIdx = Int(node.rootIndex)
+            guard rootIdx >= 0, rootIdx < rootPaths.count else { continue }
+            let parentPath: String
+            if node.parentID >= 0, let cachedParent = dirPaths[node.parentID] {
+                parentPath = cachedParent
+            } else {
+                parentPath = rootPaths[rootIdx]
+            }
+            let fullPath = parentPath == "/" ? "/\(node.name)" : "\(parentPath)/\(node.name)"
+            dirPaths[Int32(idx)] = fullPath
+            inspectDirectory(path: fullPath, fallbackParent: parentPath)
+        }
+        return changed
+    }
+
+    func reconcilingFilesystemChangesSinceSnapshot(
+        additionalDirtyDirs: Set<String> = [],
+        recursiveSubtreeDirs: Set<String> = [],
+        maxNodes: Int = 450_000,
+        excludedPaths: Set<String> = [],
+        safetyMarginSeconds: TimeInterval = 2.0
+    ) -> EverythingIndex {
+        var stale = directoriesModifiedSinceSnapshot(safetyMarginSeconds: safetyMarginSeconds)
+        if !additionalDirtyDirs.isEmpty {
+            stale.formUnion(additionalDirtyDirs)
+        }
+        guard !stale.isEmpty || !recursiveSubtreeDirs.isEmpty else {
+            return withUpdatedEventId(EverythingFSEventWatcher.currentEventId())
+        }
+        return applyingFSEventDirectories(
+            stale,
+            recursiveSubtreeDirs: recursiveSubtreeDirs,
+            latestEventId: EverythingFSEventWatcher.currentEventId(),
+            maxNodes: maxNodes,
+            excludedPaths: excludedPaths
+        )
+    }
+
     func applyingFSEventDirectories(
         _ rawChangedDirs: Set<String>,
-        maxNodes: Int = 260_000,
+        recursiveSubtreeDirs: Set<String> = [],
+        latestEventId: UInt64? = nil,
+        maxNodes: Int = 450_000,
         excludedPaths: Set<String> = []
     ) -> EverythingIndex {
-        guard !rawChangedDirs.isEmpty, !rootPaths.isEmpty else { return self }
+        let resolvedNextEventId = max(lastEventId, latestEventId ?? EverythingFSEventWatcher.currentEventId())
+        guard (!rawChangedDirs.isEmpty || !recursiveSubtreeDirs.isEmpty), !rootPaths.isEmpty else {
+            return withUpdatedEventId(resolvedNextEventId)
+        }
         let normalizedExclusions = Self.normalizedExcludedSet(excludedPaths)
         let resolvedRoots = rootPaths.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().standardizedFileURL.path }
-        var changedSet = Set<String>()
-        for raw in rawChangedDirs {
-            let std = URL(fileURLWithPath: raw).standardizedFileURL.path
-            if !normalizedExclusions.isEmpty && Self.isPathExcluded(std, excludedPaths: normalizedExclusions) { continue }
-            let res = URL(fileURLWithPath: raw).resolvingSymlinksInPath().standardizedFileURL.path
-            for (idx, rootPath) in rootPaths.enumerated() {
-                let resRoot = resolvedRoots[idx]
-                if std == rootPath || std.hasPrefix(rootPath + "/") { changedSet.insert(std) }
-                if res == resRoot || res.hasPrefix(resRoot + "/") {
-                    let mapped = resRoot == rootPath ? res : rootPath + String(res.dropFirst(resRoot.count))
-                    if normalizedExclusions.isEmpty || !Self.isPathExcluded(mapped, excludedPaths: normalizedExclusions) {
-                        changedSet.insert(mapped)
+
+        func mapToRootSpace(_ inputPaths: Set<String>) -> Set<String> {
+            var mappedSet = Set<String>()
+            for raw in inputPaths {
+                let std = URL(fileURLWithPath: raw).standardizedFileURL.path
+                if !normalizedExclusions.isEmpty && Self.isPathExcluded(std, excludedPaths: normalizedExclusions) { continue }
+                let res = URL(fileURLWithPath: raw).resolvingSymlinksInPath().standardizedFileURL.path
+                for (idx, rootPath) in rootPaths.enumerated() {
+                    let resRoot = resolvedRoots[idx]
+                    if std == rootPath || std.hasPrefix(rootPath == "/" ? "/" : rootPath + "/") {
+                        mappedSet.insert(std)
+                    }
+                    if res == resRoot || res.hasPrefix(resRoot == "/" ? "/" : resRoot + "/") {
+                        let mapped = resRoot == rootPath ? res : rootPath + String(res.dropFirst(resRoot.count))
+                        if normalizedExclusions.isEmpty || !Self.isPathExcluded(mapped, excludedPaths: normalizedExclusions) {
+                            mappedSet.insert(mapped)
+                        }
                     }
                 }
             }
+            return mappedSet
         }
-        guard !changedSet.isEmpty else { return self }
+
+        let recursiveSet = mapToRootSpace(recursiveSubtreeDirs)
+        var changedSet = mapToRootSpace(rawChangedDirs)
+        changedSet.formUnion(recursiveSet)
+        guard !changedSet.isEmpty else {
+            return withUpdatedEventId(resolvedNextEventId)
+        }
+
+        func isUnderRecursiveSubtree(_ path: String) -> Bool {
+            guard !recursiveSet.isEmpty else { return false }
+            if recursiveSet.contains(path) { return true }
+            for rec in recursiveSet where path.hasPrefix(rec == "/" ? "/" : rec + "/") {
+                return true
+            }
+            return false
+        }
 
         var oldPaths = Array(repeating: "", count: nodes.count)
         var oldChildren = Array(repeating: [Int](), count: nodes.count)
@@ -66,7 +156,8 @@ public extension EverythingIndex {
                     continue
                 }
                 let isRoot = item.parentNewID == -1
-                let shouldScan = changedSet.contains(item.path) || (!isRoot && item.oldDirID == nil)
+                let forceSubtree = isUnderRecursiveSubtree(item.path)
+                let shouldScan = forceSubtree || changedSet.contains(item.path) || (!isRoot && item.oldDirID == nil)
 
                 if shouldScan {
                     let children = DirectoryEntryEnumerator.enumerate(
@@ -85,7 +176,7 @@ public extension EverythingIndex {
                         ))
                         if child.isDirectory {
                             let childPath = item.path == "/" ? "/\(child.name)" : "\(item.path)/\(child.name)"
-                            let matchingOld = changedSet.contains(item.path) ? oldDirIDByPath[childPath] : nil
+                            let matchingOld = forceSubtree ? nil : (changedSet.contains(item.path) ? oldDirIDByPath[childPath] : nil)
                             queues[rootIdx].append(QueueItem(path: childPath, parentNewID: newID, oldDirID: matchingOld))
                         }
                     }
@@ -113,6 +204,12 @@ public extension EverythingIndex {
                 if reachedLimit { break }
             }
         }
-        return EverythingIndex(rootURLs: rootURLs, nodes: newNodes, builtAt: Date(), reachedNodeLimit: reachedLimit)
+        return EverythingIndex(
+            rootURLs: rootURLs,
+            nodes: newNodes,
+            builtAt: Date(),
+            reachedNodeLimit: reachedLimit,
+            lastEventId: resolvedNextEventId
+        )
     }
 }
