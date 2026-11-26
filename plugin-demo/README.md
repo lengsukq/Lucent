@@ -5,7 +5,7 @@
 - **统一原生底座 (`Package.swift` + `Shared/PluginKit/`)**：封装 `stdin` JSON 与配置解析、结构化 `ViewPayload` 编码、`PluginData` 免前缀索引 (`search-index.json`) 与运行摘要 (`status.json`) 原子写盘、原生 Unix Domain Socket (`Darwin.socket`) Host Bridge 客户端以及带超时强杀的子进程与同步 HTTP 工具；全部插件均预编译为签名裁剪后的 `arm64` Mach-O 可执行文件（`bin/<id>`），在新装 macOS 上无需安装 Python 3 或 Xcode Command Line Tools 即可毫秒级启动。
 - [`file-shelf/`](file-shelf/README.md)：**文件中转站**（跨重启保存文件引用，支持托盘拖入、Everything 和工作台上下文，原生多选拖出）。
 - [`audio-presets/`](audio-presets/README.md)：**一键音频组合**（保存输入和输出，按组合名搜索或用热键切换，经宿主回读实际设备）。
-- [`antigravity-pulse/`](antigravity-pulse/README.md)：**Antigravity Pulse · 上下文与会话监控**（零侵入只读增量扫描本地 `transcript.jsonl`，简洁 iOS 风格三形态置顶悬浮窗且默认不占程序坞，支持双段式上下文进度条、缓存命中掉线预警、5h/今日/7天统计、最近会话完成状态监测与一键回到对应会话）。
+- [`antigravity-pulse/`](antigravity-pulse/README.md)：**Antigravity Pulse · 用量统计与额度监控**（零侵入只读双层增量索引本地 `transcript.jsonl`，提供缩边悬停展开悬浮窗 + 独立可缩放全景统计大窗双窗协同，支持 52 周 GitHub 风格自适应每日 Token 贡献热力图与日期下钻、多维趋势与 24 小时编码节律、模型/项目排行、USD/CNY 切换、一键生成 `@2x` Retina 精美分享海报并复制剪贴板，以及官方 `agy statusLine` 共享/本机独享实时额度监控）。
 - [`browser-hub/`](browser-hub/README.md)：**三端浏览器书签与历史中枢**（原生 `SQLite3` WAL 无锁快照与 `PropertyListSerialization` 直连 Microsoft Edge、Google Chrome 多 Profile 与 Apple Safari 书签、阅读列表及历史记录，自动同步 `⌥Space` 免前缀索引并支持按来源浏览器打开）。
 - [`gold-monitor/`](gold-monitor/README.md)：**黄金大盘悬浮窗 · Au99.99**（实时监控上海金 `Au99.99` / `Au(T+D)` 人民币元/克行情，支持标准分时图卡片、Mini 悬浮条与贴边极简挂件丝滑原地变形及滞回防抖价格预警）。
 - [`local-send/`](local-send/README.md)：**LocalSend 局域网快传**（零常驻窗口绑定会话实现完整 LocalSend Protocol v2.1：开窗启动 UDP 组播发现与自签名 HTTPS 收发、关窗立即销毁进程释放 `53317` 端口，支持 Finder/中转站文件拖入与流式大文件传输，并经 `contextRouter` 与 `file-shelf`、`translate-hub`、`notion-bookmarks`、`quick-remind`、`lumalink-companion` 双向联动）。

@@ -32,7 +32,7 @@
 - **原生卡片、置顶面板、自由画布会话与跨插件上下文联动**：支持零前端自动生成原生设置表单、结构化交互卡片、`lucent://panel/<id>` 独立置顶轮询面板，以及授权 `window` / `floatingWindow` 后的沙盒化 `WKWebView` 透明桌面挂件（含网络规则拦截、坐标记忆、原生 `.fileURL` 拖拽透传 `onFilesDropped`、窗口复用推送 `reuseIfOpen`、窗口绑定沙盒 NDJSON 会话 `lucent.session` 与环境变更实时广播）；新增 `contextRouter` 受控跨插件路由，并补齐 `FileShelf`（右键与底栏）及 GIF/MP4 录屏完成条到扩展插件的上下文出站链路。
 - **单文件双向同步快捷脚本库 (`Quick Scripts`)**：支持 Zsh、Bash、Python 3、AppleScript、Swift 及任意 `#!` 自定义 Shebang 脚本，与 `@lucent.*` 头部注释双向同步，支持专属安全 SVG 图标、独立热键与 5 种输出反馈。
 - **智能商店订阅、备份同步与内置 MCP 服务**：
-  - 单输入框自动嗅探 GitHub 仓库、商店 `lucent-registry.json` 或 `.zip` 包，强制校验 `SHA-256` 与权限升级差异，附带 `plugin-demo/` 13 款原生 Swift 官方插件（含 `window-snap` 窗口分屏与多屏工作区、`local-send` 零常驻 LocalSend v2.1 局域网快传、`antigravity-pulse` 与 `gold-monitor` 自由画布悬浮窗）与 3 款内置精选模板；
+  - 单输入框自动嗅探 GitHub 仓库、商店 `lucent-registry.json` 或 `.zip` 包，强制校验 `SHA-256` 与权限升级差异，附带 `plugin-demo/` 13 款原生 Swift 官方插件（含 `window-snap` 窗口分屏与多屏工作区、`local-send` 零常驻 LocalSend v2.1 局域网快传、`antigravity-pulse` 缩边悬浮窗与 52 周自适应热力图全景统计大窗/分享海报/官方 `statusLine` 共享与独享额度监控、`gold-monitor` 自由画布悬浮窗）与 3 款内置精选模板；
   - **窗口分屏与多屏工作区 (`windowControl` + `window-snap`)**：新增宿主代申辅助功能 TCC 的受控 `windowControl` 桥接与 `WindowSnapHUD` 原生液态玻璃反馈浮窗，提供半屏/三分屏/四象限/黄金居中/跨屏瞬移、分窗口撤销栈以及支持多显示器归一化比例适配、外接屏断开主屏折叠与可选自动拉起应用的多屏工作区快照恢复；
   - **文件中转站与一键音频组合**：中转站采用原生液态玻璃浮窗（`RoundedGlassContainerView` + `DoubleSpecularBorder`），支持左/右/顶部三向边缘磁吸贴边隐藏、120fps 夹紧拖拽与磁吸流光预览、悬停/拖入自动滑出、右键菜单与可选「拖出即移出」及跨重启会话恢复，条目由宿主长期保留并校验源文件身份；音频组合采用无边框双主题液态玻璃悬浮控制台（支持靠边胶囊收起与点击设备卡直切单个扬声器/麦克风），通过 Core Audio 回读核验并在部分失败时自动恢复，配合原生液态玻璃 HUD 反馈；
   - 支持应用与插件更新检查、含 `LZFSE` 压缩与可选口令密钥迁移的 `.lucentbackup` v2 归档及 HTTPS WebDAV 云端自动轮转同步；

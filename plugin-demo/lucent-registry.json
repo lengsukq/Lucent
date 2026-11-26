@@ -101,8 +101,8 @@
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "5ff98c334a99d1e293c2d653d2950e7d14be1dd0ef3a754324ece1c32390161c",
-      "sizeBytes" : 506845,
+      "sha256" : "2da6efeefb4a45e354d65bae35ba5423102732c2480bbfb3df0afe75d2442fdf",
+      "sizeBytes" : 506904,
       "version" : "1.4.0"
     },
     {
@@ -1221,5 +1221,5 @@
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-26T02:21:33Z"
+  "updatedAt" : "2026-11-26T02:24:36Z"
 }

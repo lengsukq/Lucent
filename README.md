@@ -49,7 +49,7 @@
 | [`screen-shield`](plugin-demo/screen-shield/README.md) | **状态屏遮罩**：擦键盘锁屏、编译任务防误碰遮罩，长按 `Esc` 2 秒解锁 |
 | [`lumalink-companion`](plugin-demo/lumalink-companion/README.md) | **LumaLink 伴侣**：配对二维码、网卡切换、远控防窥黑屏与 HiDPI 切换 |
 | [`notion-bookmarks`](plugin-demo/notion-bookmarks/README.md) | **Notion 书签箱**：全局快捷键一键速存剪贴板链接并支持本地秒搜 |
-| [`antigravity-pulse`](plugin-demo/antigravity-pulse/README.md) | **会话监控 HUD**：三形态透明悬浮窗，实时查看上下文与缓存命中 |
+| [`antigravity-pulse`](plugin-demo/antigravity-pulse/README.md) | **用量统计与额度监控**：缩边悬浮窗 + 可缩放全景统计大窗、52 周自适应 Token 热力图、一键精美分享海报与官方实时额度 |
 | [`gold-monitor`](plugin-demo/gold-monitor/README.md) | **黄金大盘 HUD**：上海金实时分时卡片 / 极简贴边条与价格预警 |
 
 ## 安装与使用
