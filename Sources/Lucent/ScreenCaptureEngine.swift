@@ -27,7 +27,11 @@ final class ScreenCaptureCoordinator {
     func capture(mode: ScreenshotMode, preferredTargetApp: NSRunningApplication? = nil) async throws -> ScreenshotResult {
         if !overlayPanels.isEmpty { finish(with: .cancelled, animated: false) }
         captureGeneration &+= 1
-        let hadVisibleLucentWindows = (NSApp?.windows ?? []).contains { $0.isVisible && !$0.isMiniaturized && $0.level == .normal }
+        let prefs = GeneralPreferences.load()
+        let hideSelf = prefs.hideLucentDuringScreenshot
+        let hadVisibleLucentWindows = (NSApp?.windows ?? []).contains {
+            $0.isVisible && !$0.isMiniaturized && ($0.level == .normal || $0.level == .floating)
+        }
         focusGuard.prepareForNewCapture(preferredApp: preferredTargetApp)
         guard CGPreflightScreenCaptureAccess() else {
             focusGuard.finishRestore(restorePreviousApp: false)
@@ -35,12 +39,12 @@ final class ScreenCaptureCoordinator {
             throw LucentError.visionFailed(L10n.pick("尚未授予“屏幕录制”权限，请在系统设置 -> 隐私与安全性 -> 屏幕录制 中勾选 Lucent。", "Screen Recording permission is not granted. Enable Lucent in System Settings > Privacy & Security > Screen Recording."))
         }
 
-        if hadVisibleLucentWindows {
+        if hideSelf && hadVisibleLucentWindows {
             try? await Task.sleep(for: .milliseconds(36))
         }
         let topology: ScreenTopologySnapshot
         do {
-            topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(includeOwnOverlayWindows: false)
+            topology = try await ScreenTopologyAndWindowMatcher.captureSnapshot(excludeOwnWindows: hideSelf)
         } catch {
             focusGuard.finishRestore(restorePreviousApp: false)
             throw error
@@ -50,9 +54,12 @@ final class ScreenCaptureCoordinator {
             .map { $0.intersection(topology.canvasBounds) }
             .flatMap { !$0.isNull && $0.width >= 8 && $0.height >= 8 ? $0 : nil }
         let session = ScreenshotSessionState(
-            topology: topology, initialCursorCanvasPoint: initialPt, mode: mode, previousSelectionRect: remembered
+            topology: topology,
+            initialCursorCanvasPoint: initialPt,
+            mode: mode,
+            previousSelectionRect: remembered,
+            hideLucentDuringScreenshot: hideSelf
         )
-        let prefs = GeneralPreferences.load()
         session.excludeWindowShadow = prefs.screenshotExcludeWindowShadow
         if prefs.hiddenToolbarItemSet.contains(ScreenshotToolbarItemID.forTool(session.activeTool).rawValue) {
             session.activeTool = .move
@@ -140,7 +147,10 @@ final class ScreenCaptureCoordinator {
         didModifyPasteboard = false
         activeSession = session
         overlayPanels.removeAll(); panelByDisplayID.removeAll()
-        if !session.isPinEditSession {
+        if CaptureSelfVisibilityPolicy.shouldSuppressBackgroundWindows(
+            hideLucentDuringScreenshot: session.hideLucentDuringScreenshot,
+            isPinEditSession: session.isPinEditSession
+        ) {
             focusGuard.suppressBackgroundWindowsIfNeeded(excluding: overlayPanels)
         }
 

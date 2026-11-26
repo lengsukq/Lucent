@@ -231,7 +231,12 @@ struct HomeCustomizationSettingsView: View {
                         Button { ui.editorContext = HomeItemEditorContext(destination: ui.inspectingDestination, existingItem: item) } label: {
                             Image(systemName: "pencil").font(.caption)
                         }.buttonStyle(.plain)
-                        Button(role: .destructive) { viewModel.mutateHomeLayout { _ = $0.removeItem(id: item.id, from: ui.inspectingDestination) } } label: {
+                        Button(role: .destructive) {
+                            viewModel.mutateHomeLayout { _ = $0.removeItem(id: item.id, from: ui.inspectingDestination) }
+                            if ui.inspectingDestination == .dock, case .nativeApp(let path, _) = item.target {
+                                AppUsageTrackerController.shared.setPinned(false, appID: path)
+                            }
+                        } label: {
                             Image(systemName: "trash").font(.caption).foregroundStyle(.orange)
                         }.buttonStyle(.plain)
                     }

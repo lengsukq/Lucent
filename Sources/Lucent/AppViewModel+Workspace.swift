@@ -185,11 +185,18 @@ extension AppViewModel {
 
     func reclaimAllIdleMemoryNow() {
         ProcessSupervisor.shared.terminateAll()
-        stopIndexWatcher()
-        runtime.everythingIndexTask?.cancel(); runtime.cancelOverlaySessionTasks()
+        flushSnapshotSynchronouslyIfNeeded()
+        runtime.everythingIndexTaskToken = UUID()
+        runtime.everythingIndexTask?.cancel()
+        runtime.everythingIndexTask = nil
+        runtime.indexUnloadTask?.cancel()
+        runtime.indexUnloadTask = nil
+        stopIndexWatcher(cancelPendingSave: false)
+        runtime.cancelOverlaySessionTasks()
         workspaceRuntime.cancelAllTasks()
+        isIndexingEverything = false
         previewState = .empty
-        everythingIndex = nil; displayedCandidates = []
+        everythingIndex = nil; runtime.activeIndexScopeKey = nil; displayedCandidates = []
         directoryCache.clear()
         WorkspaceThumbnailCache.shared.clearAll()
         IconCache.shared.clearAll()
@@ -201,10 +208,17 @@ extension AppViewModel {
     func refreshCachedVolumes(triggerReindexIfAllVolumes: Bool = false) {
         Task {
             let vols = await Task.detached(priority: .utility) { VolumeInspector.mountedVolumes() }.value
-            let changed = Set(vols.map(\.mountPath)) != Set(self.cachedVolumes.map(\.mountPath))
+            let prevMounts = Set(self.cachedVolumes.map(\.mountPath))
+            let nextMounts = Set(vols.map(\.mountPath))
             self.cachedVolumes = vols
             if self.hasLoadedWorkspace { self.refreshLocations() }
-            if triggerReindexIfAllVolumes && changed && self.everythingScope == .allVolumes {
+            guard triggerReindexIfAllVolumes && self.everythingScope == .allVolumes else { return }
+            let excluded = self.generalPreferences.excludedIndexPathSet
+            let expectedPaths = Self.resolveIndexRoots(
+                scope: .allVolumes, externals: vols.filter { $0.mountPath != "/" }, excludedPaths: excluded
+            ).allRoots.map(\.standardizedFileURL.path)
+            let rootsDrifted = self.everythingIndex.map { $0.rootPaths != expectedPaths } ?? (prevMounts != nextMounts)
+            if rootsDrifted {
                 if self.needsEverythingIndexResident || self.everythingIndex != nil {
                     self.rebuildEverythingIndex(scope: .allVolumes)
                 } else {

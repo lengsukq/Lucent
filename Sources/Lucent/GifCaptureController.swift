@@ -191,8 +191,8 @@ final class GifCaptureController: ObservableObject {
         hudPanel = GifHUDPanel.present(near: appKitRegion, visibleFrame: targetSlice.appKitScreen.visibleFrame, controller: self)
 
         let encoder = GifStreamEncoder(options: options); activeEncoder = encoder
-        var excludedIDs = Set(borderPanels.map { CGWindowID($0.windowNumber) })
-        if let hudID = hudPanel.map({ CGWindowID($0.windowNumber) }) { excludedIDs.insert(hudID) }
+        var excludedIDs = Set(borderPanels.compactMap { CaptureSelfVisibilityPolicy.validWindowID(from: $0.windowNumber) })
+        if let hudID = hudPanel.flatMap({ CaptureSelfVisibilityPolicy.validWindowID(from: $0.windowNumber) }) { excludedIDs.insert(hudID) }
         captureTask = Task { [weak self] in
             await self?.runCaptureLoop(canvasRect: sel, lockedWindowID: lockedWindowID, displaySpecs: displaySpecs, outputSize: outDims, excludedWindowIDs: excludedIDs, encoder: encoder)
         }

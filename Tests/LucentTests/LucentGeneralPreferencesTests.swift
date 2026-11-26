@@ -21,6 +21,7 @@ struct LucentGeneralPreferencesTests {
         #expect(prefs.showLaunchIntroAnimation == true)
         #expect(prefs.queryClearPolicy == .afterIdle30s)
         #expect(prefs.overlayScreenTarget == .cursorScreen)
+        #expect(prefs.hideLucentDuringScreenshot == true)
 
         prefs.launchSilentlyInMenuBar = true
         prefs.showLaunchIntroAnimation = false
@@ -33,6 +34,7 @@ struct LucentGeneralPreferencesTests {
         prefs.toggleExcludedApp(bundleID: "com.googlecode.iterm2")
         prefs.quickSaveCaptureWithoutDialog = true
         prefs.screenshotExcludeWindowShadow = true
+        prefs.hideLucentDuringScreenshot = false
         prefs.gifDefaultOptions = GifRecordingOptions(fps: 20, maxDimension: 1280)
         prefs.addExcludedIndexPath("/Volumes/DataSSD/LargeCache")
         prefs.save(to: cfgURL, notify: false)

@@ -27,6 +27,8 @@ extension AppViewModel {
         IconCache.shared.prewarmDockIcons(cachedDockApps)
         if everythingIndex == nil && !isIndexingEverything && scopedPluginID == nil {
             rebuildEverythingIndex(scope: everythingScope)
+        } else {
+            runtime.fsEventWatcher?.flushAsync()
         }
         refreshDisplayedCandidates(resetSelection: true)
         bumpFocusToken()
@@ -86,14 +88,16 @@ extension AppViewModel {
         default: break
         }
 
+        scheduleIdleIndexUnloadIfOverlayHidden()
+    }
+
+    func scheduleIdleIndexUnloadIfOverlayHidden() {
+        guard !isOverlayVisible, everythingIndex != nil else { return }
         runtime.indexUnloadTask?.cancel()
         runtime.indexUnloadTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(90))
             guard !Task.isCancelled, let self, !self.isOverlayVisible, self.everythingIndex != nil else { return }
-            self.runtime.fsEventApplyTask?.cancel()
-            self.runtime.fsEventApplyTask = nil
-            self.everythingIndex = nil; self.displayedCandidates = []
-            MemoryStats.reclaimFreeHeapPages()
+            self.prepareIndexForIdleUnload()
         }
     }
 

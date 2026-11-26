@@ -617,7 +617,7 @@
 "流光随行" = "LumaLink";
 "流量 (⌥N)" = "Traffic (⌥N)";
 "测试连接" = "Test Connection";
-"浮窗隐藏 30s 回收视图树，索引按需驻留 · 空闲 90s 卸载（保留 LCNTIDX3 快照），独立窗口关闭即销毁。" = "Launcher view tree releases 30s after hide; file index unloads after 90s idle (keeping LCNTIDX3 snapshot); windows deallocate on close.";
+"浮窗隐藏 30s 回收视图树，索引按需驻留 · 空闲 90s 卸载（保留 LCNTIDX4 快照），独立窗口关闭即销毁。" = "Launcher view tree releases 30s after hide; file index unloads after 90s idle (keeping LCNTIDX4 snapshot); windows deallocate on close.";
 "添加" = "Add";
 "添加到快捷按钮" = "Add to Quick Buttons";
 "清理" = "Clean";

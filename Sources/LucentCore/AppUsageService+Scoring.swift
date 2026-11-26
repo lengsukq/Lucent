@@ -15,7 +15,7 @@ extension AppUsageService {
                 let ls = scoreLocked(for: lhs.id, now: now)
                 let rs = scoreLocked(for: rhs.id, now: now)
                 if abs(ls - rs) > 0.0001 { return ls > rs }
-                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+                return lhs.displayName.localizedStandardCompare(rhs.displayName) == .orderedAscending
             }
             return pinned + unpinned
         }

@@ -7,7 +7,7 @@ extension MCPServer {
         [
             schema(
                 "lucent_search_files",
-                "Read-only millisecond file search over Lucent's local verified LCNTIDX3 Everything index snapshot (opt-in: requires 'Allow lucent-mcp read-only file search' enabled in Lucent Settings -> General; respects user excluded paths and runs zero background daemons). Supports Everything DSL: `ext:swift;md`, `folder:`, `file:`, `video:`, `pic:`, `path:substr`, `!exclude`, and `A | B`.",
+                "Read-only millisecond file search over Lucent's local verified LCNTIDX4 Everything index snapshot (opt-in: requires 'Allow lucent-mcp read-only file search' enabled in Lucent Settings -> General; respects user excluded paths and runs zero background daemons). Supports Everything DSL: `ext:swift;md`, `folder:`, `file:`, `video:`, `pic:`, `path:substr`, `!exclude`, and `A | B`.",
                 [
                     "query": [
                         "type": "string",
@@ -43,7 +43,27 @@ extension MCPServer {
         }
         let limit = min(max(arguments["limit"] as? Int ?? 25, 1), 100)
 
-        guard let index = EverythingSnapshotStore.loadNewestValid(
+        let excludedPaths = prefs.excludedIndexPathSet
+        let preferredIndex: EverythingIndex? = {
+            let externals = VolumeInspector.externalVolumes()
+            let rootSetup = prefs.defaultEverythingScope.resolveFilteredRoots(
+                externals: externals, excludedPaths: excludedPaths
+            )
+            guard !rootSetup.allRoots.isEmpty else { return nil }
+            let scopeKey = PersistedEverythingScope.snapshotScopeKey(
+                scopeID: prefs.defaultEverythingScope.scopeID,
+                roots: rootSetup.allRoots,
+                excludedPaths: excludedPaths
+            )
+            return EverythingSnapshotStore.load(
+                scopeKey: scopeKey,
+                expectedRoots: rootSetup.allRoots,
+                maxAgeSeconds: 7 * 86_400,
+                cacheDirectory: customIndexCacheDirectory
+            )
+        }()
+
+        guard let index = preferredIndex ?? EverythingSnapshotStore.loadNewestValid(
             cacheDirectory: customIndexCacheDirectory,
             maxAgeSeconds: 7 * 86_400
         ) else {
@@ -51,20 +71,21 @@ extension MCPServer {
                 prettyJSON([
                     "ok": false,
                     "error": "index_snapshot_unavailable",
-                    "message": "No valid local LCNTIDX3 index snapshot found yet. Open Lucent File Search (⌥F) once to build the snapshot."
+                    "message": "No valid local LCNTIDX4 index snapshot found yet. Open Lucent File Search (⌥F) once to build the snapshot."
                 ]),
                 isError: true
             )
         }
 
-        let excludedSet = EverythingIndex.normalizedExcludedSet(prefs.excludedIndexPathSet)
-        let rawHits = index.search(queryText: query, limit: min(limit * 2, 200))
-        let filteredHits = rawHits.filter { hit in
-            excludedSet.isEmpty || !EverythingIndex.isPathExcluded(hit.url.standardizedFileURL.path, excludedPaths: excludedSet)
-        }.prefix(limit)
+        let hits = index.search(
+            queryText: query,
+            limit: limit,
+            excludedPaths: excludedPaths,
+            verifyExistence: true
+        )
 
         let formatter = ISO8601DateFormatter()
-        let items: [[String: Any]] = filteredHits.map { hit in
+        let items: [[String: Any]] = hits.map { hit in
             [
                 "name": hit.name,
                 "path": hit.url.path,

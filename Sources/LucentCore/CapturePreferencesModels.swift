@@ -166,3 +166,41 @@ public enum CaptureFileNameFormatter {
         return String(filtered).trimmingCharacters(in: CharacterSet(charactersIn: ". "))
     }
 }
+
+public enum CaptureSelfVisibilityPolicy {
+    public static func validWindowID(from rawWindowNumber: Int) -> UInt32? {
+        guard rawWindowNumber > 0, let id = UInt32(exactly: rawWindowNumber) else { return nil }
+        return id
+    }
+
+    public static func shouldIncludeInSnapList(
+        ownerPID: pid_t,
+        ownPID: pid_t,
+        windowLayer: Int,
+        windowID: UInt32,
+        excludeOwnWindows: Bool,
+        ignoredOwnWindowIDs: Set<UInt32> = [],
+        maxOwnWindowLayer: Int = 25
+    ) -> Bool {
+        if ownerPID == ownPID {
+            guard !excludeOwnWindows, !ignoredOwnWindowIDs.contains(windowID) else { return false }
+            return windowLayer >= 0 && windowLayer <= maxOwnWindowLayer
+        }
+        return windowLayer == 0
+    }
+
+    public static func shouldSuppressBackgroundWindows(
+        hideLucentDuringScreenshot: Bool,
+        isPinEditSession: Bool
+    ) -> Bool {
+        hideLucentDuringScreenshot && !isPinEditSession
+    }
+
+    public static func scrollingExcludedWindowIDs(
+        hideLucentDuringScreenshot: Bool,
+        allOwnWindowIDs: Set<UInt32>,
+        chromeWindowIDs: Set<UInt32>
+    ) -> Set<UInt32> {
+        hideLucentDuringScreenshot ? allOwnWindowIDs.union(chromeWindowIDs) : chromeWindowIDs
+    }
+}

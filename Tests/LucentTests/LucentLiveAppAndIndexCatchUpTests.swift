@@ -122,9 +122,9 @@ struct LucentLiveAppAndIndexCatchUpTests {
         try Data("old".utf8).write(to: transientFile)
         try Data("scratch".utf8).write(to: removableDir.appendingPathComponent("gone.tmp"))
 
-        let expectedEventId = max(EverythingFSEventWatcher.currentEventId(), 987_654_321)
-        let initialIndex = try EverythingIndex.build(rootURLs: [scanRoot], maxNodes: 5_000)
-            .withUpdatedEventId(expectedEventId)
+        let builtIndex = try EverythingIndex.build(rootURLs: [scanRoot], maxNodes: 5_000)
+        let expectedEventId = max(builtIndex.lastEventId + 100, 987_654_321)
+        let initialIndex = builtIndex.withUpdatedEventId(expectedEventId)
         #expect(initialIndex.search(queryText: "ephemeral_old.txt").count == 1)
 
         let scopeKey = "unit-reconcile"
@@ -194,21 +194,22 @@ struct LucentLiveAppAndIndexCatchUpTests {
         // When com.apple.FSEvents Mach IPC is available (outside strict seatbelt sandboxes), verify live stream too
         if EverythingFSEventWatcher.currentEventId() > 0 {
             let collector = DirtyBatchCollector()
-            let watcher = EverythingFSEventWatcher(roots: [scanRoot], debounceInterval: 0.1) { liveBatch in
+            let watcher = try #require(EverythingFSEventWatcher(roots: [scanRoot], debounceInterval: 0.1) { liveBatch in
                 collector.record(liveBatch)
-            }
-            defer { watcher?.stop() }
+            })
+            defer { watcher.stop() }
             try Data("v3".utf8).write(to: exportsDir.appendingPathComponent("stream_live_probe.txt"))
-            var liveCaptured: EverythingFSEventBatch?
-            for _ in 0..<25 {
-                if let b = collector.drain(), !b.directories.isEmpty {
-                    liveCaptured = b
-                    break
+            let expectedExportsPath = EverythingFSEventWatcher.canonicalKernelPath(exportsDir.path)
+            var accumulatedDirs: Set<String> = []
+            for _ in 0..<30 {
+                if let b = collector.drain() {
+                    accumulatedDirs.formUnion(b.directories)
+                    if accumulatedDirs.contains(expectedExportsPath) { break }
                 }
                 try await Task.sleep(for: .milliseconds(100))
             }
-            let validLive = try #require(liveCaptured)
-            let afterStream = merged.applyingFSEventDirectories(validLive.directories)
+            #expect(accumulatedDirs.contains(expectedExportsPath))
+            let afterStream = merged.applyingFSEventDirectories(accumulatedDirs)
             #expect(afterStream.search(queryText: "stream_live_probe.txt").count == 1)
         }
     }

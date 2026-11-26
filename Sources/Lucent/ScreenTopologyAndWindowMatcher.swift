@@ -4,111 +4,6 @@ import Foundation
 import LucentCore
 import LucentMedia
 @preconcurrency import ScreenCaptureKit
-import SwiftUI
-
-final class CaptureOverlayPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-}
-
-final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-}
-
-@MainActor
-final class SliceLazyEffectsCache: ObservableObject {
-    @Published private(set) var pixelatedByDisplay: [CGDirectDisplayID: CGImage] = [:]
-    @Published private(set) var blurredByDisplay: [CGDirectDisplayID: CGImage] = [:]
-
-    func ensurePixelated(for slice: ScreenDisplaySlice) -> CGImage? {
-        if let cached = pixelatedByDisplay[slice.displayID] { return cached }
-        let cell = max(8, Int(round(8 * slice.scale)))
-        guard let generated = ScreenshotCompositor.makePixelatedPreview(from: slice.image, cellPixelSize: cell) else {
-            return nil
-        }
-        pixelatedByDisplay[slice.displayID] = generated
-        return generated
-    }
-
-    func ensureBlurred(for slice: ScreenDisplaySlice) -> CGImage? {
-        if let cached = blurredByDisplay[slice.displayID] { return cached }
-        guard let generated = ScreenshotCompositor.makeBlurredPreview(from: slice.image, radius: Double(16.0 * slice.scale)) else {
-            return nil
-        }
-        blurredByDisplay[slice.displayID] = generated
-        return generated
-    }
-}
-
-struct ScreenDisplaySlice: Identifiable {
-    var id: CGDirectDisplayID { descriptor.displayID }
-    let descriptor: DisplaySliceDescriptor
-    let scDisplay: SCDisplay?
-    let appKitScreen: NSScreen
-    let image: CGImage
-
-    var displayID: CGDirectDisplayID { descriptor.displayID }
-    var cgFrame: CGRect { descriptor.cgFrame }
-    var canvasFrame: CGRect { descriptor.canvasFrame }
-    var scale: CGFloat { descriptor.scale }
-}
-
-@MainActor
-struct ScreenTopologySnapshot {
-    let layout: MultiDisplayLayout
-    let displays: [ScreenDisplaySlice]
-    let windows: [DetectedScreenWindow]
-    let effectsCache = SliceLazyEffectsCache()
-
-    var cgUnionBounds: CGRect { layout.cgUnionBounds }
-    var canvasBounds: CGRect { layout.canvasBounds }
-    var primaryScreenHeight: CGFloat { layout.primaryScreenHeight }
-    var maxScale: CGFloat { layout.maxScale }
-
-    var compositorSlices: [(canvasFrame: CGRect, scale: CGFloat, image: CGImage)] {
-        displays.map { ($0.canvasFrame, $0.scale, $0.image) }
-    }
-
-    var colorSampleSlices: [(canvasFrame: CGRect, image: CGImage)] {
-        displays.map { ($0.canvasFrame, $0.image) }
-    }
-
-    func canvasPoint(fromAppKitGlobal nsPt: NSPoint) -> CGPoint {
-        layout.canvasPoint(fromAppKitGlobal: nsPt)
-    }
-
-    func quartzGlobalPoint(fromCanvas pt: CGPoint) -> CGPoint {
-        CGPoint(x: pt.x + cgUnionBounds.minX, y: pt.y + cgUnionBounds.minY)
-    }
-
-    func canvasRect(fromQuartzGlobal rect: CGRect) -> CGRect {
-        layout.canvasRect(fromQuartzGlobal: rect).intersection(canvasBounds)
-    }
-
-    func appKitGlobalRect(fromCanvas rect: CGRect) -> NSRect {
-        layout.appKitGlobalRect(fromCanvas: rect)
-    }
-
-    func clampedPinRect(fromCanvas rect: CGRect) -> NSRect {
-        layout.clampedPinFrame(forAppKitSelection: layout.appKitGlobalRect(fromCanvas: rect))
-    }
-
-    func effectiveScale(forSelection rect: CGRect) -> CGFloat {
-        layout.effectiveScale(forSelection: rect)
-    }
-
-    func displaySlice(containingCanvasPoint pt: CGPoint) -> ScreenDisplaySlice? {
-        guard let desc = layout.slice(containingCanvasPoint: pt) else { return displays.first }
-        return displays.first { $0.displayID == desc.displayID }
-    }
-
-    func targetSlice(forSelection sel: CGRect, fallbackPoint: CGPoint) -> ScreenDisplaySlice? {
-        guard let desc = layout.targetSlice(forSelection: sel, fallbackPoint: fallbackPoint) else {
-            return displaySlice(containingCanvasPoint: fallbackPoint)
-        }
-        return displays.first { $0.displayID == desc.displayID }
-    }
-}
 
 @MainActor
 enum ScreenTopologyAndWindowMatcher {
@@ -121,8 +16,20 @@ enum ScreenTopologyAndWindowMatcher {
         return CGDirectDisplayID(num)
     }
 
+    private static func ownChromeWindowIDs(includeStatusBar: Bool) -> Set<CGWindowID> {
+        var ids = Set<CGWindowID>()
+        for win in NSApp?.windows ?? [] {
+            guard let id = CaptureSelfVisibilityPolicy.validWindowID(from: win.windowNumber) else { continue }
+            let cls = NSStringFromClass(type(of: win))
+            if win is CaptureOverlayPanel || cls.contains("MenuWindow") || (includeStatusBar && cls.contains("StatusBar")) {
+                ids.insert(id)
+            }
+        }
+        return ids
+    }
+
     @MainActor
-    static func captureSnapshot(includeOwnOverlayWindows: Bool = false) async throws -> ScreenTopologySnapshot {
+    static func captureSnapshot(excludeOwnWindows: Bool = true, includeCaptureOverlays: Bool = false) async throws -> ScreenTopologySnapshot {
         let nsScreens = NSScreen.screens
         guard !nsScreens.isEmpty else {
             throw LucentError.visionFailed(L10n.pick("未检测到可用显示器。", "No available display detected."))
@@ -133,7 +40,12 @@ enum ScreenTopologyAndWindowMatcher {
         }
 
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        let ownApps = includeOwnOverlayWindows ? [] : content.applications.filter { $0.processID == ownPID }
+        let shouldExcludeOwn = excludeOwnWindows && !includeCaptureOverlays
+        let ownApps = shouldExcludeOwn ? content.applications.filter { $0.processID == ownPID } : []
+        let ignoredCaptureIDs = (shouldExcludeOwn || includeCaptureOverlays) ? Set<CGWindowID>() : ownChromeWindowIDs(includeStatusBar: false)
+        let excludedCaptureWins = (!shouldExcludeOwn && !ignoredCaptureIDs.isEmpty)
+            ? content.windows.filter { ignoredCaptureIDs.contains($0.windowID) }
+            : []
 
         var matchedScreens: [(scDisplay: SCDisplay, screen: NSScreen, id: CGDirectDisplayID, scale: CGFloat)] = []
         for screen in nsScreens {
@@ -145,74 +57,74 @@ enum ScreenTopologyAndWindowMatcher {
             matchedScreens.append((firstDisp, nsScreens[0], firstDisp.displayID, max(nsScreens[0].backingScaleFactor, 1.0)))
         }
 
-        let layoutInputs = matchedScreens.map {
-            (displayID: $0.id, appKitFrame: $0.screen.frame, appKitVisibleFrame: $0.screen.visibleFrame, scale: $0.scale)
-        }
-        let layout = MultiDisplayLayout(screens: layoutInputs, mainDisplayID: CGMainDisplayID())
-
+        let layout = MultiDisplayLayout(
+            screens: matchedScreens.map { ($0.id, $0.screen.frame, $0.screen.visibleFrame, $0.scale) },
+            mainDisplayID: CGMainDisplayID()
+        )
         var slices: [ScreenDisplaySlice] = []
         slices.reserveCapacity(matchedScreens.count)
         for item in matchedScreens {
             guard let desc = layout.slices.first(where: { $0.displayID == item.id }) else { continue }
-            let filter = SCContentFilter(display: item.scDisplay, excludingApplications: ownApps, exceptingWindows: [])
+            let filter = ownApps.isEmpty
+                ? SCContentFilter(display: item.scDisplay, excludingWindows: excludedCaptureWins)
+                : SCContentFilter(display: item.scDisplay, excludingApplications: ownApps, exceptingWindows: [])
             let cfg = SCStreamConfiguration()
             cfg.width = max(2, Int(round(desc.cgFrame.width * desc.scale)))
             cfg.height = max(2, Int(round(desc.cgFrame.height * desc.scale)))
-            cfg.showsCursor = false
-            cfg.captureResolution = .best
+            cfg.showsCursor = false; cfg.captureResolution = .best
             let img = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: cfg)
-            slices.append(ScreenDisplaySlice(
-                descriptor: desc, scDisplay: item.scDisplay, appKitScreen: item.screen, image: img
-            ))
+            slices.append(ScreenDisplaySlice(descriptor: desc, scDisplay: item.scDisplay, appKitScreen: item.screen, image: img))
         }
-
         guard !slices.isEmpty else {
             throw LucentError.visionFailed(L10n.pick("显示器画面捕获为空。", "Captured display slices are empty."))
         }
 
-        let orderedWindows = includeOwnOverlayWindows ? [] : buildZOrderedWindows(
-            scWindows: content.windows, ownPID: ownPID,
-            cgUnion: layout.cgUnionBounds, canvasBounds: layout.canvasBounds
+        let ignoredSnapIDs = shouldExcludeOwn ? Set<CGWindowID>() : ownChromeWindowIDs(includeStatusBar: true)
+        let orderedWindows = includeCaptureOverlays ? [] : buildZOrderedWindows(
+            scWindows: content.windows, ownPID: ownPID, excludeOwnWindows: shouldExcludeOwn,
+            ignoredOwnWindowIDs: ignoredSnapIDs, cgUnion: layout.cgUnionBounds, canvasBounds: layout.canvasBounds
         )
         return ScreenTopologySnapshot(layout: layout, displays: slices, windows: orderedWindows)
     }
 
     static func buildZOrderedWindows(
-        scWindows: [SCWindow], ownPID: pid_t, cgUnion: CGRect, canvasBounds: CGRect
+        scWindows: [SCWindow], ownPID: pid_t, excludeOwnWindows: Bool,
+        ignoredOwnWindowIDs: Set<CGWindowID>, cgUnion: CGRect, canvasBounds: CGRect
     ) -> [DetectedScreenWindow] {
+        let maxOwnLayer = Int(CGWindowLevelForKey(.statusWindow))
         var scByID: [CGWindowID: SCWindow] = [:]
-        for w in scWindows where w.isOnScreen && w.windowLayer == 0 && w.owningApplication?.processID != ownPID {
-            scByID[w.windowID] = w
+        for w in scWindows where w.isOnScreen {
+            let pid = w.owningApplication?.processID ?? 0
+            if CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+                ownerPID: pid, ownPID: ownPID, windowLayer: w.windowLayer, windowID: w.windowID,
+                excludeOwnWindows: excludeOwnWindows, ignoredOwnWindowIDs: ignoredOwnWindowIDs, maxOwnWindowLayer: maxOwnLayer
+            ) { scByID[w.windowID] = w }
         }
         let rawInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         var result: [DetectedScreenWindow] = []
         var seen = Set<CGWindowID>()
-
-        for entry in rawInfo {
-            guard let layer = entry[kCGWindowLayer as String] as? Int, layer == 0,
-                  let pid = entry[kCGWindowOwnerPID as String] as? pid_t, pid != ownPID,
-                  let winIDNum = entry[kCGWindowNumber as String] as? UInt32 else { continue }
-            let alpha = (entry[kCGWindowAlpha as String] as? Double) ?? 1.0
-            guard alpha > 0.05 else { continue }
-            let owner = (entry[kCGWindowOwnerName as String] as? String) ?? ""
-            if ignoredOwnerNames.contains(owner) { continue }
-
-            let winID = CGWindowID(winIDNum)
-            guard let scWin = scByID[winID], seen.insert(winID).inserted else { continue }
-            let canvasRect = scWin.frame.offsetBy(dx: -cgUnion.minX, dy: -cgUnion.minY).intersection(canvasBounds)
-            guard !canvasRect.isNull, canvasRect.width >= 36, canvasRect.height >= 36 else { continue }
-            let finalOwner = scWin.owningApplication?.applicationName ?? owner
-            let title = scWin.title ?? (entry[kCGWindowName as String] as? String) ?? ""
-            result.append(DetectedScreenWindow(id: winID, ownerName: finalOwner, title: title, frame: canvasRect))
+        func appendWindow(_ scWin: SCWindow, fallbackOwner: String, fallbackTitle: String) {
+            let owner = scWin.owningApplication?.applicationName ?? fallbackOwner
+            guard !ignoredOwnerNames.contains(owner) && !ignoredOwnerNames.contains(fallbackOwner) else { return }
+            let rect = scWin.frame.offsetBy(dx: -cgUnion.minX, dy: -cgUnion.minY).intersection(canvasBounds)
+            guard !rect.isNull, rect.width >= 36, rect.height >= 36 else { return }
+            result.append(DetectedScreenWindow(id: scWin.windowID, ownerName: owner, title: scWin.title ?? fallbackTitle, frame: rect))
         }
-
-        for scWin in scWindows where scWin.isOnScreen && scWin.windowLayer == 0
-            && scWin.owningApplication?.processID != ownPID && !seen.contains(scWin.windowID) {
-            let owner = scWin.owningApplication?.applicationName ?? ""
-            guard !ignoredOwnerNames.contains(owner) else { continue }
-            let canvasRect = scWin.frame.offsetBy(dx: -cgUnion.minX, dy: -cgUnion.minY).intersection(canvasBounds)
-            guard !canvasRect.isNull, canvasRect.width >= 36, canvasRect.height >= 36 else { continue }
-            result.append(DetectedScreenWindow(id: scWin.windowID, ownerName: owner, title: scWin.title ?? "", frame: canvasRect))
+        for entry in rawInfo {
+            guard let layer = entry[kCGWindowLayer as String] as? Int,
+                  let pid = entry[kCGWindowOwnerPID as String] as? pid_t,
+                  let winIDNum = entry[kCGWindowNumber as String] as? UInt32 else { continue }
+            let winID = CGWindowID(winIDNum)
+            guard CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+                ownerPID: pid, ownPID: ownPID, windowLayer: layer, windowID: winID,
+                excludeOwnWindows: excludeOwnWindows, ignoredOwnWindowIDs: ignoredOwnWindowIDs, maxOwnWindowLayer: maxOwnLayer
+            ), seen.insert(winID).inserted else { continue }
+            let alpha = (entry[kCGWindowAlpha as String] as? Double) ?? 1.0
+            guard alpha > 0.05, let scWin = scByID[winID] else { continue }
+            appendWindow(scWin, fallbackOwner: (entry[kCGWindowOwnerName as String] as? String) ?? "", fallbackTitle: (entry[kCGWindowName as String] as? String) ?? "")
+        }
+        for scWin in scWindows where !seen.contains(scWin.windowID) && scByID[scWin.windowID] != nil {
+            appendWindow(scWin, fallbackOwner: "", fallbackTitle: "")
         }
         return result
     }

@@ -55,6 +55,7 @@ final class ScreenshotSessionState: ObservableObject {
     let mode: ScreenshotMode
     let previousSelectionRect: CGRect?
     let isPinEditSession: Bool
+    let hideLucentDuringScreenshot: Bool
 
     var screenBounds: CGRect { topology.canvasBounds }
     var windows: [DetectedScreenWindow] { topology.windows }
@@ -134,12 +135,14 @@ final class ScreenshotSessionState: ObservableObject {
         mode: ScreenshotMode,
         previousSelectionRect: CGRect? = nil,
         isPinEditSession: Bool = false,
+        hideLucentDuringScreenshot: Bool = true,
         initialAnnotations: [ScreenshotAnnotation] = []
     ) {
         self.topology = topology
         self.mode = mode
         self.previousSelectionRect = previousSelectionRect
         self.isPinEditSession = isPinEditSession
+        self.hideLucentDuringScreenshot = hideLucentDuringScreenshot
         let prefs = GeneralPreferences.load()
         let loadedSwatches = prefs.customAnnotationSwatchHexes.compactMap { AnnotationRGBColor(hex: $0) }
         let finalSwatches = loadedSwatches.count == 5 ? loadedSwatches : Array(AnnotationRGBColor.presets.prefix(5))

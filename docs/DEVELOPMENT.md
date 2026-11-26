@@ -19,12 +19,12 @@ Lucent/
 │   └── Lucent.entitlements           # Hardened Runtime 与 Apple 公证所需最小权限声明
 ├── Sources/
 │   ├── LucentFoundation/             # 零上层依赖基础库（本地化、双主题、签名检查、双轨密钥库、进程监管）
-│   ├── LucentSearch/                 # 全盘索引（EverythingIndex / LCNTIDX3 SHA-256 快照）与安全文件操作
+│   ├── LucentSearch/                 # 全盘索引（EverythingIndex / LCNTIDX4 SHA-256 快照）与安全文件操作
 │   ├── LucentMedia/                  # 多屏几何与分片 DPI 截图合成、离线 Vision OCR、视频零拷贝兼容与纯 Swift Markdown 解析
 │   ├── LucentSystem/                 # Mach/IOKit 系统监控、网络流量去向、物理鼠标平滑与热键冲突探测
 │   ├── LucentCore/                   # 插件引擎（Seatbelt 沙箱、自由窗口规格、宿主 TCC 代理、系统通知）、快捷脚本库、启动页编排、LumaLink、Backup v2 与全局搜索编排
 │   ├── Lucent/                       # SwiftUI + AppKit 菜单栏常驻、双内置主题界面、WKWebView 自由浮窗与 SCStream 区域录屏
-│   └── LucentMCP/                    # 原生 stdio JSON-RPC 2.0 MCP 服务 (lucent-mcp · 4 份规范与 20 项工具)
+│   └── LucentMCP/                    # 原生 stdio JSON-RPC 2.0 MCP 服务 (lucent-mcp · 4 份规范与 21 项工具)
 ├── Tests/
 │   ├── LucentTests/                  # 标准 Swift Testing 单元测试与检索/内存延迟基准套件 (swift test)
 │   └── LucentCheck/                  # 全链路系统自检与 lucent-mcp 真实子进程联调

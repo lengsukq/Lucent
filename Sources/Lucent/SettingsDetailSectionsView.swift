@@ -101,7 +101,7 @@ struct SettingsDetailSectionsView: View {
 
                 HStack(spacing: 10) {
                     aboutPillar("cpu", LiquidColors.accentPrimary, "Native Services First", "完全基于 SwiftUI、AppKit、Vision 与 CoreGraphics 原生构建，无任何外部依赖或浏览器壳。")
-                    aboutPillar("leaf.arrow.circlepath", .green, "最优内存自洁架构", "浮窗隐藏 30s 回收视图树，索引按需驻留 · 空闲 90s 卸载（保留 LCNTIDX3 快照），独立窗口关闭即销毁。")
+                    aboutPillar("leaf.arrow.circlepath", .green, "最优内存自洁架构", "浮窗隐藏 30s 回收视图树，索引按需驻留 · 空闲 90s 卸载（保留 LCNTIDX4 快照），独立窗口关闭即销毁。")
                     aboutPillar("shield.lefthalf.filled", .orange, "无感静默启动策略", "全部悬浮监控与顶部实时状态新装默认关闭，不安装任何 launchd 后台常驻守护进程。")
                 }
             }

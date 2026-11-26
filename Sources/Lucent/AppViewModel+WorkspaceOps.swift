@@ -217,6 +217,7 @@ extension AppViewModel {
         }
         refreshDirectory(pane: .left, forceRescan: true); refreshDirectory(pane: .right, forceRescan: true)
         refreshWorkspaceSubfolderSearch(for: .left); refreshWorkspaceSubfolderSearch(for: .right)
+        notifyLocalFileOperations(affectedDirs: affectedDirs)
         serviceMessage = message
     }
 

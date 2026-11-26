@@ -152,7 +152,7 @@
 | `lucent_upsert_script` | `title`（必选），`id`, `englishTitle`, `keywords`, `runtime`, `fileExtension`, `code`, `outputMode`, `iconSvg`, `icon`, `accentColor`, `hotKey`, `allowedScopes` 等 | 新建或更新单文件快捷脚本，支持 AI 自动中英命名与直接传入 `64×64` `<svg>` 矢量图标（`iconSvg`）落盘渲染，通知宿主实时热重载 |
 | `lucent_run_script_test` | `id`（必选），`query`, `clipboardText`, `selectedText`（可选） | 在 Seatbelt 沙箱中实测运行指定快捷脚本并返回 `exitCode`、`stdout`、`stderr` 与耗时 |
 | `lucent_remove_script` | `id`（必选） | 删除指定快捷脚本及其专属 SVG 图标并通知宿主刷新 |
-| `lucent_search_files` | `query`（必选），`limit`（可选，`1..100`） | **默认关闭、按需显式授权**的只读本地文件秒搜工具：直读经 `SHA-256` 校验的 `LCNTIDX3` `mmap` 快照，支持完整 Everything DSL（`ext:`/`folder:`/`path:`/`!`/`\|`），并严格遵守用户自定义忽略路径 |
+| `lucent_search_files` | `query`（必选），`limit`（可选，`1..100`） | **默认关闭、按需显式授权**的只读本地文件秒搜工具：直读经 `SHA-256` 校验的 `LCNTIDX4` `mmap` 快照，支持完整 Everything DSL（`ext:`/`folder:`/`path:`/`!`/`\|`），并严格遵守用户自定义忽略路径 |
 
 ## 五、自定义商店入驻与单插件地址自动识别规范 (`PluginStoreSniffer` & `lucent-registry.json`)
 

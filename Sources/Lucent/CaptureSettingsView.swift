@@ -141,6 +141,15 @@ struct CaptureSettingsView: View {
                 .fixedSize(horizontal: true, vertical: false)
 
                 Toggle(
+                    L10n.pick("截图时隐藏 Lucent 自身窗口（关闭后可截取 Lucent 界面与浮窗）", "Hide Lucent windows during screenshots (turn off to capture Lucent UI)"),
+                    isOn: Binding(
+                        get: { prefs.hideLucentDuringScreenshot },
+                        set: { val in viewModel.updateGeneralPreferences { $0.hideLucentDuringScreenshot = val } }
+                    )
+                )
+                .fixedSize(horizontal: true, vertical: false)
+
+                Toggle(
                     L10n.pick("有未保存标注时连按两次 Esc / 右键才退出（防手滑丢稿）", "Require double Esc / Right-click to discard unsaved annotations"),
                     isOn: Binding(
                         get: { prefs.confirmCancelAnnotatedCaptureWithDoublePress },

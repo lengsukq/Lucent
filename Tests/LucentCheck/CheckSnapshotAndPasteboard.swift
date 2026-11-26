@@ -143,13 +143,15 @@ func testV065PerformanceCompactIndexHeaderAndFormatters() throws {
     check(idx.search(queryText: "ext:pdf;md !pdf").count == 1, "ext + negated DSL works without stored ext strings")
 
     let saved = EverythingSnapshotStore.save(idx, scopeKey: "v065-perf", cacheDirectory: cacheDir)
-    check(saved != nil, "LCNTIDX3 snapshot saves cleanly")
+    check(saved != nil, "LCNTIDX4 snapshot saves cleanly")
     check(EverythingSnapshotStore.readHeaderMetadata(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir)?.nodeCount == 2, "O(1) readHeaderMetadata reads exact nodeCount")
-    check(EverythingSnapshotStore.load(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir)?.search(queryText: "report").count == 1, "LCNTIDX3 load preserves search fidelity")
+    check(EverythingSnapshotStore.load(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir)?.search(queryText: "report").count == 1, "LCNTIDX4 load preserves search fidelity")
     if let snapURL = saved, var rawSnap = try? Data(contentsOf: snapURL), rawSnap.count > 40 {
         rawSnap[rawSnap.count - 36] ^= 0xFF
         try? rawSnap.write(to: snapURL, options: .atomic)
-        check(EverythingSnapshotStore.load(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir) == nil, "LCNTIDX3 SHA-256 digest rejects corrupted snapshot bytes")
+        check(EverythingSnapshotStore.load(scopeKey: "v065-perf", expectedRoots: [subDir], cacheDirectory: cacheDir) == nil, "LCNTIDX4 SHA-256 digest rejects corrupted snapshot bytes")
+    } else {
+        check(false, "LCNTIDX4 snapshot file readable for tamper check")
     }
 
     check(FastFormatters.formatFileBytes(512) == "512 B" && FastFormatters.formatFileBytes(2_500_000) == "2.5 MB", "FastFormatters byte formatting")
@@ -161,5 +163,5 @@ func testV065PerformanceCompactIndexHeaderAndFormatters() throws {
     let manifest = PluginManifest(id: "fast-plug", name: "NetTool", version: "1.0.0", description: "Probe Ports", mode: .script, keywords: ["Net", "PORT"], entry: "run.sh")
     let desc = PluginDescriptor(id: "fast-plug", directoryURL: subDir, manifest: manifest, validationIssues: [])
     check(desc.nameLowercased == "nettool" && desc.keywordsLowercased == ["net", "port"], "PluginDescriptor precomputes lowercased fields")
-    print("[ok] v0.6.5 Compact IndexedNode (\(strideBytes)B) + LCNTIDX2 O(1) Header + UTF8 Query + FastFormatters")
+    print("[ok] v0.6.5 Compact IndexedNode (\(strideBytes)B) + LCNTIDX4 O(1) Header + UTF8 Query + FastFormatters")
 }

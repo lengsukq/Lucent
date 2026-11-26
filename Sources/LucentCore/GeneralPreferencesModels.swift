@@ -1,5 +1,6 @@
 import Foundation
 import LucentFoundation
+import LucentSearch
 
 public extension Notification.Name {
     static let lucentGeneralPreferencesDidChange = Notification.Name(LucentIdentifiers.scoped("generalPreferencesDidChange"))
@@ -60,6 +61,64 @@ public enum PersistedEverythingScope: Codable, Sendable, Hashable, Equatable {
             try c.encode(name, forKey: .name)
             try c.encode(mountPath, forKey: .mountPath)
         }
+    }
+
+    public var scopeID: String {
+        switch self {
+        case .allVolumes: "all"
+        case .quickUserFolders: "quick"
+        case .home: "home"
+        case .volume(_, let path): "vol:\(path)"
+        }
+    }
+
+    public func resolveFilteredRoots(
+        externals: [VolumeSummary],
+        excludedPaths: Set<String>
+    ) -> (fastRoots: [URL], slowRoots: [URL], allRoots: [URL]) {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser
+        let normalizedExcl = EverythingIndex.normalizedExcludedSet(excludedPaths)
+        var seen = Set<String>()
+
+        func filterValid(_ urls: [URL]) -> [URL] {
+            urls.filter { url in
+                let std = url.standardizedFileURL.path
+                guard !EverythingIndex.isPathExcluded(std, excludedPaths: normalizedExcl),
+                      seen.insert(std).inserted else { return false }
+                var isDir: ObjCBool = false
+                return fm.fileExists(atPath: std, isDirectory: &isDir) && isDir.boolValue
+            }
+        }
+
+        switch self {
+        case .allVolumes:
+            let nonSMB = externals.filter { $0.formatKind != .smb }
+            let fastRaw = [home] + nonSMB.filter { !VolumeInspector.isSlowOrRemoteVolume($0) }.map { URL(fileURLWithPath: $0.mountPath) }
+            let slowRaw = nonSMB.filter { VolumeInspector.isSlowOrRemoteVolume($0) }.map { URL(fileURLWithPath: $0.mountPath) }
+            let fast = filterValid(fastRaw)
+            let slow = filterValid(slowRaw)
+            return (fast, slow, fast + slow)
+        case .quickUserFolders:
+            let desktop = fm.urls(for: .desktopDirectory, in: .userDomainMask).first ?? home.appendingPathComponent("Desktop")
+            let downloads = fm.urls(for: .downloadsDirectory, in: .userDomainMask).first ?? home.appendingPathComponent("Downloads")
+            let documents = fm.urls(for: .documentDirectory, in: .userDomainMask).first ?? home.appendingPathComponent("Documents")
+            let roots = filterValid([desktop, downloads, documents])
+            return (roots, [], roots)
+        case .home:
+            let roots = filterValid([home])
+            return (roots, [], roots)
+        case .volume(_, let mountPath):
+            let roots = filterValid([URL(fileURLWithPath: mountPath)])
+            return (roots, [], roots)
+        }
+    }
+
+    public static func snapshotScopeKey(scopeID: String, roots: [URL], excludedPaths: Set<String>) -> String {
+        let joinedRoots = roots.map(\.standardizedFileURL.path).sorted().joined(separator: "|")
+        guard !excludedPaths.isEmpty else { return "\(scopeID)|\(joinedRoots)" }
+        let joinedExcl = excludedPaths.sorted().joined(separator: ";")
+        return "\(scopeID)|\(joinedRoots)|excl:\(joinedExcl)"
     }
 }
 

@@ -145,4 +145,74 @@ struct LucentCaptureFocusGuardTests {
         #expect(settingsWin.orderBackCalls == 1)
         #expect(settingsWin.isVisible)
     }
+
+    @Test("CaptureSelfVisibilityPolicy controls snap inclusion, background suppression & scrolling exclusions")
+    func selfVisibilityPolicyMatrix() {
+        // Safe NSWindow.windowNumber -> CGWindowID conversion never traps on sentinel/64-bit values
+        #expect(CaptureSelfVisibilityPolicy.validWindowID(from: -1) == nil)
+        #expect(CaptureSelfVisibilityPolicy.validWindowID(from: 0) == nil)
+        #expect(CaptureSelfVisibilityPolicy.validWindowID(from: 42) == 42)
+        #expect(CaptureSelfVisibilityPolicy.validWindowID(from: Int(UInt32.max)) == UInt32.max)
+        #expect(CaptureSelfVisibilityPolicy.validWindowID(from: Int(UInt32.max) + 1) == nil)
+        #expect(CaptureSelfVisibilityPolicy.validWindowID(from: Int.max) == nil)
+
+        let ownPID: pid_t = 4242
+        let externalPID: pid_t = 9001
+
+        // External windows: layer 0 only regardless of excludeOwnWindows
+        #expect(CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: externalPID, ownPID: ownPID, windowLayer: 0, windowID: 10, excludeOwnWindows: true
+        ))
+        #expect(CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: externalPID, ownPID: ownPID, windowLayer: 0, windowID: 10, excludeOwnWindows: false
+        ))
+        #expect(!CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: externalPID, ownPID: ownPID, windowLayer: 3, windowID: 11, excludeOwnWindows: false
+        ))
+
+        // Own windows when hideLucentDuringScreenshot = true: all excluded
+        #expect(!CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 0, windowID: 20, excludeOwnWindows: true
+        ))
+        #expect(!CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 3, windowID: 21, excludeOwnWindows: true
+        ))
+
+        // Own windows when hideLucentDuringScreenshot = false: normal, floating & statusBar widgets allowed,
+        // while menu/overlay layers and explicitly ignored chrome IDs stay excluded.
+        let ignoredChrome: Set<UInt32> = [25, 26]
+        #expect(CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 0, windowID: 20, excludeOwnWindows: false, ignoredOwnWindowIDs: ignoredChrome
+        ))
+        #expect(CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 3, windowID: 21, excludeOwnWindows: false, ignoredOwnWindowIDs: ignoredChrome
+        ))
+        #expect(CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 25, windowID: 22, excludeOwnWindows: false, ignoredOwnWindowIDs: ignoredChrome
+        ))
+        #expect(!CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 25, windowID: 25, excludeOwnWindows: false, ignoredOwnWindowIDs: ignoredChrome
+        ))
+        #expect(!CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 101, windowID: 27, excludeOwnWindows: false, ignoredOwnWindowIDs: ignoredChrome
+        ))
+        #expect(!CaptureSelfVisibilityPolicy.shouldIncludeInSnapList(
+            ownerPID: ownPID, ownPID: ownPID, windowLayer: 1000, windowID: 28, excludeOwnWindows: false, ignoredOwnWindowIDs: ignoredChrome
+        ))
+
+        // Background suppression only applies when hiding Lucent and not editing a pin
+        #expect(CaptureSelfVisibilityPolicy.shouldSuppressBackgroundWindows(hideLucentDuringScreenshot: true, isPinEditSession: false))
+        #expect(!CaptureSelfVisibilityPolicy.shouldSuppressBackgroundWindows(hideLucentDuringScreenshot: false, isPinEditSession: false))
+        #expect(!CaptureSelfVisibilityPolicy.shouldSuppressBackgroundWindows(hideLucentDuringScreenshot: true, isPinEditSession: true))
+
+        // Scrolling capture exclusions: all own windows when hiding, only chrome overlays when keeping Lucent visible
+        let allOwn: Set<UInt32> = [100, 101, 200, 201]
+        let chrome: Set<UInt32> = [200, 201, 202]
+        #expect(CaptureSelfVisibilityPolicy.scrollingExcludedWindowIDs(
+            hideLucentDuringScreenshot: true, allOwnWindowIDs: allOwn, chromeWindowIDs: chrome
+        ) == Set([100, 101, 200, 201, 202]))
+        #expect(CaptureSelfVisibilityPolicy.scrollingExcludedWindowIDs(
+            hideLucentDuringScreenshot: false, allOwnWindowIDs: allOwn, chromeWindowIDs: chrome
+        ) == chrome)
+    }
 }

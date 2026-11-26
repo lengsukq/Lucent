@@ -172,10 +172,10 @@ extension OverlayBentoHomeView {
             Button { openEditor(for: .dock, existing: slot.item) } label: {
                 Label(L10n.pick("编辑名称与图标…", "Edit Appearance…"), systemImage: "pencil")
             }
-            Button { viewModel.mutateHomeLayout { _ = $0.moveItem(id: slot.item.id, in: .dock, offset: -1) } } label: {
+            Button { viewModel.moveHomeDockSlot(slot, offset: -1) } label: {
                 Label(L10n.pick("左移", "Move Left"), systemImage: "arrow.left")
             }
-            Button { viewModel.mutateHomeLayout { _ = $0.moveItem(id: slot.item.id, in: .dock, offset: 1) } } label: {
+            Button { viewModel.moveHomeDockSlot(slot, offset: 1) } label: {
                 Label(L10n.pick("右移", "Move Right"), systemImage: "arrow.right")
             }
         }

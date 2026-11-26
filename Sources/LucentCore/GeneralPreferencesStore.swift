@@ -30,6 +30,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
     public var lastCaptureSavePanelDirectoryPath: String
     public var quickSaveCaptureWithoutDialog: Bool
     public var screenshotExcludeWindowShadow: Bool
+    public var hideLucentDuringScreenshot: Bool
     public var captureExportFormat: CaptureExportFormat
     public var captureFileNameTemplate: String
     public var captureDoubleClickAction: CaptureDoubleClickAction
@@ -71,6 +72,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         lastCaptureSavePanelDirectoryPath: String = "",
         quickSaveCaptureWithoutDialog: Bool = false,
         screenshotExcludeWindowShadow: Bool = false,
+        hideLucentDuringScreenshot: Bool = true,
         captureExportFormat: CaptureExportFormat = .png,
         captureFileNameTemplate: String = CaptureFileNameFormatter.defaultTemplate,
         captureDoubleClickAction: CaptureDoubleClickAction = .copyAndFinish,
@@ -109,6 +111,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
         self.lastCaptureSavePanelDirectoryPath = Self.normalizeSingleDirectoryPath(lastCaptureSavePanelDirectoryPath)
         self.quickSaveCaptureWithoutDialog = quickSaveCaptureWithoutDialog
         self.screenshotExcludeWindowShadow = screenshotExcludeWindowShadow
+        self.hideLucentDuringScreenshot = hideLucentDuringScreenshot
         self.captureExportFormat = captureExportFormat
         let trimmedTpl = captureFileNameTemplate.trimmingCharacters(in: .whitespacesAndNewlines)
         self.captureFileNameTemplate = trimmedTpl.isEmpty ? CaptureFileNameFormatter.defaultTemplate : trimmedTpl
@@ -152,6 +155,7 @@ public struct GeneralPreferences: Codable, Sendable, Hashable, Equatable {
             lastCaptureSavePanelDirectoryPath: (try? c.decodeIfPresent(String.self, forKey: .lastCaptureSavePanelDirectoryPath)) ?? "",
             quickSaveCaptureWithoutDialog: (try? c.decodeIfPresent(Bool.self, forKey: .quickSaveCaptureWithoutDialog)) ?? false,
             screenshotExcludeWindowShadow: (try? c.decodeIfPresent(Bool.self, forKey: .screenshotExcludeWindowShadow)) ?? false,
+            hideLucentDuringScreenshot: (try? c.decodeIfPresent(Bool.self, forKey: .hideLucentDuringScreenshot)) ?? true,
             captureExportFormat: (try? c.decodeIfPresent(CaptureExportFormat.self, forKey: .captureExportFormat)) ?? .png,
             captureFileNameTemplate: (try? c.decodeIfPresent(String.self, forKey: .captureFileNameTemplate)) ?? CaptureFileNameFormatter.defaultTemplate,
             captureDoubleClickAction: (try? c.decodeIfPresent(CaptureDoubleClickAction.self, forKey: .captureDoubleClickAction)) ?? .copyAndFinish,

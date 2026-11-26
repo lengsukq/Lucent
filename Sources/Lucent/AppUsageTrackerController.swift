@@ -63,6 +63,11 @@ final class AppUsageTrackerController: ObservableObject {
         revision &+= 1
     }
 
+    func setPinned(_ pinned: Bool, appID: String) {
+        service.setPinned(pinned, appID: appID)
+        revision &+= 1
+    }
+
     func isPinned(_ app: InstalledAppItem) -> Bool {
         service.isPinned(app.id)
     }
@@ -116,6 +121,9 @@ final class AppUsageTrackerController: ObservableObject {
             },
             observeWorkspaceApp(NSWorkspace.didLaunchApplicationNotification) { [weak self] url, isReg in
                 self?.handleDidLaunch(bundleURL: url, isRegular: isReg)
+            },
+            observeWorkspaceApp(NSWorkspace.didTerminateApplicationNotification) { [weak self] url, isReg in
+                self?.handleDidTerminate(bundleURL: url, isRegular: isReg)
             },
             observeWorkspaceEvent(NSWorkspace.willSleepNotification) { [weak self] in
                 self?.handleWillSleep()
@@ -205,6 +213,18 @@ final class AppUsageTrackerController: ObservableObject {
         guard isRegular, let bundleURL, !isOwnBundle(bundleURL) else { return }
         let appID = service.canonicalAppID(for: bundleURL)
         service.setAppRunning(true, appID: appID, at: Date())
+        revision &+= 1
+    }
+
+    private func handleDidTerminate(bundleURL: URL?, isRegular: Bool) {
+        guard let bundleURL, !isOwnBundle(bundleURL) else { return }
+        let appID = service.canonicalAppID(for: bundleURL)
+        service.setAppRunning(false, appID: appID)
+        if activeAppID == appID {
+            _ = settleActiveSession(at: Date())
+            activeAppID = nil
+            activeSessionStartedAt = nil
+        }
         revision &+= 1
     }
 

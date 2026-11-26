@@ -82,16 +82,25 @@ final class ScrollingCaptureController {
                 self.finishCancel()
                 return
             }
+            let hideSelf = GeneralPreferences.load().hideLucentDuringScreenshot
             let ownPID = ProcessInfo.processInfo.processIdentifier
-            let ownWinIDs = Set(content.windows.filter { $0.owningApplication?.processID == ownPID }.map(\.windowID))
+            let allOwnWinIDs = Set(content.windows.filter { $0.owningApplication?.processID == ownPID }.map(\.windowID))
+            var chromeWinIDs = Set(self.borderPanels.compactMap { CaptureSelfVisibilityPolicy.validWindowID(from: $0.windowNumber) })
+            if let hudID = self.hudPanel.flatMap({ CaptureSelfVisibilityPolicy.validWindowID(from: $0.windowNumber) }) { chromeWinIDs.insert(hudID) }
+            if let prevID = self.previewPanel.flatMap({ CaptureSelfVisibilityPolicy.validWindowID(from: $0.windowNumber) }) { chromeWinIDs.insert(prevID) }
+            let excludedWinIDs = CaptureSelfVisibilityPolicy.scrollingExcludedWindowIDs(
+                hideLucentDuringScreenshot: hideSelf,
+                allOwnWindowIDs: allOwnWinIDs,
+                chromeWindowIDs: chromeWinIDs
+            )
             let started = await ScreenRecordingStreamEngine.startHardwareStreamIfSingleSource(
                 canvasRect: selectionCanvasRect, lockedWindowID: lockedWindowID,
-                displaySpecs: displaySpecs, excludedWindowIDs: ownWinIDs,
+                displaySpecs: displaySpecs, excludedWindowIDs: excludedWinIDs,
                 fps: 15, maxDimension: 4096, showsCursor: false,
                 outputSize: (outW, outH), shareableContent: content
             )
             self.activeStream = started?.stream
-            let excludedWins = content.windows.filter { ownWinIDs.contains($0.windowID) }
+            let excludedWins = content.windows.filter { excludedWinIDs.contains($0.windowID) }
 
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(90))

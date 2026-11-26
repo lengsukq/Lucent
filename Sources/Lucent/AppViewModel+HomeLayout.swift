@@ -61,6 +61,18 @@ extension AppViewModel {
         }
     }
 
+    func findInstalledApp(matchingRawPath rawPath: String) -> InstalledAppItem? {
+        let stdPath = URL(fileURLWithPath: (rawPath as NSString).expandingTildeInPath).standardizedFileURL.path
+        if let direct = installedApps.first(where: { $0.id == stdPath }) {
+            return direct
+        }
+        let canonical = URL(fileURLWithPath: stdPath).resolvingSymlinksInPath().standardizedFileURL.path
+        guard canonical != stdPath else { return nil }
+        return installedApps.first {
+            $0.id == canonical || $0.url.resolvingSymlinksInPath().standardizedFileURL.path == canonical
+        }
+    }
+
     func resolvedHomeVisual(for item: HomeLaunchItem) -> HomeResolvedVisual {
         switch item.target {
         case .builtin(let action):
@@ -83,20 +95,22 @@ extension AppViewModel {
             )
         case .nativeApp(let path, _):
             let stdPath = URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL.path
-            let appURL = URL(fileURLWithPath: stdPath)
-            let matched = installedApps.first { $0.id == stdPath }
+            let matched = findInstalledApp(matchingRawPath: path)
+            let appURL = matched?.url ?? URL(fileURLWithPath: stdPath)
+            let exists = matched != nil || FileManager.default.fileExists(atPath: stdPath)
             let defaultName = matched?.displayName ?? appURL.deletingPathExtension().lastPathComponent
             let usageBadge = matched.flatMap { AppUsageTrackerController.shared.compactUsageBadge(for: $0) }.map { L10n.translate($0) }
+            let defaultSub = exists ? (usageBadge ?? stdPath) : L10n.pick("未安装或已移除的应用", "Missing application")
             return HomeResolvedVisual(
                 title: item.customTitle ?? defaultName,
-                subtitle: item.customSubtitle ?? usageBadge ?? stdPath,
-                symbolName: item.customIcon ?? "app.fill",
+                subtitle: item.customSubtitle ?? defaultSub,
+                symbolName: item.customIcon ?? (exists ? "app.fill" : "app.dashed"),
                 customIconURL: nil,
-                nativeAppURL: item.customIcon == nil ? appURL : nil,
+                nativeAppURL: (item.customIcon == nil && exists) ? appURL : nil,
                 localFileURL: nil, isDirectory: false,
-                accentColor: item.accentColor ?? "blue",
+                accentColor: item.accentColor ?? (exists ? "blue" : "slate"),
                 hotkeyHint: item.hotkeyHint,
-                badgeText: usageBadge
+                badgeText: exists ? usageBadge : L10n.pick("已移除", "Missing")
             )
         case .plugin(let pluginID, _):
             let plugin = plugins.first { $0.id == pluginID }
@@ -190,7 +204,13 @@ extension AppViewModel {
 
         for item in profile.dockItems.prefix(cap) {
             if case .nativeApp(let path, _) = item.target {
-                usedAppPaths.insert(URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL.path)
+                let std = URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL.path
+                usedAppPaths.insert(std)
+                let canonical = URL(fileURLWithPath: std).resolvingSymlinksInPath().standardizedFileURL.path
+                usedAppPaths.insert(canonical)
+                if let matched = findInstalledApp(matchingRawPath: path) {
+                    usedAppPaths.insert(matched.id)
+                }
             }
             slots.append(HomeResolvedDockSlot(
                 id: item.id, item: item, isExplicitlyPinned: true, visual: resolvedHomeVisual(for: item)
@@ -200,7 +220,10 @@ extension AppViewModel {
         if profile.dockFillMode == .smartHybrid, slots.count < cap {
             let remaining = cap - slots.count
             let ranked = AppUsageTrackerController.shared.rankedDockApps(from: installedApps, limit: cap + 12)
-            for app in ranked where !usedAppPaths.contains(app.id) {
+            for app in ranked {
+                let canonical = app.url.resolvingSymlinksInPath().standardizedFileURL.path
+                guard !usedAppPaths.contains(app.id), !usedAppPaths.contains(canonical) else { continue }
+                usedAppPaths.insert(app.id); usedAppPaths.insert(canonical)
                 let synth = HomeLaunchItem(id: "auto-app:\(app.id)", target: .nativeApp(path: app.id))
                 slots.append(HomeResolvedDockSlot(
                     id: synth.id, item: synth,

@@ -103,7 +103,9 @@ extension ScreenCaptureCoordinator {
     }
 
     private func recaptureCurrentOverlay(session: ScreenshotSessionState) async {
-        guard let fresh = try? await ScreenTopologyAndWindowMatcher.captureSnapshot(includeOwnOverlayWindows: true) else { return }
+        guard let fresh = try? await ScreenTopologyAndWindowMatcher.captureSnapshot(
+            excludeOwnWindows: false, includeCaptureOverlays: true
+        ) else { return }
         session.topology = fresh
         session.selectionRect = nil
         session.selectedWindow = nil

@@ -177,12 +177,14 @@ public enum LauncherEngine {
     }
 
     private static func appMatchScore(_ app: InstalledAppItem, needle: String) -> Int {
-        let lowerName = app.nameLowercased; let lowerEng = app.englishNameLowercased
-        if lowerName == needle || lowerEng == needle { return ScoreTier.appExact }
-        if lowerName.hasPrefix(needle) || lowerEng.hasPrefix(needle) { return ScoreTier.appPrefix }
+        let lowerName = app.nameLowercased
+        let lowerEng = app.englishNameLowercased
+        let stem = app.bundleStemLowercased
+        if lowerName == needle || lowerEng == needle || stem == needle { return ScoreTier.appExact }
+        if lowerName.hasPrefix(needle) || lowerEng.hasPrefix(needle) || stem.hasPrefix(needle) { return ScoreTier.appPrefix }
         if app.pinyinInitials.hasPrefix(needle) { return ScoreTier.appPinyinInitials }
         if app.fullPinyin.hasPrefix(needle) { return ScoreTier.appFullPinyinPrefix }
-        if lowerName.contains(needle) || lowerEng.contains(needle) { return ScoreTier.appContains }
+        if lowerName.contains(needle) || lowerEng.contains(needle) || stem.contains(needle) { return ScoreTier.appContains }
         if app.fullPinyin.contains(needle) || app.pinyinInitials.contains(needle)
             || (!app.altPinyinPool.isEmpty && app.altPinyinPool.contains(needle)) { return ScoreTier.appPinyinContains }
         return 0

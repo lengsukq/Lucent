@@ -115,6 +115,7 @@ struct HomeItemEditorSheet: View {
     }
 
     private func populateFromExisting() {
+        viewModel.refreshInstalledAppsIfNeeded()
         if form.selectedPluginID.isEmpty {
             form.selectedPluginID = viewModel.plugins.first(where: { $0.isValid })?.id ?? BuiltinPluginID.mos.rawValue
         }
@@ -156,14 +157,24 @@ struct HomeItemEditorSheet: View {
         if let err = HomeLaunchSecurity.validateTarget(target) {
             form.errorNote = err; return
         }
-        let itemID = context.existingItem?.id ?? "item-\(UUID().uuidString.prefix(8).lowercased())"
+        let existingID = context.existingItem?.id
+        let itemID: String = if let existingID, !existingID.hasPrefix("auto-app:"), HomeLaunchSecurity.isSafeIdentifier(existingID) {
+            existingID
+        } else {
+            "item-\(UUID().uuidString.prefix(8).lowercased())"
+        }
         let built = HomeLaunchItem(
             id: itemID, target: target,
             customTitle: form.customTitle, customSubtitle: form.customSubtitle,
             customIcon: form.customIcon, accentColor: form.accentColor,
             hotkeyHint: context.existingItem?.hotkeyHint
         )
-        viewModel.mutateHomeLayout { try? $0.upsertItem(built, in: context.destination) }
+        var saveError: String?
+        viewModel.mutateHomeLayout {
+            do { try $0.upsertItem(built, in: context.destination) }
+            catch { saveError = error.localizedDescription }
+        }
+        if let saveError { form.errorNote = saveError; return }
         onDismiss()
     }
 }

@@ -20,8 +20,47 @@ public enum DirectoryEntryEnumerator {
         "Library", "node_modules", ".git", ".build", "DerivedData", "Caches",
         ".Spotlight-V100", ".Trashes", "$RECYCLE.BIN", "System Volume Information",
         ".fseventsd", ".TemporaryItems", ".venv", "venv", "__pycache__", "Pods",
-        ".gradle", ".cargo", ".rustup", ".npm"
+        ".gradle", ".cargo", ".rustup", ".npm",
+        ".next", ".nuxt", ".turbo", ".parcel-cache", ".dart_tool", ".pub-cache",
+        ".mypy_cache", ".pytest_cache", ".ruff_cache", ".tox", ".eggs", "CMakeFiles"
     ]
+
+    private static let buildDirManifestNamesLower: Set<String> = [
+        "pubspec.yaml", "build.gradle", "build.gradle.kts",
+        "settings.gradle", "settings.gradle.kts", "package.swift", "cmakelists.txt"
+    ]
+
+    public static func shouldIgnoreDirectoryPath(
+        _ dirPath: String,
+        relativeTo rootPath: String,
+        skippedFolders: Set<String> = defaultSkippedFolders
+    ) -> Bool {
+        let cleanRoot = rootPath.count > 1 && rootPath.hasSuffix("/") ? String(rootPath.dropLast()) : rootPath
+        let cleanDir = dirPath.count > 1 && dirPath.hasSuffix("/") ? String(dirPath.dropLast()) : dirPath
+        if cleanDir == cleanRoot { return false }
+        let prefix = cleanRoot == "/" ? "/" : cleanRoot + "/"
+        guard cleanDir.hasPrefix(prefix) else { return true }
+
+        let relative = cleanDir.dropFirst(prefix.count)
+        var runningParent = cleanRoot
+        for rawSeg in relative.split(separator: "/", omittingEmptySubsequences: true) {
+            let seg = String(rawSeg)
+            if seg.hasPrefix(".") || skippedFolders.contains(seg) || EverythingIndex.hasPackageSuffix(seg) {
+                return true
+            }
+            if seg == "mod" && (runningParent == "/go/pkg" || runningParent.hasSuffix("/go/pkg")) {
+                return true
+            }
+            if seg == "target", isRegularFile(at: "\(runningParent)/Cargo.toml") {
+                return true
+            }
+            if seg == "build", hasBuildDirManifest(in: runningParent) {
+                return true
+            }
+            runningParent = runningParent == "/" ? "/\(seg)" : "\(runningParent)/\(seg)"
+        }
+        return false
+    }
 
     public static func enumerate(
         at path: String,
@@ -30,6 +69,7 @@ public enum DirectoryEntryEnumerator {
         skippedFolders: Set<String> = defaultSkippedFolders,
         scratchBuffer: UnsafeMutableRawBufferPointer? = nil
     ) -> [DirectoryChildEntry] {
+        let raw: [DirectoryChildEntry]
         if let bulk = enumerateViaGetAttrListBulk(
             at: path,
             includeHidden: includeHidden,
@@ -37,14 +77,57 @@ public enum DirectoryEntryEnumerator {
             skippedFolders: skippedFolders,
             scratchBuffer: scratchBuffer
         ) {
-            return bulk
+            raw = bulk
+        } else {
+            raw = enumerateViaReaddir(
+                at: path,
+                includeHidden: includeHidden,
+                excludedPaths: excludedPaths,
+                skippedFolders: skippedFolders
+            )
         }
-        return enumerateViaReaddir(
-            at: path,
-            includeHidden: includeHidden,
-            excludedPaths: excludedPaths,
-            skippedFolders: skippedFolders
-        )
+        guard !includeHidden else { return raw }
+        return filterProjectBuildArtifacts(raw, parentPath: path)
+    }
+
+    private static func isRegularFile(at path: String) -> Bool {
+        var st = stat()
+        return path.withCString { stat($0, &st) == 0 } && (st.st_mode & S_IFMT) == S_IFREG
+    }
+
+    private static func hasBuildDirManifest(in parentPath: String) -> Bool {
+        for manifest in ["pubspec.yaml", "build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "Package.swift", "CMakeLists.txt"] {
+            if isRegularFile(at: "\(parentPath)/\(manifest)") { return true }
+        }
+        return false
+    }
+
+    private static func filterProjectBuildArtifacts(
+        _ entries: [DirectoryChildEntry],
+        parentPath: String
+    ) -> [DirectoryChildEntry] {
+        var hasTargetDir = false
+        var hasBuildDir = false
+        var hasModDir = false
+        for entry in entries where entry.isDirectory {
+            if entry.name == "target" { hasTargetDir = true }
+            else if entry.name == "build" { hasBuildDir = true }
+            else if entry.name == "mod" { hasModDir = true }
+        }
+        guard hasTargetDir || hasBuildDir || hasModDir else { return entries }
+
+        let skipTarget = hasTargetDir && entries.contains { !$0.isDirectory && $0.name.lowercased() == "cargo.toml" }
+        let skipBuild = hasBuildDir && entries.contains { !$0.isDirectory && buildDirManifestNamesLower.contains($0.name.lowercased()) }
+        let skipGoMod = hasModDir && (parentPath.hasSuffix("/go/pkg") || parentPath == "/go/pkg")
+        guard skipTarget || skipBuild || skipGoMod else { return entries }
+
+        return entries.filter { entry in
+            guard entry.isDirectory else { return true }
+            if skipTarget && entry.name == "target" { return false }
+            if skipBuild && entry.name == "build" { return false }
+            if skipGoMod && entry.name == "mod" { return false }
+            return true
+        }
     }
 
     static func enumerateViaGetAttrListBulk(

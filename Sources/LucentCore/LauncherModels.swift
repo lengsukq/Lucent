@@ -8,6 +8,7 @@ public struct InstalledAppItem: Identifiable, Sendable, Hashable {
     public let englishName: String
     public let nameLowercased: String
     public let englishNameLowercased: String
+    public let bundleStemLowercased: String
     public let url: URL
     public let fullPinyin: String
     public let pinyinInitials: String
@@ -16,10 +17,12 @@ public struct InstalledAppItem: Identifiable, Sendable, Hashable {
     public init(name: String, englishName: String? = nil, url: URL) {
         self.id = url.standardizedFileURL.path
         self.name = name
-        let resolvedEnglish = englishName ?? url.deletingPathExtension().lastPathComponent
+        let stem = url.deletingPathExtension().lastPathComponent
+        let resolvedEnglish = englishName ?? stem
         self.englishName = resolvedEnglish
         self.nameLowercased = name.lowercased()
         self.englishNameLowercased = resolvedEnglish.lowercased()
+        self.bundleStemLowercased = stem.lowercased()
         self.url = url
         let (full, initials) = PinyinHelper.convert(name)
         self.fullPinyin = full

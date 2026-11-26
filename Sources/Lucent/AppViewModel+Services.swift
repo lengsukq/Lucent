@@ -8,6 +8,7 @@ extension AppViewModel {
         installHomeLayoutObservers()
         installScriptObservers()
         installAppDirectoryWatcher()
+        installWorkspaceLifecycleObservers()
         let tracker = AppUsageTrackerController.shared
         runtime.usageCancellable = tracker.$revision.sink { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -73,6 +74,7 @@ extension AppViewModel {
 
     func shutdownAllServicesAndTasks() {
         stopClipboardMonitor()
+        flushSnapshotSynchronouslyIfNeeded()
         workspaceRuntime.cancelAllTasks()
         workspaceRuntime.removeVolumeObservers()
         runtime.shutdownAll()
@@ -93,7 +95,8 @@ extension AppViewModel {
 
     private func runScreenCapture(mode: ScreenshotMode) {
         let preferredTargetApp = resolveOverlayTargetApp?()
-        isCapturingScreen = true; onHideOverlayRequest?()
+        isCapturingScreen = true
+        if generalPreferences.hideLucentDuringScreenshot { onHideOverlayRequest?() }
         Task {
             defer { self.isCapturingScreen = false }
             do {

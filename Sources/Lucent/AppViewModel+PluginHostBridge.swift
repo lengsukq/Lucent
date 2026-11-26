@@ -160,7 +160,7 @@ extension AppViewModel {
     private func performPluginInteractiveCapture() async throws -> PluginCapturedScreenFile {
         let preferredTargetApp = resolveOverlayTargetApp?()
         isCapturingScreen = true
-        onHideOverlayRequest?()
+        if generalPreferences.hideLucentDuringScreenshot { onHideOverlayRequest?() }
         defer { isCapturingScreen = false }
 
         let result = try await ScreenCaptureCoordinator.shared.capture(

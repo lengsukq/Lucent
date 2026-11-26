@@ -15,13 +15,13 @@
   - **统一 `⌘K` 上下文动作抽屉 (`OverlayActionCatalog` + `OverlayActionDrawerView`)**：对主浮窗中任意选中候选（文件、剪贴板图文/链接、计算结果、开发工具、短语、插件或应用）按 `⌘K` 即可在纯键盘流下呼出液态玻璃动作抽屉，一键串联原生动作（放进文件中转站、钉屏、离线 OCR、纯文本粘贴、钉到启动页）以及所有匹配 `accepts`/`acceptExtensions`/`acceptURLHosts` 的扩展插件与快捷脚本；
   - **应用启动与智能排序 (`AppUsageService`)**：融合前台活跃时长、启动频次 `log2` 加权、时间衰减与中文多音字拼音首字母检索；
   - **全候选点击频率与搜索词亲和排序 (`SearchAffinityStore`)**：覆盖应用、插件及子功能/索引词条、文件、快捷脚本、动态短语与静态系统命令，基于本地离线 Frecency（7 天半衰期）与精确/前缀搜索词亲和动态置顶高频点击项（隐私隔离剪贴板与计算结果，支持单项重置、一键清空与 `.lucentbackup` 自动备份）；
-  - **全盘与外置盘秒搜 (`EverythingIndex` + `DirectoryEntryEnumerator` + `LCNTIDX3`)**：基于 Darwin `getattrlistbulk` 批量目录扫描（不支持卷自动无缝回退 POSIX `opendir`/`readdir`）、带尾部 `SHA-256` 与无环父指针校验的 `mmap` 二进制快照、`FSEvents` 实时增量同步及用户自定义排除路径；
+  - **全盘与外置盘秒搜 (`EverythingIndex` + `DirectoryEntryEnumerator` + `LCNTIDX4`)**：基于 Darwin `getattrlistbulk` 批量目录扫描（不支持卷自动无缝回退 POSIX `opendir`/`readdir`）、带 `lastEventId`、尾部 `SHA-256` 与无环父指针校验的 `mmap` 二进制快照、`FSEvents` 实时增量同步及用户自定义排除路径；
   - **计算、10 维单位换算与离线开发工具箱 (`UnitAndCommandEngine` + `DevToolkitEngine` + `SnippetStore`)**：覆盖算式/百分比/科学函数、10 类中英自然单位换算、`;` 动态模板短语，以及离线时间戳、UUID、Base64/URL、JWT、JSON、哈希、色值与二维码生成；
   - **富媒体剪贴板历史 (`ClipboardMonitor` + `ClipboardHistoryStore`)**：支持文本、`#HEX`/`rgb` 色值、图片、GIF、视频与多文件固化快照，自动过滤密码管理器隐私标记与高危明文私钥，支持回车粘贴回原窗口、15 步删除撤回、容量/过期策略、应用黑名单、全量 `0600` 本地跨重启持久化（含临时媒体迁移至 `ClipboardHistory/`）以及按时间/媒体/分类/未收藏/全量一键批量清理。
 
 ## 3. 多显示器捕获、录屏与按需原生工具窗
 
-- **逐屏原生 DPI 截图标注、长截图、离线识字与钉图 (`⌥A` / `⌥O`)**：基于 `MultiDisplayLayout`、`ScreenCaptureKit` 与 `AccessibilityElementMatcher` 实现跨屏混合 DPI 无损分片捕获、独立窗口无遮挡圆角抠取（支持去阴影）与带超时保护的无障碍子控件级下钻捕捉（滚轮切换层级、`F` 全屏选区、`⇧⌘A` 再次截图）；内置完整可选中矢量二次编辑引擎（100 步快照撤销栈、内部拖拽优先绘制防误触通道、`⌫` 单删、滚轮调粗细、双击文本/序号重编辑），覆盖 11 种实时标注工具（含三次贝塞尔曲线箭头、带引出箭头的递增序号、`CIGaussianBlur` 局部高斯模糊、正片叠底荧光笔、二次贝塞尔平滑画笔、圆角控制柄、实/虚/点划线型、5 色自定义色板与渐变色预设）；支持 `NSPasteboardItemDataProvider` 延迟渲染剪贴板、`PNG / JPEG / HEIC` 多格式变量模板导出与访达定位轻提示、工具栏按钮按需显隐、手动滚动长截图拼接 (`ScrollingCaptureStitcher` 行哈希去重叠、固定头尾剔除、侧边实时缩略图与分段撤回)，以及支持空格键原地无损二次标注的 `1:1` 悬浮穿透钉图 (`PinWindowController`) 与离线 `Vision` 中英 OCR / 条码识别 (`OCRResultWindowController`)。
+- **逐屏原生 DPI 截图标注、长截图、离线识字与钉图 (`⌥A` / `⌥O`)**：基于 `MultiDisplayLayout`、`ScreenCaptureKit` 与 `AccessibilityElementMatcher` 实现跨屏混合 DPI 无损分片捕获、可切换是否隐藏 Lucent 自身窗口、独立窗口无遮挡圆角抠取（支持去阴影）与带超时保护的无障碍子控件级下钻捕捉（滚轮切换层级、`F` 全屏选区、`⇧⌘A` 再次截图）；内置完整可选中矢量二次编辑引擎（100 步快照撤销栈、内部拖拽优先绘制防误触通道、`⌫` 单删、滚轮调粗细、双击文本/序号重编辑），覆盖 11 种实时标注工具（含三次贝塞尔曲线箭头、带引出箭头的递增序号、`CIGaussianBlur` 局部高斯模糊、正片叠底荧光笔、二次贝塞尔平滑画笔、圆角控制柄、实/虚/点划线型、5 色自定义色板与渐变色预设）；支持 `NSPasteboardItemDataProvider` 延迟渲染剪贴板、`PNG / JPEG / HEIC` 多格式变量模板导出与访达定位轻提示、工具栏按钮按需显隐、手动滚动长截图拼接 (`ScrollingCaptureStitcher` 行哈希去重叠、固定头尾剔除、侧边实时缩略图与分段撤回)，以及支持空格键原地无损二次标注的 `1:1` 悬浮穿透钉图 (`PinWindowController`) 与离线 `Vision` 中英 OCR / 条码识别 (`OCRResultWindowController`)。
 - **零依赖流式区域 GIF 录屏 (`⌥G`)**：基于 `SCStream` + `ImageIO` 实现窗口吸附或跨屏选区 GIF89a 动图录制，支持静止帧差值压缩、灵动岛悬浮 HUD 控制与即录即粘。
 - **物理鼠标平滑滚轮 (`MosMouseService`)**：独立区分外接物理鼠标与苹果触控板，仅对外接鼠标应用 `120Hz` 平滑插值、方向反转、`⇧` 横向滚动、`⌥` 加速与应用级排除；未开启或静止时零事件回调开销。
 - **按需独立窗口与双栏文件工作台 (`⌥E` / `⌥M` / `⌥N`)**：提供零 `WKWebView` 原生 Markdown/代码阅读器、只读看图窗、支持 `'hev1'` 零拷贝硬解与同目录连播的 4K 影院播放器、双栏多选框选与只读 NTFS 护航的文件工作台、贴边自适应系统脉搏监控窗 (`⌥M`)、免 Root `nettop` 进程网络去向监控 (`⌥N`) 与分桶缓存清理。
@@ -36,7 +36,7 @@
   - **窗口分屏与多屏工作区 (`windowControl` + `window-snap`)**：新增宿主代申辅助功能 TCC 的受控 `windowControl` 桥接与 `WindowSnapHUD` 原生液态玻璃反馈浮窗，提供半屏/三分屏/四象限/黄金居中/跨屏瞬移、分窗口撤销栈以及支持多显示器归一化比例适配、外接屏断开主屏折叠与可选自动拉起应用的多屏工作区快照恢复；
   - **文件中转站与一键音频组合**：中转站采用原生液态玻璃浮窗（`RoundedGlassContainerView` + `DoubleSpecularBorder`），支持左/右/顶部三向边缘磁吸贴边隐藏、120fps 夹紧拖拽与磁吸流光预览、悬停/拖入自动滑出、右键菜单与可选「拖出即移出」及跨重启会话恢复，条目由宿主长期保留并校验源文件身份；音频组合采用无边框双主题液态玻璃悬浮控制台（支持靠边胶囊收起与点击设备卡直切单个扬声器/麦克风），通过 Core Audio 回读核验并在部分失败时自动恢复，配合原生液态玻璃 HUD 反馈；
   - 支持应用与插件更新检查、含 `LZFSE` 压缩与可选口令密钥迁移的 `.lucentbackup` v2 归档及 HTTPS WebDAV 云端自动轮转同步；
-  - 安装包内置零外部依赖 `lucent-mcp` 二进制，暴露 4 份规范资源与 21 项工具供 AI 客户端直接创建脚本、脚手架开发插件、编排启动面板，并在用户显式开启「设置 › 通用 › 允许 `lucent-mcp` 离线检索」后只读检索本地 `LCNTIDX3` 文件快照。
+  - 安装包内置零外部依赖 `lucent-mcp` 二进制，暴露 4 份规范资源与 21 项工具供 AI 客户端直接创建脚本、脚手架开发插件、编排启动面板，并在用户显式开启「设置 › 通用 › 允许 `lucent-mcp` 离线检索」后只读检索本地 `LCNTIDX4` 文件快照。
 
 ## 5. 当前已知运行约束
 

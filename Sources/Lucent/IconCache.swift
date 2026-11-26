@@ -13,6 +13,7 @@ final class IconCache {
         c.totalCostLimit = 12 * 1024 * 1024
         return c
     }()
+    private var appIconKeys: Set<String> = []
 
     private init() {}
 
@@ -27,7 +28,8 @@ final class IconCache {
     }
 
     func appIcon(for url: URL) -> NSImage {
-        let key = "app:\(url.path)" as NSString
+        let keyString = "app:\(url.path)"
+        let key = keyString as NSString
         if let hit = cache.object(forKey: key) {
             return hit
         }
@@ -35,8 +37,16 @@ final class IconCache {
             let raw = NSWorkspace.shared.icon(forFile: url.path)
             return Self.rasterize(raw, pointSize: 38)
         }
+        appIconKeys.insert(keyString)
         cache.setObject(rendered.image, forKey: key, cost: rendered.costBytes)
         return rendered.image
+    }
+
+    func invalidateAppIcons() {
+        for key in appIconKeys {
+            cache.removeObject(forKey: key as NSString)
+        }
+        appIconKeys.removeAll()
     }
 
     func fileIcon(isDirectory: Bool, extensionLowercased ext: String) -> NSImage {
@@ -61,6 +71,7 @@ final class IconCache {
     }
 
     func clearAll() {
+        appIconKeys.removeAll()
         cache.removeAllObjects()
     }
 

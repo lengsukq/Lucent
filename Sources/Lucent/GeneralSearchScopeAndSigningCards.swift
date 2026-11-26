@@ -70,7 +70,7 @@ struct GeneralSearchScopeCardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L10n.pick("允许 lucent-mcp 离线检索本地文件索引（默认关闭）", "Allow lucent-mcp read-only file search (off by default)"))
                         .font(.caption.weight(.semibold))
-                    Text(L10n.pick("开启后，已接入的 AI 助手可调用 lucent_search_files 只读检索本地 LCNTIDX3 快照，并严格遵守上方忽略路径。", "Lets connected AI agents call lucent_search_files against the local LCNTIDX3 snapshot while respecting excluded paths above."))
+                    Text(L10n.pick("开启后，已接入的 AI 助手可调用 lucent_search_files 只读检索本地 LCNTIDX4 快照，并严格遵守上方忽略路径。", "Lets connected AI agents call lucent_search_files against the local LCNTIDX4 snapshot while respecting excluded paths above."))
                         .font(.caption2).foregroundStyle(LiquidColors.textSecondary)
                 }
             }

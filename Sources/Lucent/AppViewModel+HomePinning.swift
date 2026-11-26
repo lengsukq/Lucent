@@ -19,11 +19,14 @@ extension AppViewModel {
             executeHomeBuiltinAction(action)
         case .nativeApp(let path, _):
             let stdPath = URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL.path
-            if let matched = installedApps.first(where: { $0.id == stdPath }) {
+            if let matched = findInstalledApp(matchingRawPath: path) {
                 launchApp(matched)
-            } else {
+            } else if FileManager.default.fileExists(atPath: stdPath) {
                 NSWorkspace.shared.open(URL(fileURLWithPath: stdPath))
                 if !isOverlayPinned { onHideOverlayRequest?() }
+            } else {
+                let name = URL(fileURLWithPath: stdPath).deletingPathExtension().lastPathComponent
+                serviceMessage = L10n.pick("未找到应用「\(name)」（可能已卸载或移动）", "App \"\(name)\" not found (may have been removed)")
             }
         case .plugin(let pluginID, let behavior):
             guard let plugin = plugins.first(where: { $0.id == pluginID }) else {
@@ -149,7 +152,7 @@ extension AppViewModel {
         let vis = resolvedHomeVisual(for: item)
         mutateHomeLayout { try? $0.upsertItem(item, in: destination, shelfTitle: shelfTitle) }
         if case .dock = destination, case .nativeApp(let path, _) = item.target {
-            AppUsageService.shared.setPinned(true, appID: path)
+            AppUsageTrackerController.shared.setPinned(true, appID: path)
         }
         let destLabel: String = switch destination {
         case .bento: L10n.pick("Bento 磁贴区", "Bento Tiles")
@@ -164,15 +167,26 @@ extension AppViewModel {
     func toggleHomeDockSlotPin(_ slot: HomeResolvedDockSlot) {
         if slot.isExplicitlyPinned {
             mutateHomeLayout { _ = $0.removeItem(id: slot.item.id, from: .dock) }
-            if case .nativeApp(let path, _) = slot.item.target { AppUsageService.shared.setPinned(false, appID: path) }
+            if case .nativeApp(let path, _) = slot.item.target { AppUsageTrackerController.shared.setPinned(false, appID: path) }
             serviceMessage = L10n.pick("已从混合高频坞取消钉选「\(slot.visual.title)」", "Unpinned \"\(slot.visual.title)\"")
         } else {
             var copy = slot.item
             if copy.id.hasPrefix("auto-app:") { copy.id = "dock-app-\(UUID().uuidString.prefix(6).lowercased())" }
             mutateHomeLayout { try? $0.upsertItem(copy, in: .dock) }
-            if case .nativeApp(let path, _) = copy.target { AppUsageService.shared.setPinned(true, appID: path) }
+            if case .nativeApp(let path, _) = copy.target { AppUsageTrackerController.shared.setPinned(true, appID: path) }
             serviceMessage = L10n.pick("已将「\(slot.visual.title)」固定到混合高频坞", "Pinned \"\(slot.visual.title)\" to Dock")
         }
+    }
+
+    func moveHomeDockSlot(_ slot: HomeResolvedDockSlot, offset: Int) {
+        if slot.item.id.hasPrefix("auto-app:") {
+            if case .nativeApp(let path, _) = slot.item.target,
+               let app = findInstalledApp(matchingRawPath: path) {
+                AppUsageTrackerController.shared.movePin(app, delta: offset)
+            }
+            return
+        }
+        mutateHomeLayout { _ = $0.moveItem(id: slot.item.id, in: .dock, offset: offset) }
     }
 
     func removeLegacyOrHomeShelfItem(_ item: HomeLaunchItem, shelfID: String) {

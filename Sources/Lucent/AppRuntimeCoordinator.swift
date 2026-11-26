@@ -89,28 +89,47 @@ final class OverlayAndIndexRuntimeState {
 
     var searchTask: Task<Void, Never>?
     var everythingIndexTask: Task<Void, Never>?
+    var everythingIndexTaskToken = UUID()
     var fsEventApplyTask: Task<Void, Never>?
+    var fsEventApplyToken = UUID()
+    var reconcileToken = UUID()
+    var isReconcilingIndex: Bool = false
+    var needsWakeReconcile: Bool = false
     var pendingFSEventDirs: Set<String> = []
     var pendingRecursiveFSEventDirs: Set<String> = []
     var pendingLatestEventId: UInt64 = 0
+    var pendingEventIdsWrapped: Bool = false
+    var inFlightFSEventDirs: Set<String> = []
+    var inFlightRecursiveFSEventDirs: Set<String> = []
     var idleDirtyDirectories: Set<String> = []
     var idleDirtyRecursiveDirectories: Set<String> = []
+    var activeIndexScopeKey: String?
     var watchedIndexScopeKey: String?
     var reconciledColdScopeKeys: Set<String> = []
+    var indexContentRevision: UInt64 = 0
+    var hasUnsavedIndexChanges: Bool = false
 
     var previewTask: Task<Void, Never>?
     var hashTask: Task<Void, Never>?
     var indexUnloadTask: Task<Void, Never>?
     var queryIdleClearTask: Task<Void, Never>?
     var snapshotSaveTask: Task<Void, Never>?
+    var snapshotSaveToken = UUID()
     var pluginRunTask: Task<Void, Never>?
     private(set) var activePluginRunToken = UUID()
     var backgroundPluginTasks: [String: Task<Void, Never>] = [:]
 
     var appDirectoryWatcher: EverythingFSEventWatcher?
+    var homeDirVnodeSource: DispatchSourceFileSystemObject?
     var appRefreshTask: Task<Void, Never>?
+    var appRefreshToken = UUID()
+    var appRefreshPending: Bool = false
+    var appRefreshPendingForce: Bool = false
+    var appRefreshPendingInvalidateIcons: Bool = false
     var lastAppsFingerprint: UInt64 = 0
     var watchedAppRootPaths: [String] = []
+    var knownAppCanonicalPaths: Set<String> = []
+    var workspaceLifecycleObservers: [NSObjectProtocol] = []
 
     var hotKeyBannerCancelAction: (() -> Void)?
     var hotKeyBannerDismissTask: Task<Void, Never>?
@@ -141,25 +160,47 @@ final class OverlayAndIndexRuntimeState {
         fsEventWatcher?.stop()
         fsEventWatcher = nil
         watchedIndexScopeKey = nil
+        reconcileToken = UUID()
+        fsEventApplyToken = UUID()
+        isReconcilingIndex = false
+        needsWakeReconcile = false
         fsEventApplyTask?.cancel()
         fsEventApplyTask = nil
         pendingFSEventDirs.removeAll()
         pendingRecursiveFSEventDirs.removeAll()
         pendingLatestEventId = 0
+        pendingEventIdsWrapped = false
+        inFlightFSEventDirs.removeAll()
+        inFlightRecursiveFSEventDirs.removeAll()
         idleDirtyDirectories.removeAll()
         idleDirtyRecursiveDirectories.removeAll()
+        reconciledColdScopeKeys.removeAll()
         if cancelPendingSave {
+            snapshotSaveToken = UUID()
             snapshotSaveTask?.cancel()
             snapshotSaveTask = nil
+            hasUnsavedIndexChanges = false
         }
     }
 
     func stopAppWatcherAndTasks() {
         appDirectoryWatcher?.stop()
         appDirectoryWatcher = nil
+        homeDirVnodeSource?.cancel()
+        homeDirVnodeSource = nil
         watchedAppRootPaths.removeAll()
+        appRefreshToken = UUID()
         appRefreshTask?.cancel()
         appRefreshTask = nil
+        appRefreshPending = false
+        appRefreshPendingForce = false
+        appRefreshPendingInvalidateIcons = false
+    }
+
+    func removeWorkspaceLifecycleObservers() {
+        let center = NSWorkspace.shared.notificationCenter
+        for obs in workspaceLifecycleObservers { center.removeObserver(obs) }
+        workspaceLifecycleObservers.removeAll()
     }
 
     func stopPluginWatcherAndTasks() {
@@ -194,6 +235,7 @@ final class OverlayAndIndexRuntimeState {
     func shutdownAll() {
         removeHomeLayoutObserver()
         removeScriptObservers()
+        removeWorkspaceLifecycleObservers()
         stopAppWatcherAndTasks()
         stopPluginWatcherAndTasks()
         stopIndexWatcher(cancelPendingSave: true)

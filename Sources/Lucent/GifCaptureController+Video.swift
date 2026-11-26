@@ -47,8 +47,8 @@ extension GifCaptureController {
         }
         hudPanel = GifHUDPanel.present(near: appKitRegion, visibleFrame: targetSlice.appKitScreen.visibleFrame, controller: self)
 
-        var excludedIDs = Set(borderPanels.map { CGWindowID($0.windowNumber) })
-        if let hudID = hudPanel.map({ CGWindowID($0.windowNumber) }) { excludedIDs.insert(hudID) }
+        var excludedIDs = Set(borderPanels.compactMap { CaptureSelfVisibilityPolicy.validWindowID(from: $0.windowNumber) })
+        if let hudID = hudPanel.flatMap({ CaptureSelfVisibilityPolicy.validWindowID(from: $0.windowNumber) }) { excludedIDs.insert(hudID) }
         let opts = videoOptions
 
         captureTask = Task { [weak self] in

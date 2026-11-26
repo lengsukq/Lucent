@@ -56,8 +56,8 @@ public struct EverythingIndex: Sendable {
         self.lastEventId = lastEventId
     }
 
-    public func withUpdatedEventId(_ eventId: UInt64) -> EverythingIndex {
-        guard eventId > lastEventId else { return self }
+    public func withUpdatedEventId(_ eventId: UInt64, allowReset: Bool = false) -> EverythingIndex {
+        guard allowReset ? (eventId != lastEventId) : (eventId > lastEventId) else { return self }
         return EverythingIndex(
             rootURLs: rootURLs,
             nodes: nodes,
@@ -71,7 +71,7 @@ public struct EverythingIndex: Sendable {
         ".app", ".framework", ".bundle", ".xcodeproj", ".xcworkspace", ".playground", ".photoslibrary"
     ].map { Array($0.utf8) }
 
-    private static let highPriorityUserFolders: Set<String> = [
+    static let highPriorityUserFolders: Set<String> = [
         "Desktop", "Downloads", "Pictures", "Movies", "Music"
     ]
 
@@ -114,6 +114,7 @@ public struct EverythingIndex: Sendable {
         includeHidden: Bool = false,
         excludedPaths: Set<String> = []
     ) throws -> EverythingIndex {
+        let scanStartedAt = Date()
         let baselineEventId = EverythingFSEventWatcher.currentEventId()
         let normalizedExclusions = normalizedExcludedSet(excludedPaths)
         var seenPaths = Set<String>()
@@ -126,7 +127,7 @@ public struct EverythingIndex: Sendable {
         }
         guard !validRoots.isEmpty else {
             return EverythingIndex(
-                rootURLs: [], nodes: [], builtAt: Date(), reachedNodeLimit: false, lastEventId: baselineEventId
+                rootURLs: [], nodes: [], builtAt: scanStartedAt, reachedNodeLimit: false, lastEventId: baselineEventId
             )
         }
 
@@ -202,25 +203,27 @@ public struct EverythingIndex: Sendable {
         return EverythingIndex(
             rootURLs: validRoots,
             nodes: nodes,
-            builtAt: Date(),
+            builtAt: scanStartedAt,
             reachedNodeLimit: reachedLimit,
             lastEventId: baselineEventId
         )
     }
 
     public func merging(_ other: EverythingIndex) -> EverythingIndex {
-        guard !other.nodes.isEmpty else { return self }
+        guard !other.rootURLs.isEmpty || !other.nodes.isEmpty else { return self }
         let rootOffset = UInt16(rootURLs.count)
         let nodeOffset = Int32(nodes.count)
         var combinedNodes = nodes
-        combinedNodes.reserveCapacity(nodes.count + other.nodes.count)
-        for node in other.nodes {
-            combinedNodes.append(IndexedNode(
-                parentID: node.parentID >= 0 ? node.parentID + nodeOffset : -1,
-                rootIndex: node.rootIndex + rootOffset,
-                isDirectory: node.isDirectory,
-                name: node.name
-            ))
+        if !other.nodes.isEmpty {
+            combinedNodes.reserveCapacity(nodes.count + other.nodes.count)
+            for node in other.nodes {
+                combinedNodes.append(IndexedNode(
+                    parentID: node.parentID >= 0 ? node.parentID + nodeOffset : -1,
+                    rootIndex: node.rootIndex + rootOffset,
+                    isDirectory: node.isDirectory,
+                    name: node.name
+                ))
+            }
         }
         let mergedEventId = (lastEventId > 0 && other.lastEventId > 0)
             ? min(lastEventId, other.lastEventId)
@@ -228,7 +231,7 @@ public struct EverythingIndex: Sendable {
         return EverythingIndex(
             rootURLs: rootURLs + other.rootURLs,
             nodes: combinedNodes,
-            builtAt: Date(),
+            builtAt: min(builtAt, other.builtAt),
             reachedNodeLimit: reachedNodeLimit || other.reachedNodeLimit,
             lastEventId: mergedEventId
         )

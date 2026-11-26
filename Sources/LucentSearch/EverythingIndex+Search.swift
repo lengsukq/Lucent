@@ -9,10 +9,19 @@ public extension EverythingIndex {
         let nameLength: Int
     }
 
-    func search(queryText: String, limit: Int = 300) -> [EverythingSearchHit] {
+    func search(
+        queryText: String,
+        limit: Int = 300,
+        excludedPaths: Set<String> = [],
+        verifyExistence: Bool = false
+    ) -> [EverythingSearchHit] {
         guard limit > 0, !nodes.isEmpty else { return [] }
         let trimmed = queryText.trimmingCharacters(in: .whitespacesAndNewlines)
         let homePath = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+        let normalizedExcl: Set<String> = excludedPaths.isEmpty ? [] : {
+            let base = Self.normalizedExcludedSet(excludedPaths)
+            return base.union(base.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().standardizedFileURL.path })
+        }()
         var relParentCache: [Int32: String] = [:]
 
         func cachedRelativeParent(_ parentID: Int32) -> String {
@@ -23,13 +32,22 @@ public extension EverythingIndex {
             return resolved
         }
 
+        func isExcludedNode(_ node: IndexedNode, relParent: String) -> Bool {
+            guard !normalizedExcl.isEmpty else { return false }
+            let url = resolveURL(for: node, relativeParent: relParent)
+            let std = url.standardizedFileURL.path
+            if Self.isPathExcluded(std, excludedPaths: normalizedExcl) { return true }
+            let res = url.resolvingSymlinksInPath().standardizedFileURL.path
+            return res != std && Self.isPathExcluded(res, excludedPaths: normalizedExcl)
+        }
+
         if trimmed.isEmpty {
-            return makeInitialHits(limit: limit, homePath: homePath, relParentResolver: cachedRelativeParent)
+            return makeInitialHits(limit: limit, homePath: homePath, relParentResolver: cachedRelativeParent, isExcluded: isExcludedNode, verifyExistence: verifyExistence)
         }
 
         let query = EverythingQuery.parse(trimmed)
         if query.isEmpty {
-            return makeInitialHits(limit: limit, homePath: homePath, relParentResolver: cachedRelativeParent)
+            return makeInitialHits(limit: limit, homePath: homePath, relParentResolver: cachedRelativeParent, isExcluded: isExcludedNode, verifyExistence: verifyExistence)
         }
 
         if let rankNeedle = query.primaryPositiveTextNeedle {
@@ -62,6 +80,7 @@ public extension EverythingIndex {
                     }
                 )
                 if !matched { continue }
+                if !normalizedExcl.isEmpty && isExcludedNode(node, relParent: cachedRelativeParent(node.parentID)) { continue }
 
                 let rank = max(1, rankNeedle.matchRank(in: node.name, allowPinyin: canTryPinyin))
                 let nameLen = node.name.utf8.count
@@ -93,10 +112,13 @@ public extension EverythingIndex {
 
             var hits: [EverythingSearchHit] = []
             hits.reserveCapacity(min(limit, merged.count))
-            for item in merged.prefix(limit) {
+            for item in merged {
                 let node = nodes[item.nodeID]
                 let relParent = cachedRelativeParent(node.parentID)
-                hits.append(makeHit(nodeID: item.nodeID, for: node, relParent: relParent, homePath: homePath))
+                if let hit = makeHit(nodeID: item.nodeID, for: node, relParent: relParent, homePath: homePath, verifyExistence: verifyExistence) {
+                    hits.append(hit)
+                    if hits.count >= limit { break }
+                }
             }
             return hits
         }
@@ -125,8 +147,11 @@ public extension EverythingIndex {
             )
             if !matched { continue }
             let relParent = cachedRelativeParent(node.parentID)
-            hits.append(makeHit(nodeID: idx, for: node, relParent: relParent, homePath: homePath))
-            if hits.count >= limit { break }
+            if !normalizedExcl.isEmpty && isExcludedNode(node, relParent: relParent) { continue }
+            if let hit = makeHit(nodeID: idx, for: node, relParent: relParent, homePath: homePath, verifyExistence: verifyExistence) {
+                hits.append(hit)
+                if hits.count >= limit { break }
+            }
         }
         return hits
     }
@@ -171,13 +196,19 @@ public extension EverythingIndex {
     private func makeInitialHits(
         limit: Int,
         homePath: String,
-        relParentResolver: (Int32) -> String
+        relParentResolver: (Int32) -> String,
+        isExcluded: (IndexedNode, String) -> Bool,
+        verifyExistence: Bool
     ) -> [EverythingSearchHit] {
         var hits: [EverythingSearchHit] = []
         hits.reserveCapacity(min(limit, nodes.count))
-        for (idx, node) in nodes.prefix(limit).enumerated() {
+        for (idx, node) in nodes.enumerated() {
             let relParent = relParentResolver(node.parentID)
-            hits.append(makeHit(nodeID: idx, for: node, relParent: relParent, homePath: homePath))
+            if isExcluded(node, relParent) { continue }
+            if let hit = makeHit(nodeID: idx, for: node, relParent: relParent, homePath: homePath, verifyExistence: verifyExistence) {
+                hits.append(hit)
+                if hits.count >= limit { break }
+            }
         }
         return hits
     }
@@ -186,10 +217,12 @@ public extension EverythingIndex {
         nodeID: Int,
         for node: IndexedNode,
         relParent: String,
-        homePath: String
-    ) -> EverythingSearchHit {
+        homePath: String,
+        verifyExistence: Bool
+    ) -> EverythingSearchHit? {
         let url = resolveURL(for: node, relativeParent: relParent)
         let stats = lazyStatIfNeeded(url: url, isDirectory: node.isDirectory)
+        if verifyExistence && !stats.exists { return nil }
         let extLower = Self.extractExtensionLower(fromName: node.name)
         return EverythingSearchHit(
             id: nodeID,
@@ -221,11 +254,11 @@ public extension EverythingIndex {
         return full
     }
 
-    private func lazyStatIfNeeded(url: URL, isDirectory: Bool) -> (sizeBytes: Int64, modifiedAt: Date) {
+    private func lazyStatIfNeeded(url: URL, isDirectory: Bool) -> (exists: Bool, sizeBytes: Int64, modifiedAt: Date) {
         var st = stat()
-        guard url.path.withCString({ stat($0, &st) == 0 }) else { return (0, .distantPast) }
+        guard url.path.withCString({ stat($0, &st) == 0 }) else { return (false, 0, .distantPast) }
         let mod = Date(timeIntervalSince1970: TimeInterval(st.st_mtimespec.tv_sec))
-        return (isDirectory ? 0 : Int64(st.st_size), mod)
+        return (true, isDirectory ? 0 : Int64(st.st_size), mod)
     }
 
     private func resolveURL(for node: IndexedNode, relativeParent: String) -> URL {

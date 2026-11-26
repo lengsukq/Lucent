@@ -54,7 +54,8 @@ public enum EverythingSnapshotStore {
               fileSize >= magic.count + minHeaderPayloadBytes + sha256ByteCount,
               let handle = try? FileHandle(forReadingFrom: fileURL) else { return nil }
         defer { try? handle.close() }
-        guard let data = try? handle.read(upToCount: 4096), !data.isEmpty else { return nil }
+        let readLimit = min(fileSize - sha256ByteCount, 65_536)
+        guard let data = try? handle.read(upToCount: readLimit), !data.isEmpty else { return nil }
         return data.withUnsafeBytes { raw -> SnapshotHeaderMetadata? in
             var offset = 0
             guard let parsed = parseHeader(raw, limit: raw.count, offset: &offset, expectedRoots: expectedRoots, maxAgeSeconds: maxAgeSeconds) else {
@@ -229,7 +230,9 @@ public enum EverythingSnapshotStore {
               rootCount <= 256
         else { return nil }
 
-        let builtAt = Date(timeIntervalSince1970: Double(bitPattern: builtBits))
+        let builtTimestamp = Double(bitPattern: builtBits)
+        guard builtTimestamp.isFinite else { return nil }
+        let builtAt = Date(timeIntervalSince1970: builtTimestamp)
         if Date().timeIntervalSince(builtAt) > maxAgeSeconds { return nil }
 
         var rootURLs: [URL] = []
