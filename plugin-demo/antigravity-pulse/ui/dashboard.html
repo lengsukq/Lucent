@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="zh-Hans" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antigravity Pulse · 用量统计与额度全景</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sticky macOS Toolbar -->
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16">
+            <path d="M4 15.5L9.2 9.5l3.6 4.2L17.2 7 20 10.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="17.2" cy="7" r="2" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <h1 class="toolbar-title">Antigravity Pulse</h1>
+          <span id="syncMeta" class="toolbar-sub tabular">正在加载本地日志索引…</span>
+        </div>
+      </div>
+
+      <div class="toolbar-center">
+        <div id="rangeSeg" class="seg-control" role="tablist" aria-label="统计周期">
+          <button class="seg-btn" data-range="today" type="button">今日</button>
+          <button class="seg-btn" data-range="7d" type="button">7 天</button>
+          <button class="seg-btn" data-range="30d" type="button">30 天</button>
+          <button class="seg-btn" data-range="90d" type="button">90 天</button>
+          <button class="seg-btn active" data-range="365d" type="button">全年</button>
+          <button class="seg-btn" data-range="all" type="button">全部</button>
+        </div>
+      </div>
+
+      <div class="toolbar-right">
+        <div id="currencySeg" class="seg-control compact" role="tablist" aria-label="币种切换">
+          <button class="seg-btn active" data-cur="USD" type="button">$ USD</button>
+          <button class="seg-btn" data-cur="CNY" type="button">¥ CNY</button>
+        </div>
+        <button id="pricingBtn" class="tool-btn" type="button" title="查看 API 参考费率与汇率说明">
+          <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6M8 4.8h.01"/></svg>
+          <span>费率</span>
+        </button>
+        <button id="exportMdBtn" class="tool-btn" type="button" title="复制当前周期 Markdown 汇总报告">
+          <svg viewBox="0 0 16 16"><path d="M4 2.5h5.5L12.5 5.5v8h-8.5z"/><path d="M9.5 2.5v3h3"/></svg>
+          <span>复制报告</span>
+        </button>
+        <button id="shareCardBtn" class="tool-btn share-accent" type="button" title="一键生成精美分享图并复制到剪贴板 (⌘⇧C)">
+          <svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2"/><circle cx="5.6" cy="6.6" r="1.1"/><path d="M2.6 11.4l3.1-3.1 2.4 2.2 2.2-2.4 3.1 3.3"/></svg>
+          <span>分享图片</span>
+        </button>
+        <button id="refreshBtn" class="tool-btn icon-only" type="button" title="立即刷新数据 (⌘R)" aria-label="刷新数据">
+          <svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.4-3.5M13 3.2v2.6h-2.6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-scroll">
+      <div class="content-wrap">
+
+        <!-- Official Real-Time Quota & Auto Valuation Section (Rendered cleanly based on availability) -->
+        <section id="quotaSection" class="quota-section hidden" aria-label="官方实时额度与自动金额预估"></section>
+
+        <!-- 4-Card KPI Overview Row -->
+        <section class="kpi-grid" aria-label="所选周期本机用量概览">
+          <article class="kpi-card">
+            <div class="kpi-head">
+              <span class="kpi-label">本机总处理量（含缓存）</span>
+              <span id="kpiRangeTag" class="pill-badge">过去一年</span>
+            </div>
+            <div id="kpiTotalVal" class="kpi-value tabular">--</div>
+            <div id="kpiTotalSub" class="kpi-sub tabular">新输入 -- · 缓存读 -- · 输出 --</div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-head">
+              <span class="kpi-label">本机净用量（输入 + 输出）</span>
+              <span id="kpiTurnsTag" class="pill-badge neutral tabular">-- 轮</span>
+            </div>
+            <div id="kpiNetVal" class="kpi-value tabular">--</div>
+            <div id="kpiNetSub" class="kpi-sub tabular">-- 场会话 · 活跃 -- 天</div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-head">
+              <span class="kpi-label">本机估算 API 金额</span>
+              <span id="kpiSavedPill" class="pill-badge green tabular">省 --</span>
+            </div>
+            <div id="kpiCostVal" class="kpi-value tabular">--</div>
+            <div id="kpiCostSub" class="kpi-sub tabular">无缓存原价参考 --</div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-head">
+              <span class="kpi-label">缓存命中率与输出均速</span>
+              <span id="kpiSpeedPill" class="pill-badge blue tabular">--</span>
+            </div>
+            <div id="kpiCacheVal" class="kpi-value green tabular">--</div>
+            <div id="kpiCacheSub" class="kpi-sub tabular">上下文复用效率与加权生成速度</div>
+          </article>
+        </section>
+
+        <!-- Signature Element: GitHub-Style 52-Week Daily Contribution Heatmap -->
+        <section class="surface-card heatmap-card" aria-label="每日 Token 贡献热力图">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">每日 Token 贡献热力图</h2>
+              <span id="heatmapHeadline" class="card-subtitle tabular">过去一年累计处理 --</span>
+            </div>
+            <div class="card-actions">
+              <div id="heatmapMetricSeg" class="seg-control compact" role="tablist" aria-label="热力图口径">
+                <button class="seg-btn active" data-metric="total" type="button">总用量 (M)</button>
+                <button class="seg-btn" data-metric="net" type="button">净用量 (M)</button>
+                <button class="seg-btn" data-metric="cost" type="button">估算金额</button>
+                <button class="seg-btn" data-metric="turns" type="button">对话轮次</button>
+              </div>
+              <button id="exportCsvBtn" class="ghost-btn" type="button" title="复制全年每日数据 CSV">CSV</button>
+            </div>
+          </div>
+
+          <div class="heatmap-viewport">
+            <div class="heatmap-inner">
+              <div id="heatmapMonths" class="heatmap-months tabular"></div>
+              <div class="heatmap-body">
+                <div class="heatmap-weekdays">
+                  <span></span><span>一</span><span></span><span>三</span><span></span><span>五</span><span></span>
+                </div>
+                <div id="heatmapGrid" class="heatmap-grid" role="grid" aria-label="过去 52 周每日用量格子"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="heatmap-footer">
+            <div id="streakBar" class="streak-bar tabular">
+              <span>当前连续 <strong>--</strong> 天</span>
+              <span class="sep">·</span>
+              <span>最长连续 <strong>--</strong> 天</span>
+              <span class="sep">·</span>
+              <span>活跃日均 <strong>--</strong></span>
+              <span class="sep">·</span>
+              <span>峰值日 <strong>--</strong></span>
+            </div>
+            <div class="heatmap-legend">
+              <span>少</span>
+              <span class="leg-cell l0" title="0"></span>
+              <span class="leg-cell l1" id="leg1"></span>
+              <span class="leg-cell l2" id="leg2"></span>
+              <span class="leg-cell l3" id="leg3"></span>
+              <span class="leg-cell l4" id="leg4"></span>
+              <span>多</span>
+            </div>
+          </div>
+
+          <!-- Inline Click-to-Drill-Down Daily Inspector -->
+          <div id="dayInspector" class="day-inspector hidden" aria-live="polite">
+            <div class="inspector-head">
+              <div class="inspector-title-wrap">
+                <span id="dayInspectorDate" class="inspector-date tabular"></span>
+                <span id="dayInspectorSummary" class="inspector-summary tabular"></span>
+              </div>
+              <button id="closeDayInspectorBtn" class="ghost-btn" type="button">收起明细</button>
+            </div>
+            <div id="dayInspectorModels" class="inspector-models"></div>
+            <div id="dayInspectorSessions" class="inspector-sessions"></div>
+          </div>
+        </section>
+
+        <!-- Row 3: Daily/Weekly Trend Chart & 24h Coding Rhythm -->
+        <section class="two-col-grid">
+          <article class="surface-card chart-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h2 id="trendTitle" class="card-title">用量趋势</h2>
+                <span id="trendSub" class="card-subtitle tabular">--</span>
+              </div>
+              <div id="trendMetricSeg" class="seg-control compact" role="tablist" aria-label="趋势维度">
+                <button class="seg-btn active" data-trend="tokens" type="button">Token 构成</button>
+                <button class="seg-btn" data-trend="cost" type="button">估算金额</button>
+                <button class="seg-btn" data-trend="speed" type="button">均速</button>
+              </div>
+            </div>
+            <div id="trendCanvasWrap" class="canvas-wrap">
+              <canvas id="trendCanvas"></canvas>
+              <div id="trendTip" class="chart-tooltip tabular"></div>
+            </div>
+            <div id="trendLegend" class="chart-legend">
+              <span><i class="sw sw-cache"></i>缓存读</span>
+              <span><i class="sw sw-input"></i>新输入</span>
+              <span><i class="sw sw-output"></i>输出</span>
+            </div>
+          </article>
+
+          <article class="surface-card chart-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h2 class="card-title">24 小时活跃节律</h2>
+                <span id="rhythmSub" class="card-subtitle tabular">全天各时段处理量分布</span>
+              </div>
+              <span id="peakHourPill" class="pill-badge blue tabular">--</span>
+            </div>
+            <div id="rhythmCanvasWrap" class="canvas-wrap">
+              <canvas id="rhythmCanvas"></canvas>
+              <div id="rhythmTip" class="chart-tooltip tabular"></div>
+            </div>
+            <div class="chart-legend">
+              <span><i class="sw sw-input"></i>净用量（输入+输出）</span>
+              <span><i class="sw sw-cache"></i>含缓存总处理量</span>
+            </div>
+          </article>
+        </section>
+
+        <!-- Row 4: Model Breakdown & Project Breakdown -->
+        <section class="two-col-grid">
+          <article class="surface-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h2 class="card-title">模型分布</h2>
+                <span id="modelsSub" class="card-subtitle tabular">按总处理量降序</span>
+              </div>
+            </div>
+            <div id="modelsList" class="rank-list"></div>
+          </article>
+
+          <article class="surface-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h2 class="card-title">项目 / 工作区排行</h2>
+                <span id="projectsSub" class="card-subtitle">点击任意项目筛选下方会话</span>
+              </div>
+              <button id="clearProjFilterBtn" class="ghost-btn hidden" type="button">清除项目筛选</button>
+            </div>
+            <div id="projectsList" class="rank-list"></div>
+          </article>
+        </section>
+
+        <!-- Row 5: Full Session Explorer -->
+        <section class="surface-card sessions-card" aria-label="会话明细浏览器">
+          <div class="card-header wrap">
+            <div class="card-title-group">
+              <h2 class="card-title">会话明细</h2>
+              <span id="sessionsCountMeta" class="card-subtitle tabular">--</span>
+            </div>
+            <div class="session-controls">
+              <div class="search-box">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+                <input id="sessionSearchInput" type="search" placeholder="搜索标题、项目、模型或 ID…" />
+              </div>
+              <select id="sessionSourceSelect" class="mac-select" aria-label="来源筛选">
+                <option value="all">全部来源</option>
+                <option value="desktop">Desktop</option>
+                <option value="cli">CLI</option>
+                <option value="running">仅运行中</option>
+              </select>
+              <select id="sessionSortSelect" class="mac-select" aria-label="排序方式">
+                <option value="updated">最近更新</option>
+                <option value="total">总用量最高</option>
+                <option value="net">净用量最高</option>
+                <option value="cost">费用最高</option>
+                <option value="turns">轮次最多</option>
+              </select>
+              <label class="toggle-chip">
+                <input id="includeSubagentsCheck" type="checkbox" />
+                <span>含子代理</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="session-table">
+              <thead>
+                <tr>
+                  <th>项目与对话</th>
+                  <th>模型</th>
+                  <th class="num">总用量</th>
+                  <th class="num">净用量</th>
+                  <th class="num">缓存命中</th>
+                  <th class="num">均速</th>
+                  <th class="num">估算费用</th>
+                  <th class="num">更新时间</th>
+                  <th class="act">操作</th>
+                </tr>
+              </thead>
+              <tbody id="sessionsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Floating Heatmap Tooltip -->
+  <div id="heatmapTooltip" class="floating-tip tabular" role="tooltip"></div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- API Reference Pricing & Currency Rate Modal -->
+  <div id="pricingModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pricingModalTitle">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h3 id="pricingModalTitle">API 参考价目与汇率设置</h3>
+        <button id="closePricingModalBtn" class="tool-btn icon-only" type="button" aria-label="关闭">
+          <svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="rate-row">
+          <label for="fxRateInput">美元兑人民币参考汇率（1 USD = ¥）</label>
+          <div class="rate-input-group">
+            <input id="fxRateInput" class="mac-input tabular" type="number" min="1" max="20" step="0.05" value="7.25" />
+            <button id="saveRateBtn" class="primary-btn" type="button">保存汇率</button>
+          </div>
+        </div>
+        <p class="modal-note">
+          金额为基于各模型公开 API 参考单价（$/1M tokens）的等值估算，用于直观衡量算力消耗、缓存节省与官方额度满额折算价值，并非官方实际账单。
+        </p>
+        <div class="table-wrap compact-table">
+          <table class="session-table">
+            <thead>
+              <tr>
+                <th>模型系列</th>
+                <th class="num">上下文</th>
+                <th class="num">新输入 / 1M</th>
+                <th class="num">缓存读 / 1M</th>
+                <th class="num">输出 / 1M</th>
+              </tr>
+            </thead>
+            <tbody id="pricingRefBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Card Image Preview & One-Click Copy Modal -->
+  <div id="shareModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="modal-sheet share-modal-sheet">
+      <div class="modal-head">
+        <div class="share-head-left">
+          <h3 id="shareModalTitle">生成分享海报</h3>
+          <span id="shareStatusBadge" class="pill-badge green hidden">已复制到剪贴板 ✓</span>
+        </div>
+        <button id="closeShareModalBtn" class="tool-btn icon-only" type="button" aria-label="关闭">
+          <svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>
+        </button>
+      </div>
+      <div class="modal-body share-modal-body">
+        <div class="share-controls">
+          <div id="shareThemeSeg" class="seg-control compact" role="tablist" aria-label="分享图画风">
+            <button class="seg-btn active" data-share-theme="obsidian" type="button">曜石暗夜</button>
+            <button class="seg-btn" data-share-theme="porcelain" type="button">晴霜白瓷</button>
+            <button class="seg-btn" data-share-theme="aurora" type="button">极光深蓝</button>
+          </div>
+          <div class="share-toggles">
+            <label class="toggle-chip" title="隐藏项目名称，改为展示 24 小时编码节律图">
+              <input id="shareHideProjCheck" type="checkbox" />
+              <span>隐私脱敏（隐藏项目）</span>
+            </label>
+          </div>
+        </div>
+        <div class="share-stage">
+          <img id="sharePreviewImg" class="share-preview-img" alt="Antigravity Pulse 分享海报预览" />
+        </div>
+        <div class="share-footer">
+          <span id="shareMetaInfo" class="share-meta-info tabular">正在渲染 @2x Retina 分享图…</span>
+          <div class="share-actions">
+            <button id="saveShareImgBtn" class="tool-btn" type="button">保存到桌面</button>
+            <button id="copyShareImgBtn" class="primary-btn" type="button">复制图片到剪贴板</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="share-card.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

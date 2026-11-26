@@ -11,7 +11,7 @@ enum HUDMode: String {
 
     func size(edge: String = "right") -> (w: Double, h: Double) {
         switch self {
-        case .standard: return (376, 356)
+        case .standard: return (PulseConstants.standardHudWidth, PulseConstants.standardHudHeight)
         case .dock: return dockTargetSize(for: edge)
         }
     }
@@ -86,11 +86,35 @@ func openFloatingHUD(mode: HUDMode, input: PluginInput, isEn: Bool) -> BridgeRes
     return HostBridgeClient(input: input).call(capability: "floatingWindow", action: "open", params: params)
 }
 
+func openDashboardWindow(input: PluginInput, isEn: Bool) -> BridgeResponse {
+    let params: [String: Any] = [
+        "htmlPath": "ui/dashboard.html",
+        "windowID": PulseConstants.dashboardWindowID,
+        "title": isEn ? "Antigravity Pulse · Usage & Quota Analytics" : "Antigravity Pulse · 用量统计与额度全景",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 840,
+        "minHeight": 580,
+        "resizable": true,
+        "chrome": "standard",
+        "transparent": false,
+        "pinOnTop": false,
+        "clickThrough": false,
+        "showInDock": true,
+        "opacity": 1.0,
+        "reuseIfOpen": true
+    ]
+    return HostBridgeClient(input: input).call(capability: "window", action: "open", params: params)
+}
+
 func buildLauncherCardPayload(
     outcome: ScanOutcome,
     isEn: Bool,
     openedMode: HUDMode?,
+    openedDashboard: Bool = false,
     bridgeResult: BridgeResponse?,
+    quota: OfficialQuotaSummary? = nil,
+    prefs: DashboardPrefs = DashboardPrefs(currency: "USD", usdToCnyRate: 7.25),
     customToast: String? = nil
 ) -> ViewPayload {
     var metrics: [KeyValue] = []
@@ -101,7 +125,7 @@ func buildLauncherCardPayload(
         ))
         metrics.append(KeyValue(
             key: isEn ? "Cache Hit" : "缓存命中",
-            value: "\(formatPercent(active.cumulativeCacheHitRate)) · \(isEn ? "Saved" : "省") \(formatUSD(active.estimatedSavedUSD))"
+            value: "\(formatPercent(active.cumulativeCacheHitRate)) · \(isEn ? "Saved" : "省") \(formatCurrency(active.estimatedSavedUSD, currency: prefs.currency, rate: prefs.usdToCnyRate))"
         ))
         if active.avgOutputTokensPerSec != nil || outcome.window5h.avgTokensPerSec != nil {
             metrics.append(KeyValue(
@@ -110,14 +134,20 @@ func buildLauncherCardPayload(
             ))
         }
     }
+    if let q = quota, q.available, let w = q.window5h ?? q.windowWeekly {
+        let remText = String(format: "%.0f%%", w.remainingPercent)
+        let fullStr = (q.exclusiveQuota ? w.fullQuotaUSD : nil).map { " / ~\(formatCurrency($0, currency: prefs.currency, rate: prefs.usdToCnyRate))" } ?? ""
+        let usedStr = formatCurrency(w.usedInQuotaUSD, currency: prefs.currency, rate: prefs.usdToCnyRate)
+        let qTitle = q.exclusiveQuota
+            ? (isEn ? "Exclusive Quota" : "官方额度（本机独享）")
+            : (isEn ? "Shared Quota" : "官方额度（共享）")
+        metrics.append(KeyValue(
+            key: qTitle,
+            value: "\(w.label) \(isEn ? "Left" : "剩") \(remText) · \(isEn ? "Local" : "本机") \(usedStr)\(fullStr)"
+        ))
+    }
     metrics.append(KeyValue(
-        key: isEn ? "Sessions" : "近期会话",
-        value: isEn
-            ? "\(outcome.runningCount) running · \(outcome.completedCount) done"
-            : "\(outcome.runningCount) 运行中 · \(outcome.completedCount) 已完成"
-    ))
-    metrics.append(KeyValue(
-        key: isEn ? "5h Net / Total" : "5h 净用量",
+        key: isEn ? "Local 5h Net" : "本机 5h 净用量",
         value: "\(formatCompactTokens(outcome.window5h.netTokens)) (\(isEn ? "incl. cache" : "含缓存") \(formatCompactTokens(outcome.window5h.totalTokens)))"
     ))
 
@@ -125,19 +155,24 @@ func buildLauncherCardPayload(
 
     if let br = bridgeResult {
         if br.ok {
-            let modeLabel: String = (openedMode == .standard)
-                ? (isEn ? "Full Floating Pulse HUD Opened" : "常驻大悬浮窗已开启")
-                : (isEn ? "Edge-Retractable Pulse HUD Opened" : "缩边悬浮窗已开启（悬停自动展开大窗）")
-            let altFlag = (openedMode == .standard) ? "--open-dock" : "--open-standard"
-            let altLabel = (openedMode == .standard)
-                ? (isEn ? "Edge Dock" : "缩边停靠")
-                : (isEn ? "Always Full" : "常驻大窗")
+            let modeLabel: String
+            if openedDashboard {
+                modeLabel = isEn ? "Usage & Quota Analytics Window Opened" : "全景用量统计与额度大窗已开启"
+            } else {
+                modeLabel = (openedMode == .standard)
+                    ? (isEn ? "Full Floating Pulse HUD Opened" : "常驻大悬浮窗已开启")
+                    : (isEn ? "Edge-Retractable Pulse HUD Opened" : "缩边悬浮窗已开启（悬停自动展开大窗）")
+            }
+            let altFlag = openedDashboard ? "--open-dock" : ((openedMode == .standard) ? "--open-dock" : "--open-standard")
+            let altLabel = openedDashboard
+                ? (isEn ? "Open HUD" : "打开悬浮窗")
+                : ((openedMode == .standard) ? (isEn ? "Edge Dock" : "缩边停靠") : (isEn ? "Always Full" : "常驻大窗"))
             items.append(ViewItem(
                 id: "hud-status", title: modeLabel,
                 subtitle: isEn
-                    ? "Hover edge tab to expand full HUD · Scroll wheel to switch active projects"
-                    : "鼠标放上自动展开大悬浮窗 · 滚轮切换相邻活跃项目 · 点击直达对应对话",
-                icon: "checkmark.circle.fill", badge: "HUD ON", commandArgs: [altFlag],
+                    ? "52-week contribution heatmap, daily M tokens, model/project breakdown & official statusLine quota"
+                    : "含 52 周 GitHub 风格每日 M Token 热力图、多维趋势、模型/项目分布与官方实时额度",
+                icon: "checkmark.circle.fill", badge: openedDashboard ? "DASHBOARD" : "HUD ON", commandArgs: [altFlag],
                 actions: [ViewAction(id: "switch-alt", label: altLabel, commandArgs: [altFlag])]
             ))
         } else {
@@ -145,11 +180,22 @@ func buildLauncherCardPayload(
             items.append(ViewItem(
                 id: "hud-auth-needed",
                 title: isEn ? "Grant Floating Window Permission in Plugin Settings" : "请在 Lucent 插件中心开启「悬浮窗」权限",
-                subtitle: "\(detail) · \(isEn ? "Enable floatingWindow & filesystem scopes" : "授权 floatingWindow 与 filesystem 即可零侵入弹出悬浮窗")",
-                icon: "lock.shield", badge: "AUTH", commandArgs: ["--open-floating"]
+                subtitle: "\(detail) · \(isEn ? "Enable floatingWindow & filesystem scopes" : "授权 floatingWindow 与 filesystem 即可零侵入弹出窗口")",
+                icon: "lock.shield", badge: "AUTH", commandArgs: [openedDashboard ? "--open-dashboard" : "--open-floating"]
             ))
         }
     } else {
+        items.append(ViewItem(
+            id: "open-dashboard",
+            title: isEn ? "Open Full Usage & Quota Analytics Window →" : "打开全景用量统计与额度大窗 →",
+            subtitle: isEn
+                ? "GitHub-style 52-week daily M token heatmap, model/project rankings, cost estimates & official quota"
+                : "GitHub 风格 52 周每日 M Token 热力图、模型与项目排行、费用/缓存节省与官方实时额度",
+            icon: "chart.bar.xaxis", tintColor: "blue", badge: "STATS", commandArgs: ["--open-dashboard"],
+            actions: [
+                ViewAction(id: "act-dock", label: isEn ? "Edge HUD" : "缩边浮窗", commandArgs: ["--open-dock"])
+            ]
+        ))
         items.append(ViewItem(
             id: "open-dock",
             title: isEn ? "Open Edge-Retractable Pulse HUD →" : "打开缩边悬浮窗（悬停自动展开大窗）→",
@@ -161,17 +207,9 @@ func buildLauncherCardPayload(
                 ViewAction(id: "act-full", label: isEn ? "Always Full" : "常驻大窗", commandArgs: ["--open-standard"])
             ]
         ))
-        items.append(ViewItem(
-            id: "open-standard",
-            title: isEn ? "Open Always-Expanded Large HUD →" : "打开常驻大悬浮窗 →",
-            subtitle: isEn
-                ? "Keep full context, cache, net usage & recent sessions visible · Drag to edge to retract"
-                : "保持大悬浮窗常驻展示，拖到屏幕左/右/顶边缘随时自动缩边",
-            icon: "macwindow.on.rectangle", badge: "FULL", commandArgs: ["--open-standard"]
-        ))
     }
 
-    for sess in outcome.recentSessions.prefix(6) {
+    for sess in outcome.recentSessions.prefix(5) {
         let srcTag = sess.source == "cli" ? "CLI" : "APP"
         let iconName = sess.activityState == "running" ? "waveform.path.ecg" : (sess.isCompleted ? "checkmark.circle.fill" : "pause.circle")
         let tint = sess.activityState == "running" ? "blue" : (sess.isCompleted ? "green" : (sess.activityState == "error" ? "red" : "slate"))
@@ -189,21 +227,7 @@ func buildLauncherCardPayload(
             icon: iconName, tintColor: tint, badge: badgeText, copyText: copyText,
             openURL: sess.source == "desktop" ? nil : sess.resumeURL,
             commandArgs: jumpArgs,
-            actions: [
-                ViewAction(id: "hud-\(sess.sessionId)", label: isEn ? "HUD" : "悬浮窗", commandArgs: ["--open-dock"])
-            ]
-        ))
-    }
-
-    if !outcome.window7d.topModels.isEmpty {
-        let modelSummary = outcome.window7d.topModels.prefix(3).map { "\($0.shortName) \(formatCompactTokens($0.totalTokens))" }.joined(separator: " · ")
-        items.append(ViewItem(
-            id: "window-summary",
-            title: isEn
-                ? "7-Day Breakdown · \(formatCompactTokens(outcome.window7d.totalTokens)) (\(formatPercent(outcome.window7d.cacheHitRate)) cached)"
-                : "7 天模型分布 · 共 \(formatCompactTokens(outcome.window7d.totalTokens))（缓存 \(formatPercent(outcome.window7d.cacheHitRate))）",
-            subtitle: modelSummary, icon: "chart.bar.xaxis", badge: formatUSD(outcome.window7d.estimatedCostUSD),
-            copyText: "Antigravity 7d: \(formatCompactTokens(outcome.window7d.totalTokens)) tokens · \(modelSummary)"
+            actions: [ViewAction(id: "dash-\(sess.sessionId)", label: isEn ? "Stats" : "统计", commandArgs: ["--open-dashboard"])]
         ))
     }
 
@@ -218,12 +242,14 @@ func buildLauncherCardPayload(
         headerBadge = active.cacheDropped ? "CACHE DROP" : active.activityLabel
     } else {
         headerTitle = "Antigravity Pulse"
-        headerSubtitle = isEn ? "Zero-invasion local transcript context & session monitor" : "零侵入本地日志上下文与会话完成状态监控"
+        headerSubtitle = isEn ? "Zero-invasion local transcript analytics & official quota monitor" : "零侵入本地日志全景统计与官方实时额度监控"
         headerBadge = "READY"
     }
 
     let toast = customToast ?? ((bridgeResult?.ok == true)
-        ? (isEn ? "Antigravity Pulse HUD opened" : "Antigravity Pulse 悬浮窗已开启")
+        ? (openedDashboard
+            ? (isEn ? "Analytics Dashboard opened" : "全景用量统计大窗已开启")
+            : (isEn ? "Antigravity Pulse HUD opened" : "Antigravity Pulse 悬浮窗已开启"))
         : nil)
 
     return ViewPayload(

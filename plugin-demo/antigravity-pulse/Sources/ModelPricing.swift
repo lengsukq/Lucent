@@ -3,6 +3,7 @@ import Foundation
 struct ModelProfile {
     let displayName: String
     let shortName: String
+    let family: String // "gemini" | "claude_gpt"
     let defaultContextLimit: Int
     let inputUSDPerMillion: Double
     let cacheReadUSDPerMillion: Double
@@ -11,7 +12,39 @@ struct ModelProfile {
 
 struct TurnCostEstimate {
     let actualUSD: Double
+    let uncachedUSD: Double
     let savedUSD: Double
+}
+
+struct ModelPricingReference: Codable {
+    let name: String
+    let family: String
+    let contextLimitK: Int
+    let inputPerM: Double
+    let cacheReadPerM: Double
+    let outputPerM: Double
+}
+
+func allModelPricingReferences() -> [ModelPricingReference] {
+    [
+        ModelPricingReference(name: "Gemini 4 Carbon", family: "gemini", contextLimitK: 512, inputPerM: 3.00, cacheReadPerM: 0.30, outputPerM: 18.00),
+        ModelPricingReference(name: "Gemini 4 Neon / Orchestrator", family: "gemini", contextLimitK: 512, inputPerM: 2.50, cacheReadPerM: 0.25, outputPerM: 15.00),
+        ModelPricingReference(name: "Gemini 4 Argon / Legacy", family: "gemini", contextLimitK: 512, inputPerM: 2.00, cacheReadPerM: 0.20, outputPerM: 12.00),
+        ModelPricingReference(name: "Gemini 4 Hydrogen", family: "gemini", contextLimitK: 512, inputPerM: 1.25, cacheReadPerM: 0.125, outputPerM: 10.00),
+        ModelPricingReference(name: "Gemini Flash / Worker", family: "gemini", contextLimitK: 512, inputPerM: 0.30, cacheReadPerM: 0.03, outputPerM: 2.50),
+        ModelPricingReference(name: "Claude Opus", family: "claude_gpt", contextLimitK: 200, inputPerM: 15.00, cacheReadPerM: 1.50, outputPerM: 75.00),
+        ModelPricingReference(name: "Claude Sonnet", family: "claude_gpt", contextLimitK: 200, inputPerM: 3.00, cacheReadPerM: 0.30, outputPerM: 15.00),
+        ModelPricingReference(name: "GPT-OSS 120B", family: "claude_gpt", contextLimitK: 80, inputPerM: 0.50, cacheReadPerM: 0.05, outputPerM: 2.00)
+    ]
+}
+
+private func effortSuffix(from lower: String) -> String {
+    if lower.contains("tiered") { return " Tiered" }
+    if lower.contains("xhigh") { return " XHigh" }
+    if lower.contains("high") { return " High" }
+    if lower.contains("medium") { return " Medium" }
+    if lower.contains("low") { return " Low" }
+    return ""
 }
 
 func resolveModelProfile(rawModel: String) -> ModelProfile {
@@ -20,82 +53,85 @@ func resolveModelProfile(rawModel: String) -> ModelProfile {
 
     if lower.isEmpty {
         return ModelProfile(
-            displayName: "Antigravity Legacy", shortName: "Legacy", defaultContextLimit: 512_000,
+            displayName: "Antigravity Legacy", shortName: "Legacy", family: "gemini", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.0, cacheReadUSDPerMillion: 0.2, outputUSDPerMillion: 12.0
         )
     }
     if lower.contains("orchestrator") {
         let tag = lower.contains("neon") ? " Neon" : (lower.contains("argon") ? " Argon" : "")
         return ModelProfile(
-            displayName: "Gemini Orchestrator\(tag)", shortName: "Orchestrator\(tag)", defaultContextLimit: 512_000,
+            displayName: "Gemini Orchestrator\(tag)", shortName: "Orchestrator\(tag)", family: "gemini", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.5, cacheReadUSDPerMillion: 0.25, outputUSDPerMillion: 15.0
         )
     }
     if lower.contains("neon") {
-        let suffix = lower.contains("xhigh") ? " XHigh" : (lower.contains("high") ? " High" : "")
+        let suffix = effortSuffix(from: lower)
         return ModelProfile(
-            displayName: "Gemini 4 Neon\(suffix)", shortName: "Neon\(suffix)", defaultContextLimit: 512_000,
+            displayName: "Gemini 4 Neon\(suffix)", shortName: "Neon\(suffix)", family: "gemini", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.5, cacheReadUSDPerMillion: 0.25, outputUSDPerMillion: 15.0
         )
     }
     if lower.contains("carbon") {
-        let suffix = lower.contains("xhigh") ? " XHigh" : (lower.contains("high") ? " High" : "")
+        let suffix = effortSuffix(from: lower)
         return ModelProfile(
-            displayName: "Gemini 4 Carbon\(suffix)", shortName: "Carbon\(suffix)", defaultContextLimit: 512_000,
+            displayName: "Gemini 4 Carbon\(suffix)", shortName: "Carbon\(suffix)", family: "gemini", defaultContextLimit: 512_000,
             inputUSDPerMillion: 3.0, cacheReadUSDPerMillion: 0.30, outputUSDPerMillion: 18.0
         )
     }
     if lower.contains("argon") {
-        let suffix = lower.contains("high") ? " High" : ""
+        let suffix = effortSuffix(from: lower)
         return ModelProfile(
-            displayName: "Gemini 4 Argon\(suffix)", shortName: "Argon\(suffix)", defaultContextLimit: 512_000,
+            displayName: "Gemini 4 Argon\(suffix)", shortName: "Argon\(suffix)", family: "gemini", defaultContextLimit: 512_000,
             inputUSDPerMillion: 2.0, cacheReadUSDPerMillion: 0.20, outputUSDPerMillion: 12.0
         )
     }
     if lower.contains("hydrogen") {
-        let suffix = lower.contains("xhigh") ? " XHigh" : (lower.contains("high") ? " High" : "")
+        let suffix = effortSuffix(from: lower)
         return ModelProfile(
-            displayName: "Gemini 4 Hydrogen\(suffix)", shortName: "Hydrogen\(suffix)", defaultContextLimit: 512_000,
+            displayName: "Gemini 4 Hydrogen\(suffix)", shortName: "Hydrogen\(suffix)", family: "gemini", defaultContextLimit: 512_000,
             inputUSDPerMillion: 1.25, cacheReadUSDPerMillion: 0.125, outputUSDPerMillion: 10.0
         )
     }
     if lower.contains("flash") {
         let isLegacy25 = lower.contains("2.5") || lower.contains("2-5")
+        let tag = lower.contains("worker") ? " Worker" : ""
         return ModelProfile(
-            displayName: "Gemini Flash", shortName: "Flash", defaultContextLimit: isLegacy25 ? 128_000 : 512_000,
+            displayName: "Gemini Flash\(tag)", shortName: "Flash\(tag)", family: "gemini",
+            defaultContextLimit: isLegacy25 ? 128_000 : 512_000,
             inputUSDPerMillion: 0.30, cacheReadUSDPerMillion: 0.03, outputUSDPerMillion: 2.50
         )
     }
     if lower.contains("gemini") {
         let isLegacy25 = lower.contains("2.5") || lower.contains("2-5")
         return ModelProfile(
-            displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed),
+            displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed), family: "gemini",
             defaultContextLimit: isLegacy25 ? 128_000 : 512_000,
             inputUSDPerMillion: 2.0, cacheReadUSDPerMillion: 0.20, outputUSDPerMillion: 12.0
         )
     }
     if lower.contains("gpt-oss") || lower.contains("oss-120b") {
         return ModelProfile(
-            displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed), defaultContextLimit: 80_000,
+            displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed), family: "claude_gpt", defaultContextLimit: 80_000,
             inputUSDPerMillion: 0.5, cacheReadUSDPerMillion: 0.05, outputUSDPerMillion: 2.0
         )
     }
     if lower.contains("opus") {
         let limit = lower.contains("1m") ? 1_000_000 : 200_000
         return ModelProfile(
-            displayName: humanizeRawModelId(trimmed), shortName: "Claude Opus", defaultContextLimit: limit,
+            displayName: humanizeRawModelId(trimmed), shortName: "Claude Opus", family: "claude_gpt", defaultContextLimit: limit,
             inputUSDPerMillion: 15.0, cacheReadUSDPerMillion: 1.50, outputUSDPerMillion: 75.0
         )
     }
     if lower.contains("sonnet") || lower.contains("claude") {
         let limit = lower.contains("1m") ? 1_000_000 : 200_000
         return ModelProfile(
-            displayName: humanizeRawModelId(trimmed), shortName: "Claude Sonnet", defaultContextLimit: limit,
+            displayName: humanizeRawModelId(trimmed), shortName: "Claude Sonnet", family: "claude_gpt", defaultContextLimit: limit,
             inputUSDPerMillion: 3.0, cacheReadUSDPerMillion: 0.30, outputUSDPerMillion: 15.0
         )
     }
+    let family = (lower.contains("gpt") || lower.contains("openai") || lower.contains("o3") || lower.contains("o4")) ? "claude_gpt" : "gemini"
     return ModelProfile(
-        displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed), defaultContextLimit: 200_000,
+        displayName: humanizeRawModelId(trimmed), shortName: compactModelId(trimmed), family: family, defaultContextLimit: 200_000,
         inputUSDPerMillion: 2.0, cacheReadUSDPerMillion: 0.20, outputUSDPerMillion: 10.0
     )
 }
@@ -129,8 +165,10 @@ func estimateTurnCost(inputTokens: Int, cacheReadTokens: Int, outputTokens: Int,
     let inpCost = Double(inputTokens) / million * profile.inputUSDPerMillion
     let cacheCost = Double(cacheReadTokens) / million * profile.cacheReadUSDPerMillion
     let outCost = Double(outputTokens) / million * profile.outputUSDPerMillion
-    let saved = Double(cacheReadTokens) / million * max(0.0, profile.inputUSDPerMillion - profile.cacheReadUSDPerMillion)
-    return TurnCostEstimate(actualUSD: inpCost + cacheCost + outCost, savedUSD: saved)
+    let uncached = Double(inputTokens + cacheReadTokens) / million * profile.inputUSDPerMillion + outCost
+    let actual = inpCost + cacheCost + outCost
+    let saved = max(0.0, uncached - actual)
+    return TurnCostEstimate(actualUSD: actual, uncachedUSD: uncached, savedUSD: saved)
 }
 
 func formatCompactTokens(_ count: Int) -> String {
@@ -152,6 +190,14 @@ func formatPercent(_ ratio: Double) -> String {
 
 func formatUSD(_ amount: Double) -> String {
     amount < 0.005 ? "$0.00" : String(format: "$%.2f", amount)
+}
+
+func formatCurrency(_ usd: Double, currency: String, rate: Double) -> String {
+    if currency.uppercased() == "CNY" {
+        let cny = usd * max(0.1, rate)
+        return cny < 0.005 ? "¥0.00" : String(format: "¥%.2f", cny)
+    }
+    return formatUSD(usd)
 }
 
 func formatTokensPerSec(_ tps: Double?) -> String {

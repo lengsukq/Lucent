@@ -638,6 +638,60 @@
       grid-template-columns: 1fr 1fr;
       gap: 7px;
     }
+
+    .quota-strip-btn {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      width: 100%;
+      height: 26px;
+      padding: 0 9px;
+      border-radius: 11px;
+      border: 1px solid var(--tile-rim);
+      background: var(--tile-bg);
+      box-shadow: inset 0 1px 0 var(--tile-specular);
+      color: var(--label);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 7px;
+      cursor: pointer;
+      transition: background 180ms var(--spring-ease), border-color 180ms ease, transform 220ms var(--spring-bounce);
+    }
+    .quota-strip-btn:hover { background: var(--tile-hover); border-color: var(--ios-blue-rim); }
+    .quota-strip-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+    .quota-mini-bar {
+      width: 34px;
+      height: 5px;
+      border-radius: 999px;
+      background: var(--track);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .quota-mini-bar.hidden { display: none; }
+    .quota-mini-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--ios-green-bar);
+      transition: width 260ms var(--spring-ease);
+    }
+    .quota-mini-fill.warn { background: var(--ios-orange-bar); }
+    .quota-mini-fill.crit { background: var(--ios-red-bar); }
+    .quota-strip-main {
+      font-size: 10px;
+      font-weight: 650;
+      color: var(--label);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .quota-strip-right {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--ios-blue-text);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
     .stat-tile {
       background: var(--tile-bg);
       border: 1px solid var(--tile-rim);
@@ -1050,6 +1104,9 @@
             <span id="stdPager" class="pager-badge tabular"></span>
           </button>
           <div class="header-actions">
+            <button id="openDashboardBtn" class="icon-btn" type="button" aria-label="打开全景用量统计大窗" title="打开全景统计大窗（贡献热力图与官方额度）">
+              <svg viewBox="0 0 16 16"><path d="M2.5 13h11M4.2 13V8.2M8 13V4.5M11.8 13V6.4"/></svg>
+            </button>
             <button id="returnAgyBtn" class="icon-btn" type="button" aria-label="直达对应对话" title="直达当前 Antigravity 对话">
               <svg viewBox="0 0 16 16"><path d="M6 3.5h6.5V10M12.5 3.5L5 11"/><path d="M10.5 12.5h-6a1 1 0 0 1-1-1v-6"/></svg>
             </button>
@@ -1093,6 +1150,15 @@
             <span id="legendOutput" class="tabular">输出 --</span>
           </div>
         </div>
+
+        <!-- Compact Official Quota / Analytics Strip -->
+        <button id="quotaStripBtn" class="quota-strip-btn" type="button" title="点击打开全景用量统计与额度大窗">
+          <span class="quota-strip-left">
+            <span id="quotaMiniBar" class="quota-mini-bar hidden"><span id="quotaMiniFill" class="quota-mini-fill" style="width:0%"></span></span>
+            <span id="quotaStripMain" class="quota-strip-main tabular">全景用量统计 · 热力图与费用估算</span>
+          </span>
+          <span id="quotaStripRight" class="quota-strip-right tabular">大窗 ›</span>
+        </button>
 
         <!-- Two-Column Bento Stats -->
         <div class="bento-grid">
@@ -1176,7 +1242,7 @@
 
   <script>
     (() => {
-      const FULL_SIZE = { w: 376, h: 356 };
+      const FULL_SIZE = { w: 376, h: 388 };
       const STRIP_SIZES = {
         right: { w: 164, h: 104 },
         left: { w: 164, h: 104 },
@@ -1189,6 +1255,8 @@
         expanded: false,
         edge: "right",
         themeStyle: "auto",
+        currency: "USD",
+        usdToCnyRate: 7.25,
         refreshSec: 3,
         cacheScope: "cum",
         winScope: "5h",
@@ -1239,6 +1307,12 @@
         modelLabel: $("modelLabel"),
         stateTag: $("stateTag"),
         sessionPillBtn: $("sessionPillBtn"),
+        openDashboardBtn: $("openDashboardBtn"),
+        quotaStripBtn: $("quotaStripBtn"),
+        quotaMiniBar: $("quotaMiniBar"),
+        quotaMiniFill: $("quotaMiniFill"),
+        quotaStripMain: $("quotaStripMain"),
+        quotaStripRight: $("quotaStripRight"),
         returnAgyBtn: $("returnAgyBtn"),
         dockModeBtn: $("dockModeBtn"),
         edgeCycleBtn: $("edgeCycleBtn"),
@@ -1409,7 +1483,73 @@
 
       function formatUSD(v) {
         const num = Number(v || 0);
+        if (state.currency === "CNY") {
+          const cny = num * Number(state.usdToCnyRate || 7.25);
+          return cny < 0.005 ? "¥0.00" : `¥${cny.toFixed(2)}`;
+        }
         return num < 0.005 ? "$0.00" : `$${num.toFixed(2)}`;
+      }
+
+      async function openAnalyticsDashboard() {
+        try {
+          if (window.lucent?.bridge) {
+            const res = await window.lucent.bridge("window", "open", {
+              htmlPath: "ui/dashboard.html",
+              windowID: "antigravity-pulse-dashboard",
+              title: "Antigravity Pulse · 用量统计与额度全景",
+              width: 1100,
+              height: 760,
+              minWidth: 840,
+              minHeight: 580,
+              resizable: true,
+              chrome: "standard",
+              transparent: false,
+              pinOnTop: false,
+              clickThrough: false,
+              showInDock: true,
+              opacity: 1.0,
+              reuseIfOpen: true
+            });
+            if (res?.ok) {
+              if (state.docked && state.expanded) scheduleDockRetract(220);
+              return;
+            }
+          }
+        } catch (_) {}
+        await runExclusive(["--open-dashboard"]);
+        if (state.docked && state.expanded) scheduleDockRetract(220);
+      }
+
+      function renderQuotaStrip(snap) {
+        const q = snap?.officialQuota;
+        if (q?.available && (q.window5h || q.windowWeekly)) {
+          const w = q.window5h || q.windowWeekly;
+          const rem = Math.max(0, Math.min(100, Number(w.remainingPercent || 0)));
+          const cls = rem <= 15 ? "crit" : (rem <= 35 ? "warn" : "");
+          const isExclusive = Boolean(q.exclusiveQuota);
+          el.quotaMiniBar.classList.remove("hidden");
+          el.quotaMiniFill.style.width = `${rem.toFixed(1)}%`;
+          el.quotaMiniFill.className = "quota-mini-fill" + (cls ? ` ${cls}` : "");
+          const shortWin = w.windowKind === "weekly" ? "周额" : "5h";
+          const prefix = isExclusive ? "独享" : "共享";
+          el.quotaStripMain.textContent = `${prefix}${shortWin} 剩 ${Math.round(rem)}% · ${w.resetLabel}`;
+          const usedStr = formatUSD(w.usedInQuotaUSD);
+          const fullStr = (isExclusive && w.fullQuotaUSD != null) ? ` / ~${formatUSD(w.fullQuotaUSD)}` : "";
+          el.quotaStripRight.textContent = `本机 ${usedStr}${fullStr} ›`;
+          el.quotaStripBtn.title = isExclusive
+            ? `${q.sourceLabel} · 本机窗口已用 ${usedStr}${fullStr} · 点击打开全景统计大窗`
+            : `AGY 额度多设备共享 · 本机窗口已用 ${usedStr}（可在大窗切换「本机独享」开启满额推算）· 点击打开全景统计大窗`;
+          return;
+        }
+        el.quotaMiniBar.classList.add("hidden");
+        const today = snap?.windowToday;
+        if (today && today.totalTokens > 0) {
+          el.quotaStripMain.textContent = `本机今日 ${formatUSD(today.estimatedCostUSD)} · 缓存省 ${formatUSD(today.estimatedSavedUSD)}`;
+        } else {
+          el.quotaStripMain.textContent = "52 周贡献热力图与本机多维分析";
+        }
+        el.quotaStripRight.textContent = "统计大窗 ›";
+        el.quotaStripBtn.title = "点击打开全景用量统计与额度大窗";
       }
 
       function formatTokPerSec(v, compact = false) {
@@ -1576,7 +1716,7 @@
         });
 
         document.addEventListener("pointerdown", (ev) => {
-          const btn = ev.target?.closest?.(".icon-btn, .session-pill, .all-link-btn, .open-sess-btn, .sheet-jump-btn");
+          const btn = ev.target?.closest?.(".icon-btn, .session-pill, .quota-strip-btn, .all-link-btn, .open-sess-btn, .sheet-jump-btn");
           if (btn) {
             spawnRippleAndBounce(btn, ev);
             return;
@@ -2068,6 +2208,8 @@
 
       function renderSnapshot(snap) {
         state.snapshot = snap;
+        if (snap.currency) state.currency = snap.currency;
+        if (snap.usdToCnyRate) state.usdToCnyRate = Number(snap.usdToCnyRate);
         if (snap.themeStyle && snap.themeStyle !== state.themeStyle) {
           state.themeStyle = snap.themeStyle;
           applyTheme(window.lucent?.env);
@@ -2093,6 +2235,7 @@
         }
 
         updateWindowView(snap);
+        renderQuotaStrip(snap);
         renderInlineSessions(snap);
 
         const sess = snap.activeSession;
@@ -2405,6 +2548,8 @@
       }
       el.allSessionsBtn.addEventListener("click", openSessionSheet);
       el.closeSheetBtn.addEventListener("click", closeSessionSheet);
+      el.openDashboardBtn.addEventListener("click", openAnalyticsDashboard);
+      el.quotaStripBtn.addEventListener("click", openAnalyticsDashboard);
       el.returnAgyBtn.addEventListener("click", () => jumpBackToSession(currentDisplayedSession()));
 
       el.dockModeBtn.addEventListener("click", () => {

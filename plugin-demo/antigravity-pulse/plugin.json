@@ -1,9 +1,9 @@
 {
   "schemaVersion": 3,
   "id": "antigravity-pulse",
-  "name": "Antigravity Pulse · 上下文与会话监控",
-  "version": "1.3.3",
-  "description": "零侵入缩边悬浮窗监控 Antigravity 上下文占用、缓存命中率、平均输出速度 (tok/s)、5h/7d 净用量与活跃项目状态：悬停自动展开大窗、滚轮切换项目、一键直达对应对话",
+  "name": "Antigravity Pulse · 用量统计与额度监控",
+  "version": "1.4.0",
+  "description": "零侵入监控 Antigravity 上下文占用、缓存命中率、平均输出速度 (tok/s)、独立可缩放全景统计大窗、52 周 GitHub 风格自适应热力图、一键生成精美分享海报及官方 statusLine 共享/独享实时额度统计",
   "mode": "view",
   "keywords": [
     "agpulse",
@@ -13,9 +13,15 @@
     "context",
     "cache",
     "token",
+    "quota",
+    "heatmap",
+    "dashboard",
     "上下文",
     "缓存",
     "用量",
+    "额度",
+    "统计",
+    "热力图",
     "会话"
   ],
   "entry": "bin/antigravity-pulse",
@@ -33,7 +39,7 @@
   ],
   "includeInGlobalSearch": true,
   "searchIndexInGlobalSearch": true,
-  "timeoutSeconds": 12,
+  "timeoutSeconds": 20,
   "window": {
     "entryHtml": "ui/widget.html",
     "width": 164,
@@ -49,6 +55,29 @@
     "opacity": 1.0
   },
   "commands": [
+    {
+      "id": "open-dashboard",
+      "title": "打开全景用量统计与额度大窗",
+      "subtitle": "52 周 GitHub 风格每日 M Token 热力图、多维趋势、模型/项目排行、会话明细与官方实时额度估值",
+      "keywords": [
+        "agstat",
+        "agdash",
+        "统计大窗",
+        "热力图",
+        "贡献图",
+        "额度",
+        "用量统计",
+        "heatmap",
+        "quota",
+        "dashboard",
+        "analytics"
+      ],
+      "icon": "chart.bar.xaxis",
+      "arguments": [
+        "--open-dashboard"
+      ],
+      "passQuery": false
+    },
     {
       "id": "open-floating",
       "title": "打开缩边监控悬浮窗（悬停自动展开大窗）",
@@ -88,7 +117,7 @@
     {
       "id": "usage-card",
       "title": "查看上下文与最近会话状态",
-      "subtitle": "在启动器卡片查看活跃项目、5h/今日/7天净用量并一键直达对应对话",
+      "subtitle": "在启动器卡片查看活跃项目、5h/今日/7天净用量、官方额度并一键直达对应对话",
       "keywords": [
         "agcard",
         "用量概览",
@@ -117,7 +146,7 @@
     },
     {
       "key": "themeStyle",
-      "label": "iOS 外观模式（auto 跟随系统 / light 纯净浅色 / dark 深色）",
+      "label": "外观模式（auto 跟随系统 / light 晴霜浅色 / dark 曜石暗色）",
       "type": "select",
       "defaultValue": "auto",
       "options": [
@@ -125,6 +154,27 @@
         "light",
         "dark"
       ],
+      "section": "显示与交互"
+    },
+    {
+      "key": "currency",
+      "label": "金额预估默认币种（USD 美元 / CNY 人民币，大窗顶部可随时一键切换）",
+      "type": "select",
+      "defaultValue": "USD",
+      "options": [
+        "USD",
+        "CNY"
+      ],
+      "section": "显示与交互"
+    },
+    {
+      "key": "usdToCnyRate",
+      "label": "美元兑人民币参考汇率（1 USD = ¥）",
+      "type": "number",
+      "defaultValue": "7.25",
+      "minValue": 1,
+      "maxValue": 20,
+      "stepValue": 0.05,
       "section": "显示与交互"
     },
     {
@@ -191,10 +241,14 @@
   ],
   "locales": {
     "en": {
-      "name": "Antigravity Pulse · Context & Session HUD",
-      "description": "Zero-invasion edge-retractable iOS HUD for Antigravity: monitor context usage, cache hit rate, average tok/s, net usage, and jump directly to conversations",
+      "name": "Antigravity Pulse · Usage Analytics & Quota HUD",
+      "description": "Zero-invasion Antigravity monitor: edge-retractable HUD, resizable 52-week GitHub-style responsive token heatmap dashboard, one-click Retina share card poster, model/project analytics, and automatic official agy statusLine shared/exclusive quota tracking",
       "categoryTag": "Dev Monitor",
       "commands": {
+        "open-dashboard": {
+          "title": "Open Full Usage & Quota Analytics Window",
+          "subtitle": "52-week GitHub-style daily M token heatmap, trends, model/project rankings & official statusLine quota"
+        },
         "open-floating": {
           "title": "Open Edge-Retractable Pulse HUD",
           "subtitle": "Hugs the screen edge unobtrusively and expands to the full dashboard on hover"
@@ -205,7 +259,7 @@
         },
         "usage-card": {
           "title": "View Context & Recent Sessions",
-          "subtitle": "Inspect active projects, net usage, and jump directly to conversations"
+          "subtitle": "Inspect active projects, net usage, official quota, and jump directly to conversations"
         }
       },
       "config": {
@@ -214,7 +268,15 @@
           "section": "Appearance"
         },
         "themeStyle": {
-          "label": "iOS Appearance (auto / light / dark)",
+          "label": "Appearance (auto / light / dark)",
+          "section": "Appearance"
+        },
+        "currency": {
+          "label": "Default Valuation Currency (USD / CNY, toggleable in dashboard)",
+          "section": "Appearance"
+        },
+        "usdToCnyRate": {
+          "label": "USD to CNY Exchange Rate (1 USD = ¥)",
           "section": "Appearance"
         },
         "refreshIntervalSec": {

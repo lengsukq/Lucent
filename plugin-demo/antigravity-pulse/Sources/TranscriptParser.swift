@@ -9,6 +9,30 @@ struct DiscoveredTranscript {
     let mtimeEpoch: TimeInterval
 }
 
+func discoverTranscripts(includeCliLogs: Bool) -> [DiscoveredTranscript] {
+    let fm = FileManager.default
+    let home = pulseUserHomePath()
+    var roots: [(String, String)] = [("\(home)/.gemini/antigravity/brain", "desktop")]
+    if includeCliLogs { roots.append(("\(home)/.gemini/antigravity-cli/brain", "cli")) }
+
+    var discovered: [DiscoveredTranscript] = []
+    var seen = Set<String>()
+    for (rootPath, sourceName) in roots {
+        guard let entries = try? fm.contentsOfDirectory(atPath: rootPath) else { continue }
+        for sessionId in entries where !sessionId.hasPrefix(".") {
+            let stdPath = "\(rootPath)/\(sessionId)/.system_generated/logs/transcript.jsonl"
+            let directPath = "\(rootPath)/\(sessionId)/transcript.jsonl"
+            let target = fm.fileExists(atPath: stdPath) ? stdPath : (fm.fileExists(atPath: directPath) ? directPath : nil)
+            guard let path = target, seen.insert(path).inserted else { continue }
+            var st = stat()
+            guard stat(path, &st) == 0, st.st_size > 0 else { continue }
+            let mtime = TimeInterval(st.st_mtimespec.tv_sec) + TimeInterval(st.st_mtimespec.tv_nsec) / 1_000_000_000.0
+            discovered.append(DiscoveredTranscript(path: path, sessionId: sessionId, source: sourceName, fileSize: Int64(st.st_size), mtimeEpoch: mtime))
+        }
+    }
+    return discovered
+}
+
 private struct RawPlannerLine: Decodable {
     let type: String?
     let step_index: Int?

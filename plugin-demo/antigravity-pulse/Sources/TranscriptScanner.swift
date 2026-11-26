@@ -20,6 +20,8 @@ struct ScanOutcome {
     let window5h: WindowUsageStats
     let windowToday: WindowUsageStats
     let window7d: WindowUsageStats
+    let hotFiles: [CachedTranscriptFile]
+    let hotFilesByPath: [String: CachedTranscriptFile]
 }
 
 func resolveSessionActivityState(
@@ -38,30 +40,6 @@ func resolveSessionActivityState(
         return age <= PulseConstants.activeRunningGraceSeconds ? .running : .idle
     }
     return (!kind.isEmpty && age <= PulseConstants.activeRunningGraceSeconds) ? .running : .idle
-}
-
-private func discoverTranscripts(includeCliLogs: Bool) -> [DiscoveredTranscript] {
-    let fm = FileManager.default
-    let home = fm.homeDirectoryForCurrentUser.path
-    var roots: [(String, String)] = [("\(home)/.gemini/antigravity/brain", "desktop")]
-    if includeCliLogs { roots.append(("\(home)/.gemini/antigravity-cli/brain", "cli")) }
-
-    var discovered: [DiscoveredTranscript] = []
-    var seen = Set<String>()
-    for (rootPath, sourceName) in roots {
-        guard let entries = try? fm.contentsOfDirectory(atPath: rootPath) else { continue }
-        for sessionId in entries where !sessionId.hasPrefix(".") {
-            let stdPath = "\(rootPath)/\(sessionId)/.system_generated/logs/transcript.jsonl"
-            let directPath = "\(rootPath)/\(sessionId)/transcript.jsonl"
-            let target = fm.fileExists(atPath: stdPath) ? stdPath : (fm.fileExists(atPath: directPath) ? directPath : nil)
-            guard let path = target, seen.insert(path).inserted else { continue }
-            var st = stat()
-            guard stat(path, &st) == 0, st.st_size > 0 else { continue }
-            let mtime = TimeInterval(st.st_mtimespec.tv_sec) + TimeInterval(st.st_mtimespec.tv_nsec) / 1_000_000_000.0
-            discovered.append(DiscoveredTranscript(path: path, sessionId: sessionId, source: sourceName, fileSize: Int64(st.st_size), mtimeEpoch: mtime))
-        }
-    }
-    return discovered
 }
 
 private func loadIndexCache(dataDir: String) -> TranscriptIndexCache {
@@ -217,17 +195,20 @@ func scanTranscripts(options: ScanOptions) -> ScanOutcome {
     var parsedNow = 0
     var activePaths = Set<String>()
     var validFiles: [CachedTranscriptFile] = []
+    var hotFilesByPath: [String: CachedTranscriptFile] = [:]
 
     for item in relevant {
         activePaths.insert(item.path)
         if let cached = cache.files[item.path], cached.fileSize == item.fileSize, abs(cached.mtimeEpoch - item.mtimeEpoch) < 0.001 {
             let refreshed = refreshTimingIfNeeded(cached)
             if refreshed.updated { cache.files[item.path] = refreshed.file; cacheDirty = true }
+            hotFilesByPath[item.path] = refreshed.file
             if !refreshed.file.turns.isEmpty { validFiles.append(refreshed.file) }
             continue
         }
         let parsed = enrichTurnsWithDurations(parseTranscriptFile(item))
         cache.files[item.path] = parsed
+        hotFilesByPath[item.path] = parsed
         cacheDirty = true; parsedNow += 1
         if !parsed.turns.isEmpty { validFiles.append(parsed) }
     }
@@ -291,6 +272,7 @@ func scanTranscripts(options: ScanOptions) -> ScanOutcome {
         scannedFiles: discovered.count, parsedFilesNow: parsedNow, scanDurationMs: elapsedMs,
         runningCount: runningCount, completedCount: completedCount,
         activeSession: activeSummary, recentSessions: recentList,
-        window5h: acc5h.finalize(), windowToday: accToday.finalize(), window7d: acc7d.finalize()
+        window5h: acc5h.finalize(), windowToday: accToday.finalize(), window7d: acc7d.finalize(),
+        hotFiles: validFiles, hotFilesByPath: hotFilesByPath
     )
 }

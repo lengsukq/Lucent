@@ -11,7 +11,7 @@ private enum TimingBounds {
 }
 
 private func conversationDBPath(sessionId: String, source: String) -> String {
-    let home = FileManager.default.homeDirectoryForCurrentUser.path
+    let home = pulseUserHomePath()
     let folder = source == "cli" ? "antigravity-cli" : "antigravity"
     return "\(home)/.gemini/\(folder)/conversations/\(sessionId).db"
 }

@@ -91,7 +91,7 @@ private func readSummariesFromDB(path: String, into map: inout [String: Conversa
 }
 
 func loadConversationSummaries(includeCliLogs: Bool) -> [String: ConversationSummaryMeta] {
-    let home = FileManager.default.homeDirectoryForCurrentUser.path
+    let home = pulseUserHomePath()
     var result: [String: ConversationSummaryMeta] = [:]
     readSummariesFromDB(path: "\(home)/.gemini/antigravity/conversation_summaries.db", into: &result)
     if includeCliLogs {

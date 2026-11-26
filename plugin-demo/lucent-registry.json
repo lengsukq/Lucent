@@ -10,9 +10,9 @@
         "clipboard"
       ],
       "categoryTag" : "开发监控",
-      "description" : "零侵入缩边悬浮窗监控 Antigravity 上下文占用、缓存命中率、平均输出速度 (tok/s)、5h/7d 净用量与活跃项目状态：悬停自动展开大窗、滚轮切换项目、一键直达对应对话",
+      "description" : "零侵入监控 Antigravity 上下文占用、缓存命中率、平均输出速度 (tok/s)、独立可缩放全景统计大窗、52 周 GitHub 风格自适应热力图、一键生成精美分享海报及官方 statusLine 共享/独享实时额度统计",
       "downloadURL" : "./dist/antigravity-pulse.zip",
-      "icon" : "sidebar.right",
+      "icon" : "chart.bar.xaxis",
       "id" : "antigravity-pulse",
       "keywords" : [
         "agpulse",
@@ -22,15 +22,25 @@
         "context",
         "cache",
         "token",
+        "quota",
+        "heatmap",
+        "dashboard",
         "上下文",
         "缓存",
         "用量",
+        "额度",
+        "统计",
+        "热力图",
         "会话"
       ],
       "locales" : {
         "en" : {
           "categoryTag" : "Dev Monitor",
           "commands" : {
+            "open-dashboard" : {
+              "subtitle" : "52-week GitHub-style daily M token heatmap, trends, model/project rankings & official statusLine quota",
+              "title" : "Open Full Usage & Quota Analytics Window"
+            },
             "open-floating" : {
               "subtitle" : "Hugs the screen edge unobtrusively and expands to the full dashboard on hover",
               "title" : "Open Edge-Retractable Pulse HUD"
@@ -40,7 +50,7 @@
               "title" : "Open Always-Expanded Pulse HUD"
             },
             "usage-card" : {
-              "subtitle" : "Inspect active projects, net usage, and jump directly to conversations",
+              "subtitle" : "Inspect active projects, net usage, official quota, and jump directly to conversations",
               "title" : "View Context & Recent Sessions"
             }
           },
@@ -52,6 +62,10 @@
             "contextWindowK" : {
               "label" : "Reference Context Limit (auto: 512K Gemini 4 / 200K Claude, or override)",
               "section" : "Monitoring"
+            },
+            "currency" : {
+              "label" : "Default Valuation Currency (USD / CNY, toggleable in dashboard)",
+              "section" : "Appearance"
             },
             "defaultMode" : {
               "label" : "Default HUD Style (dock hover-expand / standard always-full)",
@@ -70,22 +84,26 @@
               "section" : "Alerts"
             },
             "themeStyle" : {
-              "label" : "iOS Appearance (auto / light / dark)",
+              "label" : "Appearance (auto / light / dark)",
+              "section" : "Appearance"
+            },
+            "usdToCnyRate" : {
+              "label" : "USD to CNY Exchange Rate (1 USD = ¥)",
               "section" : "Appearance"
             }
           },
-          "description" : "Zero-invasion edge-retractable iOS HUD for Antigravity: monitor context usage, cache hit rate, average tok/s, net usage, and jump directly to conversations",
-          "name" : "Antigravity Pulse · Context & Session HUD"
+          "description" : "Zero-invasion Antigravity monitor: edge-retractable HUD, resizable 52-week GitHub-style responsive token heatmap dashboard, one-click Retina share card poster, model/project analytics, and automatic official agy statusLine shared/exclusive quota tracking",
+          "name" : "Antigravity Pulse · Usage Analytics & Quota HUD"
         }
       },
       "mode" : "view",
-      "name" : "Antigravity Pulse · 上下文与会话监控",
+      "name" : "Antigravity Pulse · 用量统计与额度监控",
       "resourceScopes" : [
         "filesystem"
       ],
-      "sha256" : "3773ab244ef80c2272415041633493656107450c59ff0825e21c6cda1a3ee7cb",
-      "sizeBytes" : 288575,
-      "version" : "1.3.3"
+      "sha256" : "5ff98c334a99d1e293c2d653d2950e7d14be1dd0ef3a754324ece1c32390161c",
+      "sizeBytes" : 506845,
+      "version" : "1.4.0"
     },
     {
       "accentColor" : "indigo",
@@ -1203,5 +1221,5 @@
   "schemaVersion" : 1,
   "storeId" : "lucent-demo-store",
   "storeName" : "Lucent 官方示例商店 (plugin-demo)",
-  "updatedAt" : "2026-11-22T08:50:51Z"
+  "updatedAt" : "2026-11-26T02:21:33Z"
 }

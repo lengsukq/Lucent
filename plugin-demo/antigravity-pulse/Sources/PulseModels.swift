@@ -2,7 +2,11 @@ import Foundation
 
 enum PulseConstants {
     static let windowID = "antigravity-pulse-hud"
+    static let dashboardWindowID = "antigravity-pulse-dashboard"
     static let cacheSchemaVersion = 4
+    static let archiveSchemaVersion = 1
+    static let standardHudWidth: Double = 376
+    static let standardHudHeight: Double = 388
     static let maxRecentSessions = 12
     static let maxCachedRecentSessions = 24
     static let maxChartPoints = 48
@@ -192,6 +196,8 @@ struct PulseSnapshot: Codable {
     let refreshIntervalSec: Int
     let defaultMode: String
     let themeStyle: String
+    let currency: String
+    let usdToCnyRate: Double
     let runningCount: Int
     let completedCount: Int
     let activeSession: SessionSummary?
@@ -199,8 +205,16 @@ struct PulseSnapshot: Codable {
     let window5h: WindowUsageStats
     let windowToday: WindowUsageStats
     let window7d: WindowUsageStats
+    let officialQuota: OfficialQuotaSummary?
     let alertBanner: PulseAlertBanner?
     let dockState: DockLaunchState?
+}
+
+func pulseUserHomePath() -> String {
+    if let envHome = ProcessInfo.processInfo.environment["HOME"], !envHome.isEmpty {
+        return envHome
+    }
+    return FileManager.default.homeDirectoryForCurrentUser.path
 }
 
 func emitEncodableJSON<T: Encodable>(_ value: T) {

@@ -208,8 +208,8 @@ func checkWindowEdgeState(dataDir: String, windowId: String, mode: String, retur
     var restoreX: Double? = nil
     var restoreY: Double? = nil
     if shouldUndock {
-        let targetW: Double = 376
-        let targetH: Double = 356
+        let targetW: Double = PulseConstants.standardHudWidth
+        let targetH: Double = PulseConstants.standardHudHeight
         restoreX = max(s.visibleMinX + 40, min(f.x + (f.width - targetW) * 0.5, s.visibleMaxX - targetW - 40)).rounded()
         restoreY = max(s.visibleMinY + 32, min(f.y + (f.height - targetH) * 0.5, s.visibleMaxY - targetH - 36)).rounded()
     }
